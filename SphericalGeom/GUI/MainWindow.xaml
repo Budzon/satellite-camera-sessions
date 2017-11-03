@@ -1,0 +1,42 @@
+﻿<Window x:Class="GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GUI"
+        mc:Ignorable="d"
+        Title="EarthSatelliteTestApp" Height="350" Width="600">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+            <TextBlock x:Name="textBlock" TextWrapping="Wrap" Text="Satellite(lat(deg), lon(deg), alt/EarthRadius)"/>
+            <TextBox x:Name="satelliteLat" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteLat}"/>
+            <TextBox x:Name="satelliteLon" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteLon}"/>
+            <TextBox x:Name="satelliteElev" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteAltitude}"/>
+            <TextBlock x:Name="textBlock1" TextWrapping="Wrap" Text="HalfAngles of view (deg)"/>
+            <TextBox x:Name="verticalHalfAngle" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteVerticalHalfAngleOfView}"/>
+            <TextBox x:Name="horizontalHalfAngle" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteHorizontalHalfAngleOfView}"/>
+
+        </StackPanel>
+        <StackPanel Grid.Column="1">
+            <TextBlock x:Name="textBlock4" TextWrapping="Wrap" Text="Point(lat(deg), lon(deg))"/>
+            <TextBox x:Name="newPointLat" Height="23" TextWrapping="Wrap" Text="{Binding NewPointLat}"/>
+            <TextBox x:Name="newPointLon" Height="23" TextWrapping="Wrap" Text="{Binding NewPointLon}"/>
+            <Button x:Name="addPointButton" Content="Add point" Height="24" Command="{Binding AddPointCmd}"/>
+            <ListBox x:Name="listOfPoints" Height="158" IsSynchronizedWithCurrentItem="True" SelectedIndex="{Binding SelectedIndex}"/>
+            <Button x:Name="removePointButton" Content="Remove point" Command="{Binding RemovePointCmd}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+            <Button x:Name="checkRegionButton" Content="Region can be seen?" Command="{Binding VerifyIfRegionCanBeSeenCmd}" IsEnabled="{Binding CanPerformCalculation}"/>
+            <TextBlock x:Name="canBeSeen" TextWrapping="Wrap" Text="{Binding RegionCanBeCaptured}"/>
+            <TextBlock x:Name="textBlock2" TextWrapping="Wrap" Text="Vertical and horizontal rotation angles (deg)"/>
+            <TextBlock x:Name="sightDirectionX" TextWrapping="Wrap" Text="{Binding SatelliteSightDirectionAngleShifts}"/>
+            <TextBlock x:Name="textBlock3" TextWrapping="Wrap" Text="Angle about sight direction (deg)"/>
+            <TextBlock x:Name="sightAngle" TextWrapping="Wrap" Text="{Binding SatelliteAngleAboutSightDirection}"/>
+        </StackPanel>
+    </Grid>
+</Window>
