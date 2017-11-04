@@ -3,40 +3,109 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:GUI"
+        xmlns:local="clr-namespace:ViewModel;assembly=ViewModel"
         mc:Ignorable="d"
-        Title="EarthSatelliteTestApp" Height="350" Width="600">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="1*"/>
-        </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0">
-            <TextBlock x:Name="textBlock" TextWrapping="Wrap" Text="Satellite(lat(deg), lon(deg), alt/EarthRadius)"/>
-            <TextBox x:Name="satelliteLat" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteLat}"/>
-            <TextBox x:Name="satelliteLon" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteLon}"/>
-            <TextBox x:Name="satelliteElev" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteAltitude}"/>
-            <TextBlock x:Name="textBlock1" TextWrapping="Wrap" Text="HalfAngles of view (deg)"/>
-            <TextBox x:Name="verticalHalfAngle" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteVerticalHalfAngleOfView}"/>
-            <TextBox x:Name="horizontalHalfAngle" Height="23" TextWrapping="Wrap" Text="{Binding SatelliteHorizontalHalfAngleOfView}"/>
-
+        Title="Satellite Session Explorer" Height="350" Width="600">
+   
+    <Window.Resources>
+        <local:DegreeToRadianConverter x:Key="DegreeToRadianConverter"/>
+        <local:CanComputeToTextConverter x:Key="CanComputeToTextConverter"/>
+    </Window.Resources>
+   
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Background="Aqua" Text="Angles are in degrees. Altitude is in units of Earth radius."/>
         </StackPanel>
-        <StackPanel Grid.Column="1">
-            <TextBlock x:Name="textBlock4" TextWrapping="Wrap" Text="Point(lat(deg), lon(deg))"/>
-            <TextBox x:Name="newPointLat" Height="23" TextWrapping="Wrap" Text="{Binding NewPointLat}"/>
-            <TextBox x:Name="newPointLon" Height="23" TextWrapping="Wrap" Text="{Binding NewPointLon}"/>
-            <Button x:Name="addPointButton" Content="Add point" Height="24" Command="{Binding AddPointCmd}"/>
-            <ListBox x:Name="listOfPoints" Height="158" IsSynchronizedWithCurrentItem="True" SelectedIndex="{Binding SelectedIndex}"/>
-            <Button x:Name="removePointButton" Content="Remove point" Command="{Binding RemovePointCmd}"/>
-        </StackPanel>
-        <StackPanel Grid.Column="2">
-            <Button x:Name="checkRegionButton" Content="Region can be seen?" Command="{Binding VerifyIfRegionCanBeSeenCmd}" IsEnabled="{Binding CanPerformCalculation}"/>
-            <TextBlock x:Name="canBeSeen" TextWrapping="Wrap" Text="{Binding RegionCanBeCaptured}"/>
-            <TextBlock x:Name="textBlock2" TextWrapping="Wrap" Text="Vertical and horizontal rotation angles (deg)"/>
-            <TextBlock x:Name="sightDirectionX" TextWrapping="Wrap" Text="{Binding SatelliteSightDirectionAngleShifts}"/>
-            <TextBlock x:Name="textBlock3" TextWrapping="Wrap" Text="Angle about sight direction (deg)"/>
-            <TextBlock x:Name="sightAngle" TextWrapping="Wrap" Text="{Binding SatelliteAngleAboutSightDirection}"/>
-        </StackPanel>
-    </Grid>
+        
+        
+        <Grid DockPanel.Dock="Bottom">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0">
+                <TextBlock x:Name="textBlock" TextWrapping="Wrap" Text="Satellite (lat, lon, altitude)"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="satelliteLat" TextWrapping="Wrap" Text="{Binding Path=SatelliteLat, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="1" x:Name="satelliteLon" TextWrapping="Wrap" Text="{Binding Path=SatelliteLon, Converter={StaticResource DegreeToRadianConverter}}"/>
+                </Grid>
+                <TextBox x:Name="satelliteElev" TextWrapping="Wrap" Text="{Binding SatelliteAltitude}"/>
+                <TextBlock x:Name="textBlock1" TextWrapping="Wrap" Text="Camera (angles of view)"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="verticalAngle" TextWrapping="Wrap" Text="{Binding SatelliteVerticalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="1" x:Name="horizontalAngle" TextWrapping="Wrap" Text="{Binding SatelliteHorizontalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>
+                </Grid>
+            </StackPanel>
+            
+            
+            <DockPanel Grid.Column="1">
+                <TextBlock DockPanel.Dock="Top" Text="Request ID"/>
+                <TextBox DockPanel.Dock="Top" Text="{Binding RequestId}"/>
+                <Button DockPanel.Dock="Top" x:Name="addRequestButton" Content="Add request" Command="{Binding AddRequestCmd}"/>
+                <Button DockPanel.Dock="Top"  x:Name="removeRequestButton" Content="Remove selected request" Command="{Binding RemoveRequestCmd}"/>
+                <ListBox Name="requests" ItemsSource="{Binding Requests}" SelectedIndex="{Binding SelectedRequest}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Id}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+            
+            
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" x:Name="textBlock4" TextWrapping="Wrap" Text="Surcace point (lat, lon)"/>
+                
+                <Grid DockPanel.Dock="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap" Text="{Binding NewPointLat, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap" Text="{Binding NewPointLon, Converter={StaticResource DegreeToRadianConverter}}"/>
+                </Grid>
+                
+                <Button DockPanel.Dock="Top" x:Name="addPointButton" Content="Add point" Command="{Binding AddPointCmd}"/>
+                <Button DockPanel.Dock="Top"  x:Name="removePointButton" Content="Remove selected point" Command="{Binding RemovePointCmd}"/>
+                
+                <ListBox x:Name="listOfPoints" ItemsSource="{Binding SelectedItem.Polygon, ElementName=requests}" IsSynchronizedWithCurrentItem="True" SelectedIndex="{Binding SelectedPoint}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid HorizontalAlignment="Stretch">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="5"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" TextWrapping="Wrap" Text="{Binding Path=Lat, Converter={StaticResource DegreeToRadianConverter}}"/>
+                                <GridSplitter Grid.Column="1"/>
+                                <TextBlock Grid.Column="2" TextWrapping="Wrap" Text="{Binding Path=Lon, Converter={StaticResource DegreeToRadianConverter}}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+            
+            
+            <StackPanel Grid.Column="3">
+                <Button x:Name="checkRegionButton" Content="Can region be captured?" Command="{Binding VerifyIfRegionCanBeSeenCmd}"/>
+                <TextBlock x:Name="canBeSeen" TextWrapping="Wrap" Text="{Binding RegionCanBeCaptured}"/>
+                <TextBlock x:Name="textBlock2" TextWrapping="Wrap" Text="Pitch, yaw, roll"/>
+                <TextBlock x:Name="satellitePitch" TextWrapping="Wrap" Text="{Binding SatellitePitch, Converter={StaticResource DegreeToRadianConverter}}"/>
+                <TextBlock x:Name="satelliteYaw" TextWrapping="Wrap" Text="{Binding SatelliteYaw, Converter={StaticResource DegreeToRadianConverter}}"/>
+                <TextBlock x:Name="satelliteRoll" TextWrapping="Wrap" Text="{Binding SatelliteRoll, Converter={StaticResource DegreeToRadianConverter}}"/>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
 </Window>

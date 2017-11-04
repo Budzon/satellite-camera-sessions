@@ -25,7 +25,6 @@ namespace GUI
             InitializeComponent();
             var vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            listOfPoints.ItemsSource = vm;
         }
     }
 }
