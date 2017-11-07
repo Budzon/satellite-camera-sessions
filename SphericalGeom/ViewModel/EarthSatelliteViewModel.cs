@@ -10,6 +10,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -146,6 +147,54 @@ namespace ViewModel
                                   System.Globalization.CultureInfo culture)
         {
             return Double.Parse(value.ToString()) * 180 / Math.PI;
+        }
+    }
+
+    public class DoubleInRange : ValidationRule
+    {
+        private double _min;
+        private double _max;
+
+        public DoubleInRange()
+        {
+        }
+
+        public double Min
+        {
+            get { return _min; }
+            set { _min = value; }
+        }
+
+        public double Max
+        {
+            get { return _max; }
+            set { _max = value; }
+        }
+
+        public override ValidationResult Validate(object value,
+            System.Globalization.CultureInfo cultureInfo)
+        {
+            double val = 0;
+
+            try
+            {
+                if (((string)value).Length > 0)
+                    val = Double.Parse((String)value);
+            }
+            catch (Exception e)
+            {
+                return new ValidationResult(false, "Illegal characters or " + e.Message);
+            }
+
+            if ((Min < Max) && ((val < Min) || (val > Max)) || (val < Min) && (Min > Max))
+            {
+                return new ValidationResult(false,
+                  "Must be in range: " + Min + " - " + Max + ".");
+            }
+            else
+            {
+                return new ValidationResult(true, null);
+            }
         }
     }
 

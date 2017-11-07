@@ -33,18 +33,61 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" x:Name="satelliteLat" TextWrapping="Wrap" Text="{Binding Path=SatelliteLat, Converter={StaticResource DegreeToRadianConverter}}"/>
-                    <TextBox Grid.Column="1" x:Name="satelliteLon" TextWrapping="Wrap" Text="{Binding Path=SatelliteLon, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="0" x:Name="satelliteLat" TextWrapping="Wrap">
+                        <TextBox.Text>
+                            <Binding Path="SatelliteLat" Converter="{StaticResource DegreeToRadianConverter}">
+                                <Binding.ValidationRules>
+                                    <local:DoubleInRange Min="-90" Max="90"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
+                    <TextBox Grid.Column="1" x:Name="satelliteLon" TextWrapping="Wrap">
+                        <TextBox.Text>
+                            <Binding Path="SatelliteLon" Converter="{StaticResource DegreeToRadianConverter}">
+                                <Binding.ValidationRules>
+                                    <local:DoubleInRange Min="-180" Max="180"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
                 </Grid>
-                <TextBox x:Name="satelliteElev" TextWrapping="Wrap" Text="{Binding SatelliteAltitude}"/>
+                <TextBox x:Name="satelliteAlt" TextWrapping="Wrap">
+                    <TextBox.Text>
+                        <Binding Path="SatelliteAltitude">
+                            <Binding.ValidationRules>
+                                <local:DoubleInRange Min="0" Max="-1"/>
+                            </Binding.ValidationRules>
+                        </Binding>
+                    </TextBox.Text>
+                </TextBox>
+                <!--<TextBox x:Name="satelliteElev" TextWrapping="Wrap" Text="{Binding SatelliteAltitude}"/>-->
                 <TextBlock x:Name="textBlock1" TextWrapping="Wrap" Text="Camera (angles of view)"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" x:Name="verticalAngle" TextWrapping="Wrap" Text="{Binding SatelliteVerticalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>
-                    <TextBox Grid.Column="1" x:Name="horizontalAngle" TextWrapping="Wrap" Text="{Binding SatelliteHorizontalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="0" x:Name="verticalAngle" TextWrapping="Wrap">
+                        <TextBox.Text>
+                            <Binding Path="SatelliteVerticalAngleOfView" Converter="{StaticResource DegreeToRadianConverter}">
+                                <Binding.ValidationRules>
+                                    <local:DoubleInRange Min="0" Max="180"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
+                    <TextBox Grid.Column="1" x:Name="horizontalAngle" TextWrapping="Wrap">
+                        <TextBox.Text>
+                            <Binding Path="SatelliteHorizontalAngleOfView" Converter="{StaticResource DegreeToRadianConverter}">
+                                <Binding.ValidationRules>
+                                    <local:DoubleInRange Min="0" Max="180"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
+                    <!--<TextBox Grid.Column="0" x:Name="verticalAngle" TextWrapping="Wrap" Text="{Binding SatelliteVerticalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>-->
+                    <!--<TextBox Grid.Column="1" x:Name="horizontalAngle" TextWrapping="Wrap" Text="{Binding SatelliteHorizontalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>-->
                 </Grid>
             </StackPanel>
             
@@ -72,8 +115,26 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap" Text="{Binding NewPointLat, Converter={StaticResource DegreeToRadianConverter}}"/>
-                    <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap" Text="{Binding NewPointLon, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap">
+                        <TextBox.Text>
+                            <Binding Path="NewPointLat" Converter="{StaticResource DegreeToRadianConverter}">
+                                <Binding.ValidationRules>
+                                    <local:DoubleInRange Min="-90" Max="90"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
+                    <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap">
+                        <TextBox.Text>
+                            <Binding Path="NewPointLon" Converter="{StaticResource DegreeToRadianConverter}">
+                                <Binding.ValidationRules>
+                                    <local:DoubleInRange Min="-180" Max="180"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
+                    <!--<TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap" Text="{Binding NewPointLat, Converter={StaticResource DegreeToRadianConverter}}"/>
+                    <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap" Text="{Binding NewPointLon, Converter={StaticResource DegreeToRadianConverter}}"/>-->
                 </Grid>
                 
                 <Button DockPanel.Dock="Top" x:Name="addPointButton" Content="Add point" Command="{Binding AddPointCmd}"/>
