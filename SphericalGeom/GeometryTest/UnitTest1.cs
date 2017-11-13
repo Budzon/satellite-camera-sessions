@@ -111,4 +111,56 @@ namespace GeometryTest
             Assert.IsFalse(res);
         }
     }
+
+    [TestClass]
+    public class TestSphericalGeometryRoutines
+    {
+        private TestContext testContextInstance;
+        public TestContext TestContext
+        {
+            get { return testContextInstance; }
+            set { testContextInstance = value; }
+        }
+
+        [TestMethod]
+        public void TestIntersectSmallArcGreatArc()
+        {
+            double pi = Math.PI;
+            direction3 smallA = new direction3(pi/6, pi/3);
+            direction3 smallB = new direction3(pi/6, -pi/3);
+            direction3 smallCenter = new direction3(pi/2, 0);
+            direction3 greatA = new direction3(pi/6, pi/3);
+            direction3 greatB = new direction3(pi/6, -pi/3);
+            
+            vector3 target1 = new vector3(greatA, 1);
+            vector3 target2 = new vector3(greatB, 1);
+            List<vector3> actual = SphericalGeometryRoutines.IntersectSmallArcGreatArc(
+                new vector3(smallA, 1), new vector3(smallB, 1), new vector3(smallCenter, 0.5),
+                new vector3(greatA, 1), new vector3(greatB, 1));
+            
+            Assert.IsTrue(actual.Count == 2 
+                && CompareVec.AreEqual(target1, actual[0])
+                && CompareVec.AreEqual(target2, actual[1]));
+        }
+
+        [TestMethod]
+        public void TestSolveSLE2x3()
+        {
+            vector3 a1 = new vector3(1, 0, 1);
+            vector3 a2 = new vector3(0, 2, 0);
+            double b1 = 1;
+            double b2 = 1;
+            vector3 target = new vector3(1, 0.5, 0);
+            vector3 actual = SphericalGeometryRoutines.SolveSLE2x3(a1, a2, b1, b2);
+
+            Assert.IsTrue(CompareVec.AreEqual(target, actual));
+        }
+
+        [TestMethod]
+        public void TestSolveQuadraticEquation()
+        {
+            var res = SphericalGeometryRoutines.SolveQuadraticEquation(1, 0, -1);
+            Assert.IsTrue(res.Count == 2 && res[0] == -1 && res[1] == 1);
+        }
+    }
 }

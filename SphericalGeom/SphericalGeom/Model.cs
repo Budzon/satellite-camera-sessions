@@ -93,6 +93,13 @@ namespace SphericalGeom
             return a * (new vector3(b, 1));
         }
 
+        public vector3 Cross(vector3 a)
+        {
+            return new vector3(Y * a.Z - Z * a.Y,
+                               Z * a.X - X * a.Z,
+                               X * a.Y - Y * a.X);
+        }
+
         /* Methods */
         public double Length()
         {
@@ -407,6 +414,89 @@ namespace SphericalGeom
             }
 
             return F(F1, F2, C, t);
+        }
+    }
+    
+    public static class SphericalGeometryRoutines
+    {
+        public static List<vector3> IntersectSmallArcGreatArc(
+            vector3 smallA, vector3 smallB, vector3 smallCenter,
+            vector3 greatA, vector3 greatB)
+        {
+            vector3 smallNormal = (smallA - smallCenter).Cross(smallB - smallCenter);
+            vector3 greatNormal = greatA.Cross(greatB);
+            vector3 dirIntersectSmallPlaneGreatPlane = smallNormal.Cross(greatNormal);
+            vector3 pointOnIntersection = SolveSLE2x3(smallNormal,
+                                                      greatNormal,
+                                                      smallA * smallNormal,
+                                                      0);
+            List<vector3> intersectPlanesOnSphere = 
+                IntersectLineUnitSphere(pointOnIntersection, dirIntersectSmallPlaneGreatPlane);
+            
+            // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
+            List<vector3> innerNormals = new List<vector3>();
+            innerNormals.Add(greatNormal.Cross(greatA));
+            innerNormals.Add(greatB.Cross(greatNormal));
+            innerNormals.Add(smallNormal.Cross(smallA - smallCenter));
+            innerNormals.Add((smallB - smallCenter).Cross(smallNormal));
+
+            return intersectPlanesOnSphere.Where(point => 
+                innerNormals.TrueForAll(normal => 
+                    !Comparison.IsNegative(normal * point))).ToList();
+        }
+
+        public static vector3 SolveSLE2x3(vector3 a1, vector3 a2, double b1, double b2)
+        {
+            double x, y, z;
+            double detXY = a1.X * a2.Y - a1.Y * a2.X;
+            double detXZ = a1.X * a2.Z - a1.Z * a2.X;
+            double detYZ = a1.Y * a2.Z - a1.Z * a2.Y;
+
+            if (!Comparison.IsZero(detXY))
+            {
+                z = 0;
+                x = (b1 * a2.Y - b2 * a1.Y) / detXY;
+                y = (b2 * a1.X - b1 * a2.X) / detXY;
+            }
+            else if (!Comparison.IsZero(detXZ))
+            {
+                y = 0;
+                x = (b1 * a2.Z - b2 * a1.Z) / detXZ;
+                z = (b2 * a1.X - b1 * a2.X) / detXZ;
+            }
+            else if (!Comparison.IsZero(detYZ))
+            {
+                x = 0;
+                y = (b1 * a2.Z - b2 * a1.Z) / detXZ;
+                z = (b2 * a1.Y - b1 * a2.Y) / detXZ;
+            }
+            else
+                throw new System.ArgumentException("System is rank deficient.");
+
+            return new vector3(x, y, z);
+        }
+
+        public static List<double> SolveQuadraticEquation(double a, double b, double c)
+        {
+            List<double> res = new List<double>();
+            double D = b * b - 4 * a * c;
+            if (Comparison.IsPositive(D))
+            {
+                double sqrt = Math.Sqrt(D);
+                res.Add((-b - sqrt) / (2 * a));
+                res.Add((-b + sqrt) / (2 * a));
+            }
+            else if (Comparison.IsZero(D))
+            {
+                res.Add(-b / (2 * a));
+            }
+            return res;
+        }
+
+        public static List<vector3> IntersectLineUnitSphere(vector3 a, vector3 dir)
+        {
+            List<double> parameters = SolveQuadraticEquation(dir * dir, 2 * a * dir, a * a - 1);
+            return parameters.Select(t => a + t * dir).ToList();
         }
     }
 }
