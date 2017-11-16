@@ -310,6 +310,11 @@ namespace SphericalGeom
             return new Tuple<bool, direction3, double>(false, new direction3(), 0);
         }
 
+        //public List<vector3> CaptureWhatIsSeen(ReferenceFrame camSightFrame, double sightAngle, List<vector3> region)
+        //{
+        //    var normals = GetPositiveNormalsToSightBoundaries(camSightFrame, sightAngle);
+
+        //}
 
         /* Private methods */
         private IEnumerable<double> PossibleSightAngles()
@@ -417,32 +422,102 @@ namespace SphericalGeom
         }
     }
     
+    //public struct LabelledVector
+    //{
+    //    public vector3 v;
+    //    public int label;
+    //}
+
+    //public struct GreinerHormannVertex
+    //{
+    //    public vector3 v;
+    //    public double relativePositionOnEdge;
+    //    public bool wasProcessed;
+    //}
+
+    //public class CapturedRegion
+    //{
+    //    private vector3 apex;
+    //    private List<LabelledVector> vertices;
+    //    // Label == 0 means a polygon vertex; label == 1 means an edge vertex
+
+    //    public CapturedRegion(vector3 _apex, List<LabelledVector> _vertices)
+    //    {
+    //        apex = _apex;
+    //        vertices = new List<LabelledVector>();
+    //        foreach (LabelledVector v in _vertices)
+    //            vertices.Add(v);
+    //    }
+    //}
+
     public static class SphericalGeometryRoutines
     {
-        public static List<vector3> IntersectSmallArcGreatArc(
-            vector3 smallA, vector3 smallB, vector3 smallCenter,
-            vector3 greatA, vector3 greatB)
+        //public static CapturedRegion IntersectConeProjectionWithPolygon(
+        //    vector3 apex, List<vector3> normals, List<vector3> polygon)
+        //{
+        //    List<vector3> coneBase = ProjectConeOntoSphere(apex, normals);
+        //    coneBase.Add(coneBase[0]);
+        //    // Input lists are assumed to be circular, i.e. list[0] == list[-1]
+        //    List<List<GreinerHormannVertex>> intersections = new List<List<GreinerHormannVertex>>();
+        //    for (int i = 0; i < coneBase.Count - 1; ++i)
+        //        for (int j = 0; j < polygon.Count - 1; ++j)
+        //            intersections.Add(IntersectSmallArcGreatArc())
+        //}
+
+        public static List<vector3> ProjectConeOntoSphere(vector3 apex, List<vector3> normals)
         {
-            vector3 smallNormal = (smallA - smallCenter).Cross(smallB - smallCenter);
-            vector3 greatNormal = greatA.Cross(greatB);
-            vector3 dirIntersectSmallPlaneGreatPlane = smallNormal.Cross(greatNormal);
-            vector3 pointOnIntersection = SolveSLE2x3(smallNormal,
-                                                      greatNormal,
-                                                      smallA * smallNormal,
-                                                      0);
+            List<vector3> coneEdgeDirections = new List<vector3>();
+            coneEdgeDirections.Add(normals[normals.Count - 1].Cross(normals[0]));
+            for (int i = 1; i < normals.Count; ++i)
+                coneEdgeDirections.Add(normals[i].Cross(normals[i - 1]));
+
+            List<vector3> result = new List<vector3>();
+            foreach (vector3 direction in coneEdgeDirections)
+            {
+                var intersection = IntersectLineUnitSphere(apex, direction);
+                // Assume a good cone: all its edges intersect the unit sphere
+                result.Add(intersection.Where(v => Comparison.IsPositive(apex * v - 1)).ElementAt(0));
+            }
+            return result;
+        }
+
+        public static List<vector3> IntersectTwoSmallArcs(
+            vector3 a1, vector3 b1, vector3 apex1,
+            vector3 a2, vector3 b2, vector3 apex2)
+        {
+
+            vector3 normal1 = (a1 - apex1).Cross(b1 - apex1);
+            vector3 center1 = (a1 * normal1) / (normal1 * normal1) * normal1;
+            vector3 normal2 = (a2 - apex2).Cross(b2 - apex2);
+            vector3 center2 = (a2 * normal2) / (normal2 * normal2) * normal2;
+
+            // Intersect two planes
+            vector3 directionVector = normal1.Cross(normal2);
+            vector3 pointOnIntersection = SolveSLE2x3(normal1,
+                                                      normal2,
+                                                      a1 * normal1,
+                                                      a2 * normal2);
             List<vector3> intersectPlanesOnSphere = 
-                IntersectLineUnitSphere(pointOnIntersection, dirIntersectSmallPlaneGreatPlane);
+                IntersectLineUnitSphere(pointOnIntersection, directionVector);
             
             // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
-            List<vector3> innerNormals = new List<vector3>();
-            innerNormals.Add(greatNormal.Cross(greatA));
-            innerNormals.Add(greatB.Cross(greatNormal));
-            innerNormals.Add(smallNormal.Cross(smallA - smallCenter));
-            innerNormals.Add((smallB - smallCenter).Cross(smallNormal));
-
+            List<vector3> innerNormals = new List<vector3> {normal1.Cross(a1 - center1),     
+                                                            (b1 - center1).Cross(normal1),          
+                                                            normal2.Cross(a2 - center2),       
+                                                            (b2 - center2).Cross(normal2)};
+            
             return intersectPlanesOnSphere.Where(point => 
                 innerNormals.TrueForAll(normal => 
                     !Comparison.IsNegative(normal * point))).ToList();
+        }
+
+        public static List<vector3> IntersectSmallArcGreatArc(
+            vector3 smallA, vector3 smallB, vector3 smallApex,
+            vector3 greatA, vector3 greatB)
+        {
+            return IntersectTwoSmallArcs(
+                smallA, smallB, smallApex,
+                greatA, greatB, new vector3(0, 0, 0));
         }
 
         public static vector3 SolveSLE2x3(vector3 a1, vector3 a2, double b1, double b2)
