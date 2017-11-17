@@ -421,48 +421,409 @@ namespace SphericalGeom
             return F(F1, F2, C, t);
         }
     }
-    
-    //public struct LabelledVector
-    //{
-    //    public vector3 v;
-    //    public int label;
-    //}
 
-    //public struct GreinerHormannVertex
-    //{
-    //    public vector3 v;
-    //    public double relativePositionOnEdge;
-    //    public bool wasProcessed;
-    //}
 
-    //public class CapturedRegion
-    //{
-    //    private vector3 apex;
-    //    private List<LabelledVector> vertices;
-    //    // Label == 0 means a polygon vertex; label == 1 means an edge vertex
+    public class Arc
+    {
+        // Additional points on the arc with their relative distances from A.
+        private List<vector3_keyDouble> intermediatePoints;
 
-    //    public CapturedRegion(vector3 _apex, List<LabelledVector> _vertices)
-    //    {
-    //        apex = _apex;
-    //        vertices = new List<LabelledVector>();
-    //        foreach (LabelledVector v in _vertices)
-    //            vertices.Add(v);
-    //    }
-    //}
+        public vector3 A { get; private set; }
+        public vector3 B { get; private set; }
+        public vector3 Apex { get; private set; }
+        public IEnumerable<vector3> IntermediatePoints
+        {
+            get
+            {
+                return intermediatePoints.Select(p => p.v);
+            }
+        }
+
+        public Arc(vector3 a, vector3 b, vector3 apex)
+        {
+            A = a;
+            B = b;
+            Apex = apex;
+            intermediatePoints = new List<vector3_keyDouble>();
+        }
+
+        public Arc(vector3 a, vector3 b) : this(a, b, new vector3(0, 0, 0)) { }
+
+        public static ICollection<vector3> Intersect(Arc a, Arc b)
+        {
+            return SphericalGeometryRoutines.IntersectTwoSmallArcs(
+                a.A, a.B, a.Apex, b.A, b.B, b.Apex).Select(p => p.v).ToList();
+        }
+
+        public static void UpdateWithIntersections(Arc a, Arc b)
+        {
+            var intersection = SphericalGeometryRoutines.IntersectTwoSmallArcs(
+                a.A, a.B, a.Apex, b.A, b.B, b.Apex);
+            foreach (var p in intersection)
+            {
+                a.intermediatePoints.Add(new vector3_keyDouble(p.v, p.key1));
+                b.intermediatePoints.Add(new vector3_keyDouble(p.v, p.key2));
+            }
+        }
+
+        public ArcChain EmplaceIntermediatePoints()
+        {
+            intermediatePoints.Sort();
+            List<vector3> points = new List<vector3>();
+            points.Add(A);
+            foreach (var point in intermediatePoints)
+                points.Add(point.v);
+            points.Add(B);
+
+            return new ArcChain(points, Apex);
+        }
+
+        public ArcChainWithLabels<T> EmplaceIntermediatePoints<T>(T endLabel, T intermediateLabel)
+        {
+            List<T> labels = new List<T> { endLabel };
+            foreach (var intermediate in intermediatePoints)
+                labels.Add(intermediateLabel);
+            labels.Add(endLabel);
+
+            return EmplaceIntermediatePoints().Labelize<T>(labels);
+        }
+    }
+
+    public class ArcChain
+    {
+        // The n-th apex corresponds to the (n, n+1) arc.
+        // len(vertices) - len(apexes) == 1
+        protected List<vector3> apexes;
+        protected List<vector3> vertices;
+        // Store only unique apexes?
+        //private List<int> arcApexIndex;
+
+        public ICollection<vector3> Apexes { get { return apexes; } }
+        public ICollection<vector3> Vertices { get { return vertices; } }
+        public ICollection<Arc> Arcs
+        {
+            get
+            {
+                List<Arc> arcs = new List<Arc>();
+                for (int i = 0; i < apexes.Count; ++i)
+                    arcs.Add(new Arc(vertices[i], vertices[i+1], apexes[i]));
+                return arcs;
+            }
+        }
+
+        public ArcChain()
+        {
+            apexes = new List<vector3>();
+            vertices = new List<vector3>();
+        }
+
+        public ArcChain(ICollection<vector3> vertices, ICollection<vector3> apexes) : this()
+        {
+            if (vertices.Count - apexes.Count != 1)
+                throw new ArgumentException("Number of points and arcs is incosistent.");
+
+            //this.apexes = new List<vector3>();
+            //this.vertices = new List<vector3>();
+            //arcApexIndex = new List<int>();
+
+            foreach (var point_apex in vertices.Zip(apexes, (point, apex) => Tuple.Create(point, apex)))
+            {
+                this.vertices.Add(point_apex.Item1);
+                this.apexes.Add(point_apex.Item2);
+            }
+        }
+
+        public ArcChain(IEnumerable<vector3> vertices, vector3 apex) : this()
+        {
+            //this.apexes = new List<vector3>();
+            //this.vertices = new List<vector3>();
+            foreach (vector3 point in vertices)
+            {
+                this.apexes.Add(apex);
+                this.vertices.Add(point);
+            }
+            apexes.RemoveAt(apexes.Count - 1);
+        }
+
+        public void Add(vector3 point, vector3 apex)
+        {
+            vertices.Add(point);
+            apexes.Add(apex);
+        }
+
+        public ArcChain Connect(ArcChain tail)
+        {
+            if (vertices[vertices.Count - 1] != tail.vertices[0])
+                throw new ArgumentException("Ends of two chains are different");
+
+            for (int i = 0; i < apexes.Count; ++i)
+                Add(tail.vertices[i + 1], tail.apexes[i]);
+            return this;
+        }
+
+        public void ConnectViaJunction(ArcChain tail, vector3 junctionApex)
+        {
+            Add(tail.vertices[0], junctionApex);
+            for (int i = 0; i < apexes.Count; ++i)
+                Add(tail.vertices[i + 1], tail.apexes[i]);
+        }
+
+        public ArcChainWithLabels<T> Labelize<T>(ICollection<T> labels)
+        {
+            return new ArcChainWithLabels<T>(this, labels);
+        }
+    }
+
+    public class ArcChainWithLabels<T> : ArcChain
+    {
+        private List<T> labels;
+
+        public IEnumerable<T> Labels { get { return labels; } }
+
+        public ArcChainWithLabels(ICollection<vector3> vertices, ICollection<vector3> apexes,
+                                  ICollection<T> labels) : base(vertices, apexes)
+        {
+            if (labels.Count != vertices.Count)
+                throw new ArgumentException("Number of points and labels is incosistent.");
+            
+            this.labels = new List<T>();
+            foreach (T label in labels)
+                this.labels.Add(label);
+        }
+
+        public ArcChainWithLabels(ICollection<vector3> vertices, vector3 apex,
+                                  ICollection<T> labels) : base(vertices, apex)
+        {
+            if (labels.Count != vertices.Count)
+                throw new ArgumentException("Number of points and labels is incosistent.");
+
+            this.labels = new List<T>();
+            foreach (T label in labels)
+                this.labels.Add(label);
+        }
+
+        public ArcChainWithLabels(ArcChain chain, ICollection<T> labels)
+        {
+            if (chain.Vertices.Count != labels.Count)
+                throw new ArgumentException("Number of points and labels is incosistent.");
+
+            base.apexes = chain.Apexes.ToList();
+            base.vertices = chain.Vertices.ToList();
+            
+            this.labels = new List<T>();
+            foreach (T label in labels)
+                this.labels.Add(label);
+        }
+
+        public ArcChainWithLabels<T> Connect(ArcChainWithLabels<T> tail)
+        {
+            base.Connect(tail);
+            foreach (T label in tail.Labels)
+                labels.Add(label);
+            return this;
+        }
+    }
+
+    public class Polygon
+    {
+        // The n-th apex corresponds to the (n, n+1) arc (including (-1, 0)).
+        // len(vertices) == len(apexes)
+        protected List<vector3> apexes;
+        protected List<vector3> vertices;
+
+        public IEnumerable<vector3> Apexes { get { return apexes; } }
+        public IEnumerable<vector3> Vertices { get { return vertices; } }
+        public IEnumerable<Arc> Arcs
+        {
+            get
+            {
+                List<Arc> arcs = new List<Arc>();
+                for (int i = 0; i < vertices.Count; ++i)
+                    arcs.Add(new Arc(vertices[i], vertices[(i + 1) % vertices.Count], apexes[i]));
+                return arcs;
+            }
+        }
+
+        public Polygon(ICollection<vector3> vertices, ICollection<vector3> apexes)
+        {
+            if (vertices.Count != apexes.Count)
+                throw new ArgumentException("Number of points and arcs is incosistent.");
+
+            this.apexes = new List<vector3>();
+            this.vertices = new List<vector3>();
+
+            foreach (var point_apex in vertices.Zip(apexes, (point, apex) => Tuple.Create(point, apex)))
+            {
+                this.vertices.Add(point_apex.Item1);
+                this.apexes.Add(point_apex.Item2);
+            }
+        }
+
+        public Polygon(IEnumerable<vector3> vertices, vector3 apex)
+        {
+            this.apexes = new List<vector3>();
+            this.vertices = new List<vector3>();
+            foreach (vector3 point in vertices)
+            {
+                this.apexes.Add(apex);
+                this.vertices.Add(point);
+            }
+        }
+
+        public bool Contains(vector3 point)
+        {
+            // Ray casting algorithm. Shoot a great semiarc and count intersections.
+
+            // Shoot an arc
+            Random rand = new Random();
+            vector3 displacement = new vector3((rand.NextDouble() - 0.5) * 1e-1,
+                                               (rand.NextDouble() - 0.5) * 1e-1,
+                                               (rand.NextDouble() - 0.5) * 1e-1);
+            Arc halfGreat = new Arc(point, new vector3((displacement - point).Normalized(), 1));
+
+            int numOfIntersections = 0;
+            foreach (Arc arc in Arcs)
+                numOfIntersections += Arc.Intersect(arc, halfGreat).Count;
+            return (numOfIntersections % 2) == 1;
+        }
+
+        private enum pointType { vertex, enter, exit };
+        public static Polygon Intersect(Polygon p, Polygon q)
+        {
+            var pArcs = p.Arcs;
+            var qArcs = q.Arcs;
+
+            foreach (var pArc in pArcs)
+                foreach (var qArc in qArcs)
+                    Arc.UpdateWithIntersections(pArc, qArc);
+
+            ArcChainWithLabels<pointType> pChain = pArcs.
+                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+                Aggregate((head, tail) => head.Connect(tail));
+            ArcChain qChain = qArcs.
+                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+                Aggregate((head, tail) => head.Connect(tail));
+
+            return null;
+        }
+    }
+
+    public struct vector3_keyInt
+    {
+        public vector3 v;
+        public int key;
+    }
+
+    public class vector3_keyDouble : IComparable
+    {
+        public vector3 v;
+        public double key;
+
+        public vector3_keyDouble(vector3 vec, double val)
+        {
+            v = vec;
+            key = val;
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                return 1;
+            var v = obj as vector3_keyDouble;
+            return key.CompareTo(v.key);
+        }
+    }
+
+    public struct vector3_keyDoubleDouble
+    {
+        public vector3 v;
+        public double key1;
+        public double key2;
+
+        public vector3_keyDoubleDouble(vector3 vec, double val1, double val2)
+        {
+            v = vec;
+            key1 = val1;
+            key2 = val2;
+        }
+    }
+
+    public class vector3_GreinerHormann : IComparable
+    {
+        public vector3 v;
+        public double relativePositionOnEdge;
+        public bool wasProcessed;
+
+        public vector3_GreinerHormann(vector3 _v, double _relativePositionOnEdge, bool _wasProcessed)
+        {
+            v = _v;
+            relativePositionOnEdge = _relativePositionOnEdge;
+            wasProcessed = _wasProcessed;
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                return 1;
+            var v = obj as vector3_GreinerHormann;
+            return relativePositionOnEdge.CompareTo(v.relativePositionOnEdge);
+        }
+    }
+
+    public class CapturedRegion
+    {
+        private vector3 apex;
+        private List<vector3_keyInt> vertices;
+        // Label == 0 means a polygon vertex; label == 1 means an edge vertex
+
+        public CapturedRegion(vector3 _apex, List<vector3_keyInt> _vertices)
+        {
+            apex = _apex;
+            vertices = new List<vector3_keyInt>();
+            foreach (var v in _vertices)
+                vertices.Add(v);
+        }
+    }
 
     public static class SphericalGeometryRoutines
     {
-        //public static CapturedRegion IntersectConeProjectionWithPolygon(
-        //    vector3 apex, List<vector3> normals, List<vector3> polygon)
-        //{
-        //    List<vector3> coneBase = ProjectConeOntoSphere(apex, normals);
-        //    coneBase.Add(coneBase[0]);
-        //    // Input lists are assumed to be circular, i.e. list[0] == list[-1]
-        //    List<List<GreinerHormannVertex>> intersections = new List<List<GreinerHormannVertex>>();
-        //    for (int i = 0; i < coneBase.Count - 1; ++i)
-        //        for (int j = 0; j < polygon.Count - 1; ++j)
-        //            intersections.Add(IntersectSmallArcGreatArc())
-        //}
+        public static CapturedRegion IntersectConeProjectionWithPolygon(
+            vector3 apex, List<vector3> normals, List<vector3> polygon)
+        {
+            List<vector3> coneBase = ProjectConeOntoSphere(apex, normals);
+            
+            // Compute pairwise intersections
+            List<vector3_keyDoubleDouble>[,] intersections = new List<vector3_keyDoubleDouble>[coneBase.Count, polygon.Count];
+            for (int i = 0; i < coneBase.Count; ++i)
+                for (int j = 0; j < polygon.Count; ++j)
+                    intersections[i, j] = IntersectSmallArcGreatArc(coneBase[i], coneBase[(i + 1) % coneBase.Count], apex,
+                                                                    polygon[j], polygon[(j + 1) % polygon.Count]).ToList();
+            
+            // Collect intersections on the corresponding edges and sort according to distance
+            List<vector3_GreinerHormann>[] coneBaseEdges = new List<vector3_GreinerHormann>[coneBase.Count];
+            List<vector3_GreinerHormann>[] polygonEdges = new List<vector3_GreinerHormann>[polygon.Count];
+            for (int i = 0; i < coneBase.Count; ++i)
+                for (int j = 0; j < polygon.Count; ++j)
+                {
+                    coneBaseEdges[i].Add(new vector3_GreinerHormann(coneBase[i], 0, false));
+                    coneBaseEdges[i].Concat(intersections[i, j].Select(v_dd => new vector3_GreinerHormann(v_dd.v, v_dd.key1, false)));
+                    polygonEdges[j].Add(new vector3_GreinerHormann(polygon[j], 0, false));
+                    polygonEdges[j].Concat(intersections[i, j].Select(v_dd => new vector3_GreinerHormann(v_dd.v, v_dd.key2, false)));
+                }
+            foreach (var edge in coneBaseEdges)
+                edge.Sort();
+            foreach (var edge in polygonEdges)
+                edge.Sort();
+
+            List<vector3_GreinerHormann> coneBasePoints = coneBaseEdges.Aggregate((x, y) => x.Concat(y).ToList());
+            List<vector3_GreinerHormann> polygonPoints = polygonEdges.Aggregate((x, y) => x.Concat(y).ToList());
+
+            // Mark points as enter/exit
+
+
+            return null;
+        }
+
 
         public static List<vector3> ProjectConeOntoSphere(vector3 apex, List<vector3> normals)
         {
@@ -481,7 +842,8 @@ namespace SphericalGeom
             return result;
         }
 
-        public static List<vector3> IntersectTwoSmallArcs(
+        // Returns intersection points with their relative positions from a1 and a2
+        public static List<vector3_keyDoubleDouble> IntersectTwoSmallArcs(
             vector3 a1, vector3 b1, vector3 apex1,
             vector3 a2, vector3 b2, vector3 apex2)
         {
@@ -506,12 +868,16 @@ namespace SphericalGeom
                                                             normal2.Cross(a2 - center2),       
                                                             (b2 - center2).Cross(normal2)};
             
-            return intersectPlanesOnSphere.Where(point => 
-                innerNormals.TrueForAll(normal => 
-                    !Comparison.IsNegative(normal * point))).ToList();
+            return intersectPlanesOnSphere.
+                   Where(point => 
+                         innerNormals.TrueForAll(normal => 
+                                                 !Comparison.IsNegative(normal * point))).
+                   Select(point => 
+                          new vector3_keyDoubleDouble(point, 1 - point*(a1 - center1), 1 - point*(a2 - center2))).
+                   ToList();
         }
 
-        public static List<vector3> IntersectSmallArcGreatArc(
+        public static List<vector3_keyDoubleDouble> IntersectSmallArcGreatArc(
             vector3 smallA, vector3 smallB, vector3 smallApex,
             vector3 greatA, vector3 greatB)
         {

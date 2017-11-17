@@ -122,26 +122,26 @@ namespace GeometryTest
             set { testContextInstance = value; }
         }
 
-        [TestMethod]
-        public void TestIntersectSmallArcGreatArc()
-        {
-            double pi = Math.PI;
-            direction3 smallA = new direction3(pi/6, pi/3);
-            direction3 smallB = new direction3(pi/6, -pi/3);
-            direction3 smallCenter = new direction3(pi/2, 0);
-            direction3 greatA = new direction3(pi/6, pi/3);
-            direction3 greatB = new direction3(pi/6, -pi/3);
+        //[TestMethod]
+        //public void TestIntersectSmallArcGreatArc()
+        //{
+        //    double pi = Math.PI;
+        //    direction3 smallA = new direction3(pi/6, pi/3);
+        //    direction3 smallB = new direction3(pi/6, -pi/3);
+        //    direction3 smallCenter = new direction3(pi/2, 0);
+        //    direction3 greatA = new direction3(pi/6, pi/3);
+        //    direction3 greatB = new direction3(pi/6, -pi/3);
             
-            vector3 target1 = new vector3(greatA, 1);
-            vector3 target2 = new vector3(greatB, 1);
-            List<vector3> actual = SphericalGeometryRoutines.IntersectSmallArcGreatArc(
-                new vector3(smallA, 1), new vector3(smallB, 1), new vector3(smallCenter, 0.5),
-                new vector3(greatA, 1), new vector3(greatB, 1));
+        //    vector3 target1 = new vector3(greatA, 1);
+        //    vector3 target2 = new vector3(greatB, 1);
+        //    List<vector3> actual = SphericalGeometryRoutines.IntersectSmallArcGreatArc(
+        //        new vector3(smallA, 1), new vector3(smallB, 1), new vector3(smallCenter, 0.5),
+        //        new vector3(greatA, 1), new vector3(greatB, 1));
             
-            Assert.IsTrue(actual.Count == 2 
-                && CompareVec.AreEqual(target1, actual[0])
-                && CompareVec.AreEqual(target2, actual[1]));
-        }
+        //    Assert.IsTrue(actual.Count == 2 
+        //        && CompareVec.AreEqual(target1, actual[0])
+        //        && CompareVec.AreEqual(target2, actual[1]));
+        //}
 
         [TestMethod]
         public void TestSolveSLE2x3()
@@ -161,6 +161,32 @@ namespace GeometryTest
         {
             var res = SphericalGeometryRoutines.SolveQuadraticEquation(1, 0, -1);
             Assert.IsTrue(res.Count == 2 && res[0] == -1 && res[1] == 1);
+        }
+    }
+
+    [TestClass]
+    public class TestPolygon
+    {
+        private TestContext testContextInstance;
+        public TestContext TestContext
+        {
+            get { return testContextInstance; }
+            set { testContextInstance = value; }
+        }
+
+        [TestMethod]
+        public void TestContains()
+        {
+            double pi = Math.PI;
+            direction3 a = new direction3(pi/60, 0);
+            direction3 b = new direction3(-pi/60, pi/100);
+            direction3 c = new direction3(-pi/60, -pi/100);
+            direction3 p = new direction3(pi/59, 0);
+
+            List<vector3> points = new List<vector3>{ new vector3(a, 1), new vector3(b, 1), new vector3(c, 1) };
+
+            var poly = new Polygon(points, new vector3(0, 0, 0));
+            Assert.IsTrue(!poly.Contains(new vector3(p, 1)));
         }
     }
 }
