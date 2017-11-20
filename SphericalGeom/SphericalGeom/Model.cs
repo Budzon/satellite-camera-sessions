@@ -105,6 +105,10 @@ namespace SphericalGeom
         {
             return Math.Sqrt(X * X + Y * Y + Z * Z);
         }
+        public bool IsZero()
+        {
+            return Comparison.IsZero(Length());
+        }
         public direction3 Normalized()
         {
             double lat = Math.Asin(Z / Length());
@@ -426,7 +430,7 @@ namespace SphericalGeom
     public class Arc
     {
         // Additional points on the arc with their relative distances from A.
-        private List<vector3_keyDouble> intermediatePoints;
+        private List<vector3withLabel<Tuple<Double, Int32>>> intermediatePoints;
 
         public vector3 A { get; private set; }
         public vector3 B { get; private set; }
@@ -435,7 +439,7 @@ namespace SphericalGeom
         {
             get
             {
-                return intermediatePoints.Select(p => p.v);
+                return intermediatePoints.Select(p => p.Vector);
             }
         }
 
@@ -444,7 +448,7 @@ namespace SphericalGeom
             A = a;
             B = b;
             Apex = apex;
-            intermediatePoints = new List<vector3_keyDouble>();
+            intermediatePoints = new List<vector3withLabel<Tuple<Double, Int32>>>();
         }
 
         public Arc(vector3 a, vector3 b) : this(a, b, new vector3(0, 0, 0)) { }
@@ -452,17 +456,17 @@ namespace SphericalGeom
         public static ICollection<vector3> Intersect(Arc a, Arc b)
         {
             return SphericalGeometryRoutines.IntersectTwoSmallArcs(
-                a.A, a.B, a.Apex, b.A, b.B, b.Apex).Select(p => p.v).ToList();
+                a.A, a.B, a.Apex, b.A, b.B, b.Apex).Select(p => p.Vector).ToList();
         }
 
-        public static void UpdateWithIntersections(Arc a, Arc b)
+        public static void UpdateWithIntersections(Arc a, Arc b, int label1 = 0, int label2 = 0)
         {
             var intersection = SphericalGeometryRoutines.IntersectTwoSmallArcs(
                 a.A, a.B, a.Apex, b.A, b.B, b.Apex);
             foreach (var p in intersection)
             {
-                a.intermediatePoints.Add(new vector3_keyDouble(p.v, p.key1));
-                b.intermediatePoints.Add(new vector3_keyDouble(p.v, p.key2));
+                a.intermediatePoints.Add(new vector3withLabel<Tuple<Double, Int32>>(p.Vector, Tuple.Create(p.Label.Item1, label1)));
+                b.intermediatePoints.Add(new vector3withLabel<Tuple<Double, Int32>>(p.Vector, Tuple.Create(p.Label.Item2, label2)));
             }
         }
 
@@ -472,10 +476,22 @@ namespace SphericalGeom
             List<vector3> points = new List<vector3>();
             points.Add(A);
             foreach (var point in intermediatePoints)
-                points.Add(point.v);
+                points.Add(point.Vector);
             points.Add(B);
 
             return new ArcChain(points, Apex);
+        }
+
+        public ArcChainWithLabelsInt EmplaceIntermediatePointsWithInt()
+        {
+            intermediatePoints.Sort();
+            var points = new List<vector3withLabel<Int32>>();
+            points.Add(new vector3withLabel<Int32>(A, 0));
+            foreach (var point in intermediatePoints)
+                points.Add(new vector3withLabel<Int32>(point.Vector, point.Label.Item2));
+            points.Add(new vector3withLabel<Int32>(B, 0));
+
+            return new ArcChainWithLabelsInt(new ArcChainWithLabels<Int32>(points, Apex));
         }
 
         public ArcChainWithLabels<T> EmplaceIntermediatePoints<T>(T endLabel, T intermediateLabel)
@@ -499,7 +515,7 @@ namespace SphericalGeom
         //private List<int> arcApexIndex;
 
         public ICollection<vector3> Apexes { get { return apexes; } }
-        public ICollection<vector3> Vertices { get { return vertices; } }
+        public IList<vector3> Vertices { get { return vertices; } }
         public ICollection<Arc> Arcs
         {
             get
@@ -510,6 +526,7 @@ namespace SphericalGeom
                 return arcs;
             }
         }
+        public int VertexCount { get { return vertices.Count; } }
 
         public ArcChain()
         {
@@ -572,13 +589,30 @@ namespace SphericalGeom
         {
             return new ArcChainWithLabels<T>(this, labels);
         }
+
+        public int FirstMatch(int from, int to, vector3 v)
+        {
+            return vertices.FindIndex(from, to - from + 1, p => (p - v).IsZero());
+        }
     }
 
     public class ArcChainWithLabels<T> : ArcChain
     {
-        private List<T> labels;
+        protected List<T> labels;
 
-        public IEnumerable<T> Labels { get { return labels; } }
+        public ICollection<T> Labels { get { return labels; } }
+
+        public ArcChainWithLabels(ArcChainWithLabels<T> chain) : this(chain.Vertices, chain.Apexes, chain.Labels) {}
+
+        public ArcChainWithLabels(ICollection<vector3withLabel<T>> vertices, ICollection<vector3> apexes)
+            : this(vertices.Select<vector3withLabel<T>, vector3>(v => v.Vector).ToList(),
+                   apexes,
+                   vertices.Select<vector3withLabel<T>, T>(v => v.Label).ToList()) { }
+
+        public ArcChainWithLabels(ICollection<vector3withLabel<T>> vertices, vector3 apex)
+            : this(vertices.Select<vector3withLabel<T>, vector3>(v => v.Vector).ToList(),
+                   apex,
+                   vertices.Select<vector3withLabel<T>, T>(v => v.Label).ToList()) { }
 
         public ArcChainWithLabels(ICollection<vector3> vertices, ICollection<vector3> apexes,
                                   ICollection<T> labels) : base(vertices, apexes)
@@ -624,6 +658,27 @@ namespace SphericalGeom
         }
     }
 
+    public class ArcChainWithLabelsInt : ArcChainWithLabels<Int32>
+    {
+        public ArcChainWithLabelsInt(ArcChainWithLabels<Int32> chain) : base(chain) {}
+
+        public void MarkEnterExit(Polygon p)
+        {
+            int type = p.Contains(vertices[0]) ? -1 : 1;
+            for (int i = 1; i < vertices.Count; ++i)
+                if (labels[i] != 0)
+                {
+                    labels[i] *= -1;
+                    type *= -1;
+                }
+        }
+
+        public ArcChainWithLabelsInt Connect(ArcChainWithLabelsInt tail)
+        {
+            return new ArcChainWithLabelsInt(base.Connect(tail));
+        }
+    }
+
     public class Polygon
     {
         // The n-th apex corresponds to the (n, n+1) arc (including (-1, 0)).
@@ -633,7 +688,7 @@ namespace SphericalGeom
 
         public IEnumerable<vector3> Apexes { get { return apexes; } }
         public IEnumerable<vector3> Vertices { get { return vertices; } }
-        public IEnumerable<Arc> Arcs
+        public IList<Arc> Arcs
         {
             get
             {
@@ -693,18 +748,87 @@ namespace SphericalGeom
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
 
-            foreach (var pArc in pArcs)
-                foreach (var qArc in qArcs)
-                    Arc.UpdateWithIntersections(pArc, qArc);
+            for (int i = 0; i < pArcs.Count; ++i)
+                for (int j = 0; j < qArcs.Count; ++j)
+                    Arc.UpdateWithIntersections(pArcs[i], qArcs[j], j+1, i+1);
 
-            ArcChainWithLabels<pointType> pChain = pArcs.
-                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+            ArcChainWithLabelsInt pChain = pArcs.
+                Select(arc => arc.EmplaceIntermediatePointsWithInt()).
                 Aggregate((head, tail) => head.Connect(tail));
-            ArcChain qChain = qArcs.
-                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+            ArcChainWithLabelsInt qChain = qArcs.
+                Select(arc => arc.EmplaceIntermediatePointsWithInt()).
                 Aggregate((head, tail) => head.Connect(tail));
+
+            pChain.MarkEnterExit(q);
+            qChain.MarkEnterExit(p);
+
+            List<vector3> resVertices = new List<vector3>();
+            List<vector3> resApexes = new List<vector3>();
+
+            var pVertices = pChain.Vertices;
+            var qVertices = qChain.Vertices;
+
+            var pWasProcessed = new List<bool>(pChain.Vertices.Select(v => false));
+            var qWasProcessed = new List<bool>(qChain.Vertices.Select(v => false));
+
+            bool inP = true;
+            int curVertex = 0;
+
+            resVertices.Add(pVertices[0]);
+            pWasProcessed[0] = true;
+            pWasProcessed[pWasProcessed.Count - 1] = true;
+
+            while ((inP && !pWasProcessed[curVertex + 1]) || (!inP && !qWasProcessed[curVertex]))
+            {
+                if (inP)
+                    pWasProcessed[curVertex] = true;
+
+                else
+                    qWasProcessed[curVertex] = true;
+            }
 
             return null;
+        }
+    }
+
+    public class vector3withLabel<T> : vector3, IComparable
+    where T : IComparable
+    {
+        public T Label { get; set; }
+        public vector3 Vector { get{return new vector3(X, Y, Z);} }
+
+        public vector3withLabel(vector3 vector, T label)
+        {
+            X = vector.X;
+            Y = vector.Y;
+            Z = vector.Z;
+            Label = label;
+        }
+
+        public vector3withLabel(double x, double y, double z, T label)
+            : base(x, y, z)
+        {
+            Label = label;
+        }
+
+        public vector3withLabel(direction3 direction, double length, T label)
+            : base(direction, length)
+        {
+            Label = label;
+        }
+
+        public vector3withLabel(T label)
+            : base()
+        {
+            Label = label;
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                return 1;
+            var v = obj as vector3withLabel<T>;
+            return Label.CompareTo(v.Label);
         }
     }
 
@@ -843,7 +967,7 @@ namespace SphericalGeom
         }
 
         // Returns intersection points with their relative positions from a1 and a2
-        public static List<vector3_keyDoubleDouble> IntersectTwoSmallArcs(
+        public static List<vector3withLabel<Tuple<Double, Double>>> IntersectTwoSmallArcs(
             vector3 a1, vector3 b1, vector3 apex1,
             vector3 a2, vector3 b2, vector3 apex2)
         {
@@ -872,12 +996,13 @@ namespace SphericalGeom
                    Where(point => 
                          innerNormals.TrueForAll(normal => 
                                                  !Comparison.IsNegative(normal * point))).
-                   Select(point => 
-                          new vector3_keyDoubleDouble(point, 1 - point*(a1 - center1), 1 - point*(a2 - center2))).
+                   Select(point => new vector3withLabel<Tuple<Double, Double>>(point,
+                       Tuple.Create(1 - point*(a1 - center1), 1 - point*(a2 - center2)))
+                         ).
                    ToList();
         }
 
-        public static List<vector3_keyDoubleDouble> IntersectSmallArcGreatArc(
+        public static List<vector3withLabel<Tuple<Double, Double>>> IntersectSmallArcGreatArc(
             vector3 smallA, vector3 smallB, vector3 smallApex,
             vector3 greatA, vector3 greatB)
         {
