@@ -99,6 +99,13 @@ namespace SphericalGeom
                                Z * a.X - X * a.Z,
                                X * a.Y - Y * a.X);
         }
+        public void Normalize()
+        {
+            var l = Length();
+            X /= l;
+            Y /= l;
+            Z /= l;
+        }
 
         /* Methods */
         public double Length()
@@ -263,7 +270,7 @@ namespace SphericalGeom
         /* Properties */
         public vector3 Position
         {
-            get { return position; ; }
+            get { return position; }
             set
             {
                 position = value;
@@ -281,6 +288,14 @@ namespace SphericalGeom
         public double verticalHalfAngleOfView { get; set; }
         public double horizontalHalfAngleOfView { get; set; }
 
+        public List<vector3> NormalsToCone
+        {
+            get
+            {
+                return GetPositiveNormalsToSightBoundaries(camPositionFrame, 0);
+            }
+        }
+
         /* Constructors */
         public Camera(vector3 _position, double _verticalHalfAngleOfView, double _horizontalHalfAngleOfView)
         {
@@ -288,7 +303,7 @@ namespace SphericalGeom
             verticalHalfAngleOfView = _verticalHalfAngleOfView;
             horizontalHalfAngleOfView = _horizontalHalfAngleOfView;
         }
-        public Camera() : this(new direction3(), 1, Math.PI / 6, Math.PI / 6) { }
+        public Camera() : this(new direction3(), 0.2, Math.PI / 6, Math.PI / 6) { }
         public Camera(direction3 direction, double altitude, double _verticalHalfAngleOfView, double _horizontalHalfAngleOfView)
             : this(new vector3(direction, altitude + 1), _verticalHalfAngleOfView, _horizontalHalfAngleOfView)
         { }
@@ -374,8 +389,8 @@ namespace SphericalGeom
             return new List<vector3>()
             {
                 camSightFrame.ToBaseFrame(sa*cv, sv, ca*cv),
-                camSightFrame.ToBaseFrame(-sa*cv, sv, -ca*cv),
                 camSightFrame.ToBaseFrame(ca*ch, sh, -sa*ch),
+                camSightFrame.ToBaseFrame(-sa*cv, sv, -ca*cv),
                 camSightFrame.ToBaseFrame(-ca*ch, sh, sa*ch)
             };
         }
@@ -644,6 +659,14 @@ namespace SphericalGeom
             }
         }
 
+        public vector3 Middle
+        {
+            get
+            {
+                return 1.0 / vertices.Count * vertices.Aggregate((prev, cur) => prev + cur);
+            }
+        }
+
         public Polygon(ICollection<vector3> vertices, ICollection<vector3> apexes)
         {
             if (vertices.Count != apexes.Count)
@@ -672,19 +695,28 @@ namespace SphericalGeom
 
         public bool Contains(vector3 point)
         {
-            // Ray casting algorithm. Shoot a great semiarc and count intersections.
+            if (Middle * point < 0)
+                return false;
 
+            // Ray casting algorithm. Shoot a great semiarc and count intersections.
             // Shoot an arc
             Random rand = new Random();
-            vector3 displacement = new vector3((rand.NextDouble() - 0.5) * 1e-1,
-                                               (rand.NextDouble() - 0.5) * 1e-1,
-                                               (rand.NextDouble() - 0.5) * 1e-1);
-            Arc halfGreat = new Arc(point, new vector3((displacement - point).Normalized(), 1));
+            int res = 0;
+            for (int i = 0; i < 5; ++i)
+            {
+                vector3 displacement = new vector3((rand.NextDouble() - 0.5) * 1e-1,
+                                                   (rand.NextDouble() - 0.5) * 1e-1,
+                                                   (rand.NextDouble() - 0.5) * 1e-1);
+                var point2 = displacement - point;
+                point2.Normalize();
+                Arc halfGreat = new Arc(point, point2);
 
-            int numOfIntersections = 0;
-            foreach (Arc arc in Arcs)
-                numOfIntersections += Arc.Intersect(arc, halfGreat).Count;
-            return (numOfIntersections % 2) == 1;
+                int numOfIntersections = 0;
+                foreach (Arc arc in Arcs)
+                    numOfIntersections += Arc.Intersect(arc, halfGreat).Count;
+                res += (numOfIntersections % 2);
+            }
+            return res >= 2;
         }
 
         private enum pointType { vertex, enter, exit };
@@ -852,67 +884,14 @@ namespace SphericalGeom
         }
     }
 
-    public class CapturedRegion
-    {
-        private vector3 apex;
-        private List<vector3_keyInt> vertices;
-        // Label == 0 means a polygon vertex; label == 1 means an edge vertex
-
-        public CapturedRegion(vector3 _apex, List<vector3_keyInt> _vertices)
-        {
-            apex = _apex;
-            vertices = new List<vector3_keyInt>();
-            foreach (var v in _vertices)
-                vertices.Add(v);
-        }
-    }
-
     public static class SphericalGeometryRoutines
     {
-        public static CapturedRegion IntersectConeProjectionWithPolygon(
-            vector3 apex, List<vector3> normals, List<vector3> polygon)
-        {
-            List<vector3> coneBase = ProjectConeOntoSphere(apex, normals);
-            
-            // Compute pairwise intersections
-            List<vector3_keyDoubleDouble>[,] intersections = new List<vector3_keyDoubleDouble>[coneBase.Count, polygon.Count];
-            for (int i = 0; i < coneBase.Count; ++i)
-                for (int j = 0; j < polygon.Count; ++j)
-                    intersections[i, j] = IntersectSmallArcGreatArc(coneBase[i], coneBase[(i + 1) % coneBase.Count], apex,
-                                                                    polygon[j], polygon[(j + 1) % polygon.Count]).ToList();
-            
-            // Collect intersections on the corresponding edges and sort according to distance
-            List<vector3_GreinerHormann>[] coneBaseEdges = new List<vector3_GreinerHormann>[coneBase.Count];
-            List<vector3_GreinerHormann>[] polygonEdges = new List<vector3_GreinerHormann>[polygon.Count];
-            for (int i = 0; i < coneBase.Count; ++i)
-                for (int j = 0; j < polygon.Count; ++j)
-                {
-                    coneBaseEdges[i].Add(new vector3_GreinerHormann(coneBase[i], 0, false));
-                    coneBaseEdges[i].Concat(intersections[i, j].Select(v_dd => new vector3_GreinerHormann(v_dd.v, v_dd.key1, false)));
-                    polygonEdges[j].Add(new vector3_GreinerHormann(polygon[j], 0, false));
-                    polygonEdges[j].Concat(intersections[i, j].Select(v_dd => new vector3_GreinerHormann(v_dd.v, v_dd.key2, false)));
-                }
-            foreach (var edge in coneBaseEdges)
-                edge.Sort();
-            foreach (var edge in polygonEdges)
-                edge.Sort();
-
-            List<vector3_GreinerHormann> coneBasePoints = coneBaseEdges.Aggregate((x, y) => x.Concat(y).ToList());
-            List<vector3_GreinerHormann> polygonPoints = polygonEdges.Aggregate((x, y) => x.Concat(y).ToList());
-
-            // Mark points as enter/exit
-
-
-            return null;
-        }
-
-
-        public static List<vector3> ProjectConeOntoSphere(vector3 apex, List<vector3> normals)
+        public static Polygon ProjectConeOntoSphere(vector3 apex, List<vector3> normals)
         {
             List<vector3> coneEdgeDirections = new List<vector3>();
             coneEdgeDirections.Add(normals[normals.Count - 1].Cross(normals[0]));
             for (int i = 1; i < normals.Count; ++i)
-                coneEdgeDirections.Add(normals[i].Cross(normals[i - 1]));
+                coneEdgeDirections.Add(normals[i-1].Cross(normals[i]));
 
             List<vector3> result = new List<vector3>();
             foreach (vector3 direction in coneEdgeDirections)
@@ -921,7 +900,7 @@ namespace SphericalGeom
                 // Assume a good cone: all its edges intersect the unit sphere
                 result.Add(intersection.Where(v => Comparison.IsPositive(apex * v - 1)).ElementAt(0));
             }
-            return result;
+            return new Polygon(result, apex);
         }
 
         // Returns intersection points with their relative positions from a1 and a2
@@ -930,9 +909,11 @@ namespace SphericalGeom
             vector3 a2, vector3 b2, vector3 apex2)
         {
 
-            vector3 normal1 = (a1 - apex1).Cross(b1 - apex1);
+            vector3 normal1 = (Comparison.IsSmaller(apex1.Length(), 1) ? a1 - apex1 : apex1 - a1).Cross(b1 - apex1);
+            normal1.Normalize();
             vector3 center1 = (a1 * normal1) / (normal1 * normal1) * normal1;
-            vector3 normal2 = (a2 - apex2).Cross(b2 - apex2);
+            vector3 normal2 = (Comparison.IsSmaller(apex2.Length(), 1) ? a2 - apex2 : apex1 - a2).Cross(b2 - apex2);
+            normal2.Normalize();
             vector3 center2 = (a2 * normal2) / (normal2 * normal2) * normal2;
 
             // Intersect two planes

@@ -4,8 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ViewModel;assembly=ViewModel"
+        xmlns:gui="clr-namespace:GUI"
         mc:Ignorable="d"
-        Title="Satellite Session Explorer" Height="350" Width="600">
+        KeyDown="OnKeyDown"
+        Title="Satellite Session Explorer" Height="400" Width="1000">
    
     <Window.Resources>
         <local:DegreeToRadianConverter x:Key="DegreeToRadianConverter"/>
@@ -16,14 +18,14 @@
         <StackPanel DockPanel.Dock="Top">
             <TextBlock Background="Aqua" Text="Angles are in degrees. Altitude is in units of Earth radius."/>
         </StackPanel>
-        
-        
-        <Grid DockPanel.Dock="Bottom">
+            
+        <Grid DockPanel.Dock="Top">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="3*"/>
             </Grid.ColumnDefinitions>
             
             <StackPanel Grid.Column="0">
@@ -166,7 +168,53 @@
                 <TextBlock x:Name="satellitePitch" TextWrapping="Wrap" Text="{Binding SatellitePitch, Converter={StaticResource DegreeToRadianConverter}}"/>
                 <TextBlock x:Name="satelliteYaw" TextWrapping="Wrap" Text="{Binding SatelliteYaw, Converter={StaticResource DegreeToRadianConverter}}"/>
                 <TextBlock x:Name="satelliteRoll" TextWrapping="Wrap" Text="{Binding SatelliteRoll, Converter={StaticResource DegreeToRadianConverter}}"/>
+                <Button x:Name="plotPolygon" Content="Plot it!" Click="PlotSphere"/>
             </StackPanel>
+
+            
+            <Grid Grid.Column="4"
+                  Background="Black">
+                <Viewport3D
+                    Grid.Column="0" Grid.Row="0"
+                    Name="mainViewport"     
+                    ClipToBounds = "True"  
+                    IsHitTestVisible="false"
+                    RenderOptions.EdgeMode="Aliased">
+                    <Viewport3D.Camera>
+                        <OrthographicCamera x:Name="camera" Width="2"
+                            FarPlaneDistance="10"
+	                        NearPlaneDistance="1." 
+	                        LookDirection="0,0,-1"
+	                        UpDirection="0,1,0"
+	                        Position="0,0,5" />
+                    </Viewport3D.Camera>
+                    <Viewport3D.Children>
+                        <ModelVisual3D x:Name="Light1">
+                            <ModelVisual3D.Content>
+                                <DirectionalLight Color="White" Direction="1, 1, -1" />
+                            </ModelVisual3D.Content>
+                        </ModelVisual3D>
+                        <ModelVisual3D x:Name="Light2">
+                            <ModelVisual3D.Content>
+                                <DirectionalLight Color="White" Direction="-1, 1, -1" />
+                            </ModelVisual3D.Content>
+                        </ModelVisual3D>
+                        <ModelVisual3D x:Name="Light3">
+                            <ModelVisual3D.Content>
+                                <DirectionalLight Color="White" Direction="0,-1,-0.5" />
+                            </ModelVisual3D.Content>
+                        </ModelVisual3D>
+                    </Viewport3D.Children>
+                </Viewport3D>
+                <Canvas
+                    Grid.Column="0"
+                    Grid.Row="0"
+                    Background="Transparent" 
+                    MouseUp="OnViewportMouseUp"  
+                    MouseDown="OnViewportMouseDown"  
+                    MouseMove="OnViewportMouseMove"/>
+            </Grid>     
         </Grid>
+
     </DockPanel>
 </Window>

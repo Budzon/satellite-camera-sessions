@@ -29,7 +29,8 @@ namespace ViewModel
 
     public class EarthSatelliteViewModel : INotifyPropertyChanged
     {
-        private Camera camera = new Camera();
+        private Camera camera;
+        private Polygon coneBase;
 
         private readonly DelegateCommand addRequestCmd;
         private readonly DelegateCommand removeRequestCmd;
@@ -41,6 +42,9 @@ namespace ViewModel
 
         public EarthSatelliteViewModel()
         {
+            camera = new Camera();
+            coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+
             Requests = new Requests();
             //SelectedPoint = -1;
             //SelectedRequest = -1;
@@ -94,12 +98,23 @@ namespace ViewModel
 
         public Requests Requests { get; set; }
 
+        public Polygon CameraConeBase
+        {
+            get
+            {
+                return coneBase;
+            }
+        }
+
         public double SatelliteLat { get; set; }
         public double SatelliteLon { get; set; }
         public double SatelliteAltitude
         {
             get { return camera.Position.Length() - 1; }
-            set { camera.Position = new vector3(new direction3(SatelliteLat, SatelliteLon), value + 1); }
+            set {
+                camera.Position = new vector3(new direction3(SatelliteLat, SatelliteLon), value + 1); 
+                coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+            }
         }
         public double SatelliteVerticalAngleOfView
         {
@@ -118,6 +133,19 @@ namespace ViewModel
         public double NewPointLon { get; set; }
         public double NewPointLat { get; set; }
         public int SelectedPoint { get; set; }
+
+        public bool PointInPolygon(double x, double y, double z)
+        {
+            SphericalGeom.Polygon p = new SphericalGeom.Polygon(
+                Requests[SelectedRequest].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
+                new vector3(0, 0, 0));
+            return p.Contains(new vector3(x, y, z));
+        }
+
+        public bool PointInCamera(double x, double y, double z)
+        {
+            return coneBase.Contains(new vector3(x, y, z));
+        }
 
         public bool RegionCanBeCaptured { get; private set; }
         public double SatelliteRoll { get; private set; }
