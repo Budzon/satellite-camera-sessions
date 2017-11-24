@@ -31,6 +31,8 @@ namespace ViewModel
     {
         private Camera camera;
         private Polygon coneBase;
+        private Polygon curRequest;
+        private Polygon curIntersection;
 
         private readonly DelegateCommand addRequestCmd;
         private readonly DelegateCommand removeRequestCmd;
@@ -98,14 +100,6 @@ namespace ViewModel
 
         public Requests Requests { get; set; }
 
-        public Polygon CameraConeBase
-        {
-            get
-            {
-                return coneBase;
-            }
-        }
-
         public double SatelliteLat { get; set; }
         public double SatelliteLon { get; set; }
         public double SatelliteAltitude
@@ -114,21 +108,45 @@ namespace ViewModel
             set {
                 camera.Position = new vector3(new direction3(SatelliteLat, SatelliteLon), value + 1); 
                 coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+                curIntersection = null;
             }
         }
         public double SatelliteVerticalAngleOfView
         {
             get { return camera.verticalHalfAngleOfView * 2; }
-            set { camera.verticalHalfAngleOfView = value / 2; }
+            set { 
+                camera.verticalHalfAngleOfView = value / 2; 
+                coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+                curIntersection = null;
+            }
         }
         public double SatelliteHorizontalAngleOfView
         {
             get { return camera.horizontalHalfAngleOfView * 2; }
-            set { camera.horizontalHalfAngleOfView = value / 2; }
+            set { 
+                camera.horizontalHalfAngleOfView = value / 2;
+                coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+                curIntersection = null;
+            }
         }
 
         public int RequestId { get; set; }
-        public int SelectedRequest { get; set; }
+        private int selectedRequest;
+        public int SelectedRequest
+        {
+            get
+            {
+                return selectedRequest;
+            }
+            set
+            {
+                selectedRequest = value;
+                curRequest = new SphericalGeom.Polygon(
+                    Requests[value].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
+                    new vector3(0, 0, 0));
+                curIntersection = null;
+            }
+        }
 
         public double NewPointLon { get; set; }
         public double NewPointLat { get; set; }
@@ -136,10 +154,7 @@ namespace ViewModel
 
         public bool PointInPolygon(double x, double y, double z)
         {
-            SphericalGeom.Polygon p = new SphericalGeom.Polygon(
-                Requests[SelectedRequest].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
-                new vector3(0, 0, 0));
-            return p.Contains(new vector3(x, y, z));
+            return curRequest.Contains(new vector3(x, y, z));
         }
 
         public bool PointInCamera(double x, double y, double z)
@@ -147,6 +162,14 @@ namespace ViewModel
             return coneBase.Contains(new vector3(x, y, z));
         }
 
+        public bool PointInIntersection(double x, double y, double z)
+        {
+            if (curIntersection == null)
+                curIntersection = Polygon.Intersect(curRequest, coneBase);
+
+            return curIntersection.Contains(new vector3(x, y, z));
+        }
+        
         public bool RegionCanBeCaptured { get; private set; }
         public double SatelliteRoll { get; private set; }
         public double SatellitePitch { get; private set; }

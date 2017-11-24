@@ -88,8 +88,8 @@ namespace GeometryTest
                 );
 
             vector3 n1 = new vector3(new direction3(Math.PI / 3, Math.PI), 1);
-            vector3 n2 = new vector3(new direction3(-Math.PI / 3, Math.PI), 1);
-            vector3 n3 = new vector3(new direction3(0, 2 * Math.PI / 3), 1);
+            vector3 n3 = new vector3(new direction3(-Math.PI / 3, Math.PI), 1);
+            vector3 n2 = new vector3(new direction3(0, 2 * Math.PI / 3), 1);
             vector3 n4 = new vector3(new direction3(0, -2 * Math.PI / 3), 1);
 
             List<vector3> target = new List<vector3>() { n1, n2, n3, n4 };
@@ -187,6 +187,25 @@ namespace GeometryTest
 
             var poly = new Polygon(points, new vector3(0, 0, 0));
             Assert.IsTrue(!poly.Contains(new vector3(p, 1)));
+        }
+
+        [TestMethod]
+        public void TestIntersect()
+        {
+            double pi = Math.PI;
+            vector3 a = new vector3(new direction3(-pi / 10, -pi / 10), 1);
+            vector3 b = new vector3(new direction3( pi / 10, -pi / 10), 1);
+            vector3 c = new vector3(new direction3( pi / 10,  pi / 10), 1);
+            vector3 d = new vector3(new direction3(-pi / 10,  pi / 10), 1);
+            var p = new Polygon(new List<vector3> { a, b, c, d }, new vector3(0, 0, 0));
+
+            vector3 A = new vector3(new direction3(-pi / 6, -pi / 8), 1);
+            vector3 B = new vector3(new direction3( pi / 5,       0), 1);
+            vector3 C = new vector3(new direction3(-pi / 6,  pi / 8), 1);
+            var q = new Polygon(new List<vector3> { A, B, C }, new vector3(0, 0, 0));
+
+            var r = Polygon.Intersect(p, q);
+            Assert.IsTrue(true);
         }
     }
 }

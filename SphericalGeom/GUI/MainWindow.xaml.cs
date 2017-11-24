@@ -78,7 +78,11 @@ namespace GUI
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
-                if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z))
+                if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
+                }
+                else if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
                 }

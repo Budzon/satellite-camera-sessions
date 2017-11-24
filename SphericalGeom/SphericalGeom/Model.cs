@@ -102,9 +102,12 @@ namespace SphericalGeom
         public void Normalize()
         {
             var l = Length();
-            X /= l;
-            Y /= l;
-            Z /= l;
+            if (Comparison.IsPositive(l))
+            {
+                X /= l;
+                Y /= l;
+                Z /= l;
+            }
         }
 
         /* Methods */
@@ -571,8 +574,8 @@ namespace SphericalGeom
             if (vertices[vertices.Count - 1] != tail.vertices[0])
                 throw new ArgumentException("Ends of two chains are different");
 
-            for (int i = 0; i < apexes.Count; ++i)
-                Add(tail.vertices[i + 1], tail.apexes[i]);
+            for (int i = 1; i < tail.vertices.Count; ++i)
+                Add(tail.vertices[i], tail.apexes[i - 1]);
             return this;
         }
 
@@ -633,8 +636,8 @@ namespace SphericalGeom
         public ArcChainWithLabels<T> Connect(ArcChainWithLabels<T> tail)
         {
             base.Connect(tail);
-            foreach (T label in tail.Labels)
-                labels.Add(label);
+            for (int i = 1; i < tail.labels.Count; ++i)
+                labels.Add(tail.labels[i]);
             return this;
         }
     }
@@ -757,12 +760,24 @@ namespace SphericalGeom
                 foreach (var qArc in qArcs)
                     Arc.UpdateWithIntersections(pArc, qArc);
 
+            //var pp = pArcs.
+            //    Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter));
+            //var pChain = pp.Aggregate((head, tail) => head.Connect(tail));
+
             ArcChainWithLabels<pointType> pChain = pArcs.
                 Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
                 Aggregate((head, tail) => head.Connect(tail));
+            pChain.Vertices.RemoveAt(pChain.Vertices.Count - 1);
+            pChain.Labels.RemoveAt(pChain.Labels.Count - 1);
+            //var qq = qArcs.
+            //    Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter));
+            //var qChain = qq.Aggregate((head, tail) => head.Connect(tail));
+
             ArcChainWithLabels<pointType> qChain = qArcs.
                 Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
                 Aggregate((head, tail) => head.Connect(tail));
+            qChain.Vertices.RemoveAt(qChain.Vertices.Count - 1);
+            qChain.Labels.RemoveAt(qChain.Labels.Count - 1);
 
             var vert = new IList<vector3>[2] { pChain.Vertices, qChain.Vertices };
             var type = new IList<pointType>[2] { pChain.Labels, qChain.Labels };
@@ -791,18 +806,21 @@ namespace SphericalGeom
             int curChain = 0;
             int curInd = 0;
             int dir;
+            int newInd;
 
             while (type[curChain][curInd] == pointType.vertex)
                 ++curInd;
 
             resVert.Add(vert[curChain][curInd]);
             visited[curChain][curInd] = true;
+            visited[(curChain + 1) % 2][vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd])] = true;
             dir = Dir(type[curChain][curInd]);
+            newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
 
-            while (!visited[curChain][(curInd + dir) % visited[curChain].Count])
+            while (!visited[curChain][newInd])
             {
-                resApex.Add(apex[curChain][curInd]);
-                curInd = (curInd + dir) % visited[curChain].Count;
+                resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
+                curInd = newInd;
                 visited[curChain][curInd] = true;
                 resVert.Add(vert[curChain][curInd]);
                 
@@ -811,12 +829,15 @@ namespace SphericalGeom
                     // Slow search!
                     curInd = vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd]);
                     curChain = (curChain + 1) % 2;
+                    //curInd = (curInd + visited[curChain].Count) % visited[curChain].Count;
                     visited[curChain][curInd] = true;
                     dir = Dir(type[curChain][curInd]);
                 }
+
+                newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
             }
 
-            resApex.Add(apex[curChain][curInd]);
+            resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
 
             return new Polygon(resVert, resApex);
         }
@@ -911,10 +932,10 @@ namespace SphericalGeom
 
             vector3 normal1 = (Comparison.IsSmaller(apex1.Length(), 1) ? a1 - apex1 : apex1 - a1).Cross(b1 - apex1);
             normal1.Normalize();
-            vector3 center1 = (a1 * normal1) / (normal1 * normal1) * normal1;
-            vector3 normal2 = (Comparison.IsSmaller(apex2.Length(), 1) ? a2 - apex2 : apex1 - a2).Cross(b2 - apex2);
+            vector3 center1 = (a1 * normal1) * normal1;
+            vector3 normal2 = (Comparison.IsSmaller(apex2.Length(), 1) ? a2 - apex2 : apex2 - a2).Cross(b2 - apex2);
             normal2.Normalize();
-            vector3 center2 = (a2 * normal2) / (normal2 * normal2) * normal2;
+            vector3 center2 = (a2 * normal2) * normal2;
 
             // Intersect two planes
             vector3 directionVector = normal1.Cross(normal2);
