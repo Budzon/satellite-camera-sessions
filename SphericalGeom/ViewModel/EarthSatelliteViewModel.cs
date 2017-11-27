@@ -218,7 +218,7 @@ namespace ViewModel
                               object parameter,
                               System.Globalization.CultureInfo culture)
         {
-            return Double.Parse(value.ToString()) / 180 * Math.PI;
+            return Double.Parse(value.ToString(), culture) / 180 * Math.PI;
         }
 
         public object Convert(object value,
@@ -226,7 +226,7 @@ namespace ViewModel
                                   object parameter,
                                   System.Globalization.CultureInfo culture)
         {
-            return Double.Parse(value.ToString()) * 180 / Math.PI;
+            return ((double)value * 180 / Math.PI).ToString(culture);
         }
     }
 

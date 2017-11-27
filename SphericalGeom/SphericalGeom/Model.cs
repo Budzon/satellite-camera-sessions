@@ -698,7 +698,7 @@ namespace SphericalGeom
 
         public bool Contains(vector3 point)
         {
-            if (Middle * point < 0)
+            if (vertices.Count == 0 || Middle * point < 0)
                 return false;
 
             // Ray casting algorithm. Shoot a great semiarc and count intersections.
@@ -783,7 +783,8 @@ namespace SphericalGeom
             var type = new IList<pointType>[2] { pChain.Labels, qChain.Labels };
             var apex = new IList<vector3>[2] {pChain.Apexes, qChain.Apexes};
 
-            pointType curType = q.Contains(vert[0][0]) ? pointType.exit : pointType.enter;
+            bool pInQ = q.Contains(vert[0][0]);
+            pointType curType =  pInQ ? pointType.exit : pointType.enter;
             for (int i = 0; i < vert[0].Count; ++i)
                 if (type[0][i] != pointType.vertex)
                 {
@@ -791,7 +792,8 @@ namespace SphericalGeom
                     curType = Not(curType);
                 }
 
-            curType = p.Contains(vert[1][0]) ? pointType.exit : pointType.enter;
+            bool qInP = p.Contains(vert[1][0]);
+            curType = qInP ? pointType.exit : pointType.enter;
             for (int i = 0; i < vert[1].Count; ++i)
                 if (type[1][i] != pointType.vertex)
                 {
@@ -807,6 +809,17 @@ namespace SphericalGeom
             int curInd = 0;
             int dir;
             int newInd;
+
+            // No arc intersections, i.e. one is within the other or do not overlap at all
+            if (type[0].All(t => t == pointType.vertex))
+            {
+                if (pInQ)
+                    return p;
+                else if (qInP)
+                    return q;
+                else
+                    return new Polygon(new List<vector3>(), new vector3());
+            }
 
             while (type[curChain][curInd] == pointType.vertex)
                 ++curInd;
