@@ -42,18 +42,35 @@ namespace ViewModel
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private void UpdateConeBase()
+        {
+            coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+            curIntersection = null;
+        }
+
+        private void UpdateCurRequest()
+        {
+            if (SelectedRequest > -1)
+                curRequest = new SphericalGeom.Polygon(
+                    Requests[SelectedRequest].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
+                    new vector3(0, 0, 0));
+            else
+                curRequest = null;
+            curIntersection = null;
+        }
+
         public EarthSatelliteViewModel()
         {
             camera = new Camera();
-            coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+            UpdateConeBase();
 
             Requests = new Requests();
-            //SelectedPoint = -1;
-            //SelectedRequest = -1;
 
             addRequestCmd = new DelegateCommand(_ =>
             {
                 Requests.Add(new Request(RequestId));
+                SelectedRequest = Requests.Count - 1;
+                RaisePropertyChanged("SelectedRequest");
                 RequestId = 0;
                 RaisePropertyChanged("RequestId");
             });
@@ -66,6 +83,7 @@ namespace ViewModel
             addPointCmd = new DelegateCommand(_ =>
             {
                 Requests.ElementAt(SelectedRequest).Polygon.Add(new SurfacePoint(NewPointLat, NewPointLon));
+                UpdateCurRequest();
                 NewPointLon = 0;
                 NewPointLat = 0;
                 RaisePropertyChanged("NewPointLon");
@@ -75,6 +93,7 @@ namespace ViewModel
             removePointCmd = new DelegateCommand(_ =>
             {
                 Requests.ElementAt(SelectedRequest).Polygon.RemoveAt(SelectedPoint);
+                UpdateCurRequest();
             }, _ => { return (SelectedRequest != -1 && SelectedPoint != -1); });
 
             verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
@@ -100,24 +119,38 @@ namespace ViewModel
 
         public Requests Requests { get; set; }
 
-        public double SatelliteLat { get; set; }
-        public double SatelliteLon { get; set; }
+        public double SatelliteLat
+        {
+            get { return camera.PositionDirection.Lat; }
+            set
+            {
+                camera.Position = new vector3(new direction3(value, SatelliteLon), SatelliteAltitude + 1);
+                UpdateConeBase();
+            }
+        }
+        public double SatelliteLon
+        {
+            get { return camera.PositionDirection.Lon; }
+            set
+            {
+                camera.Position = new vector3(new direction3(SatelliteLat, value), SatelliteAltitude + 1);
+                UpdateConeBase();
+            }
+        }
         public double SatelliteAltitude
         {
             get { return camera.Position.Length() - 1; }
             set {
-                camera.Position = new vector3(new direction3(SatelliteLat, SatelliteLon), value + 1); 
-                coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
-                curIntersection = null;
+                camera.Position = new vector3(new direction3(SatelliteLat, SatelliteLon), value + 1);
+                UpdateConeBase();
             }
         }
         public double SatelliteVerticalAngleOfView
         {
             get { return camera.verticalHalfAngleOfView * 2; }
             set { 
-                camera.verticalHalfAngleOfView = value / 2; 
-                coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
-                curIntersection = null;
+                camera.verticalHalfAngleOfView = value / 2;
+                UpdateConeBase();
             }
         }
         public double SatelliteHorizontalAngleOfView
@@ -125,8 +158,7 @@ namespace ViewModel
             get { return camera.horizontalHalfAngleOfView * 2; }
             set { 
                 camera.horizontalHalfAngleOfView = value / 2;
-                coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
-                curIntersection = null;
+                UpdateConeBase();
             }
         }
 
@@ -141,10 +173,7 @@ namespace ViewModel
             set
             {
                 selectedRequest = value;
-                curRequest = new SphericalGeom.Polygon(
-                    Requests[value].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
-                    new vector3(0, 0, 0));
-                curIntersection = null;
+                UpdateCurRequest();
             }
         }
 

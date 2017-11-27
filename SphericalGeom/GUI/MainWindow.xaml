@@ -99,7 +99,7 @@
                 <TextBox DockPanel.Dock="Top" Text="{Binding RequestId}"/>
                 <Button DockPanel.Dock="Top" x:Name="addRequestButton" Content="Add request" Command="{Binding AddRequestCmd}"/>
                 <Button DockPanel.Dock="Top"  x:Name="removeRequestButton" Content="Remove selected request" Command="{Binding RemoveRequestCmd}"/>
-                <ListBox Name="requests" ItemsSource="{Binding Requests}" SelectedIndex="{Binding SelectedRequest}">
+                <ListBox Name="requests" ItemsSource="{Binding Requests}" SelectedIndex="{Binding SelectedRequest}" IsSynchronizedWithCurrentItem="True">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Path=Id}"/>
