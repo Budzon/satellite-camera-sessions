@@ -230,7 +230,7 @@ namespace ViewModel
             try
             {
                 if (((string)value).Length > 0)
-                    val = Double.Parse((String)value);
+                    val = Double.Parse((String)value, cultureInfo);
             }
             catch (Exception e)
             {
