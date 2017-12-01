@@ -1,9 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SessionsPlanningLib", "SessionsPlanning\SessionsPlanningLib.csproj", "{7FE86E12-C04E-454C-A2D7-00D175F9B11B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E7852796-4F76-4C51-8974-E4B55254316E} = {E7852796-4F76-4C51-8974-E4B55254316E}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astronomy", "Astronomy\Astronomy.csproj", "{E7852796-4F76-4C51-8974-E4B55254316E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

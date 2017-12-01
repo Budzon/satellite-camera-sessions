@@ -18,6 +18,7 @@ using System.Windows.Media.Imaging;
 
 using SphericalGeom;
 using SatelliteRequests;
+using SatelliteTrajectory;
 
 namespace ViewModel
 {
@@ -33,6 +34,7 @@ namespace ViewModel
         private Polygon coneBase;
         private Polygon curRequest;
         private Polygon curIntersection;
+        public SatTrajectory trajectory;
 
         private readonly DelegateCommand addRequestCmd;
         private readonly DelegateCommand removeRequestCmd;
@@ -64,8 +66,8 @@ namespace ViewModel
             camera = new Camera();
             UpdateConeBase();
 
-            Requests = new Requests();
-
+            Requests = new Requests(); 
+            DatFileName = "progress.dat";
             addRequestCmd = new DelegateCommand(_ =>
             {
                 Requests.Add(new Request(RequestId));
@@ -180,6 +182,7 @@ namespace ViewModel
         public double NewPointLon { get; set; }
         public double NewPointLat { get; set; }
         public int SelectedPoint { get; set; }
+        public string DatFileName { get; set; }
 
         public bool PointInPolygon(double x, double y, double z)
         {
