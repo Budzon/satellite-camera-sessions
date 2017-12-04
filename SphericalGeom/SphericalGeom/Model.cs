@@ -737,22 +737,115 @@ namespace SphericalGeom
                     return pointType.vertex;
             }
         }
-        private static int Dir(pointType t)
+        private static int Dir(pointType t, bool traverseForward)
         {
             switch (t)
             {
                 case pointType.enter:
-                    return 1;
+                    return traverseForward ? 1 : -1;
                 case pointType.exit:
-                    return -1;
+                    return traverseForward ? -1 : 1;
                 case pointType.vertex:
                     return 0;
                 default:
                     return 0;
             }
         }
-        public static Polygon Intersect(Polygon p, Polygon q)
+        private static int NextUnvisitedIntersection(IList<pointType> type, IList<bool> visited)
         {
+            int ind = 0;
+            while ((ind < type.Count) && ((type[ind] == pointType.vertex) || visited[ind]))
+                ++ind;
+            return ind == type.Count ? -1 : ind;
+        }
+        private static IList<Polygon> Traverse(IList<vector3>[] vert, 
+                                               IList<pointType>[] type, 
+                                               IList<vector3>[] apex, 
+                                               bool[] traverseForward)
+        {
+            var resPoly = new List<Polygon>();
+            var visited = new List<bool>[2] { vert[0].Select(v => false).ToList(), vert[1].Select(v => false).ToList() };
+            var resVert = new List<vector3>();
+            var resApex = new List<vector3>();
+
+            int curChain = 0, dir, curInd, newInd;
+            curInd = NextUnvisitedIntersection(type[curChain], visited[curChain]);
+            while (curInd != -1)
+            {
+                resVert.Add(vert[curChain][curInd]);
+                visited[curChain][curInd] = true;
+                visited[(curChain + 1) % 2][vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd])] = true;
+                dir = Dir(type[curChain][curInd], traverseForward[curChain]);
+                newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
+
+                while (!visited[curChain][newInd])
+                {
+                    resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
+                    curInd = newInd;
+                    visited[curChain][curInd] = true;
+                    resVert.Add(vert[curChain][curInd]);
+
+                    if (type[curChain][curInd] != pointType.vertex)
+                    {
+                        // Slow search!
+                        curInd = vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd]);
+                        curChain = (curChain + 1) % 2;
+                        visited[curChain][curInd] = true;
+                        dir = Dir(type[curChain][curInd], traverseForward[curChain]);
+                    }
+
+                    newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
+                }
+                resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
+
+                resPoly.Add(new Polygon(resVert, resApex));
+                resVert.Clear();
+                resApex.Clear();
+                curChain = 0;
+                curInd = NextUnvisitedIntersection(type[curChain], visited[curChain]);
+            }
+            return resPoly;
+
+            ////int curChain = 0;
+            ////int curInd = 0;
+            ////int dir;
+            ////int newInd;
+
+            //while (type[curChain][curInd] == pointType.vertex)
+            //    ++curInd;
+
+            //resVert.Add(vert[curChain][curInd]);
+            //visited[curChain][curInd] = true;
+            //visited[(curChain + 1) % 2][vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd])] = true;
+            //dir = Dir(type[curChain][curInd], traverseForward[curChain]);
+            //newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
+
+            //while (!visited[curChain][newInd])
+            //{
+            //    resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
+            //    curInd = newInd;
+            //    visited[curChain][curInd] = true;
+            //    resVert.Add(vert[curChain][curInd]);
+
+            //    if (type[curChain][curInd] != pointType.vertex)
+            //    {
+            //        // Slow search!
+            //        curInd = vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd]);
+            //        curChain = (curChain + 1) % 2;
+            //        visited[curChain][curInd] = true;
+            //        dir = Dir(type[curChain][curInd], traverseForward[curChain]);
+            //    }
+
+            //    newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
+            //}
+
+            //resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
+
+            //return new Polygon(resVert, resApex);
+        }
+        public static IList<Polygon> Intersect(Polygon p, Polygon q)
+        {
+            var intersectionAndDifference = new List<Polygon>();
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
 
@@ -760,18 +853,11 @@ namespace SphericalGeom
                 foreach (var qArc in qArcs)
                     Arc.UpdateWithIntersections(pArc, qArc);
 
-            //var pp = pArcs.
-            //    Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter));
-            //var pChain = pp.Aggregate((head, tail) => head.Connect(tail));
-
             ArcChainWithLabels<pointType> pChain = pArcs.
                 Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
                 Aggregate((head, tail) => head.Connect(tail));
             pChain.Vertices.RemoveAt(pChain.Vertices.Count - 1);
             pChain.Labels.RemoveAt(pChain.Labels.Count - 1);
-            //var qq = qArcs.
-            //    Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter));
-            //var qChain = qq.Aggregate((head, tail) => head.Connect(tail));
 
             ArcChainWithLabels<pointType> qChain = qArcs.
                 Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
@@ -801,58 +887,20 @@ namespace SphericalGeom
                     curType = Not(curType);
                 }
 
-            var visited = new List<bool>[2] { vert[0].Select(v => false).ToList(), vert[1].Select(v => false).ToList() };
-            var resVert = new List<vector3>();
-            var resApex = new List<vector3>();
-
-            int curChain = 0;
-            int curInd = 0;
-            int dir;
-            int newInd;
-
             // No arc intersections, i.e. one is within the other or do not overlap at all
             if (type[0].All(t => t == pointType.vertex))
             {
                 if (pInQ)
-                    return p;
-                else if (qInP)
-                    return q;
-                else
-                    return new Polygon(new List<vector3>(), new vector3());
+                    intersectionAndDifference.Add(p);
+                else if (qInP) //TODO: handle non-simply connected difference
+                    intersectionAndDifference.Add(q);
             }
-
-            while (type[curChain][curInd] == pointType.vertex)
-                ++curInd;
-
-            resVert.Add(vert[curChain][curInd]);
-            visited[curChain][curInd] = true;
-            visited[(curChain + 1) % 2][vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd])] = true;
-            dir = Dir(type[curChain][curInd]);
-            newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
-
-            while (!visited[curChain][newInd])
+            else
             {
-                resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
-                curInd = newInd;
-                visited[curChain][curInd] = true;
-                resVert.Add(vert[curChain][curInd]);
-                
-                if (type[curChain][curInd] != pointType.vertex)
-                {
-                    // Slow search!
-                    curInd = vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd]);
-                    curChain = (curChain + 1) % 2;
-                    //curInd = (curInd + visited[curChain].Count) % visited[curChain].Count;
-                    visited[curChain][curInd] = true;
-                    dir = Dir(type[curChain][curInd]);
-                }
-
-                newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
+                intersectionAndDifference.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
+                intersectionAndDifference.AddRange(Traverse(vert, type, apex, new bool[2] { false, true }));
             }
-
-            resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
-
-            return new Polygon(resVert, resApex);
+            return intersectionAndDifference;
         }
     }
 

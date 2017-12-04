@@ -35,6 +35,7 @@ namespace ViewModel
         private Polygon curRequest;
         private Polygon curIntersection;
         public SatTrajectory trajectory;
+        private List<Polygon> curDifference;
 
         private readonly DelegateCommand addRequestCmd;
         private readonly DelegateCommand removeRequestCmd;
@@ -46,24 +47,27 @@ namespace ViewModel
 
         private void UpdateConeBase()
         {
-            coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
             curIntersection = null;
+            curDifference.Clear();
+            coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
         }
 
         private void UpdateCurRequest()
         {
+            curIntersection = null;
+            curDifference.Clear();
             if (SelectedRequest > -1)
                 curRequest = new SphericalGeom.Polygon(
                     Requests[SelectedRequest].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
                     new vector3(0, 0, 0));
             else
                 curRequest = null;
-            curIntersection = null;
         }
 
         public EarthSatelliteViewModel()
         {
             camera = new Camera();
+            curDifference = new List<Polygon>();
             UpdateConeBase();
 
             Requests = new Requests(); 
@@ -197,9 +201,14 @@ namespace ViewModel
         public bool PointInIntersection(double x, double y, double z)
         {
             if (curIntersection == null)
-                curIntersection = Polygon.Intersect(curRequest, coneBase);
-
-            return curIntersection.Contains(new vector3(x, y, z));
+            { 
+                var tmp = Polygon.Intersect(curRequest, coneBase);
+                curIntersection = tmp[0];
+                tmp.RemoveAt(0);
+                curDifference = tmp.ToList();
+            }
+            var v = new vector3(x, y, z);
+            return curDifference.Any(p => p.Contains(v));
         }
         
         public bool RegionCanBeCaptured { get; private set; }
