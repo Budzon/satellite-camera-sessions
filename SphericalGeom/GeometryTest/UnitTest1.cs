@@ -204,7 +204,7 @@ namespace GeometryTest
             vector3 C = new vector3(new direction3(-pi / 6,  pi / 8), 1);
             var q = new Polygon(new List<vector3> { A, B, C }, new vector3(0, 0, 0));
 
-            var r = Polygon.Intersect(p, q);
+            var r = Polygon.IntersectAndSubtract(p, q);
             Assert.IsTrue(true);
         }
     }

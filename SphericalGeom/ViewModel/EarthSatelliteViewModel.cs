@@ -33,9 +33,11 @@ namespace ViewModel
         private Camera camera;
         private Polygon coneBase;
         private Polygon curRequest;
-        private Polygon curIntersection;
+        private List<Polygon> curIntersection;
         public SatTrajectory trajectory;
         private List<Polygon> curDifference;
+
+        private bool hasChanged;
 
         private readonly DelegateCommand addRequestCmd;
         private readonly DelegateCommand removeRequestCmd;
@@ -47,14 +49,16 @@ namespace ViewModel
 
         private void UpdateConeBase()
         {
-            curIntersection = null;
+            hasChanged = true;
+            curIntersection.Clear();
             curDifference.Clear();
             coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
         }
 
         private void UpdateCurRequest()
         {
-            curIntersection = null;
+            hasChanged = true;
+            curIntersection.Clear();
             curDifference.Clear();
             if (SelectedRequest > -1)
                 curRequest = new SphericalGeom.Polygon(
@@ -67,6 +71,7 @@ namespace ViewModel
         public EarthSatelliteViewModel()
         {
             camera = new Camera();
+            curIntersection = new List<Polygon>();
             curDifference = new List<Polygon>();
             UpdateConeBase();
 
@@ -200,12 +205,25 @@ namespace ViewModel
 
         public bool PointInIntersection(double x, double y, double z)
         {
-            if (curIntersection == null)
-            { 
-                var tmp = Polygon.Intersect(curRequest, coneBase);
-                curIntersection = tmp[0];
-                tmp.RemoveAt(0);
-                curDifference = tmp.ToList();
+            if (hasChanged)
+            {
+                hasChanged = false;
+                var tmp = Polygon.IntersectAndSubtract(curRequest, coneBase);
+                curIntersection = tmp.Item1.ToList();
+                curDifference = tmp.Item2.ToList();
+            }
+            var v = new vector3(x, y, z);
+            return curIntersection.Any(p => p.Contains(v));
+        }
+
+        public bool PointInDifference(double x, double y, double z)
+        {
+            if (hasChanged)
+            {
+                hasChanged = false;
+                var tmp = Polygon.IntersectAndSubtract(curRequest, coneBase);
+                curIntersection = tmp.Item1.ToList();
+                curDifference = tmp.Item2.ToList();
             }
             var v = new vector3(x, y, z);
             return curDifference.Any(p => p.Contains(v));

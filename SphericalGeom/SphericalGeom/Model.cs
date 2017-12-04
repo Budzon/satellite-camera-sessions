@@ -93,6 +93,8 @@ namespace SphericalGeom
             return a * (new vector3(b, 1));
         }
 
+        public static vector3 Origin { get { return new vector3(0, 0, 0); } }
+
         public vector3 Cross(vector3 a)
         {
             return new vector3(Y * a.Z - Z * a.Y,
@@ -696,6 +698,17 @@ namespace SphericalGeom
             }
         }
 
+        public IList<Polygon> Shatter(vector3 mid)
+        {
+            var res = new List<Polygon>();
+            res.Add(new Polygon(new List<vector3> { mid, vertices[vertices.Count - 1], vertices[0] },
+                                new List<vector3> { vector3.Origin, apexes[apexes.Count - 1], vector3.Origin }));
+            for (int i = 0; i < vertices.Count - 1; ++i)
+                res.Add(new Polygon(new List<vector3> { mid, vertices[i], vertices[i+1] },
+                                    new List<vector3> { vector3.Origin, apexes[i], vector3.Origin }));
+            return res;
+        }
+
         public bool Contains(vector3 point)
         {
             if (vertices.Count == 0 || Middle * point < 0)
@@ -843,9 +856,10 @@ namespace SphericalGeom
 
             //return new Polygon(resVert, resApex);
         }
-        public static IList<Polygon> Intersect(Polygon p, Polygon q)
+        public static Tuple<IList<Polygon>, IList<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
         {
-            var intersectionAndDifference = new List<Polygon>();
+            var intersection = new List<Polygon>();
+            var difference = new List<Polygon>();
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
 
@@ -891,23 +905,27 @@ namespace SphericalGeom
             if (type[0].All(t => t == pointType.vertex))
             {
                 if (pInQ)
-                    intersectionAndDifference.Add(p);
-                else if (qInP) //TODO: handle non-simply connected difference
-                    intersectionAndDifference.Add(q);
+                    intersection.Add(p);
+                else if (qInP)
+                {
+                    var pieces = p.Shatter(q.Middle);
+                    foreach (var piece in pieces)
+                    {
+                        var intersectionAndDifference = Polygon.IntersectAndSubtract(piece, q);
+                        intersection.AddRange(intersectionAndDifference.Item1);
+                        difference.AddRange(intersectionAndDifference.Item2);
+                    }
+                }
+                else
+                    difference.Add(p);
             }
             else
             {
-                intersectionAndDifference.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
-                intersectionAndDifference.AddRange(Traverse(vert, type, apex, new bool[2] { false, true }));
+                intersection.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
+                difference.AddRange(Traverse(vert, type, apex, new bool[2] { false, true }));
             }
-            return intersectionAndDifference;
+            return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
-    }
-
-    public struct vector3_keyInt
-    {
-        public vector3 v;
-        public int key;
     }
 
     public class vector3_keyDouble : IComparable
@@ -941,28 +959,6 @@ namespace SphericalGeom
             v = vec;
             key1 = val1;
             key2 = val2;
-        }
-    }
-
-    public class vector3_GreinerHormann : IComparable
-    {
-        public vector3 v;
-        public double relativePositionOnEdge;
-        public bool wasProcessed;
-
-        public vector3_GreinerHormann(vector3 _v, double _relativePositionOnEdge, bool _wasProcessed)
-        {
-            v = _v;
-            relativePositionOnEdge = _relativePositionOnEdge;
-            wasProcessed = _wasProcessed;
-        }
-
-        public int CompareTo(object obj)
-        {
-            if (obj == null)
-                return 1;
-            var v = obj as vector3_GreinerHormann;
-            return relativePositionOnEdge.CompareTo(v.relativePositionOnEdge);
         }
     }
 
