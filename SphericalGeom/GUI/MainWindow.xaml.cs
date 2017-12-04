@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,6 +15,10 @@ using System.Windows.Media.Media3D;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+
+using DataParsers;
+using SatelliteTrajectory;
+ 
 
 namespace GUI
 {
@@ -32,7 +37,7 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            Terra = new Ellipse3D(1, 1, 1, 500);
+            Terra = new Ellipse3D(1, 1, 1, 500);            
             PlotSphere(null, null);
         }
 
@@ -80,15 +85,15 @@ namespace GUI
                 var p = Terra.GetPoint(i);
                 if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f)); 
                 }
-                else if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z))
+                else if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z)) 
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));   
                 }
                 else if (vm.PointInCamera(p.X, p.Y, p.Z))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));  
                 }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
@@ -112,5 +117,25 @@ namespace GUI
             group1.Children.Clear();
             group1.Children.Add(new MatrixTransform3D(m_transformMatrix.m_totalMatrix));
         }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            { 
+                vm.trajectory = DatParser.getTrajectoryFromDatFile(vm.DatFileName);
+            }
+            catch (FileNotFoundException exc)
+            {
+                MessageBox.Show("The specified file does not exist!", "Error");
+                return;
+            }
+            catch (ArgumentException exc)
+            {
+                MessageBox.Show("The trajectory data in file is incorrect!", "Error");
+                return;
+            }           
+
+            PlotSphere(null, null);
+        }           
     }
 }

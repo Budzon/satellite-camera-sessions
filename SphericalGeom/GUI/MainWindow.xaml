@@ -91,6 +91,9 @@
                     <!--<TextBox Grid.Column="0" x:Name="verticalAngle" TextWrapping="Wrap" Text="{Binding SatelliteVerticalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>-->
                     <!--<TextBox Grid.Column="1" x:Name="horizontalAngle" TextWrapping="Wrap" Text="{Binding SatelliteHorizontalAngleOfView, Converter={StaticResource DegreeToRadianConverter}}"/>-->
                 </Grid>
+                <Label x:Name="datLabel" Content="Trajectory file (.dat)"/>
+                <TextBox x:Name="datFilenameField" Height="23" TextWrapping="Wrap" Text="{Binding DatFileName}"/>
+                <Button x:Name="loadDatButton" Content="Load" Click="Button_Click"/>
             </StackPanel>
             
             
