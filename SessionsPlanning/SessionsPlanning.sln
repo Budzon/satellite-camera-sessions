@@ -20,6 +20,8 @@ Global
 		{7FE86E12-C04E-454C-A2D7-00D175F9B11B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7FE86E12-C04E-454C-A2D7-00D175F9B11B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7FE86E12-C04E-454C-A2D7-00D175F9B11B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7852796-4F76-4C51-8974-E4B55254316E}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{E7852796-4F76-4C51-8974-E4B55254316E}.Release|Any CPU.ActiveCfg = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
