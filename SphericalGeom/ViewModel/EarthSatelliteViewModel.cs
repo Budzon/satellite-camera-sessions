@@ -19,6 +19,8 @@ using System.Windows.Media.Imaging;
 using SphericalGeom;
 using SatelliteRequests;
 using SatelliteTrajectory;
+using Common;
+using Astronomy;
 
 namespace ViewModel
 {
@@ -33,9 +35,10 @@ namespace ViewModel
         private Camera camera;
         private Polygon coneBase;
         private Polygon curRequest;
-        private List<Polygon> curIntersection;
-        public SatTrajectory trajectory;
+        private List<Polygon> curIntersection;        
         private List<Polygon> curDifference;
+        public SatTrajectory trajectory;
+        public List<Polygon> lane;
 
         private bool hasChanged;
 
@@ -73,10 +76,10 @@ namespace ViewModel
             camera = new Camera();
             curIntersection = new List<Polygon>();
             curDifference = new List<Polygon>();
-            UpdateConeBase();
-
+            lane = new List<Polygon>();
+            UpdateConeBase();            
             Requests = new Requests(); 
-            DatFileName = "progress.dat";
+            DatFileName = "trajectory.dat";
             addRequestCmd = new DelegateCommand(_ =>
             {
                 Requests.Add(new Request(RequestId));
@@ -202,6 +205,15 @@ namespace ViewModel
         {
             return coneBase.Contains(new vector3(x, y, z));
         }
+
+        public bool PointInLane(double x, double y, double z)
+        {
+            foreach (Polygon sector in lane) {
+                if (sector.Contains(new vector3(x, y, z)))
+                    return true;
+            }
+            return false;           
+        }       
 
         public bool PointInIntersection(double x, double y, double z)
         {

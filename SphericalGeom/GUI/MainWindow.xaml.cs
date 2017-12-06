@@ -18,7 +18,8 @@ using System.Windows.Shapes;
 
 using DataParsers;
 using SatelliteTrajectory;
- 
+using Common;
+using Astronomy;
 
 namespace GUI
 {
@@ -95,6 +96,10 @@ namespace GUI
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));  
                 }
+                else if (vm.PointInLane(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 1.0f, 1.0f));
+                }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
             }
@@ -133,9 +138,10 @@ namespace GUI
             {
                 MessageBox.Show("The trajectory data in file is incorrect!", "Error");
                 return;
-            }           
+            }
 
-            PlotSphere(null, null);
+            // vm.lane = vm.trajectory.getTrajectoryLane(Math.PI / 4); // with a lane plots very slow
+            // PlotSphere(null, null);
         }           
     }
 }
