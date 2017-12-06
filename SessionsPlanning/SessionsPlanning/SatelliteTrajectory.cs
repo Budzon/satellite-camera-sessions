@@ -20,9 +20,13 @@ namespace SatelliteTrajectory
         /// <summary>
         /// Get shooting lane by trajectory and max roll angle  
         /// </summary>
-        /// <param name="angle">roll angle in radians.</param>          
-        public List<Polygon> getTrajectoryLane(double angle)
+        /// <param name="minAngle">min roll angle in radians.</param>          
+        /// /// <param name="maxAngle">max roll angle in radians.</param>          
+        public List<Polygon> getCaptureLane(double minAngle, double maxAngle)
         {
+            if (minAngle >= maxAngle)
+                throw new System.ArgumentException("Wrong arguments. minAngle >= maxAngle", "original");
+
             List<Polygon> lane = new List<Polygon>();
 
             List<vector3> lanePoints = new List<vector3>();
@@ -37,23 +41,25 @@ namespace SatelliteTrajectory
                 Vector3D vectToCent = new Vector3D(points[p_ind].Position.X, points[p_ind].Position.Y, points[p_ind].Position.Z);
                 // double altitude = vectToCent.Length - Constants.EarthRadius;
 
-                double beta = Math.PI - Math.Asin(vectToCent.Length * Math.Sin(angle) / Constants.EarthRadius);
-                double halfWidth = AstronomyMath.ToDegrees(Math.PI - angle - beta); 
+                double minBeta = Math.PI - Math.Asin(vectToCent.Length * Math.Sin(minAngle) / Constants.EarthRadius);
+                double maxBeta = Math.PI - Math.Asin(vectToCent.Length * Math.Sin(maxAngle) / Constants.EarthRadius);
+
+                double leftBound = AstronomyMath.ToDegrees(Math.PI - minAngle - minBeta);
+                double rightBound = AstronomyMath.ToDegrees(Math.PI - maxAngle - maxBeta); 
 
                 double dirx = nextPoint.Latitude - point.Latitude;
                 double diry = nextPoint.Longitude - point.Longitude;
                 Vector3D dirVect = new Vector3D(dirx, diry, 0);
-
-                RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 0, 1), -90));
+                
                 RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 0, 1), 90));
 
-                Vector3D leftVect = leftTransform.Transform(dirVect);
+                Vector3D leftVect = rightTransform.Transform(dirVect);
                 leftVect.Normalize();
-                leftVect = leftVect * halfWidth;
+                leftVect = leftVect * leftBound;
 
                 Vector3D rightVect = rightTransform.Transform(dirVect);
                 rightVect.Normalize();
-                rightVect = rightVect * halfWidth;
+                rightVect = rightVect * rightBound;
 
                 GeoPoint leftGeoPoint = new GeoPoint(point.Latitude + leftVect.X, point.Longitude + leftVect.Y, false);
                 GeoPoint rightGeoPoint = new GeoPoint(point.Latitude + rightVect.X, point.Longitude + rightVect.Y, false);

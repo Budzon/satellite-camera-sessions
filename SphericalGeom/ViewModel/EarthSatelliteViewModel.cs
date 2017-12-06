@@ -37,8 +37,8 @@ namespace ViewModel
         private Polygon curRequest;
         private List<Polygon> curIntersection;        
         private List<Polygon> curDifference;
-        public SatTrajectory trajectory;
-        public List<Polygon> lane;
+        public SatTrajectory trajectory;  
+        public List< List<Polygon> > captureLanes;
 
         private bool hasChanged;
 
@@ -76,7 +76,7 @@ namespace ViewModel
             camera = new Camera();
             curIntersection = new List<Polygon>();
             curDifference = new List<Polygon>();
-            lane = new List<Polygon>();
+            captureLanes = new List< List<Polygon> >();
             UpdateConeBase();            
             Requests = new Requests(); 
             DatFileName = "trajectory.dat";
@@ -208,9 +208,13 @@ namespace ViewModel
 
         public bool PointInLane(double x, double y, double z)
         {
-            foreach (Polygon sector in lane) {
-                if (sector.Contains(new vector3(x, y, z)))
-                    return true;
+            foreach (List<Polygon> lane in captureLanes)
+            {
+                foreach (Polygon sector in lane)
+                {
+                    if (sector.Contains(new vector3(x, y, z)))
+                        return true;
+                }
             }
             return false;           
         }       

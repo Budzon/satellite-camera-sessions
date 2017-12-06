@@ -140,8 +140,10 @@ namespace GUI
                 return;
             }
 
-            // vm.lane = vm.trajectory.getTrajectoryLane(Math.PI / 4); // with a lane plots very slow
-            // PlotSphere(null, null);
+            // very slow
+            //vm.captureLanes.Add(vm.trajectory.getCaptureLane(2 * Math.PI / 10, 3 * Math.PI / 10)); 
+            //vm.captureLanes.Add(vm.trajectory.getCaptureLane(0, Math.PI / 10));             
+            //PlotSphere(null, null);            
         }           
     }
 }
