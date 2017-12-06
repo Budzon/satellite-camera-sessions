@@ -285,13 +285,12 @@ namespace Common
 
         public static void CircleDistance(GeoPoint p1, GeoPoint p2, out double latDistance, out double longDistance)
         {
-            double lon;
-            if (p2.Longitude >= p1.Longitude)
-                lon = p2.Longitude - p1.Longitude;
-            else
-                lon = 360.0f - (p1.Longitude - p2.Longitude);
+            double lon = Math.Abs(p2.Longitude - p1.Longitude);
 
-            latDistance = p2.Latitude - p1.Latitude;
+            if (lon > 180)
+                lon = 360.0f - lon;
+
+            latDistance =  Math.Abs(p2.Latitude - p1.Latitude);
             longDistance = lon;
         }
 
