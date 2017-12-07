@@ -15,7 +15,9 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 
+using Common;
 using SphericalGeom;
 using SatelliteRequests;
 using SatelliteTrajectory;
@@ -32,7 +34,7 @@ namespace ViewModel
 
     public class EarthSatelliteViewModel : INotifyPropertyChanged
     {
-        private Camera camera;
+        private SphericalGeom.Camera camera;
         private Polygon coneBase;
         private Polygon curRequest;
         private List<Polygon> curIntersection;        
@@ -46,7 +48,7 @@ namespace ViewModel
         private readonly DelegateCommand removeRequestCmd;
         private readonly DelegateCommand addPointCmd;
         private readonly DelegateCommand removePointCmd;
-        private readonly DelegateCommand verifyIfRegionCanBeSeenCmd;
+        //private readonly DelegateCommand verifyIfRegionCanBeSeenCmd;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -55,7 +57,7 @@ namespace ViewModel
             hasChanged = true;
             curIntersection.Clear();
             curDifference.Clear();
-            coneBase = SphericalGeometryRoutines.ProjectConeOntoSphere(camera.Position, camera.NormalsToCone);
+            coneBase = Routines.ProjectConeOntoSphere(camera.Position, camera.InnerNormalsToCone);
         }
 
         private void UpdateCurRequest()
@@ -65,15 +67,15 @@ namespace ViewModel
             curDifference.Clear();
             if (SelectedRequest > -1)
                 curRequest = new SphericalGeom.Polygon(
-                    Requests[SelectedRequest].Polygon.Select(sp => new vector3(new direction3(sp.Lat, sp.Lon), 1)),
-                    new vector3(0, 0, 0));
+                    Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)),
+                    new Vector3D(0, 0, 0));
             else
                 curRequest = null;
         }
 
         public EarthSatelliteViewModel()
         {
-            camera = new Camera();
+            camera = new SphericalGeom.Camera();
             curIntersection = new List<Polygon>();
             curDifference = new List<Polygon>();
             captureLanes = new List< List<Polygon> >();
@@ -110,19 +112,19 @@ namespace ViewModel
                 UpdateCurRequest();
             }, _ => { return (SelectedRequest != -1 && SelectedPoint != -1); });
 
-            verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
-            {
-                var result = camera.RegionCanBeSeen(Requests.ElementAt(SelectedRequest).Polygon.Select(point => new vector3(new direction3(point.Lat, point.Lon), 1)).ToList());
+            //verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
+            //{
+            //    var result = camera.RegionCanBeSeen(Requests.ElementAt(SelectedRequest).Polygon.Select(point => new vector3(new direction3(point.Lat, point.Lon), 1)).ToList());
 
-                RegionCanBeCaptured = result.Item1;
-                SatellitePitch = result.Item2.Lat;
-                SatelliteYaw = result.Item2.Lon;
-                SatelliteRoll = result.Item3;
-                RaisePropertyChanged("RegionCanBeCaptured");
-                RaisePropertyChanged("SatelliteRoll");
-                RaisePropertyChanged("SatellitePitch");
-                RaisePropertyChanged("SatelliteYaw");
-            }, _ => { return SelectedRequest != -1; });
+            //    RegionCanBeCaptured = result.Item1;
+            //    SatellitePitch = result.Item2.Lat;
+            //    SatelliteYaw = result.Item2.Lon;
+            //    SatelliteRoll = result.Item3;
+            //    RaisePropertyChanged("RegionCanBeCaptured");
+            //    RaisePropertyChanged("SatelliteRoll");
+            //    RaisePropertyChanged("SatellitePitch");
+            //    RaisePropertyChanged("SatelliteYaw");
+            //}, _ => { return SelectedRequest != -1; });
         }
 
         public void RaisePropertyChanged(string s)
@@ -135,43 +137,43 @@ namespace ViewModel
 
         public double SatelliteLat
         {
-            get { return camera.PositionDirection.Lat; }
+            get { return camera.PositionDirection.Latitude; }
             set
             {
-                camera.Position = new vector3(new direction3(value, SatelliteLon), SatelliteAltitude + 1);
+                camera.Position = GeoPoint.ToCartesian(new GeoPoint(value, SatelliteLon), SatelliteAltitude + 1);
                 UpdateConeBase();
             }
         }
         public double SatelliteLon
         {
-            get { return camera.PositionDirection.Lon; }
+            get { return camera.PositionDirection.Longitude; }
             set
             {
-                camera.Position = new vector3(new direction3(SatelliteLat, value), SatelliteAltitude + 1);
+                camera.Position = GeoPoint.ToCartesian(new GeoPoint(SatelliteLat, value), SatelliteAltitude + 1);
                 UpdateConeBase();
             }
         }
         public double SatelliteAltitude
         {
-            get { return camera.Position.Length() - 1; }
+            get { return camera.Position.Length - 1; }
             set {
-                camera.Position = new vector3(new direction3(SatelliteLat, SatelliteLon), value + 1);
+                camera.Position = GeoPoint.ToCartesian(new GeoPoint(SatelliteLat, SatelliteLon), value + 1);
                 UpdateConeBase();
             }
         }
         public double SatelliteVerticalAngleOfView
         {
-            get { return camera.verticalHalfAngleOfView * 2; }
+            get { return camera.VerticalHalfAngleOfView * 2; }
             set { 
-                camera.verticalHalfAngleOfView = value / 2;
+                camera.VerticalHalfAngleOfView = value / 2;
                 UpdateConeBase();
             }
         }
         public double SatelliteHorizontalAngleOfView
         {
-            get { return camera.horizontalHalfAngleOfView * 2; }
+            get { return camera.HorizontalHalfAngleOfView * 2; }
             set { 
-                camera.horizontalHalfAngleOfView = value / 2;
+                camera.HorizontalHalfAngleOfView = value / 2;
                 UpdateConeBase();
             }
         }
@@ -198,20 +200,22 @@ namespace ViewModel
 
         public bool PointInPolygon(double x, double y, double z)
         {
-            return curRequest.Contains(new vector3(x, y, z));
+            return curRequest.Contains(new Vector3D(x, y, z));
         }
 
         public bool PointInCamera(double x, double y, double z)
         {
-            return coneBase.Contains(new vector3(x, y, z));
+            return coneBase.Contains(new Vector3D(x, y, z));
         }
 
         public bool PointInLane(double x, double y, double z)
         {
-            foreach (List<Polygon> lane in captureLanes) {
+            Vector3D v = new Vector3D(x, y, z);
+            foreach (List<Polygon> lane in captureLanes)
+            {
                 foreach (Polygon sector in lane)
                 {
-                    if (sector.Contains(new vector3(x, y, z)))
+                    if (sector.Contains(v))
                         return true;
                 }
             }
@@ -227,7 +231,7 @@ namespace ViewModel
                 curIntersection = tmp.Item1.ToList();
                 curDifference = tmp.Item2.ToList();
             }
-            var v = new vector3(x, y, z);
+            var v = new Vector3D(x, y, z);
             return curIntersection.Any(p => p.Contains(v));
         }
 
@@ -240,7 +244,7 @@ namespace ViewModel
                 curIntersection = tmp.Item1.ToList();
                 curDifference = tmp.Item2.ToList();
             }
-            var v = new vector3(x, y, z);
+            var v = new Vector3D(x, y, z);
             return curDifference.Any(p => p.Contains(v));
         }
         
@@ -253,7 +257,7 @@ namespace ViewModel
         public ICommand RemoveRequestCmd { get { return removeRequestCmd; } }
         public ICommand AddPointCmd { get { return addPointCmd; } }
         public ICommand RemovePointCmd { get { return removePointCmd; } }
-        public ICommand VerifyIfRegionCanBeSeenCmd { get { return verifyIfRegionCanBeSeenCmd; } }
+        //public ICommand VerifyIfRegionCanBeSeenCmd { get { return verifyIfRegionCanBeSeenCmd; } }
     }
 
     public class DegreeToRadianConverter : IValueConverter

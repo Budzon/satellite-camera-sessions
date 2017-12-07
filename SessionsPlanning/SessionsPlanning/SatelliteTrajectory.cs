@@ -29,8 +29,8 @@ namespace SatelliteTrajectory
 
             List<Polygon> lane = new List<Polygon>();
 
-            List<vector3> lanePoints = new List<vector3>();
-            List<vector3> rightLanePoints = new List<vector3>();
+            List<Vector3D> lanePoints = new List<Vector3D>();
+            List<Vector3D> rightLanePoints = new List<Vector3D>();
 
             GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(points[0].Position);
             for (int p_ind = 0; p_ind < points.Count - 1; p_ind++)
@@ -64,8 +64,8 @@ namespace SatelliteTrajectory
                 GeoPoint leftGeoPoint = new GeoPoint(point.Latitude + leftVect.X, point.Longitude + leftVect.Y, false);
                 GeoPoint rightGeoPoint = new GeoPoint(point.Latitude + rightVect.X, point.Longitude + rightVect.Y, false);
 
-                vector3 leftPoint = new vector3(new direction3(AstronomyMath.ToRad(leftGeoPoint.Latitude), AstronomyMath.ToRad(leftGeoPoint.Longitude)), 1);
-                vector3 rightPoint = new vector3(new direction3(AstronomyMath.ToRad(rightGeoPoint.Latitude), AstronomyMath.ToRad(rightGeoPoint.Longitude)), 1);
+                Vector3D leftPoint = GeoPoint.ToCartesian(leftGeoPoint, 1.0);
+                Vector3D rightPoint = GeoPoint.ToCartesian(rightGeoPoint, 1.0);
 
                 lanePoints.Add(leftPoint);
                 rightLanePoints.Add(rightPoint);
@@ -81,7 +81,7 @@ namespace SatelliteTrajectory
                     for (int i = rightLanePoints.Count - 1; i >= 0; i--)                    
                         lanePoints.Add(rightLanePoints[i]);                    
 
-                    Polygon sector = new Polygon(lanePoints, new vector3(0, 0, 0));
+                    Polygon sector = new Polygon(lanePoints, new Vector3D(0, 0, 0));
                     lane.Add(sector);
 
                     rightLanePoints.Clear();

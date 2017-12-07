@@ -151,7 +151,7 @@ namespace GeometryTest
             double b1 = 1;
             double b2 = 1;
             vector3 target = new vector3(1, 0.5, 0);
-            vector3 actual = SphericalGeometryRoutines.SolveSLE2x3(a1, a2, b1, b2);
+            vector3 actual = Routines.SolveSLE2x3(a1, a2, b1, b2);
 
             Assert.IsTrue(CompareVec.AreEqual(target, actual));
         }
@@ -159,7 +159,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestSolveQuadraticEquation()
         {
-            var res = SphericalGeometryRoutines.SolveQuadraticEquation(1, 0, -1);
+            var res = Routines.SolveQuadraticEquation(1, 0, -1);
             Assert.IsTrue(res.Count == 2 && res[0] == -1 && res[1] == 1);
         }
     }
