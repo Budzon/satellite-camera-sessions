@@ -20,7 +20,7 @@ namespace SatelliteTrajectory
         /// <summary>
         /// Get shooting lane by trajectory and max roll angle  
         /// </summary>
-        /// <param name="minAngle">min roll angle in radians.</param>          
+        /// <param name="minAngle">min roll angle in radians.</param>            
         /// /// <param name="maxAngle">max roll angle in radians.</param>          
         public List<Polygon> getCaptureLane(double minAngle, double maxAngle)
         {

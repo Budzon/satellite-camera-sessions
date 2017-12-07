@@ -208,8 +208,7 @@ namespace ViewModel
 
         public bool PointInLane(double x, double y, double z)
         {
-            foreach (List<Polygon> lane in captureLanes)
-            {
+            foreach (List<Polygon> lane in captureLanes) {
                 foreach (Polygon sector in lane)
                 {
                     if (sector.Contains(new vector3(x, y, z)))
