@@ -37,20 +37,20 @@
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0" x:Name="satelliteLat" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="SatelliteLat" Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="SatelliteLat"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-90" Max="90"/>
                                 </Binding.ValidationRules>
-                            </Binding>
+                            </Binding>-->
                         </TextBox.Text>
                     </TextBox>
                     <TextBox Grid.Column="1" x:Name="satelliteLon" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="SatelliteLon" Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="SatelliteLon"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-180" Max="180"/>
                                 </Binding.ValidationRules>
-                            </Binding>
+                            </Binding>-->
                         </TextBox.Text>
                     </TextBox>
                 </Grid>
@@ -122,20 +122,20 @@
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="NewPointLat" Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="NewPointLat"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-90" Max="90"/>
                                 </Binding.ValidationRules>
-                            </Binding>
+                            </Binding>-->
                         </TextBox.Text>
                     </TextBox>
                     <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="NewPointLon" Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="NewPointLon"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-180" Max="180"/>
                                 </Binding.ValidationRules>
-                            </Binding>
+                            </Binding>-->
                         </TextBox.Text>
                     </TextBox>
                     <!--<TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap" Text="{Binding NewPointLat, Converter={StaticResource DegreeToRadianConverter}}"/>
@@ -154,9 +154,9 @@
                                     <ColumnDefinition Width="5"/>
                                     <ColumnDefinition Width="1*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" TextWrapping="Wrap" Text="{Binding Path=Lat, Converter={StaticResource DegreeToRadianConverter}}"/>
+                                <TextBlock Grid.Column="0" TextWrapping="Wrap" Text="{Binding Path=Lat}"/>
                                 <GridSplitter Grid.Column="1"/>
-                                <TextBlock Grid.Column="2" TextWrapping="Wrap" Text="{Binding Path=Lon, Converter={StaticResource DegreeToRadianConverter}}"/>
+                                <TextBlock Grid.Column="2" TextWrapping="Wrap" Text="{Binding Path=Lon}"/>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -165,7 +165,7 @@
             
             
             <StackPanel Grid.Column="3">
-                <Button x:Name="checkRegionButton" Content="Can region be captured?" Command="{Binding VerifyIfRegionCanBeSeenCmd}"/>
+                <Button x:Name="checkRegionButton" Content="Can region be captured?"/> <!--Command="{Binding VerifyIfRegionCanBeSeenCmd}"-->
                 <TextBlock x:Name="canBeSeen" TextWrapping="Wrap" Text="{Binding RegionCanBeCaptured}"/>
                 <TextBlock x:Name="textBlock2" TextWrapping="Wrap" Text="Pitch, yaw, roll"/>
                 <TextBlock x:Name="satellitePitch" TextWrapping="Wrap" Text="{Binding SatellitePitch, Converter={StaticResource DegreeToRadianConverter}}"/>
