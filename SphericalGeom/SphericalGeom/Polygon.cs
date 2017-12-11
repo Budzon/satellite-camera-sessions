@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
 
+using Common;
+
 namespace SphericalGeom
 {
     public class Polygon
@@ -61,6 +63,7 @@ namespace SphericalGeom
             }
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
+        public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
 
         public IList<Polygon> Shatter(Vector3D mid)
         {
@@ -97,6 +100,77 @@ namespace SphericalGeom
                 res += (numOfIntersections % 2);
             }
             return res >= 2;
+        }
+
+        public static Tuple<IList<Polygon>, IList<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
+        {
+            var intersection = new List<Polygon>();
+            var difference = new List<Polygon>();
+            var pArcs = p.Arcs;
+            var qArcs = q.Arcs;
+
+            foreach (var pArc in pArcs)
+                foreach (var qArc in qArcs)
+                    Arc.UpdateWithIntersections(pArc, qArc);
+
+            ArcChainWithLabels<pointType> pChain = pArcs.
+                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+                Aggregate((head, tail) => head.Connect(tail));
+            pChain.Vertices.RemoveAt(pChain.Vertices.Count - 1);
+            pChain.Labels.RemoveAt(pChain.Labels.Count - 1);
+
+            ArcChainWithLabels<pointType> qChain = qArcs.
+                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+                Aggregate((head, tail) => head.Connect(tail));
+            qChain.Vertices.RemoveAt(qChain.Vertices.Count - 1);
+            qChain.Labels.RemoveAt(qChain.Labels.Count - 1);
+
+            var vert = new IList<Vector3D>[2] { pChain.Vertices, qChain.Vertices };
+            var type = new IList<pointType>[2] { pChain.Labels, qChain.Labels };
+            var apex = new IList<Vector3D>[2] { pChain.Apexes, qChain.Apexes };
+
+            bool pInQ = q.Contains(vert[0][0]);
+            pointType curType = pInQ ? pointType.exit : pointType.enter;
+            for (int i = 0; i < vert[0].Count; ++i)
+                if (type[0][i] != pointType.vertex)
+                {
+                    type[0][i] = curType;
+                    curType = Not(curType);
+                }
+
+            bool qInP = p.Contains(vert[1][0]);
+            curType = qInP ? pointType.exit : pointType.enter;
+            for (int i = 0; i < vert[1].Count; ++i)
+                if (type[1][i] != pointType.vertex)
+                {
+                    type[1][i] = curType;
+                    curType = Not(curType);
+                }
+
+            // No arc intersections, i.e. one is within the other or do not overlap at all
+            if (type[0].All(t => t == pointType.vertex))
+            {
+                if (pInQ)
+                    intersection.Add(p);
+                else if (qInP)
+                {
+                    var pieces = p.Shatter(q.Middle);
+                    foreach (var piece in pieces)
+                    {
+                        var intersectionAndDifference = Polygon.IntersectAndSubtract(piece, q);
+                        intersection.AddRange(intersectionAndDifference.Item1);
+                        difference.AddRange(intersectionAndDifference.Item2);
+                    }
+                }
+                else
+                    difference.Add(p);
+            }
+            else
+            {
+                intersection.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
+                difference.AddRange(Traverse(vert, type, apex, new bool[2] { false, true }));
+            }
+            return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
 
         private enum pointType { vertex, enter, exit };
@@ -182,113 +256,6 @@ namespace SphericalGeom
                 curInd = NextUnvisitedIntersection(type[curChain], visited[curChain]);
             }
             return resPoly;
-
-            ////int curChain = 0;
-            ////int curInd = 0;
-            ////int dir;
-            ////int newInd;
-
-            //while (type[curChain][curInd] == pointType.vertex)
-            //    ++curInd;
-
-            //resVert.Add(vert[curChain][curInd]);
-            //visited[curChain][curInd] = true;
-            //visited[(curChain + 1) % 2][vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd])] = true;
-            //dir = Dir(type[curChain][curInd], traverseForward[curChain]);
-            //newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
-
-            //while (!visited[curChain][newInd])
-            //{
-            //    resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
-            //    curInd = newInd;
-            //    visited[curChain][curInd] = true;
-            //    resVert.Add(vert[curChain][curInd]);
-
-            //    if (type[curChain][curInd] != pointType.vertex)
-            //    {
-            //        // Slow search!
-            //        curInd = vert[(curChain + 1) % 2].IndexOf(vert[curChain][curInd]);
-            //        curChain = (curChain + 1) % 2;
-            //        visited[curChain][curInd] = true;
-            //        dir = Dir(type[curChain][curInd], traverseForward[curChain]);
-            //    }
-
-            //    newInd = (curInd + dir + visited[curChain].Count) % visited[curChain].Count;
-            //}
-
-            //resApex.Add(apex[curChain][dir > 0 ? curInd : newInd]);
-
-            //return new Polygon(resVert, resApex);
-        }
-        public static Tuple<IList<Polygon>, IList<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
-        {
-            var intersection = new List<Polygon>();
-            var difference = new List<Polygon>();
-            var pArcs = p.Arcs;
-            var qArcs = q.Arcs;
-
-            foreach (var pArc in pArcs)
-                foreach (var qArc in qArcs)
-                    Arc.UpdateWithIntersections(pArc, qArc);
-
-            ArcChainWithLabels<pointType> pChain = pArcs.
-                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
-                Aggregate((head, tail) => head.Connect(tail));
-            pChain.Vertices.RemoveAt(pChain.Vertices.Count - 1);
-            pChain.Labels.RemoveAt(pChain.Labels.Count - 1);
-
-            ArcChainWithLabels<pointType> qChain = qArcs.
-                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
-                Aggregate((head, tail) => head.Connect(tail));
-            qChain.Vertices.RemoveAt(qChain.Vertices.Count - 1);
-            qChain.Labels.RemoveAt(qChain.Labels.Count - 1);
-
-            var vert = new IList<Vector3D>[2] { pChain.Vertices, qChain.Vertices };
-            var type = new IList<pointType>[2] { pChain.Labels, qChain.Labels };
-            var apex = new IList<Vector3D>[2] { pChain.Apexes, qChain.Apexes };
-
-            bool pInQ = q.Contains(vert[0][0]);
-            pointType curType = pInQ ? pointType.exit : pointType.enter;
-            for (int i = 0; i < vert[0].Count; ++i)
-                if (type[0][i] != pointType.vertex)
-                {
-                    type[0][i] = curType;
-                    curType = Not(curType);
-                }
-
-            bool qInP = p.Contains(vert[1][0]);
-            curType = qInP ? pointType.exit : pointType.enter;
-            for (int i = 0; i < vert[1].Count; ++i)
-                if (type[1][i] != pointType.vertex)
-                {
-                    type[1][i] = curType;
-                    curType = Not(curType);
-                }
-
-            // No arc intersections, i.e. one is within the other or do not overlap at all
-            if (type[0].All(t => t == pointType.vertex))
-            {
-                if (pInQ)
-                    intersection.Add(p);
-                else if (qInP)
-                {
-                    var pieces = p.Shatter(q.Middle);
-                    foreach (var piece in pieces)
-                    {
-                        var intersectionAndDifference = Polygon.IntersectAndSubtract(piece, q);
-                        intersection.AddRange(intersectionAndDifference.Item1);
-                        difference.AddRange(intersectionAndDifference.Item2);
-                    }
-                }
-                else
-                    difference.Add(p);
-            }
-            else
-            {
-                intersection.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
-                difference.AddRange(Traverse(vert, type, apex, new bool[2] { false, true }));
-            }
-            return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
     }
 }
