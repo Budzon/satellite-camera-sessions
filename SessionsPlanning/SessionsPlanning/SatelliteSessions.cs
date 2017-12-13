@@ -7,25 +7,40 @@ using System.Threading.Tasks;
 
 namespace SatelliteSessions
 {
-    public class Sessions 
+    public class Sessions
     {
-        public static bool isRequestFeasible(DateTime dateFrom, DateTime dateTo, int Max_SOEN_anlge, double minCoverPerc,
-                                             int Max_sun_angle, int Min_sun_angle, string wktPolygon)
+        public static bool isRequestFeasible(RequestParams request)
         {
             return true;
         }
 
-        public static IList<CaptureConf> getCaptureConfArray(int priority, DateTime dateFrom, DateTime dateTo, int Max_SOEN_anlge,
-                                                             double minCoverPerc, int Max_sun_angle, int Min_sun_angle, string wktPolygon)
-        {            
+        public static IList<CaptureConf> getCaptureConfArray(IList<RequestParams> requests)
+        {                    
             return new List<CaptureConf>();
+        }
+
+        public struct RequestParams
+        {
+            public int id;
+            public int priority;
+            public DateTime dateFrom;
+            public DateTime dateTo;
+            public int Max_SOEN_anlge;
+            public double minCoverPerc;
+            public int Max_sun_angle;
+            public int Min_sun_angle;
+            public string wktPolygon; 
         }
 
         public struct CaptureConf
         {
+            public RequestParams request;
+            public double coveragePercent;
             public DateTime dateFrom;
             public DateTime dateTo;
-            public double rollAngle; 
+            public double rollAngle;
+            public double pitchAngle; 
+            public string wktPolygon;
         }
     }    
 }
