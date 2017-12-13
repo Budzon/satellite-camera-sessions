@@ -5,10 +5,70 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
 
+using Common;
+
 namespace SphericalGeom
 {
     public static class Routines
     {
+        // TODO: handle rectangles that contain poles
+        public static IList<GeoRect> SliceIntoCheckerboard(GeoRect rect, double squareSize)
+        {
+            List<GeoRect> checkerboard = new List<GeoRect>();
+
+            bool cropHeight = Comparison.IsPositive(rect.HeightLatitude % squareSize);
+            bool cropWidth = Comparison.IsPositive(rect.WidthLongitude % squareSize);
+
+            int latSlices = (int)((rect.HeightLatitude - (rect.HeightLatitude % squareSize)) / squareSize);
+            int lonSlices = (int)((rect.WidthLongitude - (rect.WidthLongitude % squareSize)) / squareSize);
+            
+            for (int i = 0; i < latSlices; ++i)
+                for (int j = 0; j < lonSlices; ++j)
+                    checkerboard.Add(new GeoRect(
+                        SafeShift(rect.LowerLeft, i * squareSize, j * squareSize),
+                        SafeShift(rect.LowerLeft, (i + 1) * squareSize, (j + 1) * squareSize)));
+
+            if (cropHeight)
+                for (int j = 0; j < lonSlices; ++j)
+                    checkerboard.Add(new GeoRect(
+                        SafeShift(rect.LowerLeft, latSlices * squareSize, j * squareSize),
+                        SafeShift(rect.LowerLeft, rect.TopLatitude, (j + 1) * squareSize)));
+            if (cropWidth)
+                for (int i = 0; i < latSlices; ++i)
+                    checkerboard.Add(new GeoRect(
+                        SafeShift(rect.LowerLeft, i * squareSize, lonSlices * squareSize),
+                        SafeShift(rect.LowerLeft, (i + 1) * squareSize, rect.RightLongitude)));
+            if (cropHeight && cropWidth)
+                checkerboard.Add(new GeoRect(
+                        SafeShift(rect.LowerLeft, latSlices * squareSize, lonSlices * squareSize),
+                        SafeShift(rect.LowerLeft, rect.TopLatitude, rect.RightLongitude)));
+
+            return checkerboard;
+        }
+
+        public static GeoPoint SafeShift(GeoPoint gp, double lat, double lon)
+        {
+            GeoPoint outGp = gp;
+            outGp.Latitude += lat;
+            if (outGp.Latitude > 90.0)
+            {
+                outGp.Latitude = 180.0 - gp.Latitude;
+                outGp.Longitude *= -1;
+            }
+            else if (outGp.Latitude < -90.0)
+            {
+                outGp.Latitude = -180 - gp.Latitude;
+                outGp.Longitude *= -1;
+            }
+
+            outGp.Longitude += lon;
+            while (Comparison.IsBigger(outGp.Longitude, 180.0))
+                outGp.Longitude -= 360.0;
+            while (Comparison.IsSmaller(outGp.Longitude, -180.0))
+                outGp.Longitude += 360.0;
+            return outGp;
+        }
+
         public static Polygon ProjectConeOntoSphere(Vector3D apex, IList<Vector3D> normals)
         {
             var coneEdgeDirections = new List<Vector3D>();
