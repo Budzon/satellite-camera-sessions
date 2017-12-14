@@ -37,6 +37,7 @@ namespace ViewModel
         private SphericalGeom.Camera camera;
         private Polygon coneBase;
         private Polygon curRequest;
+        private List<Polygon> curBbox;
         private List<Polygon> curIntersection;        
         private List<Polygon> curDifference;
         public SatTrajectory trajectory;  
@@ -66,9 +67,13 @@ namespace ViewModel
             curIntersection.Clear();
             curDifference.Clear();
             if (SelectedRequest > -1)
+            {
                 curRequest = new SphericalGeom.Polygon(
                     Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)),
                     new Vector3D(0, 0, 0));
+                if (curRequest.Vertices.Count() > 2)
+                    curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 26, 4);
+            }
             else
                 curRequest = null;
         }
@@ -201,6 +206,12 @@ namespace ViewModel
         public bool PointInPolygon(double x, double y, double z)
         {
             return curRequest.Contains(new Vector3D(x, y, z));
+        }
+
+        public bool PointInBoundingBox(double x, double y, double z)
+        {
+            Vector3D v = new Vector3D(x, y, z);
+            return curBbox.Any(square => square.Contains(v));
         }
 
         public bool PointInCamera(double x, double y, double z)

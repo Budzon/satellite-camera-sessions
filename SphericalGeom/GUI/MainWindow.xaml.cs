@@ -113,6 +113,34 @@ namespace GUI
             m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
         }
 
+        public void PlotBoundingBox(object sender, RoutedEventArgs e)
+        {
+
+            var nData = Terra.GetVertexNo();
+            for (int i = 0; i < nData; ++i)
+            {
+                var p = Terra.GetPoint(i);
+                if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
+                }
+                else if (vm.Requests.Count > 0 && vm.PointInBoundingBox(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
+                }
+                else
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            }
+
+            ArrayList meshs = new ArrayList { Terra };
+
+            Model3D model3d = new Model3D();
+            m_nChartModelIndex = model3d.UpdateModel(meshs, null, m_nChartModelIndex, this.mainViewport);
+
+            float viewRange = 2;
+            m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
+        }
+
         private void TransformChart()
         {
             if (m_nChartModelIndex == -1) return;

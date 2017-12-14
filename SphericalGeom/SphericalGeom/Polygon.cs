@@ -16,6 +16,7 @@ namespace SphericalGeom
         protected List<Vector3D> apexes;
         protected List<Vector3D> vertices;
 
+        public bool IsEmpty { get { return vertices.Count == 0; } }
         public IEnumerable<Vector3D> Apexes { get { return apexes; } }
         public IEnumerable<Vector3D> Vertices { get { return vertices; } }
         public IEnumerable<Arc> Arcs
@@ -32,7 +33,7 @@ namespace SphericalGeom
         {
             get
             {
-                if (vertices.Count == 0)
+                if (IsEmpty)
                     throw new DivideByZeroException("Polygon is empty.");
                 return vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
             }
@@ -64,6 +65,21 @@ namespace SphericalGeom
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
+
+        // Assume that polygon does not contain poles and does not cross the 180 meridian
+        public GeoRect BoundingBox()
+        {
+            double maxLat = -90.0, minLat = 90.0, maxLon = -180.0, minLon = 180.0;
+            foreach (Arc arc in Arcs)
+            {
+                maxLat = Math.Max(maxLat, arc.MaxLatitudeDeg());
+                minLat = Math.Min(minLat, arc.MinLatitudeDeg());
+                maxLon = Math.Max(maxLon, arc.MaxLongitudeDeg());
+                minLon = Math.Min(minLon, arc.MinLongitudeDeg());
+            }
+            
+            return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1+1e-3, 1+1e-3);
+        }
 
         public IList<Polygon> Shatter(Vector3D mid)
         {
@@ -100,6 +116,18 @@ namespace SphericalGeom
                 res += (numOfIntersections % 2);
             }
             return res >= 2;
+        }
+
+        public void ToThisFrame(ReferenceFrame frame)
+        {
+            vertices = vertices.Select(v => frame.ToThisFrame(v)).ToList();
+            apexes = apexes.Select(a => frame.ToThisFrame(a)).ToList();
+        }
+
+        public void FromThisFrame(ReferenceFrame frame)
+        {
+            vertices = vertices.Select(v => frame.ToBaseFrame(v)).ToList();
+            apexes = apexes.Select(a => frame.ToBaseFrame(a)).ToList();
         }
 
         public static Tuple<IList<Polygon>, IList<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
@@ -154,11 +182,12 @@ namespace SphericalGeom
                     intersection.Add(p);
                 else if (qInP)
                 {
+                    intersection.Add(q);
                     var pieces = p.Shatter(q.Middle);
                     foreach (var piece in pieces)
                     {
                         var intersectionAndDifference = Polygon.IntersectAndSubtract(piece, q);
-                        intersection.AddRange(intersectionAndDifference.Item1);
+                        //intersection.AddRange(intersectionAndDifference.Item1);
                         difference.AddRange(intersectionAndDifference.Item2);
                     }
                 }
