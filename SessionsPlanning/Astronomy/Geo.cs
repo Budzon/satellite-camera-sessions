@@ -294,6 +294,15 @@ namespace Common
             longDistance = lon;
         }
 
+        public static double DistanceOverSurface(GeoPoint p1, GeoPoint p2)
+        {
+            double lat1 = p1.lat * DegToRad;
+            double lat2 = p2.lat * DegToRad;
+            double lon1 = p1.lon * DegToRad;
+            double lon2 = p2.lon * DegToRad;            
+            return Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon2));           
+        }
+
         public static bool operator ==(GeoPoint p1, GeoPoint p2)
         {
             return p1.Latitude == p2.Latitude && p1.Longitude == p2.Longitude;

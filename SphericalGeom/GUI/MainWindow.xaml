@@ -172,6 +172,7 @@
                 <TextBlock x:Name="satelliteYaw" TextWrapping="Wrap" Text="{Binding SatelliteYaw, Converter={StaticResource DegreeToRadianConverter}}"/>
                 <TextBlock x:Name="satelliteRoll" TextWrapping="Wrap" Text="{Binding SatelliteRoll, Converter={StaticResource DegreeToRadianConverter}}"/>
                 <Button x:Name="plotPolygon" Content="Plot it!" Click="PlotSphere"/>
+                <Button x:Name="plotSquares" Content="Plot squares!" Click="PlotSquares"/>
             </StackPanel>
 
             

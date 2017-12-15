@@ -43,6 +43,14 @@ namespace SphericalGeom
             return ToBaseFrame(new Vector3D(x, y, z));
         }
 
+        public static ReferenceFrame Concatenate(ReferenceFrame first, ReferenceFrame next)
+        {
+            var frame = new ReferenceFrame();
+            frame.basis = first.basis * next.basis;
+            frame.basisT = next.basisT * first.basisT;
+            return frame;
+        }
+
         public void RotateBy(Quaternion q)
         {
             basis.Rotate(q);

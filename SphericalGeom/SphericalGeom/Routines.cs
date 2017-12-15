@@ -11,63 +11,93 @@ namespace SphericalGeom
 {
     public static class Routines
     {
-        // TODO: handle rectangles that contain poles
-        public static IList<GeoRect> SliceIntoCheckerboard(GeoRect rect, double squareSize)
+        public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)
+        {
+            var latticeFrame = new ReferenceFrame(
+                   latticeOrigin,
+                   new Vector3D(-latticeOrigin.Y, latticeOrigin.X, 0),
+                   new Vector3D(-latticeOrigin.X * latticeOrigin.Z,
+                                -latticeOrigin.Y * latticeOrigin.Z,
+                                latticeOrigin.X * latticeOrigin.X + latticeOrigin.Y * latticeOrigin.Y));
+            latticeFrame.RotateBy(new Vector3D(1, 0, 0), latticeAxisInclination);
+            
+            // Place p at lat=0, lon=0
+            Vector3D pMiddle = latticeFrame.ToThisFrame(p.Middle);
+            var pFrame = ReferenceFrame.Concatenate(latticeFrame,
+                new ReferenceFrame(pMiddle,
+                    new Vector3D(-pMiddle.Y, pMiddle.X, 0),
+                    new Vector3D(-pMiddle.X * pMiddle.Z,
+                        -pMiddle.Y * pMiddle.Z,
+                        pMiddle.X * pMiddle.X + pMiddle.Y * pMiddle.Y)));
+            p.ToThisFrame(pFrame);
+
+            GeoRect boundingBox = p.BoundingBox();
+            List<GeoRect> checkerboard = SliceIntoSquares(boundingBox, squareSide);
+            List<Polygon> squares = new List<Polygon>();
+            foreach (GeoRect square in checkerboard)
+                squares.AddRange(Polygon.IntersectAndSubtract(p, new Polygon(square)).Item1);
+            squares.ForEach(square => square.FromThisFrame(pFrame));
+            p.FromThisFrame(pFrame);
+            return squares;
+        }
+
+        // rect does not contain poles and does not cross the 180 meridian
+        public static List<GeoRect> SliceIntoSquares(GeoRect rect, double squareSide)
         {
             List<GeoRect> checkerboard = new List<GeoRect>();
 
-            bool cropHeight = Comparison.IsPositive(rect.HeightLatitude % squareSize);
-            bool cropWidth = Comparison.IsPositive(rect.WidthLongitude % squareSize);
+            bool cropHeight = Comparison.IsPositive(rect.HeightLatitude % squareSide);
+            bool cropWidth = Comparison.IsPositive(rect.WidthLongitude % squareSide);
 
-            int latSlices = (int)((rect.HeightLatitude - (rect.HeightLatitude % squareSize)) / squareSize);
-            int lonSlices = (int)((rect.WidthLongitude - (rect.WidthLongitude % squareSize)) / squareSize);
-            
+            int latSlices = (int)((rect.HeightLatitude - (rect.HeightLatitude % squareSide)) / squareSide);
+            int lonSlices = (int)((rect.WidthLongitude - (rect.WidthLongitude % squareSide)) / squareSide);
+
             for (int i = 0; i < latSlices; ++i)
                 for (int j = 0; j < lonSlices; ++j)
                     checkerboard.Add(new GeoRect(
-                        SafeShift(rect.LowerLeft, i * squareSize, j * squareSize),
-                        SafeShift(rect.LowerLeft, (i + 1) * squareSize, (j + 1) * squareSize)));
+                        rect.LeftLongitude + j * squareSide, rect.LeftLongitude + (j + 1) * squareSide,
+                        rect.BottomLatitude + i * squareSide, rect.BottomLatitude + (i + 1) * squareSide));
 
             if (cropHeight)
                 for (int j = 0; j < lonSlices; ++j)
                     checkerboard.Add(new GeoRect(
-                        SafeShift(rect.LowerLeft, latSlices * squareSize, j * squareSize),
-                        SafeShift(rect.LowerLeft, rect.TopLatitude, (j + 1) * squareSize)));
+                        rect.LeftLongitude + j * squareSide, rect.LeftLongitude + (j + 1) * squareSide,
+                        rect.BottomLatitude + latSlices * squareSide, rect.TopLatitude));
             if (cropWidth)
                 for (int i = 0; i < latSlices; ++i)
                     checkerboard.Add(new GeoRect(
-                        SafeShift(rect.LowerLeft, i * squareSize, lonSlices * squareSize),
-                        SafeShift(rect.LowerLeft, (i + 1) * squareSize, rect.RightLongitude)));
+                        rect.LeftLongitude + lonSlices * squareSide, rect.RightLongitude,
+                        rect.BottomLatitude + i * squareSide, rect.BottomLatitude + (i + 1) * squareSide));
             if (cropHeight && cropWidth)
                 checkerboard.Add(new GeoRect(
-                        SafeShift(rect.LowerLeft, latSlices * squareSize, lonSlices * squareSize),
-                        SafeShift(rect.LowerLeft, rect.TopLatitude, rect.RightLongitude)));
+                        rect.LeftLongitude + lonSlices * squareSide, rect.RightLongitude,
+                        rect.BottomLatitude + latSlices * squareSide, rect.TopLatitude));
 
             return checkerboard;
         }
 
-        public static GeoPoint SafeShift(GeoPoint gp, double lat, double lon)
-        {
-            GeoPoint outGp = gp;
-            outGp.Latitude += lat;
-            if (outGp.Latitude > 90.0)
-            {
-                outGp.Latitude = 180.0 - gp.Latitude;
-                outGp.Longitude *= -1;
-            }
-            else if (outGp.Latitude < -90.0)
-            {
-                outGp.Latitude = -180 - gp.Latitude;
-                outGp.Longitude *= -1;
-            }
+        //public static GeoPoint SafeShift(GeoPoint gp, double lat, double lon)
+        //{
+        //    GeoPoint outGp = gp;
+        //    outGp.Latitude += lat;
+        //    if (outGp.Latitude > 90.0)
+        //    {
+        //        outGp.Latitude = 180.0 - gp.Latitude;
+        //        outGp.Longitude *= -1;
+        //    }
+        //    else if (outGp.Latitude < -90.0)
+        //    {
+        //        outGp.Latitude = -180 - gp.Latitude;
+        //        outGp.Longitude *= -1;
+        //    }
 
-            outGp.Longitude += lon;
-            while (Comparison.IsBigger(outGp.Longitude, 180.0))
-                outGp.Longitude -= 360.0;
-            while (Comparison.IsSmaller(outGp.Longitude, -180.0))
-                outGp.Longitude += 360.0;
-            return outGp;
-        }
+        //    outGp.Longitude += lon;
+        //    while (Comparison.IsBigger(outGp.Longitude, 180.0))
+        //        outGp.Longitude -= 360.0;
+        //    while (Comparison.IsSmaller(outGp.Longitude, -180.0))
+        //        outGp.Longitude += 360.0;
+        //    return outGp;
+        //}
 
         public static Polygon ProjectConeOntoSphere(Vector3D apex, IList<Vector3D> normals)
         {
