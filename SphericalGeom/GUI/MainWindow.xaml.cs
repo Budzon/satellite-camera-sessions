@@ -16,11 +16,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-using DataParsers;
-using SatelliteTrajectory;
-using Common;
-using Astronomy;
-
 namespace GUI
 {
     /// <summary>
@@ -38,14 +33,14 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            Terra = new Ellipse3D(1, 1, 1, 500);            
+            Terra = new Ellipse3D(1, 1, 1, 100);            
             PlotSphere(null, null);
         }
 
         public void OnViewportMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs args)
         {
             Point pt = args.GetPosition(this.mainViewport);
-            if (args.ChangedButton == MouseButton.Left)         // rotate or drag 3d model
+            if (args.ChangedButton == MouseButton.Left)   // rotate or drag 3d model
             {
                 m_transformMatrix.OnLBtnDown(pt);
             }
@@ -55,7 +50,7 @@ namespace GUI
         {
             Point pt = args.GetPosition(this.mainViewport);
 
-            if (args.LeftButton == MouseButtonState.Pressed)                // rotate or drag 3d model
+            if (args.LeftButton == MouseButtonState.Pressed)   // rotate or drag 3d model
             {
                 m_transformMatrix.OnMouseMove(pt, mainViewport);
 
@@ -86,19 +81,23 @@ namespace GUI
                 var p = Terra.GetPoint(i);
                 if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f)); 
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
                 }
-                else if (vm.Requests.Count > 0 && vm.PointInDifference(p.X, p.Y, p.Z)) 
+                else if (vm.Requests.Count > 0 && vm.PointInDifference(p.X, p.Y, p.Z))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));   
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
                 }
                 else if (vm.PointInCamera(p.X, p.Y, p.Z))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));  
-                }
-                else if (vm.PointInLane(p.X, p.Y, p.Z))
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
+                }                          
+                if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 1.0f, 1.0f));
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                }
+                else if (vm.Requests.Count > 0 && vm.PointInRegion(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
                 }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
@@ -125,25 +124,9 @@ namespace GUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            try
-            { 
-                vm.trajectory = DatParser.getTrajectoryFromDatFile(vm.DatFileName);
-            }
-            catch (FileNotFoundException exc)
-            {
-                MessageBox.Show("The specified file does not exist!", "Error");
-                return;
-            }
-            catch (ArgumentException exc)
-            {
-                MessageBox.Show("The trajectory data in file is incorrect!", "Error");
-                return;
-            }
-
-            // very slow
-            //vm.captureLanes.Add(vm.trajectory.getCaptureLane(2 * Math.PI / 10, 3 * Math.PI / 10)); 
-            //vm.captureLanes.Add(vm.trajectory.getCaptureLane(0, Math.PI / 10));             
-            //PlotSphere(null, null);            
-        }           
+            vm.CreateCaptureIntervals();
+            PlotSphere(null, null);                      
+        }
     }
+
 }

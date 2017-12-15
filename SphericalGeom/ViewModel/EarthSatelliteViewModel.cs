@@ -21,7 +21,7 @@ using Common;
 using SphericalGeom;
 using SatelliteRequests;
 using SatelliteTrajectory;
-using Common;
+using DataParsers;
 using Astronomy;
 
 namespace ViewModel
@@ -37,10 +37,10 @@ namespace ViewModel
         private SphericalGeom.Camera camera;
         private Polygon coneBase;
         private Polygon curRequest;
-        private List<Polygon> curIntersection;        
-        private List<Polygon> curDifference;
-        public SatTrajectory trajectory;  
-        public List< List<Polygon> > captureLanes;
+        private List<Polygon> curIntersection;
+        private List<Polygon> curDifference;        
+        private List<SatLane> captureLanes;        
+        private List<Polygon> captureIntervals;
 
         private bool hasChanged;
 
@@ -78,9 +78,10 @@ namespace ViewModel
             camera = new SphericalGeom.Camera();
             curIntersection = new List<Polygon>();
             curDifference = new List<Polygon>();
-            captureLanes = new List< List<Polygon> >();
-            UpdateConeBase();            
-            Requests = new Requests(); 
+            captureLanes = new List<SatLane>(); 
+            captureIntervals = new List<Polygon>();
+            UpdateConeBase();
+            Requests = new Requests();
             DatFileName = "trajectory.dat";
             addRequestCmd = new DelegateCommand(_ =>
             {
@@ -156,7 +157,8 @@ namespace ViewModel
         public double SatelliteAltitude
         {
             get { return camera.Position.Length - 1; }
-            set {
+            set
+            {
                 camera.Position = GeoPoint.ToCartesian(new GeoPoint(SatelliteLat, SatelliteLon), value + 1);
                 UpdateConeBase();
             }
@@ -164,7 +166,8 @@ namespace ViewModel
         public double SatelliteVerticalAngleOfView
         {
             get { return camera.VerticalHalfAngleOfView * 2; }
-            set { 
+            set
+            {
                 camera.VerticalHalfAngleOfView = value / 2;
                 UpdateConeBase();
             }
@@ -172,7 +175,8 @@ namespace ViewModel
         public double SatelliteHorizontalAngleOfView
         {
             get { return camera.HorizontalHalfAngleOfView * 2; }
-            set { 
+            set
+            {
                 camera.HorizontalHalfAngleOfView = value / 2;
                 UpdateConeBase();
             }
@@ -207,20 +211,33 @@ namespace ViewModel
         {
             return coneBase.Contains(new Vector3D(x, y, z));
         }
-
+        public bool PointInRegion(double x, double y, double z)
+        {
+            return curRequest.Contains(new Vector3D(x, y, z));
+        }
+        public bool PointInCaptureInterval(double x, double y, double z)
+        {
+            Vector3D v = new Vector3D(x, y, z);
+            foreach (Polygon pol in captureIntervals)
+            {
+                if (pol.Contains(v))
+                    return true;
+            }
+            return false;
+        } 
         public bool PointInLane(double x, double y, double z)
         {
             Vector3D v = new Vector3D(x, y, z);
-            foreach (List<Polygon> lane in captureLanes)
+            foreach (SatLane lane in captureLanes)
             {
-                foreach (Polygon sector in lane)
+                foreach (Polygon sector in lane.polygons)
                 {
                     if (sector.Contains(v))
                         return true;
                 }
             }
-            return false;           
-        }       
+            return false;
+        }
 
         public bool PointInIntersection(double x, double y, double z)
         {
@@ -247,7 +264,43 @@ namespace ViewModel
             var v = new Vector3D(x, y, z);
             return curDifference.Any(p => p.Contains(v));
         }
-        
+
+        public void CreateCaptureIntervals()
+        {
+            SatTrajectory trajectory;
+            try
+            {
+                trajectory = DatParser.getTrajectoryFromDatFile(DatFileName);
+            }
+            catch (FileNotFoundException exc)
+            {   
+                // MessageBox.Show("The specified file does not exist!", "Error");
+                return;
+            }
+            catch (ArgumentException exc)
+            {
+                // MessageBox.Show("The trajectory data in file is incorrect!", "Error");
+                return;
+            }
+
+            double viewAngle = AstronomyMath.ToRad(0.952);
+
+            captureLanes.Add(trajectory.getCaptureLane(Math.PI / 8, viewAngle * 20));
+
+            if (0 == Requests.Count)
+                return;
+
+            List<TargetWorkInterval> intervals = new List<TargetWorkInterval>();
+            foreach (var lane in captureLanes)
+            {
+                List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
+                foreach (var wint in wints)
+                {
+                    captureIntervals.Add(lane.getSegment(wint.fromDt, wint.toDt));
+                }
+            }
+        }
+
         public bool RegionCanBeCaptured { get; private set; }
         public double SatelliteRoll { get; private set; }
         public double SatellitePitch { get; private set; }
@@ -262,8 +315,8 @@ namespace ViewModel
 
     public class DegreeToRadianConverter : IValueConverter
     {
-        public object ConvertBack(object value, 
-                              Type targetType, 
+        public object ConvertBack(object value,
+                              Type targetType,
                               object parameter,
                               System.Globalization.CultureInfo culture)
         {
@@ -349,7 +402,7 @@ namespace ViewModel
             else
             {
                 return "Computing...";
-            } 
+            }
         }
     }
 
@@ -361,7 +414,7 @@ namespace ViewModel
         public event EventHandler CanExecuteChanged;
 
         public DelegateCommand(Action<object> execute)
-                       : this(execute, null)
+            : this(execute, null)
         {
         }
 
