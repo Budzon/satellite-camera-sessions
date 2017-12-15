@@ -113,7 +113,7 @@
             
             
             <DockPanel Grid.Column="2">
-                <TextBlock DockPanel.Dock="Top" x:Name="textBlock4" TextWrapping="Wrap" Text="Surcace point (lat, lon)"/>
+                <TextBlock DockPanel.Dock="Top" x:Name="textBlock4" TextWrapping="Wrap" Text="Surface point (lat, lon)"/>
                 
                 <Grid DockPanel.Dock="Top">
                     <Grid.ColumnDefinitions>
