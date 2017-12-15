@@ -82,7 +82,7 @@ public class DatParser
             while (!sr.EndOfStream)
             {
                 string line = sr.ReadLine();
-
+                
                 Regex velRegx = new Regex("VX[ \t]*=.*VY[ \t]*=.*VZ[ \t]*=.*"); // velocity line format
                 Match match = velRegx.Match(line);
 
@@ -99,9 +99,14 @@ public class DatParser
                     velocity.Y = VY;
                     velocity.Z = VZ;
 
+                    DateTime pointDt = trajectory.startDateTime.AddSeconds(pointInd * trajectory.step);
+                    TrajectoryPoint point = new TrajectoryPoint(pointDt, position, velocity);
+                    trajectory.points.Add(point);
+                    pointInd++;
+
                     continue;
                 }
-
+                
                 Regex posRegx = new Regex("X[ \t]*=.*Y[ \t]*=.*Z[ \t]*=.*"); // position line format
                 match = posRegx.Match(line);
 
@@ -117,13 +122,7 @@ public class DatParser
                     position.X = X;
                     position.Y = Y;
                     position.Z = Z;
-
-                    DateTime pointDt = trajectory.startDateTime.AddSeconds(pointInd * trajectory.step);
-
-                    TrajectoryPoint point = new TrajectoryPoint(pointDt, position, velocity);
-                    trajectory.points.Add(point);
-                    pointInd++;
-                }
+                }                               
             }
         }
 

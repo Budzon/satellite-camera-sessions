@@ -94,6 +94,9 @@
                 <Label x:Name="datLabel" Content="Trajectory file (.dat)"/>
                 <TextBox x:Name="datFilenameField" Height="23" TextWrapping="Wrap" Text="{Binding DatFileName}"/>
                 <Button x:Name="loadDatButton" Content="Load" Click="Button_Click"/>
+                <Label x:Name="wtkLabel" Content="Load Polygon from wtk:" RenderTransformOrigin="0.5,1.5"/>
+                <TextBox x:Name="wtkPolygonField" Height="116" TextWrapping="Wrap" Text="{Binding wtkPolygonStr}"/>
+                <Button x:Name="loadWTKButton" Content="Load"  Command="{Binding LoadWTK}"/>
             </StackPanel>
             
             

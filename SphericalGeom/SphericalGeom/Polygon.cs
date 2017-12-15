@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
+using Microsoft.SqlServer.Types;
+using System.Data.SqlTypes;
 
 using Common;
 
@@ -65,6 +67,21 @@ namespace SphericalGeom
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
+
+        public Polygon(string wtkPolygon) : this()
+        {
+            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
+            List<Vector3D> points = new List<Vector3D>();
+            var apex = new Vector3D(0, 0, 0);
+            for (int i = 1; i < geom.STNumPoints(); i++) 
+            {
+                double lat = (double)geom.STPointN(i).Lat;
+                double lon = (double)geom.STPointN(i).Long;
+                Vector3D point = GeoPoint.ToCartesian(new GeoPoint(lat, lon), 1);
+                this.apexes.Add(apex);
+                this.vertices.Add(point);             
+            }            
+        }
 
         // Assume that polygon does not contain poles and does not cross the 180 meridian
         public GeoRect BoundingBox()
