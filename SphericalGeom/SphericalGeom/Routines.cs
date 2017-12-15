@@ -19,7 +19,7 @@ namespace SphericalGeom
                    new Vector3D(-latticeOrigin.X * latticeOrigin.Z,
                                 -latticeOrigin.Y * latticeOrigin.Z,
                                 latticeOrigin.X * latticeOrigin.X + latticeOrigin.Y * latticeOrigin.Y));
-            latticeFrame.RotateBy(new Vector3D(1, 0, 0), latticeAxisInclination);
+            latticeFrame.RotateBy(new Vector3D(1, 0, 0), -latticeAxisInclination);
             
             // Place p at lat=0, lon=0
             Vector3D pMiddle = latticeFrame.ToThisFrame(p.Middle);
@@ -220,6 +220,89 @@ namespace SphericalGeom
                                                              2 * Vector3D.DotProduct(a, dir), 
                                                              a.LengthSquared - 1);
             return parameters.Select(t => a + t * dir).ToList();
+        }
+
+        public delegate double FuncDoubleToDouble(double x);
+        public static double GoldenRatio = 1.61803398875;
+        public static double FindMax(FuncDoubleToDouble f, double left, double right)
+        {
+            double maxf = f(left);
+            double dx = 1e-2, x = dx;
+            while (x < right)
+            {
+                maxf = Math.Max(maxf, f(x));
+                x += dx;
+            }
+            return maxf;
+            //double midLeft = right - (right - left) / GoldenRatio;
+            //double midRight = left + (right - left) / GoldenRatio;
+            //double fLeft = f(left), fMidLeft = f(midLeft), fMidRight = f(midRight), fRight = f(right);
+            //while (Math.Abs(left - right) > 1e-3 * (Math.Abs(midLeft) + Math.Abs(midRight)) / 2)
+            //{
+            //    if (fMidLeft < fMidRight)
+            //    {
+            //        left = midLeft;
+            //        fLeft = fMidLeft;
+
+            //        midLeft = midRight;
+            //        fMidLeft = fMidRight;
+
+            //        midRight = left + (right - left) / GoldenRatio;
+            //        fMidRight = f(midRight);
+            //    }
+            //    else
+            //    {
+            //        right = midRight;
+            //        fRight = fMidRight;
+
+            //        midRight = midLeft;
+            //        fMidRight = fMidLeft;
+
+            //        midLeft = right - (right - left) / GoldenRatio;
+            //        fMidLeft = f(midLeft);
+            //    }
+            //}
+            //return f((left + right) / 2);
+        }
+        public static double FindMin(FuncDoubleToDouble f, double left, double right)
+        {
+            double minf = f(left);
+            double dx = 1e-2, x = dx;
+            while (x < right)
+            {
+                minf = Math.Min(minf, f(x));
+                x += dx;
+            }
+            return minf;
+            //double midLeft = right - (right - left) / GoldenRatio;
+            //double midRight = left + (right - left) / GoldenRatio;
+            //double fLeft = f(left), fMidLeft = f(midLeft), fMidRight = f(midRight), fRight = f(right);
+            //while (Math.Abs(left - right) > 1e-2 * (Math.Abs(midLeft) + Math.Abs(midRight)) / 2)
+            //{
+            //    if (fMidLeft > fMidRight)
+            //    {
+            //        left = midLeft;
+            //        fLeft = fMidLeft;
+
+            //        midLeft = midRight;
+            //        fMidLeft = fMidRight;
+
+            //        midRight = left + (right - left) / GoldenRatio;
+            //        fMidRight = f(midRight);
+            //    }
+            //    else
+            //    {
+            //        right = midRight;
+            //        fRight = fMidRight;
+
+            //        midRight = midLeft;
+            //        fMidRight = fMidLeft;
+
+            //        midLeft = right - (right - left) / GoldenRatio;
+            //        fMidLeft = f(midLeft);
+            //    }
+            //}
+            //return f((left + right) / 2);
         }
     }
 }

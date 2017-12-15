@@ -47,53 +47,25 @@ namespace SphericalGeom
         public double MaxLatitudeDeg()
         {
             double maxRotation = Vector3D.AngleBetween(A, B) * System.Math.PI / 180.0;
-            double maxLatitudeRad = ParametrizedLatitudeRad(0);
-            double drad = 1e-3, rad = drad;
-            while (rad < maxRotation)
-            {
-                maxLatitudeRad = Math.Max(maxLatitudeRad, ParametrizedLatitudeRad(rad));
-                rad += drad;
-            }
-            return maxLatitudeRad * 180.0 / Math.PI;
+            return Routines.FindMax(ParametrizedLatitudeRad, 0, maxRotation) * 180.0 / Math.PI;
         }
 
         public double MinLatitudeDeg()
         {
             double maxRotation = Vector3D.AngleBetween(A, B) * System.Math.PI / 180.0;
-            double minLatitudeRad = ParametrizedLatitudeRad(0);
-            double drad = 1e-3, rad = drad;
-            while (rad < maxRotation)
-            {
-                minLatitudeRad = Math.Min(minLatitudeRad, ParametrizedLatitudeRad(rad));
-                rad += drad;
-            }
-            return minLatitudeRad * 180.0 / Math.PI;
+            return Routines.FindMin(ParametrizedLatitudeRad, 0, maxRotation) * 180.0 / Math.PI;
         }
 
         public double MaxLongitudeDeg()
         {
             double maxRotation = Vector3D.AngleBetween(A, B) * System.Math.PI / 180.0;
-            double maxLongitudeRad = ParametrizedLongitudeRad(0);
-            double drad = 1e-3, rad = drad;
-            while (rad < maxRotation)
-            {
-                maxLongitudeRad = Math.Max(maxLongitudeRad, ParametrizedLongitudeRad(rad));
-                rad += drad;
-            }
-            return maxLongitudeRad * 180.0 / Math.PI;
+            return Routines.FindMax(ParametrizedLongitudeRad, 0, maxRotation) * 180.0 / Math.PI;
         }
 
         public double MinLongitudeDeg()
         {
             double maxRotation = Vector3D.AngleBetween(A, B) * System.Math.PI / 180.0;
-            double minLongitudeRad = ParametrizedLongitudeRad(0);
-            double drad = 1e-3, rad = drad;
-            while (rad < maxRotation)
-            {
-                minLongitudeRad = Math.Min(minLongitudeRad, ParametrizedLongitudeRad(rad));
-                rad += drad;
-            }
-            return minLongitudeRad * 180.0 / Math.PI;
+            return Routines.FindMin(ParametrizedLongitudeRad, 0, maxRotation) * 180.0 / Math.PI;
         }
 
         public static ICollection<Vector3D> Intersect(Arc a, Arc b)
