@@ -49,6 +49,7 @@ namespace ViewModel
         private readonly DelegateCommand removeRequestCmd;
         private readonly DelegateCommand addPointCmd;
         private readonly DelegateCommand removePointCmd;
+        private readonly DelegateCommand loadWTK;
         //private readonly DelegateCommand verifyIfRegionCanBeSeenCmd;
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -88,6 +89,7 @@ namespace ViewModel
             UpdateConeBase();
             Requests = new Requests();
             DatFileName = "trajectory.dat";
+            wtkPolygonStr = "POLYGON ((20 -20, 20 20, -20 20, -20 -20, 20 -20))";
             addRequestCmd = new DelegateCommand(_ =>
             {
                 Requests.Add(new Request(RequestId));
@@ -111,12 +113,21 @@ namespace ViewModel
                 RaisePropertyChanged("NewPointLon");
                 RaisePropertyChanged("NewPointLat");
             }, _ => { return SelectedRequest != -1; });
-
+            
             removePointCmd = new DelegateCommand(_ =>
             {
                 Requests.ElementAt(SelectedRequest).Polygon.RemoveAt(SelectedPoint);
                 UpdateCurRequest();
             }, _ => { return (SelectedRequest != -1 && SelectedPoint != -1); });
+
+            loadWTK = new DelegateCommand(_ =>
+            {
+                RequestId = Requests.Count ;
+                addRequestCmd.Execute(new object());
+                curRequest = new SphericalGeom.Polygon(wtkPolygonStr);
+                if (curRequest.Vertices.Count() > 2)
+                    curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 45, 4).Where((s, ind) => ind % 2 == 0).ToList();                
+            }, _ => { return true; });
 
             //verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
             //{
@@ -206,7 +217,8 @@ namespace ViewModel
         public double NewPointLat { get; set; }
         public int SelectedPoint { get; set; }
         public string DatFileName { get; set; }
-
+        public string wtkPolygonStr { get; set; }
+        
         public bool PointInPolygon(double x, double y, double z)
         {
             return curRequest.Contains(new Vector3D(x, y, z));
@@ -320,6 +332,7 @@ namespace ViewModel
         public ICommand AddRequestCmd { get { return addRequestCmd; } }
         public ICommand RemoveRequestCmd { get { return removeRequestCmd; } }
         public ICommand AddPointCmd { get { return addPointCmd; } }
+        public ICommand LoadWTK { get { return loadWTK; } }
         public ICommand RemovePointCmd { get { return removePointCmd; } }
         //public ICommand VerifyIfRegionCanBeSeenCmd { get { return verifyIfRegionCanBeSeenCmd; } }
     }

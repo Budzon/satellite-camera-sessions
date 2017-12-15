@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Media.Media3D;
-using Microsoft.SqlServer.Types; 
-using System.Data.SqlTypes;
 
 using SphericalGeom;
 using SatelliteRequests;
@@ -56,21 +54,7 @@ namespace SatelliteTrajectory
 
             return new SatLane(minAngle, maxAngle,lanePoints);
         }
-
-        public static Polygon getPolygonFromWTK(string wtkPolygon)
-        {
-            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
-            List<Vector3D> vertices = new List<Vector3D>();
-            for (int i = 1; i <= geom.STNumPoints(); i++)
-            {
-                double lat = (double)geom.STPointN(i).Lat;
-                double lon = (double)geom.STPointN(i).Long;
-                Vector3D point = GeoPoint.ToCartesian(new GeoPoint(lat, lon), 1);
-                vertices.Add(point);
-            }
-
-            return new Polygon(vertices, new Vector3D(0, 0, 0)); ;
-        }
+         
 
         /// <summary>
         /// just get crossings point of line (by point and vector) and sphere (radius R with the center (0,0,0) )
@@ -312,8 +296,7 @@ namespace SatelliteTrajectory
             return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
         }
     }
-
-     
+         
     public class LanePos
     {
         public Vector3D leftPoint;
