@@ -39,9 +39,7 @@ namespace ViewModel
         private Polygon curRequest;
         private List<Polygon> curBbox;
         private List<Polygon> curIntersection;        
-        private List<Polygon> curDifference;
-        private List<Polygon> curIntersection;
-        private List<Polygon> curDifference;        
+        private List<Polygon> curDifference;      
         private List<SatLane> captureLanes;        
         private List<Polygon> captureIntervals;
 
