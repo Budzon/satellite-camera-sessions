@@ -113,20 +113,20 @@ namespace GUI
             m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
         }
 
-        public void PlotBoundingBox(object sender, RoutedEventArgs e)
+        public void PlotSquares(object sender, RoutedEventArgs e)
         {
 
             var nData = Terra.GetVertexNo();
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
-                if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z))
-                {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
-                }
-                else if (vm.Requests.Count > 0 && vm.PointInBoundingBox(p.X, p.Y, p.Z))
+                if (vm.Requests.Count > 0 && vm.PointInBoundingBox(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
+                }
+                else if (vm.Requests.Count > 0 && vm.PointInPolygon(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
                 }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));

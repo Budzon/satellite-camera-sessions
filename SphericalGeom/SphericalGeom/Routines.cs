@@ -35,8 +35,7 @@ namespace SphericalGeom
             List<GeoRect> checkerboard = SliceIntoSquares(boundingBox, squareSide);
             List<Polygon> squares = new List<Polygon>();
             foreach (GeoRect square in checkerboard)
-                //squares.AddRange(Polygon.IntersectAndSubtract(p, new Polygon(square)).Item1);
-                squares.Add(new Polygon(square));
+                squares.AddRange(Polygon.IntersectAndSubtract(p, new Polygon(square)).Item1);
             squares.ForEach(square => square.FromThisFrame(pFrame));
             p.FromThisFrame(pFrame);
             return squares;

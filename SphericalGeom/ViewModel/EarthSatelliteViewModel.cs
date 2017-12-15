@@ -72,7 +72,7 @@ namespace ViewModel
                     Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)),
                     new Vector3D(0, 0, 0));
                 if (curRequest.Vertices.Count() > 2)
-                    curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 26, 4);
+                    curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 45, 4).Where((s,ind) => ind % 2 == 0).ToList();
             }
             else
                 curRequest = null;
