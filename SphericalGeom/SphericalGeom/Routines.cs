@@ -19,7 +19,7 @@ namespace SphericalGeom
                    new Vector3D(-latticeOrigin.X * latticeOrigin.Z,
                                 -latticeOrigin.Y * latticeOrigin.Z,
                                 latticeOrigin.X * latticeOrigin.X + latticeOrigin.Y * latticeOrigin.Y));
-            latticeFrame.RotateBy(new Vector3D(1, 0, 0), latticeAxisInclination);
+            latticeFrame.RotateBy(new Vector3D(1, 0, 0), -latticeAxisInclination);
             
             // Place p at lat=0, lon=0
             Vector3D pMiddle = latticeFrame.ToThisFrame(p.Middle);
