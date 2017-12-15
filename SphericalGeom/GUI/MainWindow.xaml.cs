@@ -16,6 +16,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
+using SatelliteSessions;
+
 namespace GUI
 {
     /// <summary>
@@ -154,8 +156,19 @@ namespace GUI
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             vm.CreateCaptureIntervals();
-            PlotSphere(null, null);                      
+            // PlotSphere(null, null);                      
         }
+
+        private void Button_isRequestFeasible(object sender, RoutedEventArgs e)
+        {
+            vm.test_isRequestFeasible();
+        }
+
+        private void getCaptureConfArray_Click(object sender, RoutedEventArgs e)
+        {
+            vm.test_getCaptureConfArray();
+        }
+       
     }
 
 }

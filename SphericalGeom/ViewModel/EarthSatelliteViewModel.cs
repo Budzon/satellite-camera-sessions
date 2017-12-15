@@ -23,6 +23,7 @@ using Common;
 using SphericalGeom;
 using SatelliteRequests;
 using SatelliteTrajectory;
+using SatelliteSessions;
 using DataParsers;
 using Astronomy;
 
@@ -128,6 +129,7 @@ namespace ViewModel
                 addRequestCmd.Execute(new object());
 
                 SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygonStr), 4326);                               
+                
                 for (int i = 1; i < geom.STNumPoints(); i++)
                 {
                     NewPointLat = (double)geom.STPointN(i).Lat;
@@ -312,11 +314,12 @@ namespace ViewModel
             {
                 // MessageBox.Show("The trajectory data in file is incorrect!", "Error");
                 return;
-            }
+            }            
 
-            double viewAngle = AstronomyMath.ToRad(0.952);
+            double rollAngle = 0;
+            double viewAngle = Math.PI / 2;//AstronomyMath.ToRad(0.952);
 
-            captureLanes.Add(trajectory.getCaptureLane(Math.PI / 8, viewAngle * 20));
+            captureLanes.Add(trajectory.getCaptureLane(rollAngle, viewAngle));
 
             if (0 == Requests.Count)
                 return;
@@ -330,6 +333,30 @@ namespace ViewModel
                     captureIntervals.Add(lane.getSegment(wint.fromDt, wint.toDt));
                 }
             }
+        }
+
+        public void test_isRequestFeasible()
+        {
+            if (curRequest == null)
+                return;
+            RequestParams reqparams = new RequestParams();            
+            reqparams.id = 1;
+            reqparams.wktPolygon = curRequest.ToWtk();
+            reqparams.minCoverPerc = 0.4;
+            Console.WriteLine(Sessions.isRequestFeasible(reqparams));
+        }
+
+        public void test_getCaptureConfArray()
+        {
+            if (curRequest == null)
+                return;
+            RequestParams reqparams = new RequestParams();
+            reqparams.id = 1;
+            reqparams.wktPolygon = curRequest.ToWtk();
+            reqparams.minCoverPerc = 0.4;
+            List<RequestParams> requests = new List<RequestParams>();
+            requests.Add(reqparams);
+            Sessions.getCaptureConfArray(requests);
         }
 
         public bool RegionCanBeCaptured { get; private set; }

@@ -218,6 +218,31 @@ namespace SphericalGeom
             }
             return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
+        
+        public string ToWtk()  
+        {
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+
+            if (0 == vertices.Count)
+                return "";                
+            string wkt = "POLYGON ((";
+            foreach (var ver in vertices)
+            {
+                GeoPoint gpoint = GeoPoint.FromCartesian(ver);
+                wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+            }
+            GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
+            wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+            return wkt;
+        }
+
+        public double Square()
+        {
+            var wtkstr = ToWtk();
+            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);
+            return (double)geom.STArea();
+        }
+
 
         private enum pointType { vertex, enter, exit };
         private static pointType Not(pointType t)

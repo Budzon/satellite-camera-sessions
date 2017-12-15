@@ -7,7 +7,7 @@
         xmlns:gui="clr-namespace:GUI"
         mc:Ignorable="d"
         KeyDown="OnKeyDown"
-        Title="Satellite Session Explorer" Height="400" Width="1000">
+        Title="Satellite Session Explorer" Height="406" Width="1000">
    
     <Window.Resources>
         <local:DegreeToRadianConverter x:Key="DegreeToRadianConverter"/>
@@ -95,8 +95,10 @@
                 <TextBox x:Name="datFilenameField" Height="23" TextWrapping="Wrap" Text="{Binding DatFileName}"/>
                 <Button x:Name="loadDatButton" Content="Load" Click="Button_Click"/>
                 <Label x:Name="wtkLabel" Content="Load Polygon from wtk:" RenderTransformOrigin="0.5,1.5"/>
-                <TextBox x:Name="wtkPolygonField" Height="116" TextWrapping="Wrap" Text="{Binding wtkPolygonStr}"/>
+                <TextBox x:Name="wtkPolygonField" Height="106" TextWrapping="Wrap" Text="{Binding wtkPolygonStr}"/>
                 <Button x:Name="loadWTKButton" Content="Load"  Command="{Binding LoadWTK}"/>
+                <Button x:Name="isRequestFeasible" Content="isRequestFeasible" Click="Button_isRequestFeasible"/>
+                <Button x:Name="getCaptureConfArray" Content="getCaptureConfArray" Click="getCaptureConfArray_Click"/>
             </StackPanel>
             
             

@@ -4,6 +4,7 @@ using System.Windows.Media.Media3D;
 
 using SphericalGeom;
 using SatelliteRequests;
+using SatelliteSessions;
 using Common;
 using Astronomy;
 
@@ -147,8 +148,7 @@ namespace SatelliteTrajectory
                 {
                     for (int i = rightLanePoints.Count - 1; i >= 0; i--)
                         leftLanePoints.Add(rightLanePoints[i]);
-
-
+                    
                     Polygon sector = new Polygon(leftLanePoints, new Vector3D(0, 0, 0));
                     polygons.Add(sector);
                     //break;
@@ -158,6 +158,56 @@ namespace SatelliteTrajectory
                 }
                 prevPoint = point;
             }
+        }
+
+        public List<CaptureConf> getCaptureConf(RequestParams request)
+        {
+            Polygon region = new Polygon(request.wktPolygon);
+            List<CaptureConf> res = new List<CaptureConf>();
+
+            double square = region.Square();
+
+            foreach (Polygon sector in polygons)
+            {
+                Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector, region);
+
+                foreach (var int_pol in reTuple.Item1)
+                {
+                    var verts = int_pol.Vertices;
+                    var en = verts.GetEnumerator();
+                    en.MoveNext();
+                    DateTime tmin = getPointTime(en.Current);
+                    DateTime tmax = tmin;
+                    Vector3D minPoint, maxPoint;
+                    foreach (var point in verts)
+                    {
+                        DateTime curTime = getPointTime(point);
+                        if (curTime < tmin)
+                        {
+                            minPoint = point;
+                            tmin = curTime;
+                        }
+                        else if (curTime > tmax)
+                        {
+                            maxPoint = point;
+                            tmax = curTime;
+                        }
+                    }
+
+                    double subsquare = int_pol.Square();
+
+                    CaptureConf newcc = new CaptureConf();
+                    Order order = new Order();
+                    order.request = request;
+                    order.intersection_coeff = subsquare / square;
+                    newcc.orders.Add(order);
+                    newcc.dateFrom = tmin;
+                    newcc.dateTo = tmax;
+                    res.Add(newcc);
+                }
+            }
+            
+            return res;
         }
 
         public List<TargetWorkInterval> getTargetIntervals(Polygon region, double minTimeDist)
@@ -193,6 +243,7 @@ namespace SatelliteTrajectory
                     TargetWorkInterval newInt = new TargetWorkInterval();
                     newInt.fromDt = tmin;
                     newInt.toDt = tmax;
+                    /// getSegment here
                     resIntervals.Add(newInt);
                 }
             }
