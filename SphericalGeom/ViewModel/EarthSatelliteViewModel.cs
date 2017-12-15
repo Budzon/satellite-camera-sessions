@@ -16,6 +16,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
+using Microsoft.SqlServer.Types;
+using System.Data.SqlTypes;
 
 using Common;
 using SphericalGeom;
@@ -122,11 +124,17 @@ namespace ViewModel
 
             loadWTK = new DelegateCommand(_ =>
             {
-                RequestId = Requests.Count ;
+                RequestId = Requests.Count;
                 addRequestCmd.Execute(new object());
-                curRequest = new SphericalGeom.Polygon(wtkPolygonStr);
-                if (curRequest.Vertices.Count() > 2)
-                    curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 45, 4).Where((s, ind) => ind % 2 == 0).ToList();                
+
+                SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygonStr), 4326);                               
+                for (int i = 1; i < geom.STNumPoints(); i++)
+                {
+                    NewPointLat = (double)geom.STPointN(i).Lat;
+                    NewPointLon = (double)geom.STPointN(i).Long;                    
+                    addPointCmd.Execute(new object());
+                }
+                                            
             }, _ => { return true; });
 
             //verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
