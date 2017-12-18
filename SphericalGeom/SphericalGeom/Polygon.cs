@@ -271,6 +271,8 @@ namespace SphericalGeom
 
         private bool CheckIfCounterclockwise()
         {
+            if (vertices.Count < 3)
+                return true;
             var arcs = Arcs;
             double angleSum = 0;
             double sin, cos;
