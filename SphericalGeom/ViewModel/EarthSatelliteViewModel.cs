@@ -17,7 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using Microsoft.SqlServer.Types;
-using System.Data.SqlTypes;
+using System.Data.SqlTypes; 
 
 using Common;
 using SphericalGeom;
@@ -26,6 +26,7 @@ using SatelliteTrajectory;
 using SatelliteSessions;
 using DataParsers;
 using Astronomy;
+using OptimalChain;
 
 namespace ViewModel
 {
@@ -126,17 +127,14 @@ namespace ViewModel
             loadWTK = new DelegateCommand(_ =>
             {
                 RequestId = Requests.Count;
-                addRequestCmd.Execute(new object());
-
-                SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygonStr), 4326);                               
-                
+                addRequestCmd.Execute(new object());                
+                SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygonStr), 4326);                
                 for (int i = 1; i < geom.STNumPoints(); i++)
                 {
                     NewPointLat = (double)geom.STPointN(i).Lat;
                     NewPointLon = (double)geom.STPointN(i).Long;                    
                     addPointCmd.Execute(new object());
-                }
-                                            
+                }                                            
             }, _ => { return true; });
 
             //verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
@@ -263,9 +261,9 @@ namespace ViewModel
             Vector3D v = new Vector3D(x, y, z);
             foreach (SatLane lane in captureLanes)
             {
-                foreach (Polygon sector in lane.polygons)
+                foreach (LaneSector sector in lane.Sectors)
                 {
-                    if (sector.Contains(v))
+                    if (sector.polygon.Contains(v))
                         return true;
                 }
             }
@@ -314,7 +312,19 @@ namespace ViewModel
             {
                 // MessageBox.Show("The trajectory data in file is incorrect!", "Error");
                 return;
-            }            
+            }
+
+            //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
+            //double angleStep = viewAngle; // шаг равен углу обзора
+            //double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по качеству (если оно будет задаваться максимальным углом крена)
+            //double max_roll_angle = AstronomyMath.ToRad(45);
+            //for (double dirAngle = min_roll_angle + angleStep; dirAngle <= max_roll_angle; dirAngle += angleStep)
+            //{
+            //    List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
+            //    SatLane viewLane = trajectory.getCaptureLane(dirAngle, viewAngle);
+            //    captureLanes.Add(viewLane);
+            //    break;
+            //}
 
             double rollAngle = 0;
             double viewAngle = Math.PI / 2;//AstronomyMath.ToRad(0.952);
@@ -327,6 +337,10 @@ namespace ViewModel
             List<TargetWorkInterval> intervals = new List<TargetWorkInterval>();
             foreach (var lane in captureLanes)
             {
+               // RequestParams reqparams = new RequestParams();
+               // reqparams.id = 1;
+               // reqparams.wktPolygon = curRequest.ToWtk();
+               // List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
                 List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
                 foreach (var wint in wints)
                 {
@@ -346,19 +360,37 @@ namespace ViewModel
             Console.WriteLine(Sessions.isRequestFeasible(reqparams));
         }
 
-        public void test_getCaptureConfArray()
+        public IList<CaptureConf> test_getCaptureConfArray()
         {
             if (curRequest == null)
-                return;
-            RequestParams reqparams = new RequestParams();
-            reqparams.id = 1;
-            reqparams.wktPolygon = curRequest.ToWtk();
-            reqparams.minCoverPerc = 0.4;
-            List<RequestParams> requests = new List<RequestParams>();
-            requests.Add(reqparams);
-            Sessions.getCaptureConfArray(requests);
-        }
+                return null;
+            
+            List<RequestParams> requests = new List<RequestParams>();           
 
+            foreach (var req in Requests)
+            {
+                var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
+                RequestParams reqparams = new RequestParams();
+                reqparams.id = req.Id;
+                reqparams.priority = 1;
+                reqparams.wktPolygon = pol.ToWtk();
+                requests.Add(reqparams);
+            }
+            
+            return Sessions.getCaptureConfArray(requests);
+        }
+        
+        public void test_GetOptimanlChain()
+        {
+            List<CaptureConf> confs = (List<CaptureConf>)test_getCaptureConfArray();
+            Sessions.getOptimalChain(confs);
+            var optimalChain = test_getCaptureConfArray();
+            foreach (CaptureConf s in optimalChain)
+            {
+                Console.Write(s.rollAngle + ",");
+            }   
+        }
+        
         public bool RegionCanBeCaptured { get; private set; }
         public double SatelliteRoll { get; private set; }
         public double SatellitePitch { get; private set; }

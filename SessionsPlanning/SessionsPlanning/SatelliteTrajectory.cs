@@ -7,7 +7,7 @@ using SatelliteRequests;
 using SatelliteSessions;
 using Common;
 using Astronomy;
-
+using OptimalChain;
  
 namespace SatelliteTrajectory
 { 
@@ -43,8 +43,8 @@ namespace SatelliteTrajectory
                 Vector3D leftVector = leftTransform.Transform(eDirVect);
                 Vector3D rightVector = rightTransform.Transform(eDirVect);
 
-                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Constants.EarthRadius).ToVector();
-                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Constants.EarthRadius).ToVector();
+                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Astronomy.Constants.EarthRadius).ToVector();
+                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Astronomy.Constants.EarthRadius).ToVector();
 
                 leftCrossPoint.Normalize();
                 rightCrossPoint.Normalize();
@@ -53,7 +53,7 @@ namespace SatelliteTrajectory
                 lanePoints.Add(newLanePos);                
             }
 
-            return new SatLane(minAngle, maxAngle,lanePoints);
+            return new SatLane(minAngle, maxAngle, lanePoints);
         }
          
 
@@ -121,15 +121,18 @@ namespace SatelliteTrajectory
         public double maxRollAngle;
 
         public List<LanePos> lanePoints;
-                
-        public List<Polygon> polygons;
+
+        public List<LaneSector> Sectors;
 
         public SatLane(double minAngle, double maxAngle, List<LanePos> points)
         {
-            polygons = new List<Polygon>();
+            Sectors = new List<LaneSector>();
             lanePoints = points;
             List<Vector3D> leftLanePoints = new List<Vector3D>();
             List<Vector3D> rightLanePoints = new List<Vector3D>();
+            DateTime sectorFromDT = points[0].time;
+            DateTime sectorToDT;
+
             GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(points[0].leftPoint.ToPoint());
             for (int p_ind = 0; p_ind < points.Count - 1; p_ind++)
             {
@@ -139,49 +142,70 @@ namespace SatelliteTrajectory
                 GeoPoint point = AstronomyMath.GreenwichToSpherical(points[p_ind].leftPoint.ToPoint());
                 GeoPoint nextPoint = AstronomyMath.GreenwichToSpherical(points[p_ind + 1].leftPoint.ToPoint());
 
-                double latDist, lonDist;
-                double nextLatDist, nextLonDist;
-                GeoPoint.CircleDistance(point, prevPoint, out latDist, out lonDist);
-                GeoPoint.CircleDistance(nextPoint, prevPoint, out nextLatDist, out nextLonDist);
+                //GeoPoint p1 = new GeoPoint(-30,90);
+                //GeoPoint p2 = new GeoPoint(-20, 170);
+                //double dist = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(p1, p2));
 
-                if (p_ind != 0 && (p_ind == points.Count - 2 || nextLatDist < latDist || nextLonDist < lonDist))
+                double curDist =  GeoPoint.DistanceOverSurface(prevPoint, point);
+                double distNext = GeoPoint.DistanceOverSurface(prevPoint, nextPoint);
+
+                //double distToNext =  GeoPoint.DistanceOverSurface(point, nextPoint);
+
+                //double latDist, lonDist;
+                //double nextLatDist, nextLonDist;
+                //GeoPoint.CircleDistance(point, prevPoint, out latDist, out lonDist);
+                //GeoPoint.CircleDistance(nextPoint, prevPoint, out nextLatDist, out nextLonDist);
+                //  if (rightLanePoints.Count == 297)
+                //   {
+                //       Console.Write(" - ");
+                //   }
+
+                if (p_ind != 0 && (p_ind == points.Count - 2 || distNext < curDist))
                 {
                     for (int i = rightLanePoints.Count - 1; i >= 0; i--)
                         leftLanePoints.Add(rightLanePoints[i]);
-                    
-                    Polygon sector = new Polygon(leftLanePoints, new Vector3D(0, 0, 0));
-                    polygons.Add(sector);
-                    //break;
+
+                    sectorToDT = points[p_ind].time;
+                    Polygon pol = new Polygon(leftLanePoints, new Vector3D(0, 0, 0));
+                    LaneSector newSector = new LaneSector();
+                    newSector.polygon = pol;
+                    newSector.fromDT = sectorFromDT;
+                    newSector.toDT = sectorToDT;
+                    Sectors.Add(newSector);
+                    // break; ////
 
                     rightLanePoints.Clear();
                     leftLanePoints.Clear();
+                    sectorFromDT = sectorToDT;
+                    prevPoint = point;
                 }
-                prevPoint = point;
+
+                
             }
         }
 
-        public List<CaptureConf> getCaptureConf(RequestParams request)
+        public List<CaptureConf> getCaptureConfs(RequestParams request)
         {
             Polygon region = new Polygon(request.wktPolygon);
             List<CaptureConf> res = new List<CaptureConf>();
 
             double square = region.Square();
 
-            foreach (Polygon sector in polygons)
-            {
-                Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector, region);
+            foreach(LaneSector sector in Sectors)
+            { 
+                Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector.polygon, region);
 
                 foreach (var int_pol in reTuple.Item1)
                 {
                     var verts = int_pol.Vertices;
                     var en = verts.GetEnumerator();
                     en.MoveNext();
-                    DateTime tmin = getPointTime(en.Current);
+                    DateTime tmin = getPointTime(en.Current, sector.fromDT, sector.toDT);
                     DateTime tmax = tmin;
                     Vector3D minPoint, maxPoint;
                     foreach (var point in verts)
                     {
-                        DateTime curTime = getPointTime(point);
+                        DateTime curTime = getPointTime(point, sector.fromDT, sector.toDT);
                         if (curTime < tmin)
                         {
                             minPoint = point;
@@ -210,25 +234,26 @@ namespace SatelliteTrajectory
             return res;
         }
 
+        //@todo дубликат
         public List<TargetWorkInterval> getTargetIntervals(Polygon region, double minTimeDist)
         {
             List<TargetWorkInterval> resIntervals = new List<TargetWorkInterval>();
 
-            foreach (Polygon sector in polygons)
+            foreach (LaneSector sector in Sectors)
             {
-                Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector, region);
+                Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector.polygon, region);
                                
                 foreach (var int_pol in reTuple.Item1)
                 {
                     var verts = int_pol.Vertices;
                     var en = verts.GetEnumerator();
                     en.MoveNext();
-                    DateTime tmin = getPointTime(en.Current);
+                    DateTime tmin = getPointTime(en.Current, sector.fromDT, sector.toDT);
                     DateTime tmax = tmin;
                     Vector3D minPoint, maxPoint;
                     foreach (var point in verts)
                     {
-                        DateTime curTime = getPointTime(point);
+                        DateTime curTime = getPointTime(point, sector.fromDT, sector.toDT);
                         if (curTime < tmin)
                         {
                             minPoint = point;
@@ -247,41 +272,23 @@ namespace SatelliteTrajectory
                     resIntervals.Add(newInt);
                 }
             }
-
-            for (int i = 0; i < resIntervals.Count - 1; i++)
-            {
-                if ((resIntervals[i + 1].fromDt - resIntervals[i].toDt).TotalSeconds < minTimeDist)
-                {
-                    resIntervals[i].toDt = resIntervals[i + 1].toDt;
-                    resIntervals.RemoveAt(i + 1);
-                }
-            }
-
+           
             return resIntervals;
         }
 
-        public DateTime getPointTime(Vector3D point)
-        {
-            /* /// @todo такая проверка нужна, но отрабатывает не всегда корректно, проблема скорее всего в функции Contains
-            bool is_contain = false;
-            foreach(var sector in polygons)
-            {
-                if (sector.Contains(point))
-                {
-                    is_contain = true;
-                    break;
-                }
-            }
-
-              if (!is_contain)
-                throw new System.ArgumentException("Point doesn't belong to this lane.");
-            */
-
+        // @todo убрать fromDt и toDt, функцию перевести в LaneSector
+        public DateTime getPointTime(Vector3D point, DateTime fromDt, DateTime toDt)
+        {        
             double minDist = lanePoints[0].directDistToPoint(point);
             int minInd = 0;
 
             for (int i = 1; i < lanePoints.Count - 1; i++)
             {
+                if (lanePoints[i].time < fromDt)
+                    continue;
+                else if (lanePoints[i].time > toDt)
+                    break;
+
                 double dist = lanePoints[i].directDistToPoint(point);
                 if (dist < minDist)
                 {
@@ -296,10 +303,8 @@ namespace SatelliteTrajectory
             double distCur = curPos.directDistToPoint(point);
             double distNext = nextPos.directDistToPoint(point);
 
-            double difTime = (curPos.time - nextPos.time).TotalSeconds;
-            double diff = difTime * distCur / (distCur + distNext);
+            double diff = Math.Abs((curPos.time - nextPos.time).TotalSeconds) * distCur / (distCur + distNext);
             DateTime res = (minInd == lanePoints.Count - 1) ? nextPos.time.AddSeconds(diff) : curPos.time.AddSeconds(diff);             
-
             return res;
         }
         
@@ -383,6 +388,13 @@ namespace SatelliteTrajectory
         public DateTime toDt;
         public double minAngle;
         public double maxAngle; 
+    }
+
+    public struct LaneSector
+    {
+        public DateTime fromDT;
+        public DateTime toDT;
+        public Polygon polygon;
     }
 
 

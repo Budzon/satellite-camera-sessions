@@ -8,17 +8,17 @@
         mc:Ignorable="d"
         KeyDown="OnKeyDown"
         Title="Satellite Session Explorer" Height="406" Width="1000">
-   
+
     <Window.Resources>
         <local:DegreeToRadianConverter x:Key="DegreeToRadianConverter"/>
         <local:CanComputeToTextConverter x:Key="CanComputeToTextConverter"/>
     </Window.Resources>
-   
+
     <DockPanel>
         <StackPanel DockPanel.Dock="Top">
             <TextBlock Background="Aqua" Text="Angles are in degrees. Altitude is in units of Earth radius."/>
         </StackPanel>
-            
+
         <Grid DockPanel.Dock="Top">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
@@ -27,7 +27,7 @@
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="3*"/>
             </Grid.ColumnDefinitions>
-            
+
             <StackPanel Grid.Column="0">
                 <TextBlock x:Name="textBlock" TextWrapping="Wrap" Text="Satellite (lat, lon, altitude)"/>
                 <Grid>
@@ -37,7 +37,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0" x:Name="satelliteLat" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="SatelliteLat"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="SatelliteLat"/>
+                            <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-90" Max="90"/>
                                 </Binding.ValidationRules>
@@ -46,7 +47,8 @@
                     </TextBox>
                     <TextBox Grid.Column="1" x:Name="satelliteLon" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="SatelliteLon"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="SatelliteLon"/>
+                            <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-180" Max="180"/>
                                 </Binding.ValidationRules>
@@ -97,11 +99,9 @@
                 <Label x:Name="wtkLabel" Content="Load Polygon from wtk:" RenderTransformOrigin="0.5,1.5"/>
                 <TextBox x:Name="wtkPolygonField" Height="106" TextWrapping="Wrap" Text="{Binding wtkPolygonStr}"/>
                 <Button x:Name="loadWTKButton" Content="Load"  Command="{Binding LoadWTK}"/>
-                <Button x:Name="isRequestFeasible" Content="isRequestFeasible" Click="Button_isRequestFeasible"/>
-                <Button x:Name="getCaptureConfArray" Content="getCaptureConfArray" Click="getCaptureConfArray_Click"/>
             </StackPanel>
-            
-            
+
+
             <DockPanel Grid.Column="1">
                 <TextBlock DockPanel.Dock="Top" Text="Request ID"/>
                 <TextBox DockPanel.Dock="Top" Text="{Binding RequestId}"/>
@@ -115,11 +115,11 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
-            
-            
+
+
             <DockPanel Grid.Column="2">
                 <TextBlock DockPanel.Dock="Top" x:Name="textBlock4" TextWrapping="Wrap" Text="Surface point (lat, lon)"/>
-                
+
                 <Grid DockPanel.Dock="Top">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -127,7 +127,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="NewPointLat"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="NewPointLat"/>
+                            <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-90" Max="90"/>
                                 </Binding.ValidationRules>
@@ -136,7 +137,8 @@
                     </TextBox>
                     <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap">
                         <TextBox.Text>
-                            <Binding Path="NewPointLon"/> <!--Converter="{StaticResource DegreeToRadianConverter}">
+                            <Binding Path="NewPointLon"/>
+                            <!--Converter="{StaticResource DegreeToRadianConverter}">
                                 <Binding.ValidationRules>
                                     <local:DoubleInRange Min="-180" Max="180"/>
                                 </Binding.ValidationRules>
@@ -146,10 +148,10 @@
                     <!--<TextBox Grid.Column="0" x:Name="newPointLat" TextWrapping="Wrap" Text="{Binding NewPointLat, Converter={StaticResource DegreeToRadianConverter}}"/>
                     <TextBox Grid.Column="1" x:Name="newPointLon" TextWrapping="Wrap" Text="{Binding NewPointLon, Converter={StaticResource DegreeToRadianConverter}}"/>-->
                 </Grid>
-                
+
                 <Button DockPanel.Dock="Top" x:Name="addPointButton" Content="Add point" Command="{Binding AddPointCmd}"/>
                 <Button DockPanel.Dock="Top"  x:Name="removePointButton" Content="Remove selected point" Command="{Binding RemovePointCmd}"/>
-                
+
                 <ListBox x:Name="listOfPoints" ItemsSource="{Binding SelectedItem.Polygon, ElementName=requests}" IsSynchronizedWithCurrentItem="True" SelectedIndex="{Binding SelectedPoint}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -167,10 +169,11 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
-            
-            
+
+
             <StackPanel Grid.Column="3">
-                <Button x:Name="checkRegionButton" Content="Can region be captured?"/> <!--Command="{Binding VerifyIfRegionCanBeSeenCmd}"-->
+                <Button x:Name="checkRegionButton" Content="Can region be captured?"/>
+                <!--Command="{Binding VerifyIfRegionCanBeSeenCmd}"-->
                 <TextBlock x:Name="canBeSeen" TextWrapping="Wrap" Text="{Binding RegionCanBeCaptured}"/>
                 <TextBlock x:Name="textBlock2" TextWrapping="Wrap" Text="Pitch, yaw, roll"/>
                 <TextBlock x:Name="satellitePitch" TextWrapping="Wrap" Text="{Binding SatellitePitch, Converter={StaticResource DegreeToRadianConverter}}"/>
@@ -178,9 +181,12 @@
                 <TextBlock x:Name="satelliteRoll" TextWrapping="Wrap" Text="{Binding SatelliteRoll, Converter={StaticResource DegreeToRadianConverter}}"/>
                 <Button x:Name="plotPolygon" Content="Plot it!" Click="PlotSphere"/>
                 <Button x:Name="plotSquares" Content="Plot squares!" Click="PlotSquares"/>
+                <Button x:Name="isRequestFeasible" Content="isRequestFeasible" Click="Button_isRequestFeasible" Margin="0,0,-1,0"/>
+                <Button x:Name="getCaptureConfArray" Content="getCaptureConfArray" Click="getCaptureConfArray_Click" Margin="0,0,-1,0"/>
+                <Button x:Name="getOptimalChain" Content="getOptimalChain" Click="Button_Click_1"/>
             </StackPanel>
 
-            
+
             <Grid Grid.Column="4"
                   Background="Black">
                 <Viewport3D
@@ -222,7 +228,7 @@
                     MouseUp="OnViewportMouseUp"  
                     MouseDown="OnViewportMouseDown"  
                     MouseMove="OnViewportMouseMove"/>
-            </Grid>     
+            </Grid>
         </Grid>
 
     </DockPanel>

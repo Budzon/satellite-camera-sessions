@@ -168,6 +168,13 @@ namespace GUI
         {
             vm.test_getCaptureConfArray();
         }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            vm.test_GetOptimanlChain();
+        }
+
+       
        
     }
 
