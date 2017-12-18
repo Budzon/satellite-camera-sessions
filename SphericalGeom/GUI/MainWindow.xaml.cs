@@ -164,14 +164,10 @@ namespace GUI
             vm.test_isRequestFeasible();
         }
 
-        private void getCaptureConfArray_Click(object sender, RoutedEventArgs e)
-        {
-            vm.test_getCaptureConfArray();
-        }
-
+ 
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            vm.test_GetOptimanlChain();
+            vm.test_getCaptureConfArray();
         }
 
        

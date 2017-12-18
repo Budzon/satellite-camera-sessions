@@ -142,24 +142,9 @@ namespace SatelliteTrajectory
                 GeoPoint point = AstronomyMath.GreenwichToSpherical(points[p_ind].leftPoint.ToPoint());
                 GeoPoint nextPoint = AstronomyMath.GreenwichToSpherical(points[p_ind + 1].leftPoint.ToPoint());
 
-                //GeoPoint p1 = new GeoPoint(-30,90);
-                //GeoPoint p2 = new GeoPoint(-20, 170);
-                //double dist = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(p1, p2));
-
                 double curDist =  GeoPoint.DistanceOverSurface(prevPoint, point);
                 double distNext = GeoPoint.DistanceOverSurface(prevPoint, nextPoint);
-
-                //double distToNext =  GeoPoint.DistanceOverSurface(point, nextPoint);
-
-                //double latDist, lonDist;
-                //double nextLatDist, nextLonDist;
-                //GeoPoint.CircleDistance(point, prevPoint, out latDist, out lonDist);
-                //GeoPoint.CircleDistance(nextPoint, prevPoint, out nextLatDist, out nextLonDist);
-                //  if (rightLanePoints.Count == 297)
-                //   {
-                //       Console.Write(" - ");
-                //   }
-
+                
                 if (p_ind != 0 && (p_ind == points.Count - 2 || distNext < curDist))
                 {
                     for (int i = rightLanePoints.Count - 1; i >= 0; i--)
@@ -178,9 +163,7 @@ namespace SatelliteTrajectory
                     leftLanePoints.Clear();
                     sectorFromDT = sectorToDT;
                     prevPoint = point;
-                }
-
-                
+                }                                
             }
         }
 
@@ -188,13 +171,10 @@ namespace SatelliteTrajectory
         {
             Polygon region = new Polygon(request.wktPolygon);
             List<CaptureConf> res = new List<CaptureConf>();
-
             double square = region.Square();
-
             foreach(LaneSector sector in Sectors)
             { 
                 Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector.polygon, region);
-
                 foreach (var int_pol in reTuple.Item1)
                 {
                     var verts = int_pol.Vertices;
@@ -203,9 +183,16 @@ namespace SatelliteTrajectory
                     DateTime tmin = getPointTime(en.Current, sector.fromDT, sector.toDT);
                     DateTime tmax = tmin;
                     Vector3D minPoint, maxPoint;
+                    bool outOfRange = false;
                     foreach (var point in verts)
                     {
                         DateTime curTime = getPointTime(point, sector.fromDT, sector.toDT);
+                        if (curTime < request.dateFrom || request.dateTo < curTime)
+                        {
+                            outOfRange = true;
+                            break;
+                        }
+                            
                         if (curTime < tmin)
                         {
                             minPoint = point;
@@ -217,12 +204,12 @@ namespace SatelliteTrajectory
                             tmax = curTime;
                         }
                     }
-
-                    double subsquare = int_pol.Square();
-
+                    if (outOfRange)
+                        break;
                     CaptureConf newcc = new CaptureConf();
                     Order order = new Order();
                     order.request = request;
+                    double subsquare = int_pol.Square();
                     order.intersection_coeff = subsquare / square;
                     newcc.orders.Add(order);
                     newcc.dateFrom = tmin;
@@ -300,7 +287,7 @@ namespace SatelliteTrajectory
             LanePos curPos = lanePoints[minInd];
             LanePos nextPos = (minInd == lanePoints.Count - 1 ) ? lanePoints[minInd - 1] : lanePoints[minInd + 1];
             
-            double distCur = curPos.directDistToPoint(point);
+            double distCur =  curPos.directDistToPoint(point);
             double distNext = nextPos.directDistToPoint(point);
 
             double diff = Math.Abs((curPos.time - nextPos.time).TotalSeconds) * distCur / (distCur + distNext);

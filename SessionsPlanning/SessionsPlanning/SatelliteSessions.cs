@@ -15,13 +15,14 @@ namespace SatelliteSessions
     {
         public static bool isRequestFeasible(RequestParams request)
         {
-            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile("trajectory_1day.dat"); // @todo временно
-            //double viewAngle = AstronomyMath.ToRad(request.max_roll_angle);  // @todo так будем задавать предел по качеству (если оно будет задаваться максимальным углом крена)
-            double viewAngle = Math.PI / 2;  // пока берем полосу максимальной ширины
+            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
+            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName); // @todo временно 
+            //double viewAngle = AstronomyMath.ToRad(request.max_roll_angle);  // @todo так будем задавать предел по качеству (если оно будет задаваться максимальным углом крена) 
+            double viewAngle = Math.PI / 2;  // пока берем полосу максимальной ширины 
 
-            SatLane viewLane = trajectory.getCaptureLane(0, viewAngle);
-            List<CaptureConf> confs = viewLane.getCaptureConfs(request);
-
+            SatLane viewLane = trajectory.getCaptureLane(0, viewAngle); 
+            List<CaptureConf> confs = viewLane.getCaptureConfs(request); 
+            
             double summ = 0;
             foreach (var conf in confs)
             {
@@ -37,12 +38,13 @@ namespace SatelliteSessions
         {
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
-            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile("trajectory_1day.dat"); // @todo временно
+            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
+            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName); // @todo временно
             // @todo вынести это в константы
             double viewAngle = AstronomyMath.ToRad(0.952); // угол обзора камеры
             //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
-            double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по качеству (если оно будет задаваться максимальным углом крена)
+            double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по углу крена
             double max_roll_angle = AstronomyMath.ToRad(45);
             for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
             {
@@ -66,15 +68,17 @@ namespace SatelliteSessions
                 captureConfs.AddRange(laneCaptureConfs);
             }
 
-            return captureConfs;
-        }
-
-        public static IList<CaptureConf> getOptimalChain(List<CaptureConf> strips)
-        {
-            Graph g = new Graph(strips);
-            List<CaptureConf> optimalChain = g.findOptimalChain();         
+            Graph g = new Graph(captureConfs);
+            List<CaptureConf> optimalChain = g.findOptimalChain();
             return optimalChain;
         }
+
+        //public static IList<CaptureConf> getOptimalChain(List<CaptureConf> strips)
+        //{
+        //    Graph g = new Graph(strips);
+        //    List<CaptureConf> optimalChain = g.findOptimalChain();         
+        //    return optimalChain;
+        //}
 
         private static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
         {

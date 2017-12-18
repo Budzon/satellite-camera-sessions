@@ -314,19 +314,7 @@ namespace ViewModel
                 // MessageBox.Show("The trajectory data in file is incorrect!", "Error");
                 return;
             }
-
-            //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
-            //double angleStep = viewAngle; // шаг равен углу обзора
-            //double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по качеству (если оно будет задаваться максимальным углом крена)
-            //double max_roll_angle = AstronomyMath.ToRad(45);
-            //for (double dirAngle = min_roll_angle + angleStep; dirAngle <= max_roll_angle; dirAngle += angleStep)
-            //{
-            //    List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-            //    SatLane viewLane = trajectory.getCaptureLane(dirAngle, viewAngle);
-            //    captureLanes.Add(viewLane);
-            //    break;
-            //}
-
+ 
             double rollAngle = 0;
             double viewAngle = Math.PI / 2;//AstronomyMath.ToRad(0.952);
 
@@ -354,7 +342,9 @@ namespace ViewModel
         {
             if (curRequest == null)
                 return;
-            RequestParams reqparams = new RequestParams();            
+            RequestParams reqparams = new RequestParams();
+            reqparams.dateFrom = new DateTime(2000, 1, 1);
+            reqparams.dateTo = new DateTime(2020, 1, 1);
             reqparams.id = 1;
             reqparams.priority = 1; 
             reqparams.wktPolygon = curRequest.ToWtk();
@@ -366,42 +356,21 @@ namespace ViewModel
         {
             if (curRequest == null)
                 return null;
-            
-            List<RequestParams> requests = new List<RequestParams>();        
+
+            List<RequestParams> requests = new List<RequestParams>();
             foreach (var req in Requests)
-            { 
+            {
                 var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = req.Id;
+                reqparams.dateFrom = new DateTime(2000, 1, 1);
+                reqparams.dateTo = new DateTime(2020, 1, 1);
                 reqparams.priority = 1;
                 reqparams.wktPolygon = pol.ToWtk();
                 requests.Add(reqparams);
             }
-            
-            return Sessions.getCaptureConfArray(requests);
-        }
-        
-        public void test_GetOptimanlChain()
-        {
-            DateTime start = DateTime.Now;            
-            List<CaptureConf> confs = (List<CaptureConf>)test_getCaptureConfArray();
-            DateTime getCCTime = DateTime.Now;
-            var optimalChain = Sessions.getOptimalChain(confs);
-            DateTime getOCTime = DateTime.Now;
 
-            Console.Write("Время test_getCaptureConfArray :  ");
-            Console.Write((getCCTime - start).TotalMinutes);
-            Console.WriteLine();
-
-            Console.Write("Время getOptimalChain :  ");
-            Console.Write((getOCTime - getCCTime).TotalMinutes);
-            Console.WriteLine();
-
-
-            foreach (CaptureConf s in optimalChain)
-            {
-                Console.Write(s.rollAngle + ",");
-            }   
+            return Sessions.getCaptureConfArray(requests); 
         }
         
         public bool RegionCanBeCaptured { get; private set; }
