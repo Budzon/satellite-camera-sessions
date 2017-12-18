@@ -134,7 +134,8 @@ namespace ViewModel
                     NewPointLat = (double)geom.STPointN(i).Lat;
                     NewPointLon = (double)geom.STPointN(i).Long;                    
                     addPointCmd.Execute(new object());
-                }                                            
+                }
+                curRequest = new SphericalGeom.Polygon(Requests[Requests.Count - 1].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
             }, _ => { return true; });
 
             //verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
@@ -355,8 +356,9 @@ namespace ViewModel
                 return;
             RequestParams reqparams = new RequestParams();            
             reqparams.id = 1;
+            reqparams.priority = 1; 
             reqparams.wktPolygon = curRequest.ToWtk();
-            reqparams.minCoverPerc = 0.4;
+            reqparams.minCoverPerc = 1;
             Console.WriteLine(Sessions.isRequestFeasible(reqparams));
         }
 
@@ -365,10 +367,9 @@ namespace ViewModel
             if (curRequest == null)
                 return null;
             
-            List<RequestParams> requests = new List<RequestParams>();           
-
+            List<RequestParams> requests = new List<RequestParams>();        
             foreach (var req in Requests)
-            {
+            { 
                 var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = req.Id;
@@ -382,8 +383,21 @@ namespace ViewModel
         
         public void test_GetOptimanlChain()
         {
+            DateTime start = DateTime.Now;            
             List<CaptureConf> confs = (List<CaptureConf>)test_getCaptureConfArray();
-            var optimalChain = Sessions.getOptimalChain(confs);            
+            DateTime getCCTime = DateTime.Now;
+            var optimalChain = Sessions.getOptimalChain(confs);
+            DateTime getOCTime = DateTime.Now;
+
+            Console.Write("Время test_getCaptureConfArray :  ");
+            Console.Write((getCCTime - start).TotalMinutes);
+            Console.WriteLine();
+
+            Console.Write("Время getOptimalChain :  ");
+            Console.Write((getOCTime - getCCTime).TotalMinutes);
+            Console.WriteLine();
+
+
             foreach (CaptureConf s in optimalChain)
             {
                 Console.Write(s.rollAngle + ",");
