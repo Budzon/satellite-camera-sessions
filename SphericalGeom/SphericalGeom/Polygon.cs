@@ -264,30 +264,103 @@ namespace SphericalGeom
 
         public double Square()
         {
-            var wtkstr = ToWtk();
-            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);            
-            return (double)geom.STArea();
+            //var wtkstr = ToWtk();
+            //SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);            
+            //return (double)geom.STArea();
+            return Area();
         }
 
         private bool CheckIfCounterclockwise()
         {
             if (vertices.Count < 3)
-                return true;
+                return false;
+
+            double t = 1;
+            Vector3D pointInside;
+            bool inside = false;
+
+            Vector3D tangent1 = vertices[2] - vertices[1];
+            tangent1.Normalize();
+            Vector3D tangent2 = vertices[0] - vertices[1];
+            tangent2.Normalize();
+            Vector3D dir = tangent1 + tangent2;
+            
+            do
+            {
+                t /= 2;
+                pointInside = vertices[1] + t * dir;
+                pointInside.Normalize();
+                inside = Contains(pointInside);
+            } while (t > 1e-20 && !inside);
+
+            if (!inside)
+            {
+                t = -1;
+                do
+                {
+                    t /= 2;
+                    pointInside = vertices[1] + t * dir;
+                    pointInside.Normalize();
+                    inside = Contains(pointInside);
+                } while (t < -1e-20 && !inside);
+            }
+
+            if (!inside)
+                throw new Exception("Too thin a polygon.");
+
+            // If here, pointInside is indeed inside
+            double angleSum = 0;
+            Vector3D v1, v2, cross;
+            for (int i = 0; i < vertices.Count - 1; ++i)
+            {
+                v1 = vertices[i] - pointInside;
+                v2 = vertices[i + 1] - pointInside;
+                v1.Normalize(); 
+                v2.Normalize();
+                cross = Vector3D.CrossProduct(v1, v2);
+                angleSum += (Vector3D.DotProduct(cross, pointInside) > 0) ? cross.Length : -cross.Length;
+            }
+            v1 = vertices[vertices.Count - 1] - pointInside;
+            v2 = vertices[0] - pointInside;
+            v1.Normalize();
+            v2.Normalize();
+            cross = Vector3D.CrossProduct(v1, v2);
+            angleSum += (Vector3D.DotProduct(cross, pointInside) > 0) ? cross.Length : -cross.Length;
+            return angleSum > 0;
+        }
+
+        private double Area()
+        {
             var arcs = Arcs;
             double angleSum = 0;
-            double sin, cos;
+            double sin, cos, ang;
 
             for (int i = 0; i < arcs.Count - 1; ++i)
             {
                 sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[i + 1].TangentA, arcs[i].TangentB), arcs[i].B);
                 cos = Vector3D.DotProduct(arcs[i].TangentB, arcs[i + 1].TangentA);
-                angleSum += Math.Atan2(sin, cos);
+                ang = Math.Atan2(sin, cos);
+                if (IsCounterclockwise && ang < 0)
+                    ang += 2 * Math.PI;
+                else if (!IsCounterclockwise && ang > 0)
+                    ang -= 2 * Math.PI;
+                angleSum += ang;
             }
-            sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[0].TangentA, arcs[arcs.Count - 1].TangentB), arcs[0].B);
+            sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[0].TangentA, arcs[arcs.Count - 1].TangentB), arcs[0].A);
             cos = Vector3D.DotProduct(arcs[arcs.Count - 1].TangentB, arcs[0].TangentA);
-            angleSum += Math.Atan2(sin, cos);
+            ang = Math.Atan2(sin, cos);
+            if (IsCounterclockwise && ang < 0)
+                ang += 2 * Math.PI;
+            else if (!IsCounterclockwise && ang > 0)
+                ang -= 2 * Math.PI;
+            angleSum += ang;
 
-            return angleSum >= 0;
+            double area;
+            if (IsCounterclockwise)
+                area = angleSum - (vertices.Count - 2) * Math.PI;
+            else
+                area = angleSum + (vertices.Count - 2) * Math.PI;
+            return Math.Abs(area);
         }
 
         private enum pointType { vertex, enter, exit };
