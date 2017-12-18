@@ -46,7 +46,8 @@ namespace SphericalGeom
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
         }
-        public Polygon(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes) : this()
+        public Polygon(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes)
+            : this()
         {
             if (vertices.Count != apexes.Count)
                 throw new ArgumentException("Number of points and arcs is incosistent.");
@@ -57,7 +58,8 @@ namespace SphericalGeom
                 this.apexes.Add(point_apex.Item2);
             }
         }
-        public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex) : this()
+        public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex)
+            : this()
         {
             foreach (var point in vertices)
             {
@@ -68,19 +70,20 @@ namespace SphericalGeom
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
 
-        public Polygon(string wtkPolygon) : this()
+        public Polygon(string wtkPolygon)
+            : this()
         {
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
             List<Vector3D> points = new List<Vector3D>();
             var apex = new Vector3D(0, 0, 0);
-            for (int i = 1; i < geom.STNumPoints(); i++) 
+            for (int i = 1; i < geom.STNumPoints(); i++)
             {
                 double lat = (double)geom.STPointN(i).Lat;
                 double lon = (double)geom.STPointN(i).Long;
                 Vector3D point = GeoPoint.ToCartesian(new GeoPoint(lat, lon), 1);
                 this.apexes.Add(apex);
-                this.vertices.Add(point);             
-            }            
+                this.vertices.Add(point);
+            }
         }
 
         // Assume that polygon does not contain poles and does not cross the 180 meridian
@@ -94,8 +97,8 @@ namespace SphericalGeom
                 maxLon = Math.Max(maxLon, arc.MaxLongitudeDeg());
                 minLon = Math.Min(minLon, arc.MinLongitudeDeg());
             }
-            
-            return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1+1e-3, 1+1e-3);
+
+            return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1 + 1e-3, 1 + 1e-3);
         }
 
         public IList<Polygon> Shatter(Vector3D mid)
@@ -218,28 +221,59 @@ namespace SphericalGeom
             }
             return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
-        
-        public string ToWtk()  
+
+        public string ToWtk(bool reverse = false)
         {
             Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
 
             if (0 == vertices.Count)
-                return "";                
+                return "";
+
             string wkt = "POLYGON ((";
-            foreach (var ver in vertices)
+
+            if (!reverse)
             {
-                GeoPoint gpoint = GeoPoint.FromCartesian(ver);
-                wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                foreach (var ver in vertices)
+                {
+                    GeoPoint gpoint = GeoPoint.FromCartesian(ver);
+                    wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                }
+                GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
+                wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
             }
-            GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
-            wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+            else
+            {
+                wkt = "POLYGON ((";
+                for (int i = vertices.Count - 1; i >= 0; i--)
+                {
+                    GeoPoint gpoint = GeoPoint.FromCartesian(vertices[i]);
+                    wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                }
+                GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[vertices.Count - 1]);
+                wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";        
+            }
+
+            /// далее страшный костыль. Лечится определением "ring orientation" на месте
+            if (!reverse)
+            {
+                SqlGeography geom;
+                try
+                {
+                    geom = SqlGeography.STGeomFromText(new SqlChars(wkt), 4326);
+                }
+                catch (Exception e)
+                {
+                    return ToWtk(true);
+                }
+            }
+
             return wkt;
         }
 
         public double Square()
         {
             var wtkstr = ToWtk();
-            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);
+            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);            
             return (double)geom.STArea();
         }
 
