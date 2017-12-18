@@ -20,6 +20,8 @@ namespace SphericalGeom
         public Vector3D Apex { get; private set; }
         public Vector3D Axis { get; private set; }
         public Vector3D Center { get; private set; }
+        public Vector3D TangentA { get; private set; }
+        public Vector3D TangentB { get; private set; }
         public IEnumerable<Vector3D> IntermediatePoints
         {
             get { return intermediatePoints.Select(p => p.Value); }
@@ -38,6 +40,14 @@ namespace SphericalGeom
             normal.Normalize();
             Axis = normal;
             Center = Vector3D.DotProduct(A, normal) * normal;
+
+            Vector3D tangentA = Vector3D.CrossProduct(A - Center, Vector3D.CrossProduct(B - A, A - Center));
+            tangentA.Normalize();
+            TangentA = tangentA;
+
+            Vector3D tangentB = Vector3D.CrossProduct(B - Center, Vector3D.CrossProduct(A - B, B - Center));
+            tangentB.Normalize();
+            TangentB = tangentB;
 
             intermediatePoints = new Dictionary<double, Vector3D>();
         }

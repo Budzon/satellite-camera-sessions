@@ -17,11 +17,12 @@ namespace SphericalGeom
         // len(vertices) == len(apexes)
         protected List<Vector3D> apexes;
         protected List<Vector3D> vertices;
+        protected bool isCounterclockwise;
 
         public bool IsEmpty { get { return vertices.Count == 0; } }
         public IEnumerable<Vector3D> Apexes { get { return apexes; } }
         public IEnumerable<Vector3D> Vertices { get { return vertices; } }
-        public IEnumerable<Arc> Arcs
+        public IList<Arc> Arcs
         {
             get
             {
@@ -40,11 +41,13 @@ namespace SphericalGeom
                 return vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
             }
         }
+        public bool IsCounterclockwise { get { return isCounterclockwise;} }
 
         public Polygon()
         {
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
+            isCounterclockwise = false;
         }
         public Polygon(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes)
             : this()
@@ -57,6 +60,7 @@ namespace SphericalGeom
                 this.vertices.Add(point_apex.Item1);
                 this.apexes.Add(point_apex.Item2);
             }
+            isCounterclockwise = CheckIfCounterclockwise();
         }
         public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex)
             : this()
@@ -66,6 +70,7 @@ namespace SphericalGeom
                 this.apexes.Add(apex);
                 this.vertices.Add(point);
             }
+            isCounterclockwise = CheckIfCounterclockwise();
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
@@ -84,6 +89,7 @@ namespace SphericalGeom
                 this.apexes.Add(apex);
                 this.vertices.Add(point);
             }
+            isCounterclockwise = CheckIfCounterclockwise();
         }
 
         // Assume that polygon does not contain poles and does not cross the 180 meridian
@@ -222,7 +228,7 @@ namespace SphericalGeom
             return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
 
-        public string ToWtk(bool reverse = false)
+        public string ToWtk()
         {
             Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
 
@@ -231,7 +237,7 @@ namespace SphericalGeom
 
             string wkt = "POLYGON ((";
 
-            if (!reverse)
+            if (IsCounterclockwise)
             {
                 foreach (var ver in vertices)
                 {
@@ -253,20 +259,6 @@ namespace SphericalGeom
                 wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";        
             }
 
-            /// далее страшный костыль. Лечится определением "ring orientation" на месте
-            if (!reverse)
-            {
-                SqlGeography geom;
-                try
-                {
-                    geom = SqlGeography.STGeomFromText(new SqlChars(wkt), 4326);
-                }
-                catch (Exception e)
-                {
-                    return ToWtk(true);
-                }
-            }
-
             return wkt;
         }
 
@@ -277,6 +269,24 @@ namespace SphericalGeom
             return (double)geom.STArea();
         }
 
+        private bool CheckIfCounterclockwise()
+        {
+            var arcs = Arcs;
+            double angleSum = 0;
+            double sin, cos;
+
+            for (int i = 0; i < arcs.Count - 1; ++i)
+            {
+                sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[i + 1].TangentA, arcs[i].TangentB), arcs[i].B);
+                cos = Vector3D.DotProduct(arcs[i].TangentB, arcs[i + 1].TangentA);
+                angleSum += Math.Atan2(sin, cos);
+            }
+            sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[0].TangentA, arcs[arcs.Count - 1].TangentB), arcs[0].B);
+            cos = Vector3D.DotProduct(arcs[arcs.Count - 1].TangentB, arcs[0].TangentA);
+            angleSum += Math.Atan2(sin, cos);
+
+            return angleSum >= 0;
+        }
 
         private enum pointType { vertex, enter, exit };
         private static pointType Not(pointType t)
