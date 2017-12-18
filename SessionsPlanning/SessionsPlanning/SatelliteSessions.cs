@@ -39,8 +39,8 @@ namespace SatelliteSessions
 
             SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile("trajectory_1day.dat"); // @todo временно
             // @todo вынести это в константы
-            //double viewAngle = AstronomyMath.ToRad(0.952); // угол обзора камеры
-            double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
+            double viewAngle = AstronomyMath.ToRad(0.952); // угол обзора камеры
+            //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
             double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по качеству (если оно будет задаваться максимальным углом крена)
             double max_roll_angle = AstronomyMath.ToRad(45);
