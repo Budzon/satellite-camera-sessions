@@ -383,8 +383,7 @@ namespace ViewModel
         public void test_GetOptimanlChain()
         {
             List<CaptureConf> confs = (List<CaptureConf>)test_getCaptureConfArray();
-            Sessions.getOptimalChain(confs);
-            var optimalChain = test_getCaptureConfArray();
+            var optimalChain = Sessions.getOptimalChain(confs);            
             foreach (CaptureConf s in optimalChain)
             {
                 Console.Write(s.rollAngle + ",");
