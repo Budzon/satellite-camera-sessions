@@ -116,56 +116,6 @@ namespace SphericalGeom
             return new Polygon(result, apex);
         }
 
-        // Returns intersection points with their relative positions from a1 and a2
-        public static Dictionary<Tuple<double, double>, Vector3D> IntersectTwoSmallArcs(
-            Vector3D a1, Vector3D b1, Vector3D apex1,
-            Vector3D a2, Vector3D b2, Vector3D apex2)
-        {
-
-            var normal1 = Vector3D.CrossProduct(Comparison.IsSmaller(apex1.Length, 1) ? a1 - apex1 : apex1 - a1, 
-                                                b1 - apex1);
-            normal1.Normalize();
-            var center1 = Vector3D.DotProduct(a1, normal1) * normal1;
-            var normal2 = Vector3D.CrossProduct(Comparison.IsSmaller(apex2.Length, 1) ? a2 - apex2 : apex2 - a2, 
-                                                b2 - apex2);
-            normal2.Normalize();
-            var center2 = Vector3D.DotProduct(a2, normal2) * normal2;
-
-            // Intersect two planes
-            var directionVector = Vector3D.CrossProduct(normal1, normal2);
-            var pointOnIntersection = SolveSLE2x3(normal1,
-                                                      normal2,
-                                                      Vector3D.DotProduct(a1, normal1),
-                                                      Vector3D.DotProduct(a2, normal2));
-            List<Vector3D> intersectPlanesOnSphere = 
-                IntersectLineUnitSphere(pointOnIntersection, directionVector);
-            
-            // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
-            List<Vector3D> innerNormals = new List<Vector3D> {
-                Vector3D.CrossProduct(normal1, a1 - center1),
-                Vector3D.CrossProduct(b1 - center1, normal1),
-                Vector3D.CrossProduct(normal2, a2 - center2),
-                Vector3D.CrossProduct(b2 - center2, normal2)
-            };
-            
-            return intersectPlanesOnSphere.
-                   Where(point => 
-                         innerNormals.TrueForAll(normal => 
-                                                 !Comparison.IsNegative(Vector3D.DotProduct(normal, point)))).
-                   ToDictionary(point => 
-                                Tuple.Create(1 - Vector3D.DotProduct(point, a1 - center1),
-                                             1 - Vector3D.DotProduct(point, a2 - center2)));
-        }
-
-        public static Dictionary<Tuple<double, double>, Vector3D> IntersectSmallArcGreatArc(
-            Vector3D smallA, Vector3D smallB, Vector3D smallApex,
-            Vector3D greatA, Vector3D greatB)
-        {
-            return IntersectTwoSmallArcs(
-                smallA, smallB, smallApex,
-                greatA, greatB, new Vector3D(0, 0, 0));
-        }
-
         public static Vector3D SolveSLE2x3(Vector3D a1, Vector3D a2, double b1, double b2)
         {
             double x, y, z;
