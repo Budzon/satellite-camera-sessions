@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -41,13 +41,13 @@ namespace SphericalGeom
                 return vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
             }
         }
-        public bool IsCounterclockwise { get { return isCounterclockwise;} }
+        public bool IsCounterclockwise { get { return isCounterclockwise; } }
 
         public Polygon()
         {
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
-           // isCounterclockwise = false;
+            isCounterclockwise = false;
         }
         public Polygon(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes)
             : this()
@@ -60,7 +60,7 @@ namespace SphericalGeom
                 this.vertices.Add(point_apex.Item1);
                 this.apexes.Add(point_apex.Item2);
             }
-            //isCounterclockwise = CheckIfCounterclockwise();
+            isCounterclockwise = CheckIfCounterclockwise();
         }
         public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex)
             : this()
@@ -70,7 +70,7 @@ namespace SphericalGeom
                 this.apexes.Add(apex);
                 this.vertices.Add(point);
             }
-           // isCounterclockwise = CheckIfCounterclockwise();
+            isCounterclockwise = CheckIfCounterclockwise();
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
@@ -228,7 +228,7 @@ namespace SphericalGeom
             return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
 
-        public string ToWtk(bool reverse = false)
+        public string ToWtk()
         {
             Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
 
@@ -237,7 +237,7 @@ namespace SphericalGeom
 
             string wkt = "POLYGON ((";
 
-            if (!reverse)
+            if (IsCounterclockwise)
             {
                 foreach (var ver in vertices)
                 {
@@ -259,28 +259,15 @@ namespace SphericalGeom
                 wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
             }
 
-            /// далее страшный костыль. Лечится определением "ring orientation" на месте
-            if (!reverse)
-            {
-                SqlGeography geom;
-                try
-                {
-                    geom = SqlGeography.STGeomFromText(new SqlChars(wkt), 4326);
-                }
-                catch (Exception e)
-                {
-                    return ToWtk(true);
-                }
-            }
-
             return wkt;
         }
 
         public double Square()
         {
-            var wtkstr = ToWtk();
-            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);
-            return (double)geom.STArea();
+            //var wtkstr = ToWtk();
+            //SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);            
+            //return (double)geom.STArea();
+            return Area();
         }
 
         private bool CheckIfCounterclockwise()
@@ -297,7 +284,7 @@ namespace SphericalGeom
             Vector3D tangent2 = vertices[0] - vertices[1];
             tangent2.Normalize();
             Vector3D dir = tangent1 + tangent2;
-            
+
             do
             {
                 t /= 2;
@@ -328,7 +315,7 @@ namespace SphericalGeom
             {
                 v1 = vertices[i] - pointInside;
                 v2 = vertices[i + 1] - pointInside;
-                v1.Normalize(); 
+                v1.Normalize();
                 v2.Normalize();
                 cross = Vector3D.CrossProduct(v1, v2);
                 angleSum += (Vector3D.DotProduct(cross, pointInside) > 0) ? cross.Length : -cross.Length;

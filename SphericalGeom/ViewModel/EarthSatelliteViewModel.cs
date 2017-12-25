@@ -316,24 +316,27 @@ namespace ViewModel
             }
  
             double rollAngle = 0;
-            double viewAngle = Math.PI / 2;//AstronomyMath.ToRad(0.952);
+            double viewAngle = Math.PI / 2; //AstronomyMath.ToRad(0.952);
 
             captureLanes.Add(trajectory.getCaptureLane(rollAngle, viewAngle));
 
             if (0 == Requests.Count)
                 return;
 
+            RequestParams reqparams = new RequestParams();
+            reqparams.id = 1;
+            reqparams.dateFrom = new DateTime(2000, 1, 1);
+            reqparams.dateTo = new DateTime(2020, 1, 1);
+            reqparams.wktPolygon = curRequest.ToWtk();
+
             List<TargetWorkInterval> intervals = new List<TargetWorkInterval>();
             foreach (var lane in captureLanes)
-            {
-               // RequestParams reqparams = new RequestParams();
-               // reqparams.id = 1;
-               // reqparams.wktPolygon = curRequest.ToWtk();
-               // List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
-                List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
-                foreach (var wint in wints)
+            {                
+                List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
+                // List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
+                foreach (var conf in confs)
                 {
-                    captureIntervals.Add(lane.getSegment(wint.fromDt, wint.toDt));
+                    captureIntervals.Add(lane.getSegment(conf.dateFrom, conf.dateTo));
                 }
             }
         }
