@@ -46,6 +46,12 @@ namespace SphericalGeom
         /// </summary>
         public double CentralAngle { get; private set; }
         /// <summary>
+        /// Angle in radians that the arc subtends with the small circle center.
+        /// Unlike CentralAngle, it respects the traversion direction.
+        /// Is undefined for great circles.
+        /// </summary>
+        public double CentralAngleWithOrientation { get; private set; }
+        /// <summary>
         /// Radius of curvature.
         /// </summary>
         public double Radius { get; private set; }
@@ -82,6 +88,14 @@ namespace SphericalGeom
             Center = Vector3D.DotProduct(A, normal) * normal;
 
             CentralAngle = AstronomyMath.ToRad(Vector3D.AngleBetween(A - Center, B - Center));
+            double sin = Vector3D.DotProduct(
+                Vector3D.CrossProduct(A - Center, B - Center),
+                Center) / Center.Length;
+            double cos = Vector3D.DotProduct(A - Center, B - Center);
+            CentralAngleWithOrientation = Math.Atan2(sin, cos);
+            if (CentralAngleWithOrientation < 0)
+                CentralAngleWithOrientation += 2 * Math.PI;
+           
             Radius = (A - Center).Length;
             GeodesicCurvature = Math.Sqrt(1 - Radius * Radius) / Radius;
 
