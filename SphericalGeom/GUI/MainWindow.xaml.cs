@@ -81,26 +81,30 @@ namespace GUI
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
-                //if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
-                //{
-                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
-                //}
-                //else if (vm.Requests.Count > 0 && vm.PointInDifference(p.X, p.Y, p.Z))
-                //{
-                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
-                //}
-                //else 
-                if (vm.PointInCamera(p.X, p.Y, p.Z))
+
+                if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
+                }
+                else if (vm.Requests.Count > 0 && vm.PointInDifference(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
+                }
+                else if (vm.PointInCamera(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
-                }                          
-                if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
-                {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 }
                 else if (vm.Requests.Count > 0 && vm.PointInRegion(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
+                }
+                else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                }
+                else if (vm.PointInLane(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
                 }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
@@ -155,8 +159,7 @@ namespace GUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            vm.CreateCaptureIntervals();
-            // PlotSphere(null, null);                      
+            vm.CreateCaptureIntervals();              
         }
 
         private void Button_isRequestFeasible(object sender, RoutedEventArgs e)
@@ -169,13 +172,8 @@ namespace GUI
             vm.test_getCaptureConfArray();
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            vm.test_GetOptimanlChain();
-        }
-
-       
-       
+ 
+         
     }
 
 }
