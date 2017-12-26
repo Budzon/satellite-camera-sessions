@@ -10,9 +10,11 @@ namespace GUI
 {
     public class Ellipse3D : ColorMesh3D
     {
+        public List<int> PaintOnlyThese;
         // the first 3 parameters are the ellipse size, last parameter is the smoothness of the ellipse
         public Ellipse3D(double a, double b, double h, int nRes)
         {
+            PaintOnlyThese = new List<int>();
             SetMesh(nRes);
             SetData(a, b, h);
         }
@@ -101,6 +103,10 @@ namespace GUI
                     y1 = b * System.Math.Sin(aZAngle) * System.Math.Sin(aXY);
                     z1 = h * System.Math.Cos(aZAngle);
                     SetPoint((j - 1) * m_nRes + i + 1, x1, y1, z1);
+
+                    if (Math.Abs(90 - aZAngle * 180 / Math.PI) < 25 
+                        && (aXY * 180 / Math.PI < 25 || aXY * 180 / Math.PI > 335))
+                        PaintOnlyThese.Add((j - 1) * m_nRes + i + 1);
                 }
             }
             SetPoint((m_nRes - 2) * m_nRes + 1, 0, 0, -h);

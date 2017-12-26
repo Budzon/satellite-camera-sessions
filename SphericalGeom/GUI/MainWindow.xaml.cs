@@ -35,7 +35,7 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            Terra = new Ellipse3D(1, 1, 1, 100);            
+            Terra = new Ellipse3D(1, 1, 1, 300);            
             PlotSphere(null, null);
         }
 
@@ -81,6 +81,11 @@ namespace GUI
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
+                Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            }
+            foreach (int i in Terra.PaintOnlyThese)
+            {
+                var p = Terra.GetPoint(i);
                 //if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
                 //{
                 //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
@@ -93,8 +98,8 @@ namespace GUI
                 if (vm.PointInCamera(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
-                }                          
-                if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                }
+                else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 }
@@ -120,6 +125,11 @@ namespace GUI
 
             var nData = Terra.GetVertexNo();
             for (int i = 0; i < nData; ++i)
+            {
+                var p = Terra.GetPoint(i);
+                Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            }
+            foreach (int i in Terra.PaintOnlyThese)
             {
                 var p = Terra.GetPoint(i);
                 if (vm.Requests.Count > 0 && vm.PointInBoundingBox(p.X, p.Y, p.Z))
