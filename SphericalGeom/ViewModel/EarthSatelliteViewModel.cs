@@ -74,7 +74,7 @@ namespace ViewModel
             if (SelectedRequest > -1)
             {
                 curRequest = new SphericalGeom.Polygon(
-                    Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)),
+                    (Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1))).ToList<Vector3D>(),
                     new Vector3D(0, 0, 0));
                 if (curRequest.Vertices.Count() > 3)
                     curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 30, 4).Where((s, ind) => ind % 3 == 0).ToList();
@@ -255,7 +255,7 @@ namespace ViewModel
                     return true;
             }
             return false;
-        } 
+        }
         public bool PointInLane(double x, double y, double z)
         {
             Vector3D v = new Vector3D(x, y, z);
@@ -304,7 +304,7 @@ namespace ViewModel
                 trajectory = DatParser.getTrajectoryFromDatFile(DatFileName);
             }
             catch (FileNotFoundException exc)
-            {   
+            {
                 // MessageBox.Show("The specified file does not exist!", "Error");
                 return;
             }
@@ -314,37 +314,28 @@ namespace ViewModel
                 return;
             }
 
-            //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
-            //double angleStep = viewAngle; // шаг равен углу обзора
-            //double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по качеству (если оно будет задаваться максимальным углом крена)
-            //double max_roll_angle = AstronomyMath.ToRad(45);
-            //for (double dirAngle = min_roll_angle + angleStep; dirAngle <= max_roll_angle; dirAngle += angleStep)
-            //{
-            //    List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-            //    SatLane viewLane = trajectory.getCaptureLane(dirAngle, viewAngle);
-            //    captureLanes.Add(viewLane);
-            //    break;
-            //}
-
-            double rollAngle = 0;
-            double viewAngle = Math.PI / 2;//AstronomyMath.ToRad(0.952);
+            double rollAngle = Math.PI / 4; //;
+            double viewAngle = AstronomyMath.ToRad(0.952);
 
             captureLanes.Add(trajectory.getCaptureLane(rollAngle, viewAngle));
 
             if (0 == Requests.Count)
                 return;
 
+            RequestParams reqparams = new RequestParams();
+            reqparams.id = 1;
+            reqparams.dateFrom = new DateTime(2000, 1, 1);
+            reqparams.dateTo = new DateTime(2020, 1, 1);
+            reqparams.wktPolygon = curRequest.ToWtk();
+
             List<TargetWorkInterval> intervals = new List<TargetWorkInterval>();
             foreach (var lane in captureLanes)
             {
-               // RequestParams reqparams = new RequestParams();
-               // reqparams.id = 1;
-               // reqparams.wktPolygon = curRequest.ToWtk();
-               // List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
-                List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
-                foreach (var wint in wints)
+                List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
+                // List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
+                foreach (var conf in confs)
                 {
-                    captureIntervals.Add(lane.getSegment(wint.fromDt, wint.toDt));
+                    captureIntervals.Add(lane.getSegment(conf.dateFrom, conf.dateTo));
                 }
             }
         }
@@ -353,41 +344,40 @@ namespace ViewModel
         {
             if (curRequest == null)
                 return;
-            RequestParams reqparams = new RequestParams();            
+            RequestParams reqparams = new RequestParams();
             reqparams.id = 1;
             reqparams.wktPolygon = curRequest.ToWtk();
             reqparams.minCoverPerc = 0.4;
             Console.WriteLine(Sessions.isRequestFeasible(reqparams));
         }
 
+
         public IList<CaptureConf> test_getCaptureConfArray()
         {
+            DateTime start = DateTime.Now;
             if (curRequest == null)
                 return null;
-            
-            List<RequestParams> requests = new List<RequestParams>();           
 
+            List<RequestParams> requests = new List<RequestParams>();
             foreach (var req in Requests)
             {
-                var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
+                var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)).ToList<Vector3D>(), new Vector3D(0, 0, 0));
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = req.Id;
+                reqparams.dateFrom = new DateTime(2000, 1, 1);
+                reqparams.dateTo = new DateTime(2020, 1, 1);
                 reqparams.priority = 1;
                 reqparams.wktPolygon = pol.ToWtk();
                 requests.Add(reqparams);
             }
-            
-            return Sessions.getCaptureConfArray(requests);
-        }
-        
-        public void test_GetOptimanlChain()
-        {
-            List<CaptureConf> confs = (List<CaptureConf>)test_getCaptureConfArray();
-            var optimalChain = Sessions.getOptimalChain(confs);            
-            foreach (CaptureConf s in optimalChain)
-            {
-                Console.Write(s.rollAngle + ",");
-            }   
+
+            var res = Sessions.getCaptureConfArray(requests);
+
+            DateTime end = DateTime.Now;
+
+            Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+
+            return res;
         }
         
         public bool RegionCanBeCaptured { get; private set; }
