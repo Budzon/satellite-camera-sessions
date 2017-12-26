@@ -27,7 +27,7 @@ namespace GUI
     {
         public TransformMatrix m_transformMatrix = new TransformMatrix();
         public int m_nChartModelIndex = -1;
-        public Ellipse3D Terra;
+        public EllipseRegion3D Terra;
         private ViewModel.EarthSatelliteViewModel vm;
 
         public MainWindow()
@@ -35,7 +35,8 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            Terra = new Ellipse3D(1, 1, 1, 300);            
+            //Terra = new Ellipse3D(1, 1, 1, 3000);            
+            Terra = new EllipseRegion3D(1, 1, 1, 25, 500);
             PlotSphere(null, null);
         }
 
@@ -78,12 +79,12 @@ namespace GUI
         {
 
             var nData = Terra.GetVertexNo();
+            //for (int i = 0; i < nData; ++i)
+            //{
+            //    var p = Terra.GetPoint(i);
+            //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            //}
             for (int i = 0; i < nData; ++i)
-            {
-                var p = Terra.GetPoint(i);
-                Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
-            }
-            foreach (int i in Terra.PaintOnlyThese)
             {
                 var p = Terra.GetPoint(i);
                 //if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
@@ -124,12 +125,12 @@ namespace GUI
         {
 
             var nData = Terra.GetVertexNo();
+            //for (int i = 0; i < nData; ++i)
+            //{
+            //    var p = Terra.GetPoint(i);
+            //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            //}
             for (int i = 0; i < nData; ++i)
-            {
-                var p = Terra.GetPoint(i);
-                Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
-            }
-            foreach (int i in Terra.PaintOnlyThese)
             {
                 var p = Terra.GetPoint(i);
                 if (vm.Requests.Count > 0 && vm.PointInBoundingBox(p.X, p.Y, p.Z))
