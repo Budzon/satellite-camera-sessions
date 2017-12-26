@@ -13,6 +13,7 @@ namespace SphericalGeom
 {
     public class Polygon
     {
+        #region Polygon private fields
         // The n-th apex corresponds to the (n, n+1) arc (including (-1, 0)).
         // len(vertices) == len(apexes)
         private List<Vector3D> apexes;
@@ -34,6 +35,7 @@ namespace SphericalGeom
 
         private bool knowMiddle;
         private Vector3D middle;
+        #endregion
 
         #region Polygon properties
         /// <summary>
@@ -53,6 +55,7 @@ namespace SphericalGeom
             {
                 if (!knowArcs)
                 {
+                    arcs.Clear();
                     for (int i = 0; i < Count; ++i)
                         arcs.Add(new Arc(vertices[i], vertices[(i + 1) % Count], apexes[i]));
                     knowArcs = true;
@@ -139,7 +142,7 @@ namespace SphericalGeom
                         /// Take the vertex and find whether the interior of the polygon
                         /// is to the left or to the right of the two incident arcs.
                         Vector3D dir = arcs[(vertexInd + 1) % Count].TangentA - arcs[vertexInd].TangentB;
-                        double t = 1e-4;
+                        double t = 1e-3;
                         bool inside = false;
                         do
                         {
@@ -165,29 +168,27 @@ namespace SphericalGeom
             arcs = new List<Arc>();
             rand = new Random();
         }
-        public Polygon(IList<Vector3D> vertices, IList<Vector3D> apexes)
+        public Polygon(IEnumerable<Vector3D> vertices, IEnumerable<Vector3D> apexes)
             : this()
         {
-            if (vertices.Count != apexes.Count)
-                throw new ArgumentException("Number of points and arcs is incosistent.");
-
-            for (int i = 0; i < vertices.Count; ++i)
-            {
-                this.vertices.Add(vertices[i]);
-                this.apexes.Add(apexes[i]);
-            }
-        }
-        public Polygon(IList<Vector3D> vertices, Vector3D apex)
-            : this()
-        {
-            for (int i = 0; i < vertices.Count; ++i)
-            {
-                this.vertices.Add(vertices[i]);
+            foreach (Vector3D vertex in vertices)
+                this.vertices.Add(vertex);
+            foreach (Vector3D apex in apexes)
                 this.apexes.Add(apex);
-            }
+
+            if (this.vertices.Count != this.apexes.Count)
+                throw new ArgumentException("Number of points and arcs is incosistent.");
         }
-        public Polygon(IList<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
-        public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0)).ToList()) { }
+        public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex)
+            : this()
+        {
+            foreach (Vector3D vertex in vertices)
+                this.vertices.Add(vertex);
+            for (int i = 0; i < this.vertices.Count; ++i)
+                apexes.Add(apex);
+        }
+        public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
+        public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
 
         public Polygon(string wtkPolygon)
             : this()
@@ -206,7 +207,11 @@ namespace SphericalGeom
         }
         #endregion
 
-        // Assume that polygon does not contain poles and does not cross the 180 meridian
+        /// <summary>
+        /// Builds a rectangular bounding box for the polygon,
+        /// assuming that it does not contain poles and does not cross the 180 meridian.
+        /// </summary>
+        /// <returns></returns>
         public GeoRect BoundingBox()
         {
             double maxLat = -90.0, minLat = 90.0, maxLon = -180.0, minLon = 180.0;
@@ -221,6 +226,12 @@ namespace SphericalGeom
             return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1 + 1e-3, 1 + 1e-3);
         }
 
+        /// <summary>
+        /// Breaks the polygon into Count triangles.
+        /// Each triangle consits of two consecutive polygon vertices and <paramref name="mid"/>.
+        /// </summary>
+        /// <param name="mid"></param>
+        /// <returns></returns>
         public IList<Polygon> Shatter(Vector3D mid)
         {
             var res = new List<Polygon>();
@@ -239,7 +250,7 @@ namespace SphericalGeom
 
             // Ray casting algorithm. Shoot a great semiarc and count intersections.
             int res = 0;
-            for (int i = 0; i < 10; ++i)
+            for (int i = 0; i < 3; ++i)
             {
                 var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
                                                 (rand.NextDouble() - 0.5) * 1e-1,
@@ -249,23 +260,42 @@ namespace SphericalGeom
                 Arc halfGreat = new Arc(point, point2);
 
                 int numOfIntersections = 0;
-                foreach (Arc arc in Arcs)
-                    numOfIntersections += Arc.Intersect(arc, halfGreat).Count;
+                for (int j = 0; j < Arcs.Count; ++j)
+                    numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
                 res += (numOfIntersections % 2);
             }
             return res >= 2;
         }
 
+        /// <summary>
+        /// Transforms vertices and apexes to the given frame.
+        /// </summary>
+        /// <param name="frame"></param>
         public void ToThisFrame(ReferenceFrame frame)
         {
-            vertices = vertices.Select(v => frame.ToThisFrame(v)).ToList();
-            apexes = apexes.Select(a => frame.ToThisFrame(a)).ToList();
+            for (int i = 0; i < Count; ++i)
+            {
+                vertices[i] = frame.ToThisFrame(vertices[i]);
+                apexes[i] = frame.ToThisFrame(apexes[i]);
+            }
+            // Force Arcs recomputation if needed.
+            knowArcs = false;
         }
 
+        /// <summary>
+        /// Transforms vertices and apexes from the given frame.
+        /// </summary>
+        /// <remarks>Arcs are not recomputed!</remarks>
+        /// <param name="frame"></param>
         public void FromThisFrame(ReferenceFrame frame)
         {
-            vertices = vertices.Select(v => frame.ToBaseFrame(v)).ToList();
-            apexes = apexes.Select(a => frame.ToBaseFrame(a)).ToList();
+            for (int i = 0; i < Count; ++i)
+            {
+                vertices[i] = frame.ToBaseFrame(vertices[i]);
+                apexes[i] = frame.ToBaseFrame(apexes[i]);
+            }
+            // Force Arcs recomputation if needed.
+            knowArcs = false;
         }
 
         public static IList<Polygon> Intersect(Polygon p, Polygon q)
@@ -429,7 +459,13 @@ namespace SphericalGeom
                                                bool[] traverseForward)
         {
             var resPoly = new List<Polygon>();
-            var visited = new List<bool>[2] { vert[0].Select(v => false).ToList(), vert[1].Select(v => false).ToList() };
+            var visited = new List<bool>[2];
+            visited[0] = new List<bool>();
+            visited[1] = new List<bool>();
+            for (int i = 0; i < vert[0].Count; ++i)
+                visited[0].Add(false);
+            for (int i = 0; i < vert[1].Count; ++i)
+                visited[1].Add(false);
             var resVert = new List<Vector3D>();
             var resApex = new List<Vector3D>();
 

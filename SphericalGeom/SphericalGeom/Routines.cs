@@ -41,7 +41,13 @@ namespace SphericalGeom
             return squares;
         }
 
-        // rect does not contain poles and does not cross the 180 meridian
+        /// <summary>
+        /// Break the rectangle into squares of size <paramref name="squareSide"/>,
+        /// assuming that it does not contain poles and does not cross the 180 meridian.
+        /// </summary>
+        /// <param name="rect"></param>
+        /// <param name="squareSide">Square side in degrees.</param>
+        /// <returns></returns>
         public static List<GeoRect> SliceIntoSquares(GeoRect rect, double squareSide)
         {
             List<GeoRect> checkerboard = new List<GeoRect>();
@@ -116,6 +122,14 @@ namespace SphericalGeom
             return new Polygon(result, apex);
         }
 
+        /// <summary>
+        /// Solve a 2 by 3 system of linear equations.
+        /// </summary>
+        /// <param name="a1">Matrix first row.</param>
+        /// <param name="a2">Matrix second row.</param>
+        /// <param name="b1">First right hand side.</param>
+        /// <param name="b2">Second right hand side.</param>
+        /// <returns></returns>
         public static Vector3D SolveSLE2x3(Vector3D a1, Vector3D a2, double b1, double b2)
         {
             double x, y, z;
@@ -164,12 +178,12 @@ namespace SphericalGeom
             return res;
         }
 
-        public static List<Vector3D> IntersectLineUnitSphere(Vector3D a, Vector3D dir)
+        public static IEnumerable<Vector3D> IntersectLineUnitSphere(Vector3D a, Vector3D dir)
         {
             List<double> parameters = SolveQuadraticEquation(dir.LengthSquared, 
                                                              2 * Vector3D.DotProduct(a, dir), 
                                                              a.LengthSquared - 1);
-            return parameters.Select(t => a + t * dir).ToList();
+            return parameters.Select(t => a + t * dir);
         }
 
         public delegate double FuncDoubleToDouble(double x);
