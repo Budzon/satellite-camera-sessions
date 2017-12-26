@@ -250,7 +250,7 @@ namespace SphericalGeom
 
             // Ray casting algorithm. Shoot a great semiarc and count intersections.
             int res = 0;
-            for (int i = 0; i < 10; ++i)
+            for (int i = 0; i < 3; ++i)
             {
                 var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
                                                 (rand.NextDouble() - 0.5) * 1e-1,

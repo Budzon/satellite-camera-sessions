@@ -219,7 +219,7 @@ namespace SphericalGeom
         {
             // Intersect two planes
             var directionVector = Vector3D.CrossProduct(a.Axis, b.Axis);
-            var pointOnIntersection = Routines.SolveSLE2x3(a.Axis, b.Axis, a.Center.Length, b.Center.Length);
+            var pointOnIntersection = Routines.SolveSLE2x3(a.Axis, b.Axis, Vector3D.DotProduct(a.Axis, a.A), Vector3D.DotProduct(b.Axis, b.A));
             IEnumerable<Vector3D> intersectPlanesOnSphere =
                 Routines.IntersectLineUnitSphere(pointOnIntersection, directionVector);
 
