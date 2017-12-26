@@ -13,7 +13,7 @@ namespace SphericalGeom
     public class Arc
     {
         // Additional points on the arc with their relative distances from A.
-        private Dictionary<double, Vector3D> intermediatePoints;
+        private List<VectorWithDistance> intermediatePoints;
 
         #region Arc properties
         /// <summary>
@@ -62,7 +62,7 @@ namespace SphericalGeom
         public bool Counterclockwise { get; private set; }
         public IEnumerable<Vector3D> IntermediatePoints
         {
-            get { return intermediatePoints.Select(p => p.Value); }
+            get { return intermediatePoints.Select(vwtd => vwtd.Vector); }
         }
         #endregion
 
@@ -103,7 +103,7 @@ namespace SphericalGeom
             Counterclockwise = !Comparison.IsNegative(Vector3D.DotProduct(A - Center,Vector3D.CrossProduct(tangentA, A)));
             CentralAngleWithOrientation = Counterclockwise ? CentralAngle : 2 * Math.PI - CentralAngle;
 
-            intermediatePoints = new Dictionary<double, Vector3D>();
+            intermediatePoints = new List<VectorWithDistance>();
         }
 
         /// <summary>
@@ -140,9 +140,9 @@ namespace SphericalGeom
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>Intersection points.</returns>
-        public static ICollection<Vector3D> Intersect(Arc a, Arc b)
+        public static IEnumerable<Vector3D> Intersect(Arc a, Arc b)
         {
-            return IntersectWithDistances(a, b).Values;
+            return IntersectWithDistances(a, b).Select(vwtd => vwtd.Vector);
         }
 
         #region Arc internal methods
@@ -153,30 +153,34 @@ namespace SphericalGeom
         /// <param name="b"></param>
         internal static void UpdateWithIntersections(Arc a, Arc b)
         {
-            var intersection = IntersectWithDistances(a, b);
-            foreach (var p in intersection)
+            IEnumerable<VectorWithTwoDistances> intersection = IntersectWithDistances(a, b);
+            foreach (VectorWithTwoDistances vwtd in intersection)
             {
-                a.intermediatePoints.Add(p.Key.Item1, p.Value);
-                b.intermediatePoints.Add(p.Key.Item2, p.Value);
+                a.intermediatePoints.Add(new VectorWithDistance { Vector = vwtd.Vector, Distance = vwtd.DistanceOnFirstArc });
+                b.intermediatePoints.Add(new VectorWithDistance { Vector = vwtd.Vector, Distance = vwtd.DistanceOnSecondArc });
             }
         }
 
         internal ArcChain EmplaceIntermediatePoints()
         {
-            var points = new List<Vector3D> { A };
-            foreach (var point in intermediatePoints.OrderBy(p => p.Key))
-                points.Add(point.Value);
+            intermediatePoints.Sort();
+
+            List<Vector3D> points = new List<Vector3D> { A };
+            foreach (VectorWithDistance vwd in intermediatePoints)
+                points.Add(vwd.Vector);
             points.Add(B);
-            intermediatePoints = new Dictionary<double, Vector3D>();
+
+            intermediatePoints = new List<VectorWithDistance>();
             return new ArcChain(points, Center);
         }
 
         internal ArcChainWithLabels<T> EmplaceIntermediatePoints<T>(T endLabel, T intermediateLabel)
         {
             List<T> labels = new List<T> { endLabel };
-            foreach (var intermediate in intermediatePoints)
+            for (int i = 0; i < intermediatePoints.Count; ++i)
                 labels.Add(intermediateLabel);
             labels.Add(endLabel);
+
             return EmplaceIntermediatePoints().Labelize<T>(labels);
         }
         #endregion
@@ -211,12 +215,12 @@ namespace SphericalGeom
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>Intersection points, their relative positions on <paramref name="a"/> and <paramref name="b"/></returns>
-        private static Dictionary<Tuple<double, double>, Vector3D> IntersectWithDistances(Arc a, Arc b)
+        private static IEnumerable<VectorWithTwoDistances> IntersectWithDistances(Arc a, Arc b)
         {
             // Intersect two planes
             var directionVector = Vector3D.CrossProduct(a.Axis, b.Axis);
             var pointOnIntersection = Routines.SolveSLE2x3(a.Axis, b.Axis, a.Center.Length, b.Center.Length);
-            List<Vector3D> intersectPlanesOnSphere =
+            IEnumerable<Vector3D> intersectPlanesOnSphere =
                 Routines.IntersectLineUnitSphere(pointOnIntersection, directionVector);
 
             // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
@@ -227,11 +231,38 @@ namespace SphericalGeom
                 Vector3D.CrossProduct(b.B - b.Center, b.Axis)
             };
 
-            return intersectPlanesOnSphere.Where(point =>
-                         innerNormals.TrueForAll(normal => !Comparison.IsNegative(Vector3D.DotProduct(normal, point)))).
-                   ToDictionary(point => Tuple.Create(1 - Vector3D.DotProduct(point, a.A - a.Center),
-                                                      1 - Vector3D.DotProduct(point, b.A - b.Center)));
+            return intersectPlanesOnSphere
+                   .Where(point =>
+                         innerNormals
+                         .TrueForAll(normal => 
+                                    !Comparison.IsNegative(Vector3D.DotProduct(normal, point))))
+                                    .Select(point => new VectorWithTwoDistances
+                                    {
+                                        Vector = point,
+                                        DistanceOnFirstArc = 1 - Vector3D.DotProduct(point, a.A - a.Center),
+                                        DistanceOnSecondArc = 1 - Vector3D.DotProduct(point, b.A - b.Center)
+                                    });
         }
         #endregion
+    }
+
+    internal class VectorWithDistance : IComparable<VectorWithDistance>
+    {
+        public Vector3D Vector { get; set; }
+        public double Distance { get; set; }
+
+        public int CompareTo(VectorWithDistance vwd)
+        {
+            if (vwd == null)
+                return 1;
+            return Distance.CompareTo(vwd.Distance);
+        }
+    }
+
+    internal struct VectorWithTwoDistances
+    {
+        public Vector3D Vector { get; set; }
+        public double DistanceOnFirstArc { get; set; }
+        public double DistanceOnSecondArc { get; set; }
     }
 }

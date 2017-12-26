@@ -110,8 +110,8 @@ namespace SphericalGeom
             if (chain.Vertices.Count != labels.Count)
                 throw new ArgumentException("Number of points and labels is incosistent.");
 
-            base.apexes = chain.Apexes.ToList();
-            base.vertices = chain.Vertices.ToList();
+            base.apexes = chain.Apexes;
+            base.vertices = chain.Vertices;
 
             this.labels = new List<T>();
             foreach (T label in labels)
