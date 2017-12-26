@@ -88,13 +88,6 @@ namespace SphericalGeom
             Center = Vector3D.DotProduct(A, normal) * normal;
 
             CentralAngle = AstronomyMath.ToRad(Vector3D.AngleBetween(A - Center, B - Center));
-            double sin = Vector3D.DotProduct(
-                Vector3D.CrossProduct(A - Center, B - Center),
-                Center) / Center.Length;
-            double cos = Vector3D.DotProduct(A - Center, B - Center);
-            CentralAngleWithOrientation = Math.Atan2(sin, cos);
-            if (CentralAngleWithOrientation < 0)
-                CentralAngleWithOrientation += 2 * Math.PI;
            
             Radius = (A - Center).Length;
             GeodesicCurvature = Math.Sqrt(1 - Radius * Radius) / Radius;
@@ -106,9 +99,9 @@ namespace SphericalGeom
             Vector3D tangentB = Vector3D.CrossProduct(B - Center, Vector3D.CrossProduct(B - A, B - Center));
             tangentB.Normalize();
             TangentB = tangentB;
-            Vector3D temp = Vector3D.CrossProduct(tangentA, A);
-            double tt = Vector3D.DotProduct(A - Center, temp);
-            Counterclockwise = Comparison.IsPositive(tt);
+ 
+            Counterclockwise = !Comparison.IsNegative(Vector3D.DotProduct(A - Center,Vector3D.CrossProduct(tangentA, A)));
+            CentralAngleWithOrientation = Counterclockwise ? CentralAngle : 2 * Math.PI - CentralAngle;
 
             intermediatePoints = new Dictionary<double, Vector3D>();
         }

@@ -17,27 +17,144 @@ namespace SphericalGeom
         // len(vertices) == len(apexes)
         private List<Vector3D> apexes;
         private List<Vector3D> vertices;
-        private List<Arc> arcs;
+
         private static Random rand;
-        protected bool isCounterclockwise;
+
+        private bool knowArcs;
+        private List<Arc> arcs;
+
+        private bool knowWtk;
+        private string wtk;
+
+        private bool knowArea;
+        private double area;
+
+        private bool knowCounterclockwise;
+        private bool counterclockwise;
+
+        private bool knowMiddle;
+        private Vector3D middle;
 
         #region Polygon properties
+        /// <summary>
+        /// Whether has zero vertices.
+        /// </summary>
         public bool IsEmpty { get { return vertices.Count == 0; } }
+        /// <summary>
+        /// Number of vertices (and apexes).
+        /// </summary>
+        public int Count { get { return vertices.Count; } }
+
         public IList<Vector3D> Apexes { get { return apexes; } }
         public IList<Vector3D> Vertices { get { return vertices; } }
-        public IList<Arc> Arcs { get { return arcs; } }
+        public IList<Arc> Arcs 
+        {
+            get
+            {
+                if (!knowArcs)
+                {
+                    for (int i = 0; i < Count; ++i)
+                        arcs.Add(new Arc(vertices[i], vertices[(i + 1) % Count], apexes[i]));
+                    knowArcs = true;
+                }
+                return arcs;
+            }
+        }
 
-        public double Area { get; private set; }
+        public double Area
+        {
+            get
+            {
+                if (!knowArea)
+                {
+                    area = 0;
+                    if (Count > 2)
+                    {
+                        double ang;
+                        for (int i = 0; i < Count; ++i)
+                        {
+                            ang = RotationAngleWithNextArc(i);
+                            if (IsCounterclockwise)
+                            {
+                                if (ang < 0)
+                                    ang += 2 * Math.PI;
+                                area += ang;
+                            }
+                            else if (!IsCounterclockwise)
+                            {
+                                if (ang > 0)
+                                    ang = 2 * Math.PI - ang;
+                                area -= ang;
+                            }
+
+                            if (IsCounterclockwise == arcs[i].Counterclockwise)
+                                area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                            else
+                                area -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                        }
+                        area = Math.Min(2 * Math.PI - area, 2 * Math.PI + area);
+                    }
+                    knowArea = true;
+                }
+                return area;
+            }
+        }
         public Vector3D Middle
         {
             get
             {
-                if (IsEmpty)
-                    throw new DivideByZeroException("Polygon is empty.");
-                return vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
+                if (!knowMiddle)
+                {
+                    if (IsEmpty)
+                        throw new DivideByZeroException("Polygon is empty.");
+
+                    middle = vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
+                    knowMiddle = true;
+                }
+                return middle;
             }
         }
-        public bool IsCounterclockwise { get { return isCounterclockwise;} }
+        public bool IsCounterclockwise
+        {
+            get
+            {
+                if (!knowCounterclockwise)
+                {
+                    if (Count < 3)
+                        // Convention.
+                        counterclockwise = true;
+                    else
+                    {
+                        /// Find a vertex with a nonzero rotation angle.
+                        int vertexInd = 0;
+                        double exteriorAngle = RotationAngleWithNextArc(vertexInd);
+                        while (Comparison.IsZero(exteriorAngle) && vertexInd < Count)
+                        {
+                            vertexInd += 1;
+                            exteriorAngle = RotationAngleWithNextArc(vertexInd);
+                        }
+                        if (vertexInd == Count) // Cannot happen but what if...
+                            throw new ArgumentException("Polygon with all zero rotations.");
+
+                        /// Take the vertex and find whether the interior of the polygon
+                        /// is to the left or to the right of the two incident arcs.
+                        Vector3D dir = arcs[(vertexInd + 1) % Count].TangentA - arcs[vertexInd].TangentB;
+                        double t = 1e-4;
+                        bool inside = false;
+                        do
+                        {
+                            Vector3D pointInside = vertices[1] + t * dir;
+                            pointInside.Normalize();
+                            inside = Contains(pointInside);
+                            t *= 0.99;
+                        } while (Comparison.IsPositive(t) && !inside);
+                        counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
+                    }
+                    knowCounterclockwise = true;
+                }
+                return counterclockwise;
+            }
+        }
         #endregion
 
         #region Polygon constructors
@@ -46,7 +163,6 @@ namespace SphericalGeom
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
             arcs = new List<Arc>();
-            Area = ComputeAreaAndSetOrientation();
             rand = new Random();
         }
         public Polygon(IList<Vector3D> vertices, IList<Vector3D> apexes)
@@ -59,10 +175,7 @@ namespace SphericalGeom
             {
                 this.vertices.Add(vertices[i]);
                 this.apexes.Add(apexes[i]);
-                this.arcs.Add(new Arc(vertices[i], vertices[(i + 1) % vertices.Count], apexes[i]));
             }
-
-            Area = ComputeAreaAndSetOrientation();
         }
         public Polygon(IList<Vector3D> vertices, Vector3D apex)
             : this()
@@ -71,9 +184,7 @@ namespace SphericalGeom
             {
                 this.vertices.Add(vertices[i]);
                 this.apexes.Add(apex);
-                this.arcs.Add(new Arc(vertices[i], vertices[(i + 1) % vertices.Count], apex));
             }
-            Area = ComputeAreaAndSetOrientation();
         }
         public Polygon(IList<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0)).ToList()) { }
@@ -92,9 +203,6 @@ namespace SphericalGeom
                 this.apexes.Add(apex);
                 this.vertices.Add(point);
             }
-            for (int i = 0; i < vertices.Count; ++i)
-                this.arcs.Add(new Arc(vertices[i], vertices[(i + 1) % vertices.Count], apexes[i]));
-            Area = ComputeAreaAndSetOrientation();
         }
         #endregion
 
@@ -225,36 +333,39 @@ namespace SphericalGeom
 
         public string ToWtk()
         {
-            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
-
-            if (0 == vertices.Count)
-                return "";
-
-            string wkt = "POLYGON ((";
-
-            if (IsCounterclockwise)
+            if (!knowWtk)
             {
-                foreach (var ver in vertices)
-                {
-                    GeoPoint gpoint = GeoPoint.FromCartesian(ver);
-                    wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
-                }
-                GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
-                wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
-            }
-            else
-            {
-                wkt = "POLYGON ((";
-                for (int i = vertices.Count - 1; i >= 0; i--)
-                {
-                    GeoPoint gpoint = GeoPoint.FromCartesian(vertices[i]);
-                    wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
-                }
-                GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[vertices.Count - 1]);
-                wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";        
-            }
+                Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
 
-            return wkt;
+                if (0 == vertices.Count)
+                    wtk = "";
+                else
+                {
+                    wtk = "POLYGON ((";
+                    if (IsCounterclockwise)
+                    {
+                        foreach (var ver in vertices)
+                        {
+                            GeoPoint gpoint = GeoPoint.FromCartesian(ver);
+                            wtk += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                        }
+                        GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
+                        wtk += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+                    }
+                    else
+                    {
+                        for (int i = vertices.Count - 1; i >= 0; i--)
+                        {
+                            GeoPoint gpoint = GeoPoint.FromCartesian(vertices[i]);
+                            wtk += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                        }
+                        GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[vertices.Count - 1]);
+                        wtk += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+                    }
+                }
+                knowWtk = true;
+            }
+            return wtk;
         }
 
         public double Square()
@@ -266,88 +377,13 @@ namespace SphericalGeom
         }
 
         #region Polygon private methods
-        private double ComputeAreaAndSetOrientation()
-        {
-            //double cwArea = 0, ccwArea = 0;
-            double ang, area = 0;
-
-            SetOrientation();
-
-            if (vertices.Count < 3)
-                return 0;
-
-            for (int i = 0; i < arcs.Count; ++i)
-            {
-                ang = RotationAngleWithNextArc(i);
-                if (IsCounterclockwise)
-                {
-                    if (ang < 0)
-                        ang += 2 * Math.PI;
-                    area += ang;
-                }
-                else if (!IsCounterclockwise)
-                {
-                    if (ang > 0)
-                        ang = 2 * Math.PI - ang;
-                    area -= ang;
-                }
-                
-                if (isCounterclockwise == arcs[i].Counterclockwise)
-                    area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
-                else
-                    area -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
-                //cwArea -= ang;
-                //ccwArea += ang;
-                //if (ang < 0)
-                //    ccwArea += 2 * Math.PI;
-                //else
-                //    cwArea += 2 * Math.PI;
-            }
-
-            return Math.Min(2 * Math.PI - area, 2 * Math.PI + area);
-
-            //for (int i = 0; i < arcs.Count; ++i)
-            //{
-            //    cwArea -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
-            //    ccwArea += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
-            //}
-
-            ////isCounterclockwise = ccwArea < cwArea;
-            //double area = 2 * Math.PI - ccwArea;
-            //isCounterclockwise = area < 2 * Math.PI;
-            //return (isCounterclockwise) ? area : 4 * Math.PI - area;
-            //return 2 * Math.PI - (isCounterclockwise ? ccwArea : cwArea);
-        }
-
-        private void SetOrientation()
-        {
-            if (vertices.Count < 3)
-                isCounterclockwise = true;
-            else
-            {
-                double exteriorAngle = RotationAngleWithNextArc(0);
-                Vector3D dir = arcs[1].TangentA - arcs[0].TangentB;
-
-                double t = 1e-2;
-                bool inside = false;
-                do
-                {
-                    Vector3D pointInside = vertices[1] + t * dir;
-                    pointInside.Normalize();
-                    inside = Contains(pointInside);
-                    t *= 0.99;
-                } while (Comparison.IsPositive(t) && !inside);
-
-                isCounterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
-            }
-        }
         private double RotationAngleWithNextArc(int curArcInd)
         {
-            int nextArcInd = (curArcInd == arcs.Count - 1) ? 0 : (curArcInd + 1);
+            int nextArcInd = (curArcInd == Count - 1) ? 0 : (curArcInd + 1);
             double sin = Vector3D.DotProduct(
-                Vector3D.CrossProduct(arcs[curArcInd].TangentB, arcs[nextArcInd].TangentA),
-                arcs[nextArcInd].A);
-            double cos = Vector3D.DotProduct(arcs[curArcInd].TangentB, arcs[nextArcInd].TangentA);
+                Vector3D.CrossProduct(Arcs[curArcInd].TangentB, Arcs[nextArcInd].TangentA),
+                Arcs[nextArcInd].A);
+            double cos = Vector3D.DotProduct(Arcs[curArcInd].TangentB, Arcs[nextArcInd].TangentA);
             return Math.Atan2(sin, cos);
         }
 
