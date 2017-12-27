@@ -134,7 +134,8 @@ namespace ViewModel
                     NewPointLat = (double)geom.STPointN(i).Lat;
                     NewPointLon = (double)geom.STPointN(i).Long;                    
                     addPointCmd.Execute(new object());
-                }                                            
+                }
+                curRequest = new SphericalGeom.Polygon(Requests[Requests.Count - 1].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)).ToList<Vector3D>(), new Vector3D(0, 0, 0));                   
             }, _ => { return true; });
 
             //verifyIfRegionCanBeSeenCmd = new DelegateCommand(_ =>
@@ -298,6 +299,8 @@ namespace ViewModel
 
         public void CreateCaptureIntervals()
         {
+            Console.WriteLine(curRequest.Area);
+
             SatTrajectory trajectory;
             try
             {
@@ -314,10 +317,20 @@ namespace ViewModel
                 return;
             }
 
-            double rollAngle = Math.PI / 4; //;
-            double viewAngle = AstronomyMath.ToRad(0.952);
+           // double rollAngle = Math.PI / 9;
+           // double viewAngle =   AstronomyMath.ToRad(0.952);
 
-            captureLanes.Add(trajectory.getCaptureLane(rollAngle, viewAngle));
+           // captureLanes.Add(trajectory.getCaptureLane(rollAngle, viewAngle));
+
+            double viewAngle = AstronomyMath.ToRad(10 * 0.952); // угол обзора камеры 
+            double angleStep = viewAngle; // шаг равен углу обзора
+            double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по углу крена
+            double max_roll_angle = AstronomyMath.ToRad(45);
+            for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
+            {
+                captureLanes.Add(trajectory.getCaptureLane(rollAngle, viewAngle));
+            }
+
 
             if (0 == Requests.Count)
                 return;
@@ -328,15 +341,31 @@ namespace ViewModel
             reqparams.dateTo = new DateTime(2020, 1, 1);
             reqparams.wktPolygon = curRequest.ToWtk();
 
+            List<CaptureConf> comconfs = new List<CaptureConf> ();
+
             List<TargetWorkInterval> intervals = new List<TargetWorkInterval>();
             foreach (var lane in captureLanes)
-            {
+            {                 
+                //foreach (var sect in lane.Sectors)
+                //{
+                //    Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sect.polygon, curRequest);
+
+                //    foreach (var inters in reTuple.Item1)
+                //    {
+                //        captureIntervals.Add(inters);
+                //       // curRequest = reTuple.Item1.ElementAt(0);
+                //    } 
+                //}
+                
+                //continue;
+
                 List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
                 // List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
                 foreach (var conf in confs)
                 {
                     captureIntervals.Add(lane.getSegment(conf.dateFrom, conf.dateTo));
                 }
+                comconfs.AddRange(confs);
             }
         }
 
@@ -346,6 +375,8 @@ namespace ViewModel
                 return;
             RequestParams reqparams = new RequestParams();
             reqparams.id = 1;
+            reqparams.dateFrom = new DateTime(2000, 1, 1);
+            reqparams.dateTo = new DateTime(2020, 1, 1);
             reqparams.wktPolygon = curRequest.ToWtk();
             reqparams.minCoverPerc = 0.4;
             Console.WriteLine(Sessions.isRequestFeasible(reqparams));
@@ -354,10 +385,40 @@ namespace ViewModel
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
+            /*
+         List<Vector3D> verts = new List<Vector3D>()
+        {
+            new Vector3D(0.0222959135251552, -0.711139707276314, 0.702697096176608 ),
+            new Vector3D(0.958789213212602, 0.0541814558309897, -0.27890431059988),
+            new Vector3D(0.957940002632749, 0.250888703563442, -0.13930473710619), 
+            new Vector3D(-0.000690208603265057, -0.526092040761795, 0.850427356250476), 
+        };
+
+
+        List<Vector3D> apexes = new List<Vector3D>()
+        {
+            new Vector3D(0.0114233981231113, -0.0880998732579101, -0.0794174437950971),
+            new Vector3D(0,0,0),
+            new Vector3D(-0.00746165499726126, 0.0972107674857511, 0.0713673574106929),
+            new Vector3D(0,0,0)
+        };
+
+            Polygon lanepol = new Polygon(verts, apexes);
+            curRequest = lanepol;
+          //  return null
+            Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(lanepol, curRequest);
+
+            if (reTuple.Item1.Count > 0)
+            {
+                curRequest = reTuple.Item1.ElementAt(0);
+            }
+
+            return null;
+            */
             DateTime start = DateTime.Now;
             if (curRequest == null)
                 return null;
-
+            
             List<RequestParams> requests = new List<RequestParams>();
             foreach (var req in Requests)
             {

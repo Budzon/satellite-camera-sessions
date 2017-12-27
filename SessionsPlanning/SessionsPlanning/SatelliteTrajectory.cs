@@ -33,7 +33,7 @@ namespace SatelliteTrajectory
 
             List<LanePos> lanePoints = new List<LanePos>();
             
-            for (int p_ind = 0; p_ind < points.Count; p_ind += 1)
+            for (int p_ind = 0; p_ind < points.Count; p_ind += 16)
             {
                 Vector3D eDirVect = new Vector3D(-points[p_ind].Position.X, -points[p_ind].Position.Y, -points[p_ind].Position.Z);
 
@@ -125,7 +125,7 @@ namespace SatelliteTrajectory
             Sectors = new List<LaneSector>();
             lanePoints = points;
 
-            double width = (points[0].LeftPoint - points[0].RightPoint).Length / 2;
+            double width = (points[0].LeftCartPoint - points[0].RightCartPoint).Length / 2;
       
             List<Vector3D> leftLanePoints = new List<Vector3D>();
             List<Vector3D> rightLanePoints = new List<Vector3D>();
@@ -136,11 +136,11 @@ namespace SatelliteTrajectory
             DateTime sectorFromDT = points[0].time;
             DateTime sectorToDT;
 
-            GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(points[0].LeftPoint.ToPoint());
+            GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(points[0].LeftCartPoint.ToPoint());
             for (int p_ind = 0; p_ind < points.Count; p_ind++)
             {
-                leftLanePoints.Add(points[p_ind].LeftPoint);
-                rightLanePoints.Add(points[p_ind].RightPoint);
+                leftLanePoints.Add(points[p_ind].LeftCartPoint);
+                rightLanePoints.Add(points[p_ind].RightCartPoint);
                  
                 leftControlPoints.Add(points[p_ind].leftControlPoint);
                 rightControlPoints.Add(points[p_ind].rightControlPoint);
@@ -148,7 +148,7 @@ namespace SatelliteTrajectory
                 if (p_ind == 0)
                     continue;
 
-                GeoPoint point = GeoPoint.FromCartesian(points[p_ind].LeftPoint);
+                GeoPoint point = GeoPoint.FromCartesian(points[p_ind].LeftCartPoint);
 
                 bool needNewSector = false;
 
@@ -158,10 +158,10 @@ namespace SatelliteTrajectory
                 }                    
                 else
                 {
-                    GeoPoint nextPoint = GeoPoint.FromCartesian(points[p_ind + 1].LeftPoint);
+                    //GeoPoint nextPoint = GeoPoint.FromCartesian(points[p_ind + 1].LeftCartPoint);
                     double curDist = GeoPoint.DistanceOverSurface(prevPoint, point);
-                    double distNext = GeoPoint.DistanceOverSurface(prevPoint, nextPoint);
-                    needNewSector = distNext < curDist;
+                    //double distNext = GeoPoint.DistanceOverSurface(prevPoint, nextPoint);
+                    needNewSector = curDist > AstronomyMath.ToRad(90); // @todo плохой способ
                 } 
                                                 
                 if (needNewSector)
@@ -176,12 +176,12 @@ namespace SatelliteTrajectory
                         leftControlPoints.Add(rightControlPoints[i]);
 
                     sectorToDT = points[p_ind].time;
-                    Polygon pol = new Polygon(leftLanePoints, leftControlPoints); 
+                    Polygon pol = new Polygon(leftLanePoints, leftControlPoints);
                     LaneSector newSector = new LaneSector();
                     newSector.polygon = pol;
                     newSector.fromDT = sectorFromDT;
                     newSector.toDT = sectorToDT;
-                    Sectors.Add(newSector);                
+                    Sectors.Add(newSector);
 
                     rightLanePoints.Clear();
                     leftLanePoints.Clear();
@@ -189,8 +189,8 @@ namespace SatelliteTrajectory
                     leftControlPoints.Clear();
                     rightControlPoints.Clear();
 
-                    leftLanePoints.Add(points[p_ind].LeftPoint);
-                    rightLanePoints.Add(points[p_ind].RightPoint);
+                    leftLanePoints.Add(points[p_ind].LeftCartPoint);
+                    rightLanePoints.Add(points[p_ind].RightCartPoint);
 
                     leftControlPoints.Add(points[p_ind].leftControlPoint);
                     rightControlPoints.Add(points[p_ind].rightControlPoint);
@@ -203,21 +203,20 @@ namespace SatelliteTrajectory
         }
 
         public List<CaptureConf> getCaptureConfs(RequestParams request)
-        {             
+        {
             Polygon region = new Polygon(request.wktPolygon);
             List<CaptureConf> res = new List<CaptureConf>();
             double square = region.Square();
             foreach(LaneSector sector in Sectors)
             {
-                Tuple<IList<Polygon>, IList<Polygon>> reTuple = Polygon.IntersectAndSubtract(sector.polygon, region);
-                foreach (var int_pol in reTuple.Item1)
+                IList<Polygon> intersections = Polygon.Intersect(sector.polygon, region); 
+                foreach (var int_pol in intersections)
                 {
                     var verts = int_pol.Vertices;
                     var en = verts.GetEnumerator();
                     en.MoveNext();
                     DateTime tmin = getPointTime(en.Current, sector.fromDT, sector.toDT);
-                    DateTime tmax = tmin;
-                    Vector3D minPoint, maxPoint;
+                    DateTime tmax = tmin; 
                     bool outOfRange = false;
                     foreach (var point in verts)
                     {
@@ -228,22 +227,20 @@ namespace SatelliteTrajectory
                             break;
                         }                            
                         else if (curTime < tmin)
-                        {
-                            minPoint = point;
+                        { 
                             tmin = curTime;
                         }
                         else if (curTime > tmax)
-                        {
-                            maxPoint = point;
+                        { 
                             tmax = curTime;
                         }
-                    }
+                    }                    
                     if (outOfRange)
                         break;
                     CaptureConf newcc = new CaptureConf();
                     Order order = new Order();
                     order.request = request;
-                    double subsquare = int_pol.Square();
+                    double subsquare = int_pol.Square(); 
                     order.intersection_coeff = subsquare / square;
                     newcc.orders.Add(order);
                     newcc.dateFrom = tmin;
@@ -258,10 +255,9 @@ namespace SatelliteTrajectory
         public DateTime getPointTime(Vector3D point, DateTime fromDt, DateTime toDt)
         {
             GeoPoint geoPoint = GeoPoint.FromCartesian(point);
-            double minDist = lanePoints[0].getDistToPoint(geoPoint);
-            int minInd = 0;
-
-            for (int i = 1; i < lanePoints.Count - 1; i++)
+            double firstDist = lanePoints[0].getDistToPoint(geoPoint);            
+            int first = 0;
+            for (int i = 1; i < lanePoints.Count; i++)
             {
                 if (lanePoints[i].time < fromDt)
                     continue;
@@ -269,22 +265,42 @@ namespace SatelliteTrajectory
                     break;
 
                 double dist = lanePoints[i].getDistToPoint(geoPoint);
-                if (dist < minDist)
+                if (dist <= firstDist) 
                 {
-                    minDist = dist;
-                    minInd = i;
+                    firstDist = dist;
+                    first = i; 
                 }
             }
+             
+            int second;
+            int mindInd;
+            int sign;
+            if (first == lanePoints.Count - 1)
+            {
+                second = first - 1;
+                mindInd = second;                
+            }
+            else
+            {
+                second = first + 1;
+                mindInd = first;              
+            }
+             
+            double fullDist = GeoPoint.DistanceOverSurface(lanePoints[first].MiddleGeoPoint, lanePoints[second].MiddleGeoPoint);
+            double fullTime = Math.Abs((lanePoints[first].time - lanePoints[second].time).TotalSeconds);          
+            double distPoint = lanePoints[mindInd].getDistToPoint(geoPoint);
+            double diffSecs = fullTime * distPoint / fullDist;
 
-            LanePos curPos = lanePoints[minInd];
-            LanePos nextPos = (minInd == lanePoints.Count - 1 ) ? lanePoints[minInd - 1] : lanePoints[minInd + 1];
- 
-            double distCur = curPos.getDistToPoint(geoPoint);
-            double distNext = nextPos.getDistToPoint(geoPoint);
-
-            double diff = Math.Abs((curPos.time - nextPos.time).TotalSeconds) * distCur / (distCur + distNext);
-            DateTime res = (minInd == lanePoints.Count - 1) ? nextPos.time.AddSeconds(diff) : curPos.time.AddSeconds(diff);             
-            return res;
+            if (first == lanePoints.Count - 1)
+            {
+                sign = lanePoints[second].getDistToPoint(geoPoint) > fullDist ? 1 : -1;
+            }
+            else
+            {
+                sign = lanePoints[second].getDistToPoint(geoPoint) < fullDist ? 1 : -1;
+            }
+             
+            return lanePoints[mindInd].time.AddSeconds(sign * diffSecs);    
         }
         
 
@@ -298,48 +314,36 @@ namespace SatelliteTrajectory
 
             for (int i = 0; i < lanePoints.Count; i++)
             {
-                if (lanePoints[i].time < begTime)
+                if (lanePoints[i+1].time < begTime)
                     continue;
-                else if (lanePoints[i].time > endTime)
-                    break;
-                else if (lanePoints[i].time > begTime)
+
+                if (begTime <= lanePoints[i].time && lanePoints[i].time <= endTime)
                 {
-                    if (0 == polygonPoints.Count && lanePoints[i].time != begTime) // первая точка и она не совпадает с началом
-                    {
-                        double fullDist = GeoPoint.DistanceOverSurface(lanePoints[i].LeftGeoPoint, lanePoints[i-1].LeftGeoPoint);
-                        double fullTimeDiff = (lanePoints[i].time - lanePoints[i - 1].time).TotalSeconds;
-                        double timePart = (begTime - lanePoints[i - 1].time).TotalSeconds;
-                        double patrDist = fullDist * timePart / fullTimeDiff;
-                        
-                        RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(lanePoints[i].leftControlPoint, AstronomyMath.ToDegrees(patrDist)));                         
-                        Vector3D newLeftPoint = leftTransform.Transform(lanePoints[i - 1].LeftPoint);
-
-                        RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(lanePoints[i].rightControlPoint, AstronomyMath.ToDegrees(patrDist)));
-                        Vector3D newRightPoint = rightTransform.Transform(lanePoints[i - 1].RightPoint);
-
-                        polygonPoints.Add(newLeftPoint);
-                        rightPolygonPoints.Add(newRightPoint);
-
-                        /// далее временно                        
-                        double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(newLeftPoint), lanePoints[i-1].LeftGeoPoint);
-                        double errorVal = 1 - (dist / fullDist) / (timePart / fullTimeDiff);
-                        if (errorVal > 0.005)
-                            throw new System.ArgumentException("Error!");
-
-                        dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(newRightPoint), lanePoints[i - 1].RightGeoPoint);
-                        errorVal = 1 - (dist / fullDist) / (timePart / fullTimeDiff);
-                        if (errorVal > 0.005)
-                            throw new System.ArgumentException("Error!"); 
-
-                    }
-                    else
-                    {
-                       polygonPoints.Add(lanePoints[i].LeftPoint);
-                       rightPolygonPoints.Add(lanePoints[i].RightPoint);
-                    } 
+                    polygonPoints.Add(lanePoints[i].LeftCartPoint);
+                    rightPolygonPoints.Add(lanePoints[i].RightCartPoint);
                 }
-                 
-                // @todo полигон может быть длиннее 180 (вроде не должен), что вызовет ошибки. Надо разрезать на полигоны или вставить проверку. 
+
+                if (lanePoints.Count - 1 == i)  
+                    break;
+
+                if (lanePoints[i].time < begTime && begTime < lanePoints[i + 1].time)
+                {
+                    var pos = getlanePosByTime(lanePoints[i], lanePoints[i + 1], begTime);
+                    polygonPoints.Add(pos.Item1);
+                    rightPolygonPoints.Add(pos.Item2);
+                }
+
+                if (lanePoints[i].time < endTime && endTime < lanePoints[i + 1].time)
+                {
+                    var pos = getlanePosByTime(lanePoints[i], lanePoints[i + 1], endTime);
+                    polygonPoints.Add(pos.Item1);
+                    rightPolygonPoints.Add(pos.Item2);
+                }
+
+                if (lanePoints[i + 1].time > endTime)
+                    break;
+
+                // @todo полигон может быть длиннее 180 (upd - по исходным данным вроде не должен), что вызовет ошибки. Надо разрезать на полигоны или вставить проверку. 
             }
 
             for (int i = rightPolygonPoints.Count - 1; i >= 0; i--)
@@ -347,18 +351,36 @@ namespace SatelliteTrajectory
 
             return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
         }
+
+        private Tuple<Vector3D,Vector3D> getlanePosByTime(LanePos first, LanePos second, DateTime time)
+        {
+            double fullDist = GeoPoint.DistanceOverSurface(first.MiddleGeoPoint, second.MiddleGeoPoint);
+            double fullTimeDiff = (second.time - first.time).TotalSeconds;
+            double timePart = (time - first.time).TotalSeconds;
+            double patrDist = fullDist * timePart / fullTimeDiff;
+
+            Vector3D rotAxis = Vector3D.CrossProduct(first.MiddleCartPoint, second.MiddleCartPoint);
+            RotateTransform3D rotTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, AstronomyMath.ToDegrees(patrDist)));
+            Vector3D newMiddlePoint = rotTransform.Transform(first.MiddleCartPoint);
+
+            Vector3D newLeft = newMiddlePoint + (first.LeftCartPoint - first.MiddleCartPoint);
+            Vector3D newRight = newMiddlePoint + (first.RightCartPoint - first.MiddleCartPoint);
+
+            return new Tuple<Vector3D, Vector3D>(newLeft, newRight);
+        }        
     }
          
     public class LanePos
     {
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
-        public Vector3D middleCartPoint;
+        private Vector3D middleCartPoint;
         public Vector3D leftControlPoint;
         public Vector3D rightControlPoint;
         
         private GeoPoint leftGeoPoint;
         private GeoPoint rightGeoPoint;
+        private GeoPoint middleGeoPoint;
 
         private double width; 
 
@@ -369,28 +391,45 @@ namespace SatelliteTrajectory
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
             middleCartPoint = _middlePoint;
+            middleGeoPoint = GeoPoint.FromCartesian(_middlePoint);
             time = _time;
 
             leftGeoPoint = GeoPoint.FromCartesian(leftCartPoint);
             rightGeoPoint = GeoPoint.FromCartesian(rightCartPoint);
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
 
-            leftControlPoint = middleCartPoint - leftCartPoint;
-            rightControlPoint = middleCartPoint - rightCartPoint;
+            // leftControlPoint = leftCartPoint - middleCartPoint;
+            // rightControlPoint = rightCartPoint - middleCartPoint;
 
+            leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
+            rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
+ 
             //// неверно для полос захвата
-            //leftControlPoint = leftCartPoint - rightCartPoint;
-            //leftControlPoint.Normalize();
-            //leftControlPoint = leftControlPoint * (leftCartPoint - rightCartPoint).Length / 2;
+            /*
+            leftControlPoint = leftCartPoint - rightCartPoint;
+            leftControlPoint.Normalize();
+            leftControlPoint = leftControlPoint * (leftCartPoint - rightCartPoint).Length / 2;
 
-            //rightControlPoint = rightCartPoint - leftCartPoint; 
-            //rightControlPoint.Normalize();
-            //rightControlPoint = rightControlPoint * (rightCartPoint - leftCartPoint).Length / 2;
+            rightControlPoint = rightCartPoint - leftCartPoint; 
+            rightControlPoint.Normalize();
+            rightControlPoint = rightControlPoint * (rightCartPoint - leftCartPoint).Length / 2;
+             */
         }
 
- 
+        private Vector3D getControlPoint(Vector3D middlePoint, Vector3D sidePoint)
+        {
+            // 
+            Vector3D rotAx = Vector3D.CrossProduct(middlePoint, sidePoint);
+            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAx, 90));
+            Vector3D b = leftTransform.Transform(middlePoint);
+            double lenth = Vector3D.DotProduct(sidePoint, b) / b.Length;
+            Vector3D controlPoint = b;
+            controlPoint.Normalize();
+            controlPoint = controlPoint * lenth;
+            return controlPoint;
+        }    
 
-        public Vector3D LeftPoint
+        public Vector3D LeftCartPoint
         {
             get
             {
@@ -398,13 +437,21 @@ namespace SatelliteTrajectory
             } 
         }
 
-        public Vector3D RightPoint
+        public Vector3D RightCartPoint
         {
             get
             {
                 return rightCartPoint;
             } 
         }
+
+        public Vector3D MiddleCartPoint
+        {
+            get
+            {
+                return middleCartPoint;
+            }
+        }        
 
         public GeoPoint LeftGeoPoint
         {
@@ -422,7 +469,14 @@ namespace SatelliteTrajectory
             }
         }
 
-
+        public GeoPoint MiddleGeoPoint
+        {
+            get
+            {
+                return middleGeoPoint;
+            }
+        }
+         
         /// <summary>
         /// Return distance from gpoint to line [leftGeoPoint - rightGeoPoint] in radians
         /// </summary>
@@ -433,7 +487,7 @@ namespace SatelliteTrajectory
             if (gpoint == leftGeoPoint || gpoint == rightGeoPoint)
             {
                 return 0;
-            } 
+            }             
             double A = GeoPoint.DistanceOverSurface(gpoint, leftGeoPoint);
             double B = GeoPoint.DistanceOverSurface(gpoint, rightGeoPoint);
             double C = width;
@@ -442,7 +496,7 @@ namespace SatelliteTrajectory
             double top = (Math.Cos(A) - Math.Cos(B) * Math.Cos(C));
             double low = (Math.Sin(B) * Math.Sin(C));
             double beta = Math.Acos(top / low);
-            double h = Math.Asin(Math.Sin(B) * Math.Sin(beta));
+            double h = Math.Asin(Math.Sin(B) * Math.Sin(beta));  
             return h;
         }
 
