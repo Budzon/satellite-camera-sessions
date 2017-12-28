@@ -392,15 +392,7 @@ namespace SphericalGeom
             }
             return wtk;
         }
-
-        public double Square()
-        {
-            //var wtkstr = ToWtk();
-            //SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);            
-            //return (double)geom.STArea();
-            return Area;
-        }
-
+ 
         #region Polygon private methods
         private double RotationAngleWithNextArc(int curArcInd)
         {

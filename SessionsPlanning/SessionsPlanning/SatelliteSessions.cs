@@ -68,10 +68,11 @@ namespace SatelliteSessions
                 captureConfs.AddRange(laneCaptureConfs);
             }
 
-           // Graph g = new Graph(captureConfs);
-           // List<CaptureConf> optimalChain = g.findOptimalChain();
-           // return optimalChain;
-            return captureConfs;
+            // return captureConfs;
+
+            Graph g = new Graph(captureConfs);
+            List<CaptureConf> optimalChain = g.findOptimalChain();
+            return optimalChain;           
         }
 
         //public static IList<CaptureConf> getOptimalChain(List<CaptureConf> strips)
@@ -88,23 +89,41 @@ namespace SatelliteSessions
             newConf.rollAngle = confs1.rollAngle;
             newConf.dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
             newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;            
+           
+            for (int i = 0; i < confs1.orders.Count; i++)
+            {
+                for (int j = 0; j < confs2.orders.Count; j++)
+                {
+                    if (confs1.orders[i].request.id != confs2.orders[j].request.id)
+                    {
+                        newConf.orders.Add(confs2.orders[j]);
+                    }
+                    else
+                    {
+                        confs1.orders[i].intersection_coeff += confs2.orders[j].intersection_coeff;
+                        if (newConf.orders[i].intersection_coeff > 1)
+                           newConf.orders[i].intersection_coeff = 1;
+                    }
+                    
+                }
+            }
             newConf.orders.AddRange(confs1.orders);
-            newConf.orders.AddRange(confs2.orders);
+            
             return newConf;
         }
 
         private static bool isNeedUnit(CaptureConf confs1, CaptureConf confs2)
         {
             /// @todo добавить минимально допустимое расстояние (по времени)
-            return ((confs1.dateFrom < confs2.dateTo && confs1.dateFrom > confs2.dateFrom)
-                   || (confs1.dateFrom < confs2.dateTo && confs1.dateFrom > confs2.dateFrom));
+            return ((confs1.dateFrom <= confs2.dateTo && confs2.dateTo <= confs1.dateTo)
+                   || (confs1.dateFrom <= confs2.dateFrom && confs2.dateFrom <= confs1.dateTo));
         }
 
         private static void compressCConfArray(ref List<CaptureConf> confs)
         {
             for (int i = 0; i < confs.Count; i++)
             {
-                for (int j = i; j < confs.Count; j++)
+                for (int j = i+1; j < confs.Count; j++)
                 {
                     if (isNeedUnit(confs[i], confs[j]))
                     {
@@ -115,7 +134,6 @@ namespace SatelliteSessions
                 }
             }
         }
-
 
         private static void compressTwoCConfArrays(ref List<CaptureConf> confs1, ref List<CaptureConf> confs2)
         {
@@ -133,43 +151,5 @@ namespace SatelliteSessions
             }             
         }
         
-    }
-
-    /*
-    public struct RequestParams
-    {
-        public int id;
-        public int priority;
-        public DateTime dateFrom;
-        public DateTime dateTo;
-        public int Max_SOEN_anlge;
-        public double minCoverPerc;
-        public int Max_sun_angle;
-        public int Min_sun_angle;
-        public string wktPolygon;
-    }
-
-    public class CaptureConf
-    {
-        public List<Order> orders;
-        public DateTime dateFrom;
-        public DateTime dateTo;
-        public double rollAngle;
-        public double pitchAngle;
-        public string wktPolygon;
-
-        public CaptureConf()
-        {
-            orders = new List<Order>();
-        }
-    }
-
-    public class Order
-    {
-        public RequestParams request { get; set; }
-        public double intersection_coeff { get; set; }
-
-        // ? public double square { get; set; }
-    }
-    */
+    } 
 }
