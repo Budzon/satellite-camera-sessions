@@ -89,7 +89,7 @@ namespace SphericalGeom
 
             CentralAngle = AstronomyMath.ToRad(Vector3D.AngleBetween(A - Center, B - Center));
            
-            Radius = (A - Center).Length;
+            Radius = Math.Min((A - Center).Length, 1.0);
             GeodesicCurvature = Math.Sqrt(1 - Radius * Radius) / Radius;
 
             Vector3D tangentA = Vector3D.CrossProduct(A - Center, Vector3D.CrossProduct(B - A, A - Center));

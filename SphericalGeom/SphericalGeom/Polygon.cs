@@ -77,19 +77,9 @@ namespace SphericalGeom
                         for (int i = 0; i < Count; ++i)
                         {
                             ang = RotationAngleWithNextArc(i);
-                            if (IsCounterclockwise)
-                            {
-                                if (ang < 0)
-                                    ang += 2 * Math.PI;
-                                area += ang;
-                            }
-                            else if (!IsCounterclockwise)
-                            {
-                                if (ang > 0)
-                                    ang = 2 * Math.PI - ang;
-                                area -= ang;
-                            }
-
+                            if (!IsCounterclockwise)
+                                ang *= -1;
+                            area += ang;
                             if (IsCounterclockwise == arcs[i].Counterclockwise)
                                 area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
                             else
@@ -142,6 +132,7 @@ namespace SphericalGeom
                         /// Take the vertex and find whether the interior of the polygon
                         /// is to the left or to the right of the two incident arcs.
                         Vector3D dir = arcs[(vertexInd + 1) % Count].TangentA - arcs[vertexInd].TangentB;
+                        dir.Normalize();
                         double t = 1e-3;
                         bool inside = false;
                         do
@@ -149,7 +140,7 @@ namespace SphericalGeom
                             Vector3D pointInside = vertices[1] + t * dir;
                             pointInside.Normalize();
                             inside = Contains(pointInside);
-                            t *= 0.99;
+                            t *= 0.9;
                         } while (Comparison.IsPositive(t) && !inside);
                         counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
                     }
@@ -167,6 +158,10 @@ namespace SphericalGeom
             vertices = new List<Vector3D>();
             arcs = new List<Arc>();
             rand = new Random();
+            knowWtk = false;
+            knowArea = false;
+            knowCounterclockwise = false;
+            knowMiddle = false;
         }
         public Polygon(IEnumerable<Vector3D> vertices, IEnumerable<Vector3D> apexes)
             : this()
@@ -250,7 +245,7 @@ namespace SphericalGeom
 
             // Ray casting algorithm. Shoot a great semiarc and count intersections.
             int res = 0;
-            for (int i = 0; i < 3; ++i)
+            for (int i = 0; i < 10; ++i)
             {
                 var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
                                                 (rand.NextDouble() - 0.5) * 1e-1,
@@ -264,7 +259,7 @@ namespace SphericalGeom
                     numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
                 res += (numOfIntersections % 2);
             }
-            return res >= 2;
+            return res >= 7;
         }
 
         /// <summary>
