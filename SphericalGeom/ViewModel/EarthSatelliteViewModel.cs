@@ -74,7 +74,7 @@ namespace ViewModel
             if (SelectedRequest > -1)
             {
                 curRequest = new SphericalGeom.Polygon(
-                    (Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1))).ToList<Vector3D>(),
+                    Requests[SelectedRequest].Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)),
                     new Vector3D(0, 0, 0));
                 if (curRequest.Vertices.Count() > 3)
                     curBbox = Routines.SliceIntoSquares(curRequest, new Vector3D(1, 0, 0), 30, 4).Where((s, ind) => ind % 3 == 0).ToList();
@@ -422,7 +422,7 @@ namespace ViewModel
             List<RequestParams> requests = new List<RequestParams>();
             foreach (var req in Requests)
             {
-                var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)).ToList<Vector3D>(), new Vector3D(0, 0, 0));
+                var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = req.Id;
                 reqparams.dateFrom = new DateTime(2000, 1, 1);

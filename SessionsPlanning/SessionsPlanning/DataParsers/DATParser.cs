@@ -20,6 +20,7 @@ public class DatParser
     /// </summary>
     public static SatTrajectory getTrajectoryFromDatFile(string datFilename)
     {
+        Console.WriteLine(Directory.GetCurrentDirectory());
         if (!File.Exists(datFilename))
             throw new System.IO.FileNotFoundException("The file" + datFilename + "does not exist", "original");
 

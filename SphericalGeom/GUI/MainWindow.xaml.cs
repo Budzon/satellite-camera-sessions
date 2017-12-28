@@ -36,7 +36,7 @@ namespace GUI
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
             //Terra = new Ellipse3D(1, 1, 1, 3000);            
-            Terra = new EllipseRegion3D(1, 1, 1, 25, 500);
+            Terra = new EllipseRegion3D(1, 1, 1, 25, 800);
             PlotSphere(null, null);
         }
 
