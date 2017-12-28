@@ -299,12 +299,10 @@ namespace ViewModel
 
         public void CreateCaptureIntervals()
         {
-            Console.WriteLine(curRequest.Area);
-
             SatTrajectory trajectory;
             try
             {
-                trajectory = DatParser.getTrajectoryFromDatFile(DatFileName);
+                trajectory = DatParser.getTrajectoryFromDatFile(DatFileName, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1));
             }
             catch (FileNotFoundException exc)
             {
@@ -379,7 +377,7 @@ namespace ViewModel
             reqparams.dateTo = new DateTime(2020, 1, 1);
             reqparams.wktPolygon = curRequest.ToWtk();
             reqparams.minCoverPerc = 0.4;
-            Console.WriteLine(Sessions.isRequestFeasible(reqparams));
+            Console.WriteLine(Sessions.isRequestFeasible(reqparams, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1)));
         }
 
 
@@ -415,6 +413,7 @@ namespace ViewModel
 
             return null;
             */
+
             DateTime start = DateTime.Now;
             if (curRequest == null)
                 return null;
@@ -432,11 +431,17 @@ namespace ViewModel
                 requests.Add(reqparams);
             }
 
-            var res = Sessions.getCaptureConfArray(requests);
+            var res = Sessions.getCaptureConfArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0));
 
             DateTime end = DateTime.Now;
 
             Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+
+
+            foreach (var conf in res)
+            {
+                captureIntervals.Add(new Polygon(conf.wktPolygon));
+            }
 
             return res;
         }
