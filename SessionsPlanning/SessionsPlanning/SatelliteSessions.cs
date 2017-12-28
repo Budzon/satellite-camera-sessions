@@ -13,15 +13,15 @@ namespace SatelliteSessions
 {
     public class Sessions
     {
-        public static bool isRequestFeasible(RequestParams request)
+        public static bool isRequestFeasible(RequestParams request, DateTime data_begin, DateTime data_end)
         {
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
-            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName); // @todo временно 
+            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно 
             //double viewAngle = AstronomyMath.ToRad(request.max_roll_angle);  // @todo так будем задавать предел по качеству (если оно будет задаваться максимальным углом крена) 
-            double viewAngle = Math.PI / 2;  // пока берем полосу максимальной ширины 
+            double viewAngle = Math.PI / 2;  // пока берем полосу максимальной ширины
 
-            SatLane viewLane = trajectory.getCaptureLane(0, viewAngle); 
-            List<CaptureConf> confs = viewLane.getCaptureConfs(request); 
+            SatLane viewLane = trajectory.getCaptureLane(0, viewAngle);
+            List<CaptureConf> confs = viewLane.getCaptureConfs(request);
             
             double summ = 0;
             foreach (var conf in confs)
@@ -34,12 +34,12 @@ namespace SatelliteSessions
             return (summ >= request.minCoverPerc);
         }
 
-        public static IList<CaptureConf> getCaptureConfArray(IList<RequestParams> requests)
+        public static IList<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
         {
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
-            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName); // @todo временно
+            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно
             // @todo вынести это в константы
             double viewAngle = AstronomyMath.ToRad(0.952); // угол обзора камеры
             //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
@@ -68,9 +68,10 @@ namespace SatelliteSessions
                 captureConfs.AddRange(laneCaptureConfs);
             }
 
-            Graph g = new Graph(captureConfs);
-            List<CaptureConf> optimalChain = g.findOptimalChain();
-            return optimalChain;
+           // Graph g = new Graph(captureConfs);
+           // List<CaptureConf> optimalChain = g.findOptimalChain();
+           // return optimalChain;
+            return captureConfs;
         }
 
         //public static IList<CaptureConf> getOptimalChain(List<CaptureConf> strips)
