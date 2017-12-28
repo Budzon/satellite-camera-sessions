@@ -19,8 +19,7 @@ public class DatParser
     /// Load DAT file content into Trajectory object
     /// </summary>
     public static SatTrajectory getTrajectoryFromDatFile(string datFilename, DateTime dateBegin, DateTime dateEnd)
-    {
-
+    { 
         if (!File.Exists(datFilename))
             throw new System.IO.FileNotFoundException("The file" + datFilename + "does not exist", "original");
 
