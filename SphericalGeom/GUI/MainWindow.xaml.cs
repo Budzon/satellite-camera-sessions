@@ -121,15 +121,6 @@ namespace GUI
             m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
         }
 
-            ArrayList meshs = new ArrayList { Terra };
-
-            Model3D model3d = new Model3D();
-            m_nChartModelIndex = model3d.UpdateModel(meshs, null, m_nChartModelIndex, this.mainViewport);
-
-            float viewRange = 2;
-            m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
-        }
-
         public void PlotSquares(object sender, RoutedEventArgs e)
         {
 
