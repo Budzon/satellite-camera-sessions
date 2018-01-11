@@ -191,7 +191,7 @@ namespace SphericalGeom
         public static double FindMax(FuncDoubleToDouble f, double left, double right)
         {
             double maxf = f(left);
-            double dx = 1e-2, x = dx;
+            double dx = 1e-2, x = left + dx;
             while (x < right)
             {
                 maxf = Math.Max(maxf, f(x));
@@ -231,7 +231,7 @@ namespace SphericalGeom
         public static double FindMin(FuncDoubleToDouble f, double left, double right)
         {
             double minf = f(left);
-            double dx = 1e-2, x = dx;
+            double dx = 1e-2, x = left + dx;
             while (x < right)
             {
                 minf = Math.Min(minf, f(x));
