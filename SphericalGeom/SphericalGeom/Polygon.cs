@@ -218,6 +218,7 @@ namespace SphericalGeom
                 minLon = Math.Min(minLon, arc.MinLongitudeDeg());
             }
 
+            //return new GeoRect(minLon, maxLon, minLat, maxLat);
             return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1 + 1e-3, 1 + 1e-3);
         }
 
@@ -243,23 +244,52 @@ namespace SphericalGeom
             if (vertices.Count < 3 || Vector3D.DotProduct(Middle, point) < 0)
                 return false;
 
-            // Ray casting algorithm. Shoot a great semiarc and count intersections.
-            int res = 0;
-            for (int i = 0; i < 10; ++i)
-            {
-                var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
-                                                (rand.NextDouble() - 0.5) * 1e-1,
-                                                (rand.NextDouble() - 0.5) * 1e-1);
-                var point2 = displacement - point;
-                point2.Normalize();
-                Arc halfGreat = new Arc(point, point2);
+            for (int i = 0; i < Count; ++i)
+                if (Comparison.IsZero(point - vertices[i]))
+                    return true;
 
-                int numOfIntersections = 0;
-                for (int j = 0; j < Arcs.Count; ++j)
-                    numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
-                res += (numOfIntersections % 2);
-            }
-            return res >= 7;
+            // Ray casting algorithm.
+            Arc halfGreat;
+            Vector3D displacement, point2;
+            bool degenerate;
+
+            // Shoot a random arc such that it doesn't cross any polygon vertex.
+            do
+            {
+                displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
+                                            (rand.NextDouble() - 0.5) * 1e-1,
+                                            (rand.NextDouble() - 0.5) * 1e-1);
+                point2 = displacement - point;
+                point2.Normalize();
+                halfGreat = new Arc(point, point2);
+
+                degenerate = false;
+                for (int i = 0; i < Count; ++i)
+                    degenerate |= halfGreat.Contains(vertices[i]);
+            } while (degenerate);
+
+            // Count intersections.
+            int numOfIntersections = 0;
+            for (int j = 0; j < Arcs.Count; ++j)
+                numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
+            return (numOfIntersections % 2) == 1;
+
+            //int res = 0;
+            //for (int i = 0; i < 10; ++i)
+            //{
+            //    var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
+            //                                    (rand.NextDouble() - 0.5) * 1e-1,
+            //                                    (rand.NextDouble() - 0.5) * 1e-1);
+            //    var point2 = displacement - point;
+            //    point2.Normalize();
+            //    Arc halfGreat = new Arc(point, point2);
+
+            //    int numOfIntersections = 0;
+            //    for (int j = 0; j < Arcs.Count; ++j)
+            //        numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
+            //    res += (numOfIntersections % 2);
+            //}
+            //return res >= 7;
         }
 
         /// <summary>

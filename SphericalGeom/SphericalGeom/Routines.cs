@@ -13,6 +13,9 @@ namespace SphericalGeom
     {
         public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)
         {
+            if (latticeOrigin.X == 0 && latticeOrigin.Y == 0)
+                throw new ArgumentException("latticeOrigin is north pole, try perturbing it a little bit");
+
             var latticeFrame = new ReferenceFrame(
                    latticeOrigin,
                    new Vector3D(-latticeOrigin.Y, latticeOrigin.X, 0),
@@ -35,7 +38,7 @@ namespace SphericalGeom
             List<GeoRect> checkerboard = SliceIntoSquares(boundingBox, squareSide);
             List<Polygon> squares = new List<Polygon>();
             foreach (GeoRect square in checkerboard)
-                squares.AddRange(Polygon.IntersectAndSubtract(p, new Polygon(square)).Item1);
+                squares.AddRange(Polygon.Intersect(p, new Polygon(square)));
             squares.ForEach(square => square.FromThisFrame(pFrame));
             p.FromThisFrame(pFrame);
             return squares;
@@ -152,8 +155,8 @@ namespace SphericalGeom
             else if (!Comparison.IsZero(detYZ))
             {
                 x = 0;
-                y = (b1 * a2.Z - b2 * a1.Z) / detXZ;
-                z = (b2 * a1.Y - b1 * a2.Y) / detXZ;
+                y = (b1 * a2.Z - b2 * a1.Z) / detYZ;
+                z = (b2 * a1.Y - b1 * a2.Y) / detYZ;
             }
             else
                 throw new System.ArgumentException("System is rank deficient.");
