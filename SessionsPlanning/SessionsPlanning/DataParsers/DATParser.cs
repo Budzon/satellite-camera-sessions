@@ -18,9 +18,8 @@ public class DatParser
     /// <summary>
     /// Load DAT file content into Trajectory object
     /// </summary>
-    public static SatTrajectory getTrajectoryFromDatFile(string datFilename)
-    {
-        Console.WriteLine(Directory.GetCurrentDirectory());
+    public static SatTrajectory getTrajectoryFromDatFile(string datFilename, DateTime dateBegin, DateTime dateEnd)
+    { 
         if (!File.Exists(datFilename))
             throw new System.IO.FileNotFoundException("The file" + datFilename + "does not exist", "original");
 
@@ -101,8 +100,15 @@ public class DatParser
                     velocity.Z = VZ;
 
                     DateTime pointDt = trajectory.startDateTime.AddSeconds(pointInd * trajectory.step);
-                    TrajectoryPoint point = new TrajectoryPoint(pointDt, position, velocity);
-                    trajectory.points.Add(point);
+
+                    if (dateBegin <= pointDt && pointDt <= dateEnd)
+                    {
+                        TrajectoryPoint point = new TrajectoryPoint(pointDt, position, velocity);
+                        trajectory.points.Add(point);
+                    }
+                    else if (dateEnd < pointDt)
+                        break;
+
                     pointInd++;
 
                     continue;
