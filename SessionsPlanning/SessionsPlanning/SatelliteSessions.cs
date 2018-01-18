@@ -38,11 +38,11 @@ namespace SatelliteSessions
         {
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
-            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
+            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
             SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно
             // @todo вынести это в константы
             double viewAngle = AstronomyMath.ToRad(0.952); // угол обзора камеры
-            //double viewAngle = AstronomyMath.ToRad(15); // на время тестирования
+            //double viewAngle = AstronomyMath.ToRad(5); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
             double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по углу крена
             double max_roll_angle = AstronomyMath.ToRad(45);
@@ -103,12 +103,10 @@ namespace SatelliteSessions
                         confs1.orders[i].intersection_coeff += confs2.orders[j].intersection_coeff;
                         if (newConf.orders[i].intersection_coeff > 1)
                            newConf.orders[i].intersection_coeff = 1;
-                    }
-                    
+                    }                    
                 }
             }
-            newConf.orders.AddRange(confs1.orders);
-            
+            newConf.orders.AddRange(confs1.orders);            
             return newConf;
         }
 
@@ -149,7 +147,6 @@ namespace SatelliteSessions
                     }
                 }
             }             
-        }
-        
+        }        
     } 
 }

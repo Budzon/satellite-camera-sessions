@@ -21,9 +21,10 @@ namespace SatelliteTrajectory
         /// <summary>
         /// Get shooting lane by trajectory and max roll angle  
         /// </summary>
-        /// <param name="minAngle">min roll angle in radians.</param>            
+        /// <param name="minAngle">min roll angle in radians.</param>
+        /// <param name="step">step in points array</param>
         /// /// <param name="maxAngle">max roll angle in radians.</param>          
-        public SatLane getCaptureLane(double rollAngle, double viewAngle)
+        public SatLane getCaptureLane(double rollAngle, double viewAngle, int step = 15)
         {
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
@@ -32,8 +33,8 @@ namespace SatelliteTrajectory
                 throw new System.ArgumentException("Wrong arguments. minAngle >= maxAngle");
 
             List<LanePos> lanePoints = new List<LanePos>();
-            
-            for (int p_ind = 0; p_ind < points.Count; p_ind += 16)
+
+            for (int p_ind = 0; p_ind < points.Count; p_ind += step)
             {
                 Vector3D eDirVect = new Vector3D(-points[p_ind].Position.X, -points[p_ind].Position.Y, -points[p_ind].Position.Z);
 
@@ -113,8 +114,8 @@ namespace SatelliteTrajectory
         public static Vector3D getInterpolPoint(Vector3D firstPoint, Vector3D secondPoint, DateTime dt1, DateTime dt2, DateTime targetDt)
         {
             double fullDist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(firstPoint), GeoPoint.FromCartesian(secondPoint));
-            double fullTimeDiff = (dt2 - dt1).TotalSeconds;
-            double timePart = (targetDt - dt1).TotalSeconds;
+            double fullTimeDiff = (dt2 - dt1).TotalMilliseconds;
+            double timePart = (targetDt - dt1).TotalMilliseconds;
             double patrDist = fullDist * timePart / fullTimeDiff;
 
             Vector3D rotAxis = Vector3D.CrossProduct(firstPoint, secondPoint);
@@ -130,14 +131,14 @@ namespace SatelliteTrajectory
     /// </summary>
     public class SatLane
     { 
-        public List<LanePos> lanePoints;
+        // public List<LanePos> lanePoints;
 
         public List<LaneSector> Sectors;
 
         public SatLane(double minAngle, double maxAngle, List<LanePos> points)
         {
             Sectors = new List<LaneSector>();
-            lanePoints = points;
+            //lanePoints = points;
 
             List<Vector3D> leftLanePoints = new List<Vector3D>();
             List<Vector3D> rightLanePoints = new List<Vector3D>();
@@ -152,6 +153,7 @@ namespace SatelliteTrajectory
                  
             DateTime sectorFromDT = points[0].time;
             DateTime sectorToDT;
+            List<LanePos> sectorPoints = new List<LanePos>();
 
             GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(points[0].LeftCartPoint.ToPoint());
             for (int p_ind = 0; p_ind < points.Count; p_ind++)
@@ -161,6 +163,8 @@ namespace SatelliteTrajectory
                  
                 leftControlPoints.Add(points[p_ind].leftControlPoint);
                 rightControlPoints.Add(points[p_ind].rightControlPoint);
+
+                sectorPoints.Add(points[p_ind]);
 
                 if (p_ind == 0)
                     continue;
@@ -198,13 +202,18 @@ namespace SatelliteTrajectory
                     newSector.polygon = pol;
                     newSector.fromDT = sectorFromDT;
                     newSector.toDT = sectorToDT;
+                    newSector.sectorPoints = new List<LanePos>(sectorPoints);
                     Sectors.Add(newSector);
+
+                    sectorPoints.Clear();
 
                     rightLanePoints.Clear();
                     leftLanePoints.Clear();
 
                     leftControlPoints.Clear();
                     rightControlPoints.Clear();
+
+                    sectorPoints.Add(points[p_ind]);
 
                     leftLanePoints.Add(points[p_ind].LeftCartPoint);
                     rightLanePoints.Add(points[p_ind].RightCartPoint);
@@ -232,12 +241,12 @@ namespace SatelliteTrajectory
                     var verts = int_pol.Vertices;
                     var en = verts.GetEnumerator();
                     en.MoveNext();
-                    DateTime tmin = getPointTime(en.Current, sector.fromDT, sector.toDT);
+                    DateTime tmin = sector.getPointTime(en.Current);
                     DateTime tmax = tmin; 
-                    bool outOfRange = false;
+                    bool outOfRange = false; 
                     foreach (var point in verts)
                     {
-                        DateTime curTime = getPointTime(point, sector.fromDT, sector.toDT);
+                        DateTime curTime = sector.getPointTime(point);
                         if (curTime < request.dateFrom || request.dateTo < curTime)
                         {
                             outOfRange = true;
@@ -245,11 +254,11 @@ namespace SatelliteTrajectory
                         }                            
                         else if (curTime < tmin)
                         { 
-                            tmin = curTime;
+                            tmin = curTime; 
                         }
                         else if (curTime > tmax)
                         { 
-                            tmax = curTime;
+                            tmax = curTime; 
                         }
                     }                    
                     if (outOfRange)
@@ -268,106 +277,75 @@ namespace SatelliteTrajectory
             return res;
         }
 
-        // @todo убрать fromDt и toDt, функцию перевести в LaneSector
-        public DateTime getPointTime(Vector3D point, DateTime fromDt, DateTime toDt)
-        {
-            GeoPoint geoPoint = GeoPoint.FromCartesian(point);
-            double firstDist = lanePoints[0].getDistToPoint(geoPoint);        
-            int first = 0;
-            for (int i = 1; i < lanePoints.Count; i++)
-            {
-                if (lanePoints[i].time < fromDt)
-                    continue;
-                else if (lanePoints[i].time > toDt)
-                    break;
 
-                double dist = lanePoints[i].getDistToPoint(geoPoint);
-                if (dist <= firstDist) 
-                {
-                    firstDist = dist;
-                    first = i; 
-                }
-            }
-            
-            int second; 
-            int sign;
-
-            if (first == lanePoints.Count - 1)
-            { 
-                second = first - 1;  
-            }
-            else if (first == 0)
-            {
-                second = first + 1; 
-            }
-            else 
-            { 
-                 if (lanePoints[first - 1].getDistToPoint(geoPoint) < lanePoints[first + 1].getDistToPoint(geoPoint))                 
-                     second = first - 1;
-                 else
-                     second = first + 1;                
-            }
-            
-            double fullDist = Math.Abs(GeoPoint.DistanceOverSurface(lanePoints[first].MiddleGeoPoint, lanePoints[second].MiddleGeoPoint));
-            double fullTime = Math.Abs((lanePoints[first].time - lanePoints[second].time).TotalSeconds);          
-            double distPoint = Math.Abs(lanePoints[first].getDistToPoint(geoPoint));
-            double diffSecs = fullTime * distPoint / fullDist;
-
-            int outside = Math.Abs(lanePoints[second].getDistToPoint(geoPoint)) > fullDist ? 1 : -1;
-            sign = (first < second) ? -outside : outside; 
-             
-            return lanePoints[first].time.AddSeconds(sign * diffSecs);    
-        }
-        
-
+         
         public Polygon getSegment(DateTime begTime, DateTime endTime)
         {
-            if (lanePoints[0].time > begTime || lanePoints[lanePoints.Count - 1].time < endTime)
+            if (Sectors.Count < 1)
+                return null;
+
+            var lastSector = Sectors[Sectors.Count - 1];
+            var lastPoint = lastSector.sectorPoints[lastSector.sectorPoints.Count - 1];
+
+            if (Sectors[0].sectorPoints[0].time > begTime || lastPoint.time < endTime)
                 throw new System.ArgumentException("Incorrect time interval.");
 
             List<Vector3D> polygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();
 
-            for (int i = 0; i < lanePoints.Count; i++)
-            { 
-
-                if (begTime <= lanePoints[i].time && lanePoints[i].time <= endTime)
+            
+            bool needStop = false;
+            int i = 0;
+            foreach (var sector in Sectors)
+            {
+                var sectorPoints = sector.sectorPoints;
+                for (; i < sectorPoints.Count; i++)
                 {
-                    polygonPoints.Add(lanePoints[i].LeftCartPoint);
-                    rightPolygonPoints.Add(lanePoints[i].RightCartPoint);
-                }
+                    if (begTime <= sectorPoints[i].time && sectorPoints[i].time <= endTime)
+                    {
+                        polygonPoints.Add(sectorPoints[i].LeftCartPoint);
+                        rightPolygonPoints.Add(sectorPoints[i].RightCartPoint);
+                    }
 
-                if (lanePoints.Count - 1 == i)  
+                    if (sectorPoints.Count - 1 == i)
+                        break;
+
+                    if (sectorPoints[i + 1].time < begTime)
+                        continue;
+
+                    if (sectorPoints[i].time < begTime && begTime < sectorPoints[i + 1].time)
+                    {
+                        var pos = getlanePosByTime(sectorPoints[i], sectorPoints[i + 1], begTime);
+                        polygonPoints.Add(pos.Item1);
+                        rightPolygonPoints.Add(pos.Item2);
+                    }
+
+                    if (sectorPoints[i].time < endTime && endTime < sectorPoints[i + 1].time)
+                    {
+                        var pos = getlanePosByTime(sectorPoints[i], sectorPoints[i + 1], endTime);
+                        polygonPoints.Add(pos.Item1);
+                        rightPolygonPoints.Add(pos.Item2);
+                    }
+
+                    if (sectorPoints[i + 1].time > endTime)
+                    {
+                        needStop = true;
+                        break;
+                    }                    
+                }
+                i = 1; // для всех секторов кроме первого начинаем со второго элемента
+                if (needStop)
                     break;
-
-                if (lanePoints[i + 1].time < begTime)
-                    continue;
-
-                if (lanePoints[i].time < begTime && begTime < lanePoints[i + 1].time)
-                {
-                    var pos = getlanePosByTime(lanePoints[i], lanePoints[i + 1], begTime);
-                    polygonPoints.Add(pos.Item1);
-                    rightPolygonPoints.Add(pos.Item2);
-                }
-
-                if (lanePoints[i].time < endTime && endTime < lanePoints[i + 1].time)
-                {
-                    var pos = getlanePosByTime(lanePoints[i], lanePoints[i + 1], endTime);
-                    polygonPoints.Add(pos.Item1);
-                    rightPolygonPoints.Add(pos.Item2);
-                }
-                 
-                if (lanePoints[i + 1].time > endTime)
-                    break;
-
                 // @todo полигон может быть длиннее 180 (upd - по исходным данным вроде не должен), что вызовет ошибки. Надо разрезать на полигоны или вставить проверку. 
             }
 
-            for (int i = rightPolygonPoints.Count - 1; i >= 0; i--)
-                polygonPoints.Add(rightPolygonPoints[i]);
+            for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
+                polygonPoints.Add(rightPolygonPoints[ind]);
 
             return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
         }
+
+
 
         private Tuple<Vector3D,Vector3D> getlanePosByTime(LanePos first, LanePos second, DateTime time)
         {
@@ -378,9 +356,86 @@ namespace SatelliteTrajectory
 
             return new Tuple<Vector3D, Vector3D>(newLeft, newRight);
         }
-        
+
+        /*
+        public LanePos this[int ind]
+        {
+            get
+            {
+                int global_ind = 0;
+                foreach (var sector in Sectors)
+                {
+                    int scount = sector.sectorPoints.Count;
+                    global_ind += scount;
+                    int sect_ind = ind + scount - global_ind;
+                    if (sect_ind >= 0)
+                    {
+                        return sector.sectorPoints[sect_ind];
+                    }
+                }
+                return null;
+            }
+        }
+        */
     }
-         
+
+    
+    public class LaneSector
+    {
+        public DateTime fromDT { get; set; }
+        public DateTime toDT { get; set; }
+        public Polygon polygon { get; set; }
+        public List<LanePos> sectorPoints { get; set; }
+
+        public DateTime getPointTime(Vector3D point)
+        {
+            GeoPoint geoPoint = GeoPoint.FromCartesian(point);
+            double firstDist = sectorPoints[0].getDistToPoint(geoPoint);
+            int first = 0;
+            for (int i = 1; i < sectorPoints.Count; i++)
+            {
+                double dist = sectorPoints[i].getDistToPoint(geoPoint);
+                if (dist <= firstDist)
+                {
+                    firstDist = dist;
+                    first = i;
+                }
+            }
+
+            int second;
+            int sign;
+
+            if (first == sectorPoints.Count - 1)
+            {
+                second = first - 1;
+            }
+            else if (first == 0)
+            {
+                second = first + 1;
+            }
+            else
+            {
+                if (sectorPoints[first - 1].getDistToPoint(geoPoint) < sectorPoints[first + 1].getDistToPoint(geoPoint))
+                    second = first - 1;
+                else
+                    second = first + 1;
+            }
+
+            double fullDist = Math.Abs(sectorPoints[first].getDistToPoint(sectorPoints[second].LeftGeoPoint));   //  Math.Abs(GeoPoint.DistanceOverSurface(sectorPoints[first].MiddleGeoPoint, sectorPoints[second].MiddleGeoPoint));
+            double fullTime = Math.Abs((sectorPoints[first].time - sectorPoints[second].time).TotalMilliseconds);
+            double distPoint = Math.Abs(sectorPoints[first].getDistToPoint(geoPoint));
+            double diffMiliSecs = fullTime * distPoint / fullDist;
+
+            int outside = Math.Abs(sectorPoints[second].getDistToPoint(geoPoint)) > fullDist ? 1 : -1;
+            sign = (first < second) ? -outside : outside;
+
+            return sectorPoints[first].time.AddMilliseconds(sign * diffMiliSecs);
+        }
+    }
+
+    /// <summary>
+    /// класс, содержащий в себе положение в полосе в момент времени, то есть "правую" и "левую" точку и время этого положения
+    /// </summary>
     public class LanePos
     {
         private Vector3D leftCartPoint;
@@ -513,18 +568,12 @@ namespace SatelliteTrajectory
 
     public class TargetWorkInterval
     {
-        public DateTime fromDt;
-        public DateTime toDt;
-        public double minAngle;
-        public double maxAngle; 
+        public DateTime fromDt { get; set; }
+        public DateTime toDt { get; set; }
+        public double minAngle { get; set; }
+        public double maxAngle { get; set; }
     }
 
-    public struct LaneSector
-    {
-        public DateTime fromDT;
-        public DateTime toDT;
-        public Polygon polygon;
-    }
 
 
 }
