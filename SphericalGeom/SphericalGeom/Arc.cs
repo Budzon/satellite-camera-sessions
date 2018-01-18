@@ -81,6 +81,9 @@ namespace SphericalGeom
             B = b;
             B.Normalize();
 
+            if (Comparison.IsZero(A - B))
+                throw new ArgumentException("Arc's endpoints cannot coincide.");
+
             var normal = Vector3D.CrossProduct(Comparison.IsSmaller(apex.Length, 1) ? A - apex : apex - A,
                                                     B - apex);
             normal.Normalize();
@@ -134,6 +137,17 @@ namespace SphericalGeom
             return AstronomyMath.ToDegrees(Routines.FindMin(ParametrizedLongitudeRad, 0, CentralAngle));
         }
 
+        public bool Contains(Vector3D v)
+        {
+            if (!Comparison.IsZero(Vector3D.DotProduct(Center, v - A)))
+            {
+                // Lie on different planes, hence on different small circles.
+                return false;
+            }
+
+            return ContainsIfOnSameCircle(v);
+        }
+
         /// <summary>
         /// Intersect two arcs.
         /// </summary>
@@ -161,6 +175,11 @@ namespace SphericalGeom
             }
         }
 
+        internal void ClearIntermediatePoints()
+        {
+            intermediatePoints = new List<VectorWithDistance>();
+        }
+
         internal ArcChain EmplaceIntermediatePoints()
         {
             intermediatePoints.Sort();
@@ -170,7 +189,7 @@ namespace SphericalGeom
                 points.Add(vwd.Vector);
             points.Add(B);
 
-            intermediatePoints = new List<VectorWithDistance>();
+            ClearIntermediatePoints();
             return new ArcChain(points, Center);
         }
 
@@ -208,40 +227,77 @@ namespace SphericalGeom
                 + (t * Axis.Z * Axis.Z + C) * A.Z);
         }
 
+        private bool ContainsIfOnSameCircle(Vector3D v)
+        {
+            return Comparison.IsEqual(CentralAngle,
+                        AstronomyMath.ToRad(Vector3D.AngleBetween(A - Center, v - Center)
+                            + Vector3D.AngleBetween(B - Center, v - Center)));
+        }
+
         /// <summary>
         /// Intersects two arcs and computes relative positions of the intersection points
         /// on the arcs with respect to their first endpoints.
+        /// Overlapping arcs are not treated.
         /// </summary>
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>Intersection points, their relative positions on <paramref name="a"/> and <paramref name="b"/></returns>
         private static IEnumerable<VectorWithTwoDistances> IntersectWithDistances(Arc a, Arc b)
         {
-            // Intersect two planes
-            var directionVector = Vector3D.CrossProduct(a.Axis, b.Axis);
-            var pointOnIntersection = Routines.SolveSLE2x3(a.Axis, b.Axis, Vector3D.DotProduct(a.Axis, a.A), Vector3D.DotProduct(b.Axis, b.A));
-            IEnumerable<Vector3D> intersectPlanesOnSphere =
-                Routines.IntersectLineUnitSphere(pointOnIntersection, directionVector);
+            Vector3D intersectionDirection = Vector3D.CrossProduct(a.Axis, b.Axis);
+            if (Comparison.IsZero(intersectionDirection))
+            {
+                // Planes to which two arcs belong are parallel.
+                if (!Comparison.IsZero(Vector3D.DotProduct(a.Axis, a.A - b.A)))
+                {
+                    // Planes do not coincide, only parallel.
+                    return new List<VectorWithTwoDistances>();
+                }
+                // Two arcs belong to the same circle. Check if they overlap or not.
+                if (a.Contains(b.A) || a.Contains(b.B) || b.Contains(a.A) || b.Contains(a.B))
+                {
+                    throw new ArgumentException("Intersection of overlapping arcs is not implemented.");
+                }
+                else
+                    return new List<VectorWithTwoDistances>();
+            }
 
-            // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
-            List<Vector3D> innerNormals = new List<Vector3D> {
-                Vector3D.CrossProduct(a.Axis, a.A - a.Center),
-                Vector3D.CrossProduct(a.B - a.Center, a.Axis),
-                Vector3D.CrossProduct(b.Axis, b.A - b.Center),
-                Vector3D.CrossProduct(b.B - b.Center, b.Axis)
-            };
+            // Intersect two planes
+            Vector3D pointOnIntersection = Routines.SolveSLE2x3(a.Axis, b.Axis, Vector3D.DotProduct(a.Axis, a.A), Vector3D.DotProduct(b.Axis, b.A));
+
+            IEnumerable<Vector3D> intersectPlanesOnSphere =
+                Routines.IntersectLineUnitSphere(pointOnIntersection, intersectionDirection);
 
             return intersectPlanesOnSphere
-                   .Where(point =>
-                         innerNormals
-                         .TrueForAll(normal => 
-                                    !Comparison.IsNegative(Vector3D.DotProduct(normal, point))))
-                                    .Select(point => new VectorWithTwoDistances
-                                    {
-                                        Vector = point,
-                                        DistanceOnFirstArc = 1 - Vector3D.DotProduct(point, a.A - a.Center),
-                                        DistanceOnSecondArc = 1 - Vector3D.DotProduct(point, b.A - b.Center)
-                                    });
+                .Where(point => a.ContainsIfOnSameCircle(point) && b.ContainsIfOnSameCircle(point))
+                .Select(point => new VectorWithTwoDistances
+                {
+                    Vector = point,
+                    DistanceOnFirstArc = 1 - Vector3D.DotProduct(point, a.A - a.Center),
+                    DistanceOnSecondArc = 1 - Vector3D.DotProduct(point, b.A - b.Center)
+                });
+
+            // LEGACY CODE STARTS
+            // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
+            //List<Vector3D> innerNormals = new List<Vector3D> {
+            //    Vector3D.CrossProduct(a.Axis, a.A - a.Center),
+            //    Vector3D.CrossProduct(a.B - a.Center, a.Axis),
+            //    Vector3D.CrossProduct(b.Axis, b.A - b.Center),
+            //    Vector3D.CrossProduct(b.B - b.Center, b.Axis)
+            //};
+            //return intersectPlanesOnSphere
+            //       .Where(point =>
+            //             innerNormals
+            //             .TrueForAll(normal => 
+            //                        !Comparison.IsNegative(Vector3D.DotProduct(normal, point))))
+            //                        .Select(point => new VectorWithTwoDistances
+            //                        {
+            //                            Vector = point,
+            //                            DistanceOnFirstArc = 1 - Vector3D.DotProduct(point, a.A - a.Center),
+            //                            DistanceOnSecondArc = 1 - Vector3D.DotProduct(point, b.A - b.Center)
+            //                        });
+            // LEGACY CODE ENDS
+            
         }
         #endregion
     }

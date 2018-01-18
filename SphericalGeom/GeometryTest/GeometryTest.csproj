@@ -36,6 +36,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System" />
   </ItemGroup>
   <Choose>
@@ -51,10 +52,17 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ArcTest.cs" />
+    <Compile Include="RoutinesTest.cs" />
+    <Compile Include="ReferenceFrameTest.cs" />
+    <Compile Include="PolygonTest.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">
+      <Project>{e7852796-4f76-4c51-8974-e4b55254316e}</Project>
+      <Name>Astronomy</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SphericalGeom\SphericalGeom.csproj">
       <Project>{66f7848e-f105-4a6c-9941-3ff44ee9b9d7}</Project>
       <Name>SphericalGeom</Name>

@@ -118,31 +118,34 @@ namespace SphericalGeom
                         counterclockwise = true;
                     else
                     {
-                        /// Find a vertex with a nonzero rotation angle.
-                        int vertexInd = 0;
-                        double exteriorAngle = RotationAngleWithNextArc(vertexInd);
-                        while (Comparison.IsZero(exteriorAngle) && vertexInd < Count)
-                        {
-                            vertexInd += 1;
-                            exteriorAngle = RotationAngleWithNextArc(vertexInd);
-                        }
-                        if (vertexInd == Count) // Cannot happen but what if...
-                            throw new ArgumentException("Polygon with all zero rotations.");
+                        /// Pick a vertex.
+                        /// We want to choose a search direction and check, whether
+                        /// a semiarc from the vertex in the direction intersects the polygon's interior.
+                        /// Two distinct cases exist:
+                        /// 
+                        /// 1. If there is a nonzero rotation at the vertex,
+                        /// then take the angle's bisector.
+                        /// 2. If there is no rotation (i.e. curve is smooth at the vertex),
+                        /// we pick CrossProduct(tangent, normal).
+                        double exteriorAngle = RotationAngleWithNextArc(0);
 
-                        /// Take the vertex and find whether the interior of the polygon
-                        /// is to the left or to the right of the two incident arcs.
-                        Vector3D dir = arcs[(vertexInd + 1) % Count].TangentA - arcs[vertexInd].TangentB;
+                        Vector3D dir;
+                        bool rotation = !Comparison.IsZero(exteriorAngle);
+                        if (rotation)
+                            dir = Arcs[1].TangentA - Arcs[0].TangentB;
+                        else
+                            dir = Vector3D.CrossProduct(Arcs[0].TangentB, vertices[1]);
                         dir.Normalize();
-                        double t = 1e-3;
-                        bool inside = false;
-                        do
-                        {
-                            Vector3D pointInside = vertices[1] + t * dir;
-                            pointInside.Normalize();
-                            inside = Contains(pointInside);
-                            t *= 0.9;
-                        } while (Comparison.IsPositive(t) && !inside);
-                        counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
+                        /// 1e-10 precision is more than enough for real Earth regions
+                        /// (corresponds to cm)
+                        double t = 1e-10;
+                        Vector3D pointInside = vertices[1] + t * dir;
+                        pointInside.Normalize();
+                        bool inside = Contains(pointInside);
+                        if (rotation)
+                            counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
+                        else
+                            counterclockwise = inside;
                     }
                     knowCounterclockwise = true;
                 }
@@ -218,6 +221,7 @@ namespace SphericalGeom
                 minLon = Math.Min(minLon, arc.MinLongitudeDeg());
             }
 
+            //return new GeoRect(minLon, maxLon, minLat, maxLat);
             return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1 + 1e-3, 1 + 1e-3);
         }
 
@@ -243,23 +247,55 @@ namespace SphericalGeom
             if (vertices.Count < 3 || Vector3D.DotProduct(Middle, point) < 0)
                 return false;
 
-            // Ray casting algorithm. Shoot a great semiarc and count intersections.
-            int res = 0;
-            for (int i = 0; i < 10; ++i)
-            {
-                var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
-                                                (rand.NextDouble() - 0.5) * 1e-1,
-                                                (rand.NextDouble() - 0.5) * 1e-1);
-                var point2 = displacement - point;
-                point2.Normalize();
-                Arc halfGreat = new Arc(point, point2);
+            // Is point on the boundary?
+            for (int i = 0; i < Count; ++i)
+                if (Arcs[i].Contains(point))
+                    return true;
 
-                int numOfIntersections = 0;
-                for (int j = 0; j < Arcs.Count; ++j)
-                    numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
-                res += (numOfIntersections % 2);
-            }
-            return res >= 7;
+            // Ray casting algorithm.
+            Arc halfGreat;
+            Vector3D displacement, point2;
+            bool degenerate;
+
+            /// Shoot a random arc such that it doesn't cross any polygon vertex
+            /// nor does it begin on an edge. 
+            /// Such arc exists, because point is not on the boundary.
+            do
+            {
+                displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
+                                            (rand.NextDouble() - 0.5) * 1e-1,
+                                            (rand.NextDouble() - 0.5) * 1e-1);
+                point2 = displacement - point;
+                point2.Normalize();
+                halfGreat = new Arc(point, point2);
+
+                degenerate = false;
+                for (int i = 0; i < Count; ++i)
+                    degenerate |= halfGreat.Contains(vertices[i]);
+            } while (degenerate);
+
+            // Count intersections.
+            int numOfIntersections = 0;
+            for (int j = 0; j < Arcs.Count; ++j)
+                numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
+            return (numOfIntersections % 2) == 1;
+
+            //int res = 0;
+            //for (int i = 0; i < 10; ++i)
+            //{
+            //    var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
+            //                                    (rand.NextDouble() - 0.5) * 1e-1,
+            //                                    (rand.NextDouble() - 0.5) * 1e-1);
+            //    var point2 = displacement - point;
+            //    point2.Normalize();
+            //    Arc halfGreat = new Arc(point, point2);
+
+            //    int numOfIntersections = 0;
+            //    for (int j = 0; j < Arcs.Count; ++j)
+            //        numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
+            //    res += (numOfIntersections % 2);
+            //}
+            //return res >= 7;
         }
 
         /// <summary>
