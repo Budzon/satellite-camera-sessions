@@ -265,7 +265,7 @@ namespace SphericalGeom
             // Intersect two planes
             Vector3D pointOnIntersection = Routines.SolveSLE2x3(a.Axis, b.Axis, Vector3D.DotProduct(a.Axis, a.A), Vector3D.DotProduct(b.Axis, b.A));
 
-            IEnumerable<Vector3D> intersectPlanesOnSphere =
+            List<Vector3D> intersectPlanesOnSphere =
                 Routines.IntersectLineUnitSphere(pointOnIntersection, intersectionDirection);
 
             return intersectPlanesOnSphere

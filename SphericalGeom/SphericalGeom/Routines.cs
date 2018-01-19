@@ -181,12 +181,15 @@ namespace SphericalGeom
             return res;
         }
 
-        public static IEnumerable<Vector3D> IntersectLineUnitSphere(Vector3D a, Vector3D dir)
+        public static List<Vector3D> IntersectLineUnitSphere(Vector3D a, Vector3D dir)
         {
             List<double> parameters = SolveQuadraticEquation(dir.LengthSquared, 
                                                              2 * Vector3D.DotProduct(a, dir), 
                                                              a.LengthSquared - 1);
-            return parameters.Select(t => a + t * dir);
+            List<Vector3D> intersection = new List<Vector3D>();
+            for (int i = 0; i < parameters.Count; ++i)
+                intersection.Add(a + parameters[i] * dir);
+            return intersection;
         }
 
         public delegate double FuncDoubleToDouble(double x);
