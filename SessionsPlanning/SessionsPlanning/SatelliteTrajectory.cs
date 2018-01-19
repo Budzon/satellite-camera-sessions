@@ -42,9 +42,9 @@ namespace SatelliteTrajectory
 
                 Vector3D leftVector = leftTransform.Transform(eDirVect);
                 Vector3D rightVector = rightTransform.Transform(eDirVect);
-
-                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Astronomy.Constants.EarthRadius).ToVector();
-                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Astronomy.Constants.EarthRadius).ToVector();
+                
+                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
+                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
                 Vector3D middlePoint = points[p_ind].Position.ToVector();
 
                 leftCrossPoint.Normalize();
@@ -66,7 +66,7 @@ namespace SatelliteTrajectory
         /// <param name="point"> initial point </param>
         /// <param name="R"> sphere radius</param>
         /// <returns></returns>
-        private Point3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
+        private Vector3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
         {
             Vector3D dilatedPoint = new Vector3D(point.X/R, point.Y/R, point.Z/R);
             List<Vector3D> intersection = Routines.IntersectLineUnitSphere(dilatedPoint, vect);
@@ -80,7 +80,7 @@ namespace SatelliteTrajectory
             else
                 throw new ArgumentException("Line and sphere do not intersect.");
 
-            return (closest * R).ToPoint();
+            return closest * R;
         }
 
         public static Vector3D getInterpolPoint(Vector3D firstPoint, Vector3D secondPoint, DateTime dt1, DateTime dt2, DateTime targetDt)
