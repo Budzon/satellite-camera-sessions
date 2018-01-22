@@ -58,6 +58,7 @@ namespace OptimalChain
     public class Order
     {
         public RequestParams request { get; set; }
+        public SphericalGeom.Polygon captured { get; set; }
         public double intersection_coeff { get; set; }
     }
 }

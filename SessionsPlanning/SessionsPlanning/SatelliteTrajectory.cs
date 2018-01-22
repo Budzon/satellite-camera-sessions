@@ -43,9 +43,9 @@ namespace SatelliteTrajectory
 
                 Vector3D leftVector = leftTransform.Transform(eDirVect);
                 Vector3D rightVector = rightTransform.Transform(eDirVect);
-
-                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Astronomy.Constants.EarthRadius).ToVector();
-                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Astronomy.Constants.EarthRadius).ToVector();
+                
+                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
+                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
                 Vector3D middlePoint = points[p_ind].Position.ToVector();
 
                 leftCrossPoint.Normalize();
@@ -67,48 +67,23 @@ namespace SatelliteTrajectory
         /// <param name="point"> initial point </param>
         /// <param name="R"> sphere radius</param>
         /// <returns></returns>
-        private Point3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
+        private Vector3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
         {
-            double vx = vect.X;
-            double vy = vect.Y;
-            double vz = vect.Z;
-            
-            double px = point.X;
-            double py = point.Y;
-            double pz = point.Z;
- 
-            double vx2 = Math.Pow(vx, 2);
-            double vy2 = Math.Pow(vy, 2);
-            double vz2 = Math.Pow(vz, 2);
-            
-            double px2 = Math.Pow(px, 2);
-            double py2 = Math.Pow(py, 2);
-            double pz2 = Math.Pow(pz, 2);
+            Vector3D dilatedPoint = new Vector3D(point.X/R, point.Y/R, point.Z/R);
+            List<Vector3D> intersection = Routines.IntersectLineUnitSphere(dilatedPoint, vect);
 
-            double R2 = Math.Pow(R, 2);
+            /// Possible optimization:
+            /// If point is outside of the sphere and vect is directed towards it, then the answer is always intersection[0].
+            Vector3D closest;
+            if (intersection.Count == 2)
+                closest = ((intersection[0] - dilatedPoint).Length < (intersection[1] - dilatedPoint).Length)
+                    ? intersection[0] : intersection[1];
+            else if (intersection.Count == 1)
+                closest = intersection[0];
+            else
+                throw new ArgumentException("Line and sphere do not intersect.");
 
-            double a = 1 + (vy2) / vx2 + (vz2) / vx2;
-            double b = (2 * py * vy) / vx + (2 * pz * vz) / vx 
-                     - (2 * px * vy2) / vx2 - (2 * px * vz2) / vx2;
-            double c = py2 + pz2 + (px2 * vy2) / vx2 + (px2 * vz2) / vx2
-                     - (2 * px * py * vy) / vx - (2 * px * pz * vz) / vx - R2;
- 
-            double D = Math.Pow(b, 2) - 4 * a * c;
-            double x1 = (-b + Math.Sqrt(D)) / (2 * a);
-            double x2 = (-b - Math.Sqrt(D)) / (2 * a);
-            
-            double y1 = (x1 - px) / vx * vy + py;
-            double z1 = (x1 - px) / vx * vz + pz;
-
-            double y2 = (x2 - px) / vx * vy + py;
-            double z2 = (x2 - px) / vx * vz + pz;
-
-            Vector3D vect1 = new Vector3D(x1 - px, y1 - py, z1 - pz);
-            Vector3D vect2 = new Vector3D(x2 - px, y2 - py, z2 - pz);
-
-            Point3D res = (vect1.Length < vect2.Length) ? new Point3D(x1, y1, z1) : new Point3D(x2, y2, z2);
-
-            return res;
+            return closest * R;
         }
 
         public static Vector3D getInterpolPoint(Vector3D firstPoint, Vector3D secondPoint, DateTime dt1, DateTime dt2, DateTime targetDt)
@@ -265,6 +240,7 @@ namespace SatelliteTrajectory
                         break;
                     CaptureConf newcc = new CaptureConf();
                     Order order = new Order();
+                    order.captured = int_pol;
                     order.request = request;
                     double subsquare = int_pol.Area; 
                     order.intersection_coeff = subsquare / square;

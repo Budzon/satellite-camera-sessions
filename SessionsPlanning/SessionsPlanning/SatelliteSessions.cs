@@ -24,11 +24,28 @@ namespace SatelliteSessions
             List<CaptureConf> confs = viewLane.getCaptureConfs(request);
             
             double summ = 0;
+            List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in confs)
             {
                 foreach (var order in conf.orders)
                 {
-                    summ += order.intersection_coeff;
+                    var notCoveredBefore = new List<SphericalGeom.Polygon>();
+                    var toBeCoveredAfter = new List<SphericalGeom.Polygon>();
+                    for (int i = 0; i < region.Count; ++i)
+                    {
+                        var intAndSub = SphericalGeom.Polygon.IntersectAndSubtract(region[i], order.captured);
+                        notCoveredBefore.AddRange(intAndSub.Item1);
+                        toBeCoveredAfter.AddRange(intAndSub.Item2);
+                    }
+                    double areaNotCoveredBefore = 0;
+                    for (int j = 0; j < notCoveredBefore.Count; ++j)
+                    {
+                        areaNotCoveredBefore += notCoveredBefore[j].Area;
+                    }
+                    summ += order.intersection_coeff * areaNotCoveredBefore / order.captured.Area;
+                    notCoveredBefore.Clear();
+                    region.Clear();
+                    region = toBeCoveredAfter;
                 }
             }
             return (summ >= request.minCoverPerc);
