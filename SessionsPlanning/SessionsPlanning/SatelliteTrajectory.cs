@@ -71,6 +71,8 @@ namespace SatelliteTrajectory
             Vector3D dilatedPoint = new Vector3D(point.X/R, point.Y/R, point.Z/R);
             List<Vector3D> intersection = Routines.IntersectLineUnitSphere(dilatedPoint, vect);
 
+            /// Possible optimization:
+            /// If point is outside of the sphere and vect is directed towards it, then the answer is always intersection[0].
             Vector3D closest;
             if (intersection.Count == 2)
                 closest = ((intersection[0] - dilatedPoint).Length < (intersection[1] - dilatedPoint).Length)
@@ -229,6 +231,7 @@ namespace SatelliteTrajectory
                         break;
                     CaptureConf newcc = new CaptureConf();
                     Order order = new Order();
+                    order.captured = int_pol;
                     order.request = request;
                     double subsquare = int_pol.Area; 
                     order.intersection_coeff = subsquare / square;
