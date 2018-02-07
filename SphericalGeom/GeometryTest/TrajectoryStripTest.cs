@@ -118,7 +118,7 @@ namespace TrajectoryTest
                             }
                         }
 
-                        var diff_msecs = (ctrl_point.time - calc_time).TotalMilliseconds;
+                        double diff_msecs = (ctrl_point.time - calc_time).TotalMilliseconds;
                         //  Console.WriteLine("diff_msecs = {0}", diff_msecs);
                         if (maxError < diff_msecs)
                             maxError = diff_msecs;
@@ -131,7 +131,7 @@ namespace TrajectoryTest
 
             }
 
-            Console.WriteLine("максимальная ошибка = {0}", maxError);
+            Console.WriteLine("максимальная ошибка = {0} мс", maxError);
             Console.WriteLine("{0} ошибок, превышающих {1} мс", countErrors, errorLimit);
 
             Assert.IsTrue(countErrors == 0);

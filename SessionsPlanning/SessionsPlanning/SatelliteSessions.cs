@@ -58,7 +58,7 @@ namespace SatelliteSessions
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
             SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно
             // @todo вынести это в константы
-            double viewAngle = AstronomyMath.ToRad(0.952); // угол обзора камеры
+            double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
             //double viewAngle = AstronomyMath.ToRad(5); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
             double min_roll_angle = AstronomyMath.ToRad(-45); // @todo пока нету предела по углу крена
@@ -66,18 +66,20 @@ namespace SatelliteSessions
             for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
             {
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-                SatLane viewLane = trajectory.getCaptureLane(rollAngle, viewAngle);
+                SatLane viewLane = trajectory.getCaptureLane(rollAngle, viewAngle, polygonStep: 15);
                 foreach (var request in requests)
                 {
                     List<CaptureConf> confs = viewLane.getCaptureConfs(request);
                     compressCConfArray(ref confs);
-                    compressTwoCConfArrays(ref laneCaptureConfs, ref confs);                    
-                    laneCaptureConfs.AddRange(confs);                        
+                    compressTwoCConfArrays(ref laneCaptureConfs, ref confs);       
+                    laneCaptureConfs.AddRange(confs);
                 }
 
                 foreach (var conf in laneCaptureConfs)
-                {
-                    conf.wktPolygon = viewLane.getSegment(conf.dateFrom, conf.dateTo).ToWtk();
+                {                        
+                    var pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
+                    conf.wktPolygon = pol.ToWtk();
+                    conf.square = pol.Area;
                     conf.rollAngle = rollAngle;
                     conf.pitchAngle = 0;
                 }
@@ -89,7 +91,7 @@ namespace SatelliteSessions
 
             Graph g = new Graph(captureConfs);
             List<CaptureConf> optimalChain = g.findOptimalChain();
-            return optimalChain;           
+            return optimalChain;
         }
 
         //public static IList<CaptureConf> getOptimalChain(List<CaptureConf> strips)
@@ -105,25 +107,28 @@ namespace SatelliteSessions
             newConf.pitchAngle = confs1.pitchAngle;
             newConf.rollAngle = confs1.rollAngle;
             newConf.dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
-            newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;            
-           
+            newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
+            newConf.orders.AddRange(confs1.orders);
+            newConf.orders.AddRange(confs2.orders);
+
+            /*
             for (int i = 0; i < confs1.orders.Count; i++)
             {
+                newConf.orders.Add(confs1.orders[i]);
                 for (int j = 0; j < confs2.orders.Count; j++)
                 {
                     if (confs1.orders[i].request.id != confs2.orders[j].request.id)
-                    {
-                        newConf.orders.Add(confs2.orders[j]);
+                    {                       
+                        newConf.orders.Add(confs2.orders[j]);                        
                     }
                     else
                     {
-                        confs1.orders[i].intersection_coeff += confs2.orders[j].intersection_coeff;
-                        if (newConf.orders[i].intersection_coeff > 1)
-                           newConf.orders[i].intersection_coeff = 1;
+                        var order = new Order();
+                        
                     }                    
                 }
-            }
-            newConf.orders.AddRange(confs1.orders);            
+            }*/
+                       
             return newConf;
         }
 
