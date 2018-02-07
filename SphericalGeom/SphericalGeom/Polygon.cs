@@ -102,6 +102,7 @@ namespace SphericalGeom
                         throw new DivideByZeroException("Polygon is empty.");
 
                     middle = vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
+                    middle.Normalize();
                     knowMiddle = true;
                 }
                 return middle;
@@ -191,6 +192,7 @@ namespace SphericalGeom
         public Polygon(string wtkPolygon)
             : this()
         {
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
             List<Vector3D> points = new List<Vector3D>();
             var apex = new Vector3D(0, 0, 0);
@@ -204,6 +206,26 @@ namespace SphericalGeom
             }
         }
         #endregion
+
+        public static Polygon Hemisphere(Vector3D capCenter)
+        {
+            double ang = 1e-12, c = Math.Cos(ang), s = Math.Sin(ang);
+            Polygon basic = new Polygon(new List<Vector3D>{
+                new Vector3D(c, 0, s),
+                new Vector3D(0, c, s),
+                new Vector3D(-c, 0, s),
+                new Vector3D(0, -c, s)
+            });
+
+            Vector3D basisVec = Vector3D.CrossProduct(capCenter,
+                new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
+            ReferenceFrame capFrame = new ReferenceFrame(
+                basisVec,
+                Vector3D.CrossProduct(basisVec, capCenter),
+                capCenter);
+            basic.FromThisFrame(capFrame);
+            return basic;
+        }
 
         /// <summary>
         /// Builds a rectangular bounding box for the polygon,

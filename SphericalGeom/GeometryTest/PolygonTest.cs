@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Windows.Media.Media3D;
 using SphericalGeom;
@@ -15,6 +16,15 @@ namespace GeometryTest
         {
             get { return testContextInstance; }
             set { testContextInstance = value; }
+        }
+
+        [TestMethod]
+        public void TestHemishphere()
+        {
+            Polygon hs = Polygon.Hemisphere(new Vector3D(1, 0, 0));
+
+            Assert.IsTrue(hs.Contains(new Vector3D(1, 0, 0))
+                && !hs.Contains(new Vector3D(-1, 0, 0)));
         }
 
         [TestMethod]
@@ -78,6 +88,32 @@ namespace GeometryTest
             Polygon q = new Polygon(new List<Vector3D> { c, b, a, d });
 
             Assert.IsTrue(!p.IsCounterclockwise && q.IsCounterclockwise);
+        }
+
+        [TestMethod]
+        public void TestToWTK_Band()
+        {
+            List<Vector3D> verts = new List<Vector3D>
+            {
+                new Vector3D(-0.852034459185435, 0.120130037485442, -0.509515509532664 ),
+                new Vector3D(-0.972504632989056, -0.156405344939802, -0.172545955875771 ),
+                new Vector3D(-0.549501530291284, -0.609902051020679, 0.571023253789464 ),
+                new Vector3D(-0.455742357633653, -0.633482054296441, 0.625299440542594 ),
+                new Vector3D(-0.469679375963483, -0.56027574121427, 0.68227001810233 ),
+                new Vector3D(-0.564279557617797, -0.536416675779779, 0.627571295392033 ),
+                new Vector3D(-0.989735755317796, -0.0808817092973809, -0.11781885989368 ),
+                new Vector3D(-0.869933396998213, 0.194610736332144, -0.453147377893121 ),
+            };
+            Polygon lanepol = new Polygon(verts);
+            try
+            {
+                Polygon pp = new Polygon(lanepol.ToWtk());
+                Assert.IsTrue(true);
+            }
+            catch
+            {
+                Assert.IsTrue(false);
+            }
         }
 
         [TestMethod]
