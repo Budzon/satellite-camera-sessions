@@ -502,6 +502,49 @@ namespace SatelliteTrajectory
         public Polygon polygon;
     }
 
+    public class TrajectoryRoutines
+    {
+        public static PolygonsLitAndNot GetOneSatTurnLitParts(List<LanePos> turn)
+        {
+            PolygonsLitAndNot res = new PolygonsLitAndNot { Lit = new List<Polygon>(), Unlit = new List<Polygon>() };
 
+            /// ASSUMING 5 SECONDS BETWEEN CONSECUTIVE POINTS
+            /// TAKING 25 SEC SECTORS
+            int sectorLength = 5;
+            for (int i = 0; i < turn.Count - sectorLength; ++i)
+            {
+                Vector3D sun = Astronomy.SunPosition.GetPositionGreenwich(turn[i + sectorLength / 2].time).ToVector();
+                    //turn[i].time.Add(new TimeSpan(turn[i+1].time.Subtract(turn[i].time).Ticks / 2))).ToVector();
+
+                //Polygon sector = new Polygon(
+                //    new List<Vector3D> { turn[i].LeftCartPoint, turn[i].RightCartPoint, turn[i + 1].RightCartPoint, turn[i + 1].LeftCartPoint },
+                //    new List<Vector3D> { new Vector3D(0, 0, 0), turn[i].rightControlPoint, new Vector3D(0, 0, 0), turn[i].leftControlPoint }
+                //);
+
+                List<Vector3D> vertices = new List<Vector3D>();
+                List<Vector3D> apexes = new List<Vector3D>();
+
+                for (int j = 0; j < sectorLength - 1; ++j)
+                {
+                    vertices.Add(turn[i + j].RightCartPoint);
+                    apexes.Add(turn[i + j].rightControlPoint);
+                }
+                vertices.Add(turn[i + sectorLength].RightCartPoint);
+                apexes.Add()
+
+                var LitAndNot = Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
+                res.Lit.AddRange(LitAndNot.Item1);
+                res.Unlit.AddRange(LitAndNot.Item2);
+            }
+
+            return res;
+        }
+    }
+
+    public struct PolygonsLitAndNot
+    {
+        public List<Polygon> Lit { get; set; }
+        public List<Polygon> Unlit { get; set; }
+    }
 }
 
