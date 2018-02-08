@@ -508,36 +508,78 @@ namespace SatelliteTrajectory
         {
             PolygonsLitAndNot res = new PolygonsLitAndNot { Lit = new List<Polygon>(), Unlit = new List<Polygon>() };
 
-            /// ASSUMING 5 SECONDS BETWEEN CONSECUTIVE POINTS
-            /// TAKING 25 SEC SECTORS
-            int sectorLength = 5;
-            for (int i = 0; i < turn.Count - sectorLength; ++i)
+            bool onLitStreak = false;
+            int streakBegin = -1;
+
+            for (int i = 0; i < turn.Count - 1; ++i)
             {
-                Vector3D sun = Astronomy.SunPosition.GetPositionGreenwich(turn[i + sectorLength / 2].time).ToVector();
-                    //turn[i].time.Add(new TimeSpan(turn[i+1].time.Subtract(turn[i].time).Ticks / 2))).ToVector();
-
-                //Polygon sector = new Polygon(
-                //    new List<Vector3D> { turn[i].LeftCartPoint, turn[i].RightCartPoint, turn[i + 1].RightCartPoint, turn[i + 1].LeftCartPoint },
-                //    new List<Vector3D> { new Vector3D(0, 0, 0), turn[i].rightControlPoint, new Vector3D(0, 0, 0), turn[i].leftControlPoint }
-                //);
-
-                List<Vector3D> vertices = new List<Vector3D>();
-                List<Vector3D> apexes = new List<Vector3D>();
-
-                for (int j = 0; j < sectorLength - 1; ++j)
-                {
-                    vertices.Add(turn[i + j].RightCartPoint);
-                    apexes.Add(turn[i + j].rightControlPoint);
-                }
-                vertices.Add(turn[i + sectorLength].RightCartPoint);
-                apexes.Add()
+                Vector3D sun = Astronomy.SunPosition.GetPositionGreenwich(turn[i].time).ToVector();
+                Polygon sector = FormSectorFromLanePoints(turn, i, i + 1);
 
                 var LitAndNot = Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
-                res.Lit.AddRange(LitAndNot.Item1);
-                res.Unlit.AddRange(LitAndNot.Item2);
+                bool allLit = LitAndNot.Item2.Count == 0;
+                bool allUnlit = LitAndNot.Item1.Count == 0;
+
+                if (streakBegin != -1)
+                {
+                    // On streak -- either continue one or make a master-sector.
+                    if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        Polygon masterSector = FormSectorFromLanePoints(turn, streakBegin, i);
+                        if (onLitStreak)
+                            res.Lit.Add(masterSector);
+                        else
+                            res.Unlit.Add(masterSector);
+                        streakBegin = -1;
+                    }
+                }
+
+                // Not on streak here -- either start one or just add to output lists.
+                if (allLit)
+                {
+                    onLitStreak = true;
+                    streakBegin = i;
+                }
+                else if (allUnlit) // totally unlit
+                {
+                    onLitStreak = false;
+                    streakBegin = i;
+                }
+                else
+                {
+                    res.Lit.AddRange(LitAndNot.Item1);
+                    res.Unlit.AddRange(LitAndNot.Item2);
+                }                
             }
 
             return res;
+        }
+
+        public static Polygon FormSectorFromLanePoints(List<LanePos> turn, int from, int to, int step = 1)
+        {
+            List<Vector3D> vertices = new List<Vector3D>();
+            List<Vector3D> apexes = new List<Vector3D>();
+
+            for (int i = from; i < to; i += step)
+            {
+                vertices.Add(turn[i].RightCartPoint);
+                apexes.Add(turn[i].rightControlPoint);
+            }
+            vertices.Add(turn[to].RightCartPoint);
+            apexes.Add(new Vector3D(0, 0, 0));
+            for (int i = to; i > from; i -= step)
+            {
+                vertices.Add(turn[i].LeftCartPoint);
+                apexes.Add(turn[i].leftControlPoint);
+            }
+            vertices.Add(turn[from].LeftCartPoint);
+            apexes.Add(new Vector3D(0, 0, 0));
+
+            return new Polygon(vertices, apexes);
         }
     }
 
