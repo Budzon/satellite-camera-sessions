@@ -20,9 +20,6 @@ namespace OptimalChain
         public double square { get; set;}
         public List<Order> orders { get; set; }
 
-        //public Astronomy.TrajectoryPoint pointFrom { get; set; }
-        //public Astronomy.TrajectoryPoint pointTo { get; set; }
-
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
 
