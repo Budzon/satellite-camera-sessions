@@ -18,12 +18,16 @@ public class DatParser
     /// <summary>
     /// Load DAT file content into Trajectory object
     /// </summary>
-    public static SatTrajectory getTrajectoryFromDatFile(string datFilename, DateTime dateBegin, DateTime dateEnd)
+    public static Astronomy.Trajectory getTrajectoryFromDatFile(string datFilename, DateTime dateBegin, DateTime dateEnd)
     { 
         if (!File.Exists(datFilename))
             throw new System.IO.FileNotFoundException("The file" + datFilename + "does not exist", "original");
 
-        SatTrajectory trajectory = new SatTrajectory(); 
+        TrajectoryPoint[] points;
+        DateTime startDateTime = new DateTime();
+        double duration = 0;
+        double step = 0;
+        int pointsNumber = 0;
 
         Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
 
@@ -39,7 +43,7 @@ public class DatParser
                     string strDate = substrVal(line, "D[ \t]*?=", "T");
                     string strTime = substrVal(line, "T[ \t]*?=", "#");
 
-                    trajectory.startDateTime = DateTime.ParseExact(strDate + strTime, "ddMMyyyy.0HHmmss.ffffff",
+                    startDateTime = DateTime.ParseExact(strDate + strTime, "ddMMyyyy.0HHmmss.ffffff",
                                    System.Globalization.CultureInfo.InvariantCulture);
                     break;
                 }
@@ -53,7 +57,7 @@ public class DatParser
                 if (match.Success)
                 {
                     string strDuration = substrVal(line, "DT[ \t]*?=", "IK");
-                    trajectory.duration = Convert.ToDouble(strDuration.Replace('.', separator));
+                    duration = Convert.ToDouble(strDuration.Replace('.', separator));
                     break;
                 }
             }
@@ -66,16 +70,17 @@ public class DatParser
                 if (match.Success)
                 {
                     string strNumber = substrVal(line, "NN[ \t]*?=", "#");
-                    int number = Convert.ToInt16(strNumber);
-                    trajectory.step = trajectory.duration / number;
-                    trajectory.points = new List<TrajectoryPoint>(number);
+                    pointsNumber = Convert.ToInt16(strNumber);
+                    step = duration / pointsNumber;                    
                     break;
                 }
             }
 
-            if (trajectory.step <= 0 || trajectory.duration <= 0 || trajectory.startDateTime == null)
+            if (step <= 0 || duration <= 0 || pointsNumber <= 0 || startDateTime == null)
                 throw new System.ArgumentException("The trajectory data in file" + datFilename + "is incorrect!", "original");
 
+            points = new TrajectoryPoint[pointsNumber];
+            
             Point3D position = new Point3D();
             Vector3D velocity = new Vector3D();
             int pointInd = 0;
@@ -99,12 +104,12 @@ public class DatParser
                     velocity.Y = VY;
                     velocity.Z = VZ;
 
-                    DateTime pointDt = trajectory.startDateTime.AddSeconds(pointInd * trajectory.step);
+                    DateTime pointDt = startDateTime.AddSeconds(pointInd * step);
 
                     if (dateBegin <= pointDt && pointDt <= dateEnd)
                     {
                         TrajectoryPoint point = new TrajectoryPoint(pointDt, position, velocity);
-                        trajectory.points.Add(point);
+                        points[pointInd] = point;                        
                     }
                     else if (dateEnd < pointDt)
                         break;
@@ -133,7 +138,7 @@ public class DatParser
             }
         }
 
-        return trajectory;
+        return Astronomy.Trajectory.Create(points);
     }
 
     private static string substrVal(string baseLine, string startLabel, string endLabel)

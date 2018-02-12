@@ -8,19 +8,28 @@ namespace OptimalChain
 {
     public class CaptureConf
     {
-        public DateTime dateFrom { get; set; }
-        public DateTime dateTo { get; set; }
         public double tan { get; set; }
         public double rollAngle { get; set; }
+
+        public double maxTimeDeflex { get; set; } //  Максимальная дельта времени в секундах (упреждение)
+        public Dictionary<int, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа
+
         public double pitchAngle { get; set; }
 
         public string wktPolygon { get; set; }
         public double square { get; set;}
         public List<Order> orders { get; set; }
 
+        //public Astronomy.TrajectoryPoint pointFrom { get; set; }
+        //public Astronomy.TrajectoryPoint pointTo { get; set; }
+
+        public DateTime dateFrom { get; set; }
+        public DateTime dateTo { get; set; }
+
         public CaptureConf()
         {
             orders = new List<Order>();
+            pitchArray = new Dictionary<int, double>();
         }
 
         public double reConfigureMilisecinds(CaptureConf s2)
@@ -52,7 +61,7 @@ namespace OptimalChain
         public double minCoverPerc { get; set; }
         public int Max_sun_angle { get; set; }
         public int Min_sun_angle { get; set; }
-        public string wktPolygon { get; set; }
+        public string wktPolygon { get; set; }               
     }
 
     public class Order
