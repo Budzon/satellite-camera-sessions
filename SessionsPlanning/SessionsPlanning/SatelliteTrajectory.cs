@@ -504,9 +504,9 @@ namespace SatelliteTrajectory
 
     public class TrajectoryRoutines
     {
-        public static PolygonsLitAndNot GetOneSatTurnLitParts(List<LanePos> turn)
+        public static List<PolygonLit> GetOneSatTurnLitParts(List<LanePos> turn)
         {
-            PolygonsLitAndNot res = new PolygonsLitAndNot { Lit = new List<Polygon>(), Unlit = new List<Polygon>() };
+            List<PolygonLit> res = new List<PolygonLit> { };
 
             bool onLitStreak = false;
             int streakBegin = -1;
@@ -530,10 +530,7 @@ namespace SatelliteTrajectory
                     else
                     {
                         Polygon masterSector = FormSectorFromLanePoints(turn, streakBegin, i);
-                        if (onLitStreak)
-                            res.Lit.Add(masterSector);
-                        else
-                            res.Unlit.Add(masterSector);
+                        res.Add(new PolygonLit { Polygon = masterSector, Lit = onLitStreak });
                         streakBegin = -1;
                     }
                 }
@@ -551,8 +548,10 @@ namespace SatelliteTrajectory
                 }
                 else
                 {
-                    res.Lit.AddRange(LitAndNot.Item1);
-                    res.Unlit.AddRange(LitAndNot.Item2);
+                    foreach (Polygon p in LitAndNot.Item1)
+                        res.Add(new PolygonLit { Polygon = p, Lit = true });
+                    foreach (Polygon p in LitAndNot.Item2)
+                        res.Add(new PolygonLit { Polygon = p, Lit = false });
                 }                
             }
 
@@ -583,10 +582,10 @@ namespace SatelliteTrajectory
         }
     }
 
-    public struct PolygonsLitAndNot
+    public struct PolygonLit
     {
-        public List<Polygon> Lit { get; set; }
-        public List<Polygon> Unlit { get; set; }
+        public Polygon Polygon { get; set; }
+        public bool Lit { get; set; }
     }
 }
 
