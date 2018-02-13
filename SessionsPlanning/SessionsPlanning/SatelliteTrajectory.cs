@@ -557,7 +557,7 @@ namespace SatelliteTrajectory
 
         private RollOrientation roll;
 
-        public static Vector3D getDirectionVector(TrajectoryPoint point, double viewAngle, double rollAngle, double pitchAngle)
+        public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
         {
             Vector3D position = point.Position.ToVector();
             Vector3D velo = point.Velocity;

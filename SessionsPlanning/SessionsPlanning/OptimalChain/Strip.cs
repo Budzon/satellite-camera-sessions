@@ -12,7 +12,7 @@ namespace OptimalChain
         public double rollAngle { get; set; }
 
         public double maxTimeDeflex { get; set; } //  Максимальная дельта времени в секундах (упреждение)
-        public Dictionary<int, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа
+        public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа
 
         public double pitchAngle { get; set; }
 
@@ -26,7 +26,7 @@ namespace OptimalChain
         public CaptureConf()
         {
             orders = new List<Order>();
-            pitchArray = new Dictionary<int, double>();
+            pitchArray = new Dictionary<double, double>();
         }
 
         public double reConfigureMilisecinds(CaptureConf s2)
@@ -54,7 +54,7 @@ namespace OptimalChain
         public int priority { get; set; }
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
-        public int Max_SOEN_anlge { get; set; }
+        public double Max_SOEN_anlge { get; set; }
         public double minCoverPerc { get; set; }
         public int Max_sun_angle { get; set; }
         public int Min_sun_angle { get; set; }
