@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 
 namespace OptimalChain
@@ -11,40 +13,68 @@ namespace OptimalChain
     {
         public List<Vertex> vertices { get; set; }
         
-
-        public Graph (List<CaptureConf> strips)
+        public void CreateEdges()
         {
-            vertices = new List<Vertex>();
             Vertex A = new Vertex("A");
             Vertex B = new Vertex("B");
 
-            foreach (CaptureConf s in strips)
-            {
-                vertices.Add(new Vertex(s));
-            }
-
-            foreach(Vertex v1 in vertices)
+            foreach (Vertex v1 in vertices)
             {
                 A.addEdge(v1, v1.value);
-                //Console.WriteLine(A.key + "----" + v1.key + " = " + v1.value);
-                foreach (Vertex v2 in vertices.Where(i => i.s.dateFrom > v1.s.dateFrom))
+
+                foreach (Vertex v2 in vertices.Where(i => (i.s.dateFrom > v1.s.dateFrom) && (i.s.id != v1.s.id)))
                 {
                     double w = this.countEdgeWeight(v1, v2);
-                    //Console.WriteLine(v1.key + "----" + v2.key + " = " + w);
-                    if(w>0)
+
+                    if (w > 0)
                         v1.addEdge(v2, w);
                 }
 
                 v1.addEdge(B, 0);
-                //Console.WriteLine(v1.key + "----" + B.key + " = " + 0);
+
             }
 
             vertices.Insert(0, A);
             vertices.Add(B);
+        }
+        public Graph (List<CaptureConf> strips)
+        {
+            vertices = new List<Vertex>();
 
+            foreach(CaptureConf s in strips)
+            {
+                Console.WriteLine(s.id);
+                vertices.Add(new Vertex(s.CreateStaticConf(0)));
+
+                for (int dt = 1; dt < s.timeDelta;dt++ )
+                {
+                    StaticConf s1 = s.CreateStaticConf(dt);
+                    StaticConf s2 = s.CreateStaticConf(-dt);
+
+                    if (s1 != null) vertices.Add(new Vertex(s1));
+                    if (s2 != null) vertices.Add(new Vertex(s2));
+                }
+                    
+                
+                    
+            }
+
+            CreateEdges();
 
         }
 
+
+        public Graph(List<StaticConf> strips)
+        {
+            vertices = new List<Vertex>();
+
+            foreach (StaticConf s in strips)
+            {
+                vertices.Add(new Vertex(s));
+            }
+
+            CreateEdges();
+        }
 
         public double countEdgeWeight(Vertex v1, Vertex v2)
         {
@@ -107,23 +137,14 @@ namespace OptimalChain
             return res;
         }
 
-        public List<CaptureConf> findOptimalChain()
+        public List<StaticConf> findOptimalChain()
         {
             List<Vertex> sorted = this.deepGo(vertices[0]);
             sorted.Reverse();
-            //Console.WriteLine("ORDER KHAN");
-            //foreach (Vertex c in sorted)
-            //{
-            //    Console.Write(c.key + ",");
-            //}
-            //Console.WriteLine("*********");
-            //Console.WriteLine("*********");
-
-
+            
             sorted[0].mark = 0;
             foreach(Vertex v in sorted)
             {
-                //Console.WriteLine("Vertex " + v.key);
                 if(v.in_edges!=null)
                 {
                     foreach(Edge e in v.in_edges)
@@ -136,22 +157,19 @@ namespace OptimalChain
                             if(v.s!=null)
                                     v.path.Add(v.s);
 
-                            //Console.WriteLine("Rewrite mark " + mark_new + " from " + e.v1.key);
                         }
                     }
                 }
 
-                //Console.WriteLine("****************************");
             }
 
-            //Console.WriteLine("MAX PATH = " + vertices.Last().mark);
             return vertices.Last().path;
         }
     }
 
     public class Vertex
     {
-        public CaptureConf s { get; set; }
+        public StaticConf s { get; set; }
 
         public int color { get; set; }
         public double value { get; set; }
@@ -165,7 +183,7 @@ namespace OptimalChain
 
         public double mark { get; set; }
 
-        public List<CaptureConf> path { get; set; }
+        public List<StaticConf> path { get; set; }
 
         public Vertex(string k)
         {
@@ -177,19 +195,19 @@ namespace OptimalChain
 
             mark = -1;
             edges = null;
-            path = new List<CaptureConf>();
+            path = new List<StaticConf>();
         }
-        public Vertex(CaptureConf ss)
+        public Vertex(StaticConf ss)
         {
             s = ss;
-            key = s.rollAngle.ToString();
+            key = s.roll.ToString();
             color = 0;
             value = countVertexPrice();
             isVisited = false;
 
             mark = -1;
             edges = null;
-            path = new List<CaptureConf>();
+            path = new List<StaticConf>();
         }
 
         public double countVertexPrice()
@@ -242,3 +260,4 @@ namespace OptimalChain
 
     }
 }
+

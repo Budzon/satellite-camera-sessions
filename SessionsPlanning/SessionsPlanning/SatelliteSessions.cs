@@ -54,14 +54,11 @@ namespace SatelliteSessions
             return (summ >= request.minCoverPerc);
         }
 
-        public static IList<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
+        public static IList<StaticConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
         {
             if (requests.Count == 0)
                 throw new ArgumentException("Requests array is empty!");
-
-            {
-
-            }
+             
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
@@ -82,14 +79,6 @@ namespace SatelliteSessions
 
             double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
-
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-
-            Console.WriteLine("List<CaptureConf> optimalChainInput = new List<CaptureConf>();");
 
             for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
             {
@@ -114,10 +103,9 @@ namespace SatelliteSessions
 
                     conf.wktPolygon = pol.ToWtk();
                     conf.square = pol.Area;
-                    conf.rollAngle = rollAngle;
-                    conf.pitchAngle = 0;
+                    conf.rollAngle = rollAngle; 
 
-                    /// лучше куда-то вынести ////
+                 ///// лучше куда-то вынести ////
                     double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
                     foreach (var req in conf.orders)
                     {
@@ -128,7 +116,7 @@ namespace SatelliteSessions
                     double maxPitchAngle = Math.Abs(maxAngle) - Math.Abs(rollAngle);
                     if (0 == maxPitchAngle)
                     {
-                        conf.maxTimeDeflex = 0;
+                        conf.timeDelta = 0;
                     }
                     else
                     {
@@ -141,7 +129,7 @@ namespace SatelliteSessions
                         // расстояние в километрах между точкой c нулевым тангажом и точкой, полученной при максимальном угле тангажа
                         double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
                         // время, за которое спутник преодалевает dist по поверхности земли.
-                        conf.maxTimeDeflex = dist / pointFrom.Velocity.Length;
+                        conf.timeDelta = dist / pointFrom.Velocity.Length;
                     }
                     int pitchStep = OptimalChain.Constants.pitchStep;
                     conf.pitchArray[0] = 0;
@@ -155,39 +143,24 @@ namespace SatelliteSessions
                         Vector3D dirPitchPoint = Routines.SphereVectIntersect(dirPitchVect, pointFrom.Position, Astronomy.Constants.EarthRadius);
                         double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
                         double t = distOverSurf / pointFrom.Velocity.Length;
-                        conf.pitchArray[pitch] = t;
-                        // Console.WriteLine("{0} : {1}", pitch_degr, t);
-                    }
-
-                    //double RollDeflex = t * OptimalChain.Constants.earthRotSpeed;
-
-                    //conf.maxTimeDeflex
-
-                    ///////////
+                        conf.pitchArray[pitch] = t; 
+                    } 
+                  ///////////
                 }
 
                 captureConfs.AddRange(laneCaptureConfs);
             }
 
             // return captureConfs;
-             
             //DateTime myDate = DateTime.Parse(dateString);
             Graph g = new Graph(captureConfs);
-            List<CaptureConf> optimalChain = g.findOptimalChain();
+            List<StaticConf> optimalChain = g.findOptimalChain();
             return optimalChain;
         }
-
-        //public static IList<CaptureConf> getOptimalChain(List<CaptureConf> strips)
-        //{
-        //    Graph g = new Graph(strips);
-        //    List<CaptureConf> optimalChain = g.findOptimalChain();         
-        //    return optimalChain;
-        //}
-
+ 
         private static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
         {
             CaptureConf newConf = new CaptureConf();
-            newConf.pitchAngle = confs1.pitchAngle;
             newConf.rollAngle = confs1.rollAngle;
             newConf.dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
             newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;

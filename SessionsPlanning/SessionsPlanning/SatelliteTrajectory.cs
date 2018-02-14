@@ -28,136 +28,6 @@ namespace SatelliteTrajectory
             return newMiddlePoint;
         }
     }
-    /*
-    public class SatTrajectory : Astronomy.Trajectory
-    {
-        //public List<TrajectoryPoint> points { get; set; }       
-
-        /// <summary>
-        /// Get shooting lane by trajectory and max roll angle  
-        /// </summary>
-        /// <param name="minAngle">min roll angle in radians.</param>
-        /// <param name="readStep">step in points array</param>
-        /// /// <param name="maxAngle">max roll angle in radians.</param>          
-        public SatLane getCaptureLane(double rollAngle, double viewAngle, int readStep = 1, int polygonStep = 15)
-        {
-            double minAngle = rollAngle - viewAngle / 2;
-            double maxAngle = rollAngle + viewAngle / 2;
-             
-            List<LanePos> lanePoints = new List<LanePos>();
-
-            for (int p_ind = 0; p_ind < points.Count; p_ind += readStep)
-            {
-
-                ////
-               //  Vector3D nadirPoint = SatTrajectory.SphereVectIntersect(-points[p_ind].Position.ToVector(), points[p_ind].Position, Astronomy.Constants.EarthRadius);
-               //  Vector3D rollPithPoint = SatTrajectory.SphereVectIntersect(-points[p_ind + 1].Position.ToVector(), points[p_ind+1].Position, Astronomy.Constants.EarthRadius);
-               //  double distt = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(nadirPoint), GeoPoint.FromCartesian(rollPithPoint));
-               //  Console.WriteLine("speed = {0}", distt / 10);
-                /////
-
-
-                Vector3D eDirVect = new Vector3D(-points[p_ind].Position.X, -points[p_ind].Position.Y, -points[p_ind].Position.Z);
-
-                RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(points[p_ind].Velocity, AstronomyMath.ToDegrees(minAngle)));
-                RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(points[p_ind].Velocity, AstronomyMath.ToDegrees(maxAngle)));
- 
-                Vector3D leftVector = leftTransform.Transform(eDirVect);
-                Vector3D rightVector = rightTransform.Transform(eDirVect);
-                                                 
-                Vector3D leftCrossPoint = SphereVectIntersect(leftVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
-                Vector3D rightCrossPoint = SphereVectIntersect(rightVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
-                Vector3D middlePoint = points[p_ind].Position.ToVector();
-
-                               
-                var tanHalfVa = Math.Tan(viewAngle / 2);
-                var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
-                var angle_degr = AstronomyMath.ToDegrees(angle_rad);
-
-
-                Vector3D rotAxis = Vector3D.CrossProduct(rightVector, points[p_ind].Velocity);
-
-                RotateTransform3D rightBotTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, angle_degr));
-                Vector3D rightBotCrossVector = rightBotTransfrom.Transform(rightVector);
-                Vector3D rightBotCrossPoint = SatTrajectory.SphereVectIntersect(rightBotCrossVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
-
-                //RotateTransform3D rightTopTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, -angle_degr));
-                //Vector3D rightTopCrossVector = rightTopTransfrom.Transform(rightVector);
-                // Vector3D rightTopCrossPoint = SatTrajectory.SphereVectIntersect(rightTopCrossVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
-                               
-                rotAxis = Vector3D.CrossProduct(leftVector, points[p_ind].Velocity);
-
-                RotateTransform3D leftBotTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, -angle_degr));
-                Vector3D leftBotCrossVector = leftBotTransfrom.Transform(leftVector);
-                Vector3D leftBotCrossPoint = SatTrajectory.SphereVectIntersect(leftBotCrossVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
-
-                // RotateTransform3D leftTopTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, angle_degr));
-                // Vector3D leftTopCrossVector = leftTopTransfrom.Transform(leftVector);
-                // Vector3D leftTopCrossPoint = SatTrajectory.SphereVectIntersect(leftTopCrossVector, points[p_ind].Position, Astronomy.Constants.EarthRadius);
-
-                double distRight = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rightBotCrossPoint), GeoPoint.FromCartesian(rightCrossPoint));
-                double distLeft = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(leftBotCrossPoint), GeoPoint.FromCartesian(leftCrossPoint));
-                //Console.WriteLine("a/2 = {0}, b/2 = {1},     |b-a| / 2 = {2} ",distRight* Astronomy.Constants.EarthRadius, distLeft* Astronomy.Constants.EarthRadius, Math.Abs(distRight - distLeft) * Astronomy.Constants.EarthRadius);
-
-                double dist = Math.Abs(distRight - distLeft);
-                // dist идет в lanPos, либо как правая, либо как левая
-
-                leftCrossPoint.Normalize();
-                rightCrossPoint.Normalize();
-                middlePoint.Normalize();
-
-                LanePos newLanePos = new LanePos(leftCrossPoint, rightCrossPoint, points[p_ind]);
-                lanePoints.Add(newLanePos);
-            }
-
-            return new SatLane(minAngle, maxAngle, lanePoints, polygonStep);
-        }
-         
-
-        /// <summary>
-        /// just get crossings point of line (by point and vector) and sphere (radius R with the center (0,0,0) )
-        /// </summary>
-        /// <param name="vect"> directing vector</param>
-        /// <param name="point"> initial point </param>
-        /// <param name="R"> sphere radius</param>
-        /// <returns></returns>
-        public static Vector3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
-        {
-            Vector3D dilatedPoint = new Vector3D(point.X/R, point.Y/R, point.Z/R);
-            List<Vector3D> intersection = Routines.IntersectLineUnitSphere(dilatedPoint, vect);
-
-            /// Possible optimization:
-            /// If point is outside of the sphere and vect is directed towards it, then the answer is always intersection[0].
-            Vector3D closest;
-            if (intersection.Count == 2)
-                closest = ((intersection[0] - dilatedPoint).Length < (intersection[1] - dilatedPoint).Length)
-                    ? intersection[0] : intersection[1];
-            else if (intersection.Count == 1)
-                closest = intersection[0];
-            else
-                throw new ArgumentException("Line and sphere do not intersect.");
-
-            return closest * R;
-        }
-
-        public static Vector3D getInterpolPoint(Vector3D firstPoint, Vector3D secondPoint, DateTime dt1, DateTime dt2, DateTime targetDt)
-        {
-            double fullDist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(firstPoint), GeoPoint.FromCartesian(secondPoint));
-            double fullTimeDiff = (dt2 - dt1).TotalMilliseconds;
-            double timePart = (targetDt - dt1).TotalMilliseconds;
-            double patrDist = fullDist * timePart / fullTimeDiff;
-
-            Vector3D rotAxis = Vector3D.CrossProduct(firstPoint, secondPoint);
-            RotateTransform3D rotTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, AstronomyMath.ToDegrees(patrDist)));
-            Vector3D newMiddlePoint = rotTransform.Transform(firstPoint);
-
-            return newMiddlePoint;
-        }
-    }
-    
-     */
-   
-    
     
     /// <summary>
     /// Полоса захвата
@@ -369,49 +239,50 @@ namespace SatelliteTrajectory
             List<Vector3D> polygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();
 
-            bool needStop = false;
-            int i = 0;
+            bool found_beg = false, found_end = false;
             foreach (var sector in Sectors)
             {
                 var sectorPoints = sector.sectorPoints;
-                for (; i < sectorPoints.Count; i++)
+                for (int i = 0; i < sectorPoints.Count; i++)
                 {
-                    if (begTime <= sectorPoints[i].Time && sectorPoints[i].Time <= endTime)
+                    if (sectorPoints[i].Time < begTime)
+                        continue;
+
+                    if (sectorPoints[i].Time > endTime)
+                        break;
+
+                    if (begTime < sectorPoints[i].Time && sectorPoints[i].Time < endTime)
                     {
                         polygonPoints.Add(sectorPoints[i].LeftCartPoint);
                         rightPolygonPoints.Add(sectorPoints[i].RightCartPoint);
-                    }
-
-                    if (sectorPoints.Count - 1 == i)
-                        break;
-
-                    if (sectorPoints[i + 1].Time < begTime)
                         continue;
-
-                    if (sectorPoints[i].Time < begTime && begTime < sectorPoints[i + 1].Time)
-                    {
-                        var pos = getlanePosByTime(sectorPoints[i], sectorPoints[i + 1], begTime);
-                        polygonPoints.Add(pos.Item1);
-                        rightPolygonPoints.Add(pos.Item2);
                     }
 
-                    if (sectorPoints[i].Time < endTime && endTime < sectorPoints[i + 1].Time)
+                    if (begTime == sectorPoints[i].Time && sectorPoints[i].Time == endTime)
                     {
-                        var pos = getlanePosByTime(sectorPoints[i], sectorPoints[i + 1], endTime);
-                        polygonPoints.Add(pos.Item1);
-                        rightPolygonPoints.Add(pos.Item2);
-                    }
+                        polygonPoints.Add(sectorPoints[i].LeftCartPoint);
+                        rightPolygonPoints.Add(sectorPoints[i].RightCartPoint);
 
-                    if (sectorPoints[i + 1].Time > endTime)
-                    {
-                        needStop = true;
-                        break;
+                        if (begTime == sectorPoints[i].Time)
+                            found_beg = true;
+                        if (endTime == sectorPoints[i].Time)
+                            found_end = true;
                     }
                 }
-                i = 1; // для всех секторов кроме первого начинаем со второго элемента
-                if (needStop)
-                    break;
-                // @todo полигон может быть длиннее 180 (upd - по исходным данным вроде не должен), что вызовет ошибки. Надо разрезать на полигоны или вставить проверку. 
+            }
+
+            if (!found_beg)
+            {
+                LanePos posFrom = interpolatelanePosByTime(begTime);
+                polygonPoints.Insert(0, posFrom.LeftCartPoint);
+                rightPolygonPoints.Insert(0, posFrom.RightCartPoint);
+            }
+
+            if (!found_end)
+            {
+                LanePos posTo = interpolatelanePosByTime(endTime);
+                polygonPoints.Add(posTo.LeftCartPoint);
+                rightPolygonPoints.Add(posTo.RightCartPoint);
             }
 
             for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
@@ -422,9 +293,7 @@ namespace SatelliteTrajectory
             Polygon segmenPol = new Polygon(polygonPoints, new Vector3D(0, 0, 0));
             return  Tuple.Create(segmenPol, pointFrom, pointTo);
         }
-
-
-
+        
         private Tuple<Vector3D, Vector3D> getlanePosByTime(LanePos first, LanePos second, DateTime time)
         {
             Vector3D newMiddlePoint = SatTrajectory.getInterpolPoint(first.MiddleCartPoint, second.MiddleCartPoint, first.Time, second.Time, time);
@@ -590,26 +459,27 @@ namespace SatelliteTrajectory
             Vector3D rightCrossPoint = Routines.SphereVectIntersect(rightVector, pointKA.Position, Astronomy.Constants.EarthRadius);
             Vector3D middlePoint = pointKA.Position.ToVector();
 
-            var tanHalfVa = Math.Tan(viewAngle / 2);
-            var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
-            var angle_degr = AstronomyMath.ToDegrees(angle_rad);
+            //var tanHalfVa = Math.Tan(viewAngle / 2);
+            //var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
+            //var angle_degr = AstronomyMath.ToDegrees(angle_rad);
 
-            Vector3D rotAxis = Vector3D.CrossProduct(rightVector, pointKA.Velocity);
+            //Vector3D rotAxis = Vector3D.CrossProduct(rightVector, pointKA.Velocity);
 
-            RotateTransform3D rightBotTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, angle_degr));
-            Vector3D rightBotCrossVector = rightBotTransfrom.Transform(rightVector);
-            Vector3D rightBotCrossPoint = Routines.SphereVectIntersect(rightBotCrossVector, pointKA.Position, Astronomy.Constants.EarthRadius);
+            //RotateTransform3D rightBotTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, angle_degr));
+            //Vector3D rightBotCrossVector = rightBotTransfrom.Transform(rightVector);
+            //Vector3D rightBotCrossPoint = Routines.SphereVectIntersect(rightBotCrossVector, pointKA.Position, Astronomy.Constants.EarthRadius);
 
-            rotAxis = Vector3D.CrossProduct(leftVector, pointKA.Velocity);
+            //rotAxis = Vector3D.CrossProduct(leftVector, pointKA.Velocity);
 
-            RotateTransform3D leftBotTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, -angle_degr));
-            Vector3D leftBotCrossVector = leftBotTransfrom.Transform(leftVector);
-            Vector3D leftBotCrossPoint = Routines.SphereVectIntersect(leftBotCrossVector, pointKA.Position, Astronomy.Constants.EarthRadius);
+            //RotateTransform3D leftBotTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, -angle_degr));
+            //Vector3D leftBotCrossVector = leftBotTransfrom.Transform(leftVector);
+            //Vector3D leftBotCrossPoint = Routines.SphereVectIntersect(leftBotCrossVector, pointKA.Position, Astronomy.Constants.EarthRadius);
 
-            double distRight = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rightBotCrossPoint), GeoPoint.FromCartesian(rightCrossPoint));
-            double distLeft = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(leftBotCrossPoint), GeoPoint.FromCartesian(leftCrossPoint));
+            //double distRight = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rightBotCrossPoint), GeoPoint.FromCartesian(rightCrossPoint));
+            //double distLeft = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(leftBotCrossPoint), GeoPoint.FromCartesian(leftCrossPoint));
 
-            double dist = Math.Abs(distRight - distLeft);
+            //double dist = Math.Abs(distRight - distLeft);
+
             // dist идет в lanPos, либо как правая, либо как левая
 
             leftCrossPoint.Normalize();
@@ -635,38 +505,7 @@ namespace SatelliteTrajectory
             leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
             rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
         }
-
-        //public LanePos(Vector3D _leftPoint, Vector3D _rightPoint, TrajectoryPoint _trajPoint)
-        //{
-        //    trajPoint = _trajPoint;
-        //    leftCartPoint = _leftPoint;
-        //    rightCartPoint = _rightPoint;
-        //    middleCartPoint = _trajPoint.Position.ToVector();
-        //    middleCartPoint.Normalize();
-        //    middleGeoPoint = GeoPoint.FromCartesian(middleCartPoint); 
-
-        //    leftGeoPoint = GeoPoint.FromCartesian(leftCartPoint);
-        //    rightGeoPoint = GeoPoint.FromCartesian(rightCartPoint);
-        //    width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
-
-        //    // leftControlPoint = leftCartPoint - middleCartPoint;
-        //    // rightControlPoint = rightCartPoint - middleCartPoint;
-
-        //    leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
-        //    rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
-
-        //    //// неверно для полос захвата
-        //    /*
-        //    leftControlPoint = leftCartPoint - rightCartPoint;
-        //    leftControlPoint.Normalize();
-        //    leftControlPoint = leftControlPoint * (leftCartPoint - rightCartPoint).Length / 2;
-
-        //    rightControlPoint = rightCartPoint - leftCartPoint; 
-        //    rightControlPoint.Normalize();
-        //    rightControlPoint = rightControlPoint * (rightCartPoint - leftCartPoint).Length / 2;
-        //     */
-        //}
-
+         
         private Vector3D getControlPoint(Vector3D middlePoint, Vector3D sidePoint)
         {
             Vector3D rotAx = Vector3D.CrossProduct(middlePoint, sidePoint);
