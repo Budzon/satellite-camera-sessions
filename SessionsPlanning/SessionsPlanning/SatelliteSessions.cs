@@ -55,7 +55,7 @@ namespace SatelliteSessions
         }
 
         public static IList<StaticConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
-        {
+        {             
             if (requests.Count == 0)
                 throw new ArgumentException("Requests array is empty!");
              
@@ -80,10 +80,12 @@ namespace SatelliteSessions
             double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
 
-            for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
+            //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
+            for (double rollAngle = min_roll_angle + angleStep; rollAngle <= max_roll_angle; rollAngle += angleStep)
             {
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
                 SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
+
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -105,6 +107,7 @@ namespace SatelliteSessions
                     conf.square = pol.Area;
                     conf.rollAngle = rollAngle; 
 
+                  
                  ///// лучше куда-то вынести ////
                     double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
                     foreach (var req in conf.orders)
@@ -145,13 +148,30 @@ namespace SatelliteSessions
                         double t = distOverSurf / pointFrom.Velocity.Length;
                         conf.pitchArray[pitch] = t; 
                     } 
-                  ///////////
+                  ///////////                                        
                 }
-
                 captureConfs.AddRange(laneCaptureConfs);
             }
+             
 
-            // return captureConfs;
+            for (int ci = 0; ci < captureConfs.Count; ci++)
+            {
+                captureConfs[ci].id = ci;
+            }
+             
+
+            //var rnd = new Random();
+            //var result = captureConfs.OrderBy(item => rnd.Next());
+            //captureConfs = result.ToList<CaptureConf>();
+
+            var cconfss = new List<StaticConf>();
+            foreach (var cc in captureConfs)
+            {
+                var stc = new StaticConf(cc.id, cc.dateFrom, cc.dateTo, cc.timeDelta, cc.rollAngle, cc.square, cc.orders, cc.wktPolygon);
+                cconfss.Add(stc);
+            }
+            return cconfss;
+
             //DateTime myDate = DateTime.Parse(dateString);
             Graph g = new Graph(captureConfs);
             List<StaticConf> optimalChain = g.findOptimalChain();
@@ -188,11 +208,11 @@ namespace SatelliteSessions
             return newConf;
         }
 
-        private static bool isNeedUnit(CaptureConf confs1, CaptureConf confs2)
+        private static bool isNeedUnit(CaptureConf c1, CaptureConf c2)
         {
             /// @todo добавить минимально допустимое расстояние (по времени)
-            return ((confs1.dateFrom <= confs2.dateTo && confs2.dateTo <= confs1.dateTo)
-                   || (confs1.dateFrom <= confs2.dateFrom && confs2.dateFrom <= confs1.dateTo));
+            return ((c1.dateFrom <= c2.dateTo && c2.dateTo <= c1.dateTo) || (c1.dateFrom <= c2.dateFrom && c2.dateFrom <= c1.dateTo)
+                  ||(c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
         }
 
         private static void compressCConfArray(ref List<CaptureConf> confs)
