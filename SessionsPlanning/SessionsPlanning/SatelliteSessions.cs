@@ -174,6 +174,19 @@ namespace SatelliteSessions
 
     public class SessionServices
     {
+        public static List<MPZ> MakePlans(
+            DateTime dateBegin,
+            DateTime dateEnd,
+            IList<RequestParams> requests,
+            IList<TimeInterval> dumpProhibited,
+            IList<TimeInterval> filmProhibited,
+            IList<RouteMPZ> dumpRoutes,
+            IList<RouteMPZ> deleteRoutes,
+            DIOS.Common.SqlManager dbManager)
+        {
+            return null;
+        }
+
         public static List<wktPolygonLit> GetLitOrNot(DIOS.Common.SqlManager manager, DateTime dateBegin, DateTime dateEnd)
         {
             string date_begin = dateBegin.ToShortDateString();
@@ -255,5 +268,11 @@ namespace SatelliteSessions
     {
         public string wktPolygon {get;set;}
         public bool Lit {get;set;}
+    }
+
+    public struct TimeInterval
+    {
+        public DateTime From {get;set;}
+        public DateTime To {get;set;}
     }
 }
