@@ -15,5 +15,6 @@ namespace OptimalChain
         public const double camera_angle = 0.016616; // ~0.952 градуса - угол обзора камеры
         public const double earthRotSpeed = 7.2921158533e-5;
         public const int pitchStep = 1; // в градусах
+        public const double orbital_inclination = 1.7104; // угл наклона орбиты в градусах
     }
 }
