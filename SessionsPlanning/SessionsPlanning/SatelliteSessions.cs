@@ -184,7 +184,22 @@ namespace SatelliteSessions
             IList<RouteMPZ> deleteRoutes,
             DIOS.Common.SqlManager dbManager)
         {
-            return null;
+            List<MPZ> bolvanka = new List<MPZ>
+            {
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.SI),
+                                            new RouteMPZ(RegimeTypes.ZI),
+                                            new RouteMPZ(RegimeTypes.VI),
+                                            new RouteMPZ(RegimeTypes.NP)} ),
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.ZI_cal),
+                                            new RouteMPZ(RegimeTypes.ZI_fok_yust),
+                                            new RouteMPZ(RegimeTypes.NP_fok_yust)}),
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.KPI_load),
+                                            new RouteMPZ(RegimeTypes.KPI_unload),
+                                            new RouteMPZ(RegimeTypes.PUF_control),
+                                            new RouteMPZ(RegimeTypes.BBZU_control),
+                                            new RouteMPZ(RegimeTypes.Special)})
+            };
+            return bolvanka;
         }
 
         public static List<wktPolygonLit> GetLitOrNot(DIOS.Common.SqlManager manager, DateTime dateBegin, DateTime dateEnd)
