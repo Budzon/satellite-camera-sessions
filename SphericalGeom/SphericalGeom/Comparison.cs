@@ -10,7 +10,7 @@ namespace SphericalGeom
 {
     public static class Comparison
     {
-        private static double precision = 1e-7;
+        private static double precision = 1e-12;
 
         public static bool IsPositive(double a)
         {
