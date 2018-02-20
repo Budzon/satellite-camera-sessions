@@ -19,10 +19,8 @@ namespace SatelliteSessions
         public static bool isRequestFeasible(RequestParams request, DateTime data_begin, DateTime data_end)
         {
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
-            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно 
-            //double viewAngle = AstronomyMath.ToRad(request.max_roll_angle);  // @todo так будем задавать предел по качеству (если оно будет задаваться максимальным углом крена) 
+            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно            
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle; // Math.PI / 2;  
-
             SatLane viewLane = new SatLane (trajectory, 0, viewAngle);
             List<CaptureConf> confs = viewLane.getCaptureConfs(request);
             
@@ -63,13 +61,12 @@ namespace SatelliteSessions
 
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно
-
+            
             // @todo вынести это в константы
             double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
             //double viewAngle = AstronomyMath.ToRad(5); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
-            
-            
+                        
             double Max_SOEN_anlge = requests[0].Max_SOEN_anlge;
             foreach (var req in requests)
             {
@@ -80,12 +77,12 @@ namespace SatelliteSessions
             double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
 
-            //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
-            for (double rollAngle = min_roll_angle + angleStep; rollAngle <= max_roll_angle; rollAngle += angleStep)
+            for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
+            //for (double rollAngle = min_roll_angle + angleStep; rollAngle <= max_roll_angle; rollAngle += angleStep)
             {
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
                 SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
-
+                continue;
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -108,76 +105,76 @@ namespace SatelliteSessions
                     conf.rollAngle = rollAngle; 
 
                   
-                 ///// лучше куда-то вынести ////
-                    double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
-                    foreach (var req in conf.orders)
-                    {
-                        if (req.request.Max_SOEN_anlge < maxAngle)
-                            maxAngle = req.request.Max_SOEN_anlge;
-                    }
-
-                    double maxPitchAngle = Math.Abs(maxAngle) - Math.Abs(rollAngle);
-                    if (0 == maxPitchAngle)
-                    {
-                        conf.timeDelta = 0;
-                    }
-                    else
-                    {
-                        Vector3D rollDirVect = LanePos.getDirectionVector(pointFrom, rollAngle, 0);
-                        Vector3D rollPoint = Routines.SphereVectIntersect(rollDirVect, pointFrom.Position, Astronomy.Constants.EarthRadius);
-                        Vector3D pitchRollDirVect = LanePos.getDirectionVector(pointFrom, rollAngle, maxPitchAngle);                        
-                        Vector3D PitchRollPoint = Routines.SphereVectIntersect(pitchRollDirVect, pointFrom.Position, Astronomy.Constants.EarthRadius);
-                        rollPoint.Normalize();
-                        PitchRollPoint.Normalize();
-                        // расстояние в километрах между точкой c нулевым тангажом и точкой, полученной при максимальном угле тангажа
-                        double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
-                        // время, за которое спутник преодалевает dist по поверхности земли.
-                        conf.timeDelta = dist / pointFrom.Velocity.Length;
-                    }
-                    int pitchStep = OptimalChain.Constants.pitchStep;
-                    conf.pitchArray[0] = 0;
-
-                    Vector3D dirRollVect = LanePos.getDirectionVector(pointFrom, rollAngle, 0);
-                    Vector3D dirRollPoint = Routines.SphereVectIntersect(dirRollVect, pointFrom.Position, Astronomy.Constants.EarthRadius);
-                    for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
-                    {
-                        double pitch = AstronomyMath.ToRad(pitch_degr);
-                        Vector3D dirPitchVect = LanePos.getDirectionVector(pointFrom, rollAngle, pitch);
-                        Vector3D dirPitchPoint = Routines.SphereVectIntersect(dirPitchVect, pointFrom.Position, Astronomy.Constants.EarthRadius);
-                        double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
-                        double t = distOverSurf / pointFrom.Velocity.Length;
-                        conf.pitchArray[pitch] = t; 
-                    } 
-                  ///////////                                        
+                   ///// лучше куда-то вынести ////
+                    calculatePitchArrays(conf, rollAngle, pointFrom);
+                  ///////////
                 }
                 captureConfs.AddRange(laneCaptureConfs);
             }
-             
+            
+            return new List<StaticConf>();
+
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
-            {
                 captureConfs[ci].id = ci;
-            }
-             
-
+            
             //var rnd = new Random();
             //var result = captureConfs.OrderBy(item => rnd.Next());
             //captureConfs = result.ToList<CaptureConf>();
 
-            var cconfss = new List<StaticConf>();
-            foreach (var cc in captureConfs)
-            {
-                var stc = new StaticConf(cc.id, cc.dateFrom, cc.dateTo, cc.timeDelta, cc.rollAngle, cc.square, cc.orders, cc.wktPolygon);
-                cconfss.Add(stc);
-            }
-            return cconfss;
+            //var cconfss = new List<StaticConf>();
+            //foreach (var cc in captureConfs)
+            //{
+            //    var stc = new StaticConf(cc.id, cc.dateFrom, cc.dateTo, cc.timeDelta, cc.rollAngle, cc.square, cc.orders, cc.wktPolygon);
+            //    cconfss.Add(stc);
+            //}
+            //return cconfss;
 
             //DateTime myDate = DateTime.Parse(dateString);
             Graph g = new Graph(captureConfs);
             List<StaticConf> optimalChain = g.findOptimalChain();
             return optimalChain;
         }
- 
+
+        private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
+        {
+            double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
+            foreach (var req in conf.orders)
+            {
+                if (req.request.Max_SOEN_anlge < maxAngle)
+                    maxAngle = req.request.Max_SOEN_anlge;
+            }
+
+            double maxPitchAngle = Math.Abs(maxAngle) - Math.Abs(rollAngle);
+            if (0 == maxPitchAngle)
+            {
+                conf.timeDelta = 0;
+            }
+            else
+            {
+                Vector3D rollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
+                Vector3D PitchRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, maxPitchAngle);
+                rollPoint.Normalize();
+                PitchRollPoint.Normalize();
+                // расстояние в километрах между точкой c нулевым тангажом и точкой, полученной при максимальном угле тангажа
+                double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
+                // время, за которое спутник преодалевает dist по поверхности земли.
+                conf.timeDelta = dist / pointFrom.Velocity.Length;
+            }
+            int pitchStep = OptimalChain.Constants.pitchStep;
+            conf.pitchArray[0] = 0;
+
+            Vector3D dirRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
+            for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
+            {
+                double pitch = AstronomyMath.ToRad(pitch_degr);
+                Vector3D dirPitchPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, pitch);
+                double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
+                double t = distOverSurf / pointFrom.Velocity.Length;
+                conf.pitchArray[pitch] = t;
+            } 
+        }
+
         private static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
         {
             CaptureConf newConf = new CaptureConf();
