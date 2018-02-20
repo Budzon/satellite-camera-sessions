@@ -58,10 +58,6 @@
       <Project>{66f7848e-f105-4a6c-9941-3ff44ee9b9d7}</Project>
       <Name>SphericalGeom</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\SqlManager\Dios.SqlManager.csproj">
-      <Project>{a290357f-46a1-48c1-888d-307cb3183782}</Project>
-      <Name>Dios.SqlManager</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Astronomy\Astronomy.csproj">
       <Project>{e7852796-4f76-4c51-8974-e4b55254316e}</Project>
       <Name>Astronomy</Name>

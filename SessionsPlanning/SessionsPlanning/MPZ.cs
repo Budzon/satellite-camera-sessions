@@ -30,9 +30,9 @@ namespace SatelliteSessions
 
     class HeaderMPZ
     {
-        public static const int NKA = 2;
-        public static const TimeSpan TON_DELTA = new TimeSpan(0, 2, 30);
-        public static const TimeSpan TTASK_MAX = new TimeSpan(0, 23, 20);
+        public const int NKA = 2;
+        public static TimeSpan TON_DELTA = new TimeSpan(0, 2, 30);
+        public static TimeSpan TTASK_MAX = new TimeSpan(0, 23, 20);
 
         public int NPZ { get; set; } // 24 bit
         public int Nka { get; set; } // 4 bit

@@ -170,7 +170,7 @@ namespace SatelliteSessions
             }             
         }
         
-    } 
+    }
 
     public class SessionServices
     {
@@ -214,7 +214,7 @@ namespace SatelliteSessions
             List<LanePos> lane = new List<LanePos>();
             foreach (var row in satPositionTable.Select())
                 lane.Add(CoverageTable.GetLanePos(row));
-            
+
             var sunPositions = sunPositionTable.Select();
             int sunPositionsCount = sunPositions.Count();
             int curSunPositionIndex = 0;
@@ -246,10 +246,10 @@ namespace SatelliteSessions
                     }
                     else
                     {
-                        res.Add(new wktPolygonLit 
+                        res.Add(new wktPolygonLit
                         {
                             wktPolygon = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).ToWtk(),
-                            Lit = onLitStreak 
+                            Lit = onLitStreak
                         });
                         streakBegin = -1;
                     }
@@ -272,7 +272,7 @@ namespace SatelliteSessions
                         res.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), Lit = true });
                     foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
                         res.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), Lit = false });
-                }                
+                }
             }
 
             return res;
