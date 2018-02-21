@@ -9,6 +9,8 @@ namespace OptimalChain
     public class StaticConf
     {
         public int id;
+
+        public int type { get; set; }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
 
@@ -30,7 +32,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int T = 0)
         {
             id = i;
             dateFrom = d1;
@@ -41,9 +43,10 @@ namespace OptimalChain
             square = s;
             orders = o;
             wktPolygon = polygon;
+            type = T;
         }
 
-         public double reConfigureMilisecinds(StaticConf s2)
+        public double reConfigureMilisecinds(StaticConf s2)
         {
             double a1 = this.roll;
             double b1 = this.pitch;
@@ -73,8 +76,9 @@ namespace OptimalChain
 
         public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа
 
-        public double rollAngle { get; set; } //крен для съемки в надир        
-        public double square { get; set; } //площадь полосы
+        public double rollAngle { get; set; }//крен для съемки в надир
+
+        public double square { get; set; }//площадь полосы
         public string wktPolygon { get; set; }
         public List<Order> orders { get; set; }
 
@@ -89,7 +93,7 @@ namespace OptimalChain
         /// <param name="pA">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
         /// <param name="s">площадь полосы</param>
         /// <param name="o">список заказов</param>
-        public CaptureConf(int T, DateTime d1, DateTime d2, double delta, double r,  Dictionary<double, double> pA, double s, List<Order> o)
+        public CaptureConf( DateTime d1, DateTime d2, double delta, double r,  Dictionary<double, double> pA, double s, List<Order> o,int T=0)
         {
             id = -1;
             dateFrom = d1;
@@ -113,18 +117,20 @@ namespace OptimalChain
 
         public StaticConf DefaultStaticConf()
         {
-            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon);
+            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, type);
         }
-        public StaticConf CreateStaticConf(int delta)
+
+
+
+        public StaticConf CreateStaticConf(int delta, int sign)
         {
             try{
-                double abs_t = pitchArray[delta];
-                double r = Math.Sign(rollAngle) * (Math.Abs(rollAngle) - Constants.earthRotSpeed * Math.Abs(delta));
-                double t = -Math.Sign(delta) * pitchArray[abs_t];
-                DateTime d1 = dateFrom.AddSeconds(delta);
-                DateTime d2 = dateTo.AddSeconds(delta);
+                double r = rollAngle;
+                double t = 0.750491578357562;
+                DateTime d1 = dateFrom.AddSeconds(delta*sign);
+                DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, t, r, square, orders, wktPolygon);
+                return new StaticConf(id, d1, d2, t, r, square, orders, wktPolygon, type);
             }
             catch{
                 return null;
