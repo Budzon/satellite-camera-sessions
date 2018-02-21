@@ -27,6 +27,7 @@ namespace GUI
     {
         public TransformMatrix m_transformMatrix = new TransformMatrix();
         public int m_nChartModelIndex = -1;
+      //  public Ellipse3D Terra;
         public EllipseRegion3D Terra;
         private ViewModel.EarthSatelliteViewModel vm;
 
@@ -35,8 +36,8 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            //Terra = new Ellipse3D(1, 1, 1, 3000);            
-            Terra = new EllipseRegion3D(1, 1, 1, 25, 800);
+             //Terra = new Ellipse3D(1, 1, 1, 400);            
+            Terra = new EllipseRegion3D(1, 1, 1, 5, 350);
             PlotSphere(null, null);
         }
 
@@ -77,7 +78,7 @@ namespace GUI
 
         public void PlotSphere(object sender, RoutedEventArgs e)
         {
-
+            Random rnd = new Random();
             var nData = Terra.GetVertexNo();
             //for (int i = 0; i < nData; ++i)
             //{
@@ -96,17 +97,101 @@ namespace GUI
                 //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
                 //}
                 //else 
-                if (vm.PointInCamera(p.X, p.Y, p.Z))
+
+                //   if (vm.Requests.Count > 0 && vm.PointInRegion(p.X, p.Y, p.Z) && vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                //    {
+                //        Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 1.0f, 1.0f));
+                //    } 
+                //    else
+
+                /*
+                if (vm.pol1 != null)
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
+                    
+                    if (vm.pol2.Contains(new Vector3D(p.X, p.Y, p.Z)))
+                    {
+                        Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
+                    }
+                    else if (vm.pol3.Contains(new Vector3D(p.X, p.Y, p.Z)))
+                    {
+                        Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 2.0f, 0.0f));
+                    }
+                    else if (vm.pol1.Contains(new Vector3D(p.X, p.Y, p.Z)))
+                    {
+                        Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                    }
+                    else
+                        Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
                 }
-                else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                continue;
+                */
+                
+			 
+                bool flag = false;
+                int pol_ind = 0;
+                for (int pi = 0 ; pi < vm.polygons.Count; pi++)
+                {
+                    var pol = vm.polygons[pi];
+                    if (pol.Contains(new Vector3D(p.X, p.Y, p.Z)))
+                    {
+                        flag = true;
+                        pol_ind = pi;
+                        break;
+                    }
+                }
+
+                float polColor = (float)(pol_ind+1) / vm.polygons.Count;
+
+
+
+                bool capFlag = false;
+                int captInd = 0;
+
+                Vector3D v = new Vector3D(p.X, p.Y, p.Z);
+                for (int ci = 0; ci < vm.captureIntervals.Count; ci++)
+                {
+                    var pol = vm.captureIntervals[ci];
+                    if (pol.Contains(v))
+                    {
+                        capFlag = true;
+                        captInd = ci;
+                    }
+                }
+                float capColor = (float)(captInd + 1) / vm.captureIntervals.Count;
+
+                 
+                 
+                if (capFlag)
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, capColor, (float)(1 - capColor)));
+                }
+                else 
+                if (flag)
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, polColor, (float)(1 - polColor), 0.0f));
+                }
+                //else if (vm.PointInLane(p.X, p.Y, p.Z))
+                //{
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                //}
+                else
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+
+                continue;
+                 
+
+
+                if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 }
                 else if (vm.Requests.Count > 0 && vm.PointInRegion(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
+                }
+                else if (vm.PointInLane(p.X, p.Y, p.Z))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
                 }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
@@ -119,7 +204,7 @@ namespace GUI
 
             float viewRange = 2;
             m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
-        }
+        } 
 
         public void PlotSquares(object sender, RoutedEventArgs e)
         {
