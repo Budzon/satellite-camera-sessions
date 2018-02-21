@@ -234,6 +234,33 @@ namespace SphericalGeom
             //}
             //return f((left + right) / 2);
         }
+
+        /// <summary>
+        /// just get crossings point of line (by point and vector) and sphere (radius R with the center (0,0,0) )
+        /// </summary>
+        /// <param name="vect"> directing vector</param>
+        /// <param name="point"> initial point </param>
+        /// <param name="R"> sphere radius</param>
+        /// <returns></returns>
+        public static Vector3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
+        {
+            Vector3D dilatedPoint = new Vector3D(point.X / R, point.Y / R, point.Z / R);
+            List<Vector3D> intersection = Routines.IntersectLineUnitSphere(dilatedPoint, vect);
+
+            /// Possible optimization:
+            /// If point is outside of the sphere and vect is directed towards it, then the answer is always intersection[0].
+            Vector3D closest;
+            if (intersection.Count == 2)
+                closest = ((intersection[0] - dilatedPoint).Length < (intersection[1] - dilatedPoint).Length)
+                    ? intersection[0] : intersection[1];
+            else if (intersection.Count == 1)
+                closest = intersection[0];
+            else
+                throw new ArgumentException("Line and sphere do not intersect.");
+
+            return closest * R;
+        }
+
         public static double FindMin(FuncDoubleToDouble f, double left, double right)
         {
             double minf = f(left);

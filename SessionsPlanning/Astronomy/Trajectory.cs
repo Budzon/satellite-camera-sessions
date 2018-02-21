@@ -170,6 +170,13 @@ namespace Astronomy
             return GetPosition(t, i);
         }
 
+
+        public TrajectoryPoint GetPoint(DateTime t)
+        {
+            int i = GetNearestGE(t);
+            return new TrajectoryPoint(t, GetPosition(t, i), GetVelocity(t, i));
+        }
+
         /// <summary>
         /// Point with time "t" is between indexNext-1 and indexNext.
         /// </summary>

@@ -112,13 +112,13 @@ namespace TrajectoryTest
                         DateTime calc_time = new DateTime();
                         foreach (var sector in lane.Sectors)
                         {
-                            if (sector.fromDT <= ctrl_point.time && ctrl_point.time <= sector.toDT)
+                            if (sector.fromDT <= ctrl_point.Time && ctrl_point.Time <= sector.toDT)
                             {
                                 calc_time = sector.getPointTime(point);
                             }
                         }
 
-                        double diff_msecs = (ctrl_point.time - calc_time).TotalMilliseconds;
+                        double diff_msecs = (ctrl_point.Time - calc_time).TotalMilliseconds;
                         //  Console.WriteLine("diff_msecs = {0}", diff_msecs);
                         if (maxError < diff_msecs)
                             maxError = diff_msecs;
