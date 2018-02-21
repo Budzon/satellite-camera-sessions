@@ -26,7 +26,7 @@ namespace SatelliteTrajectory
         private double rollAngle;
         private double viewAngle;
  
-        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle, int readStep = 1, int polygonStep = 15)
+        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle, int polygonStep = 15)
         {
             trajectory = _trajectory;
             rollAngle = _rollAngle;
@@ -34,67 +34,58 @@ namespace SatelliteTrajectory
 
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
-
-            List<LanePos> lanePoints = new List<LanePos>();
+             
             var points = trajectory.Points;
             var count = trajectory.Count;
 
-           // /DateTime TEMP___from = DateTime.Parse("12.03.2015 8:14:00");
-           //  DateTime TEMP___to = DateTime.Parse("12.03.2015 8:30:00");
-
-            for (int p_ind = 0; p_ind < count; p_ind += readStep)
-            {
-                //if (points[p_ind].Time < TEMP___from || TEMP___to < points[p_ind].Time)
-                //{
-                //    continue;
-                //} 
-
-                LanePos newLanePos = new LanePos(points[p_ind], viewAngle, rollAngle);
-                lanePoints.Add(newLanePos);
-            }
-            createPolygons(minAngle, maxAngle, lanePoints, polygonStep);
+            createPolygons(minAngle, maxAngle, polygonStep);
         }
 
         
-        private void createPolygons(double minAngle, double maxAngle, List<LanePos> points, int polygonStep)
+        private void createPolygons(double minAngle, double maxAngle, int polygonStep)
         {
-            Sectors = new List<LaneSector>(); 
-
+            Sectors = new List<LaneSector>();
+             
             List<Vector3D> leftLanePoints = new List<Vector3D>();
             List<Vector3D> rightLanePoints = new List<Vector3D>();
 
             List<Vector3D> leftControlPoints = new List<Vector3D>();
             List<Vector3D> rightControlPoints = new List<Vector3D>();
 
-            if (points.Count == 0)
+            if (trajectory.Count == 0)
                 return;
 
-            double width = (points[0].LeftCartPoint - points[0].RightCartPoint).Length / 2;
+            TrajectoryPoint[] points = trajectory.Points;
+            int points_count = trajectory.Count;
 
-            DateTime sectorFromDT = points[0].Time;
+            LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle);
+            //double width = (firstPos.LeftCartPoint - firstPos.RightCartPoint).Length / 2;
+
+            DateTime sectorFromDT = firstPos.Time;
             DateTime sectorToDT;
             List<LanePos> sectorPoints = new List<LanePos>();
 
-            GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(points[0].LeftCartPoint.ToPoint());
+            GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(firstPos.LeftCartPoint.ToPoint());
 
-            for (int p_ind = 0; p_ind < points.Count; p_ind++)
+            for (int p_ind = 0; p_ind < points_count ; p_ind++)
             {
-                sectorPoints.Add(points[p_ind]);
+                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle); 
+                sectorPoints.Add(pos);
 
                 if (p_ind == 0)
                 {
-                    leftLanePoints.Add(points[p_ind].LeftCartPoint);
-                    rightLanePoints.Add(points[p_ind].RightCartPoint);
+                    leftLanePoints.Add(pos.LeftCartPoint);
+                    rightLanePoints.Add(pos.RightCartPoint);
 
-                    leftControlPoints.Add(points[p_ind].leftControlPoint);
-                    rightControlPoints.Add(points[p_ind].rightControlPoint);
+                    leftControlPoints.Add(pos.LeftControlPoint);
+                    rightControlPoints.Add(pos.RightControlPoint);
                     continue;
                 }
 
-                GeoPoint point = GeoPoint.FromCartesian(points[p_ind].LeftCartPoint);
+                GeoPoint point = GeoPoint.FromCartesian(pos.LeftCartPoint);
                 bool needNewSector = false;
 
-                if (p_ind == points.Count - 1)
+                if (p_ind == points_count - 1)
                 {
                     needNewSector = true;
                 }
@@ -108,11 +99,11 @@ namespace SatelliteTrajectory
 
                 if (p_ind % polygonStep == 0 || needNewSector)
                 {
-                    leftLanePoints.Add(points[p_ind].LeftCartPoint);
-                    rightLanePoints.Add(points[p_ind].RightCartPoint);
+                    leftLanePoints.Add(pos.LeftCartPoint);
+                    rightLanePoints.Add(pos.RightCartPoint);
 
-                    leftControlPoints.Add(points[p_ind].leftControlPoint);
-                    rightControlPoints.Add(points[p_ind].rightControlPoint);
+                    leftControlPoints.Add(pos.LeftControlPoint);
+                    rightControlPoints.Add(pos.RightControlPoint);
                 }
 
                 if (needNewSector)
@@ -128,15 +119,15 @@ namespace SatelliteTrajectory
 
                     sectorToDT = points[p_ind].Time;
                     Polygon pol = new Polygon(leftLanePoints, leftControlPoints);
-                    //var testpol = new Polygon(pol.ToWtk());                    
+                    //var testpol = new Polygon(pol.ToWtk());
                     LaneSector newSector = new LaneSector();
                     newSector.polygon = pol;
                     newSector.fromDT = sectorFromDT;
                     newSector.toDT = sectorToDT;
-                    newSector.sectorPoints = new List<LanePos>(sectorPoints);
+                    newSector.sectorPoints = sectorPoints;
                     Sectors.Add(newSector);
 
-                    sectorPoints.Clear();
+                    sectorPoints = new List<LanePos>();//.Clear();
 
                     rightLanePoints.Clear();
                     leftLanePoints.Clear();
@@ -144,17 +135,16 @@ namespace SatelliteTrajectory
                     leftControlPoints.Clear();
                     rightControlPoints.Clear();
 
-                    sectorPoints.Add(points[p_ind]);
+                    sectorPoints.Add(pos);
 
-                    leftLanePoints.Add(points[p_ind].LeftCartPoint);
-                    rightLanePoints.Add(points[p_ind].RightCartPoint);
+                    leftLanePoints.Add(pos.LeftCartPoint);
+                    rightLanePoints.Add(pos.RightCartPoint);
 
-                    leftControlPoints.Add(points[p_ind].leftControlPoint);
-                    rightControlPoints.Add(points[p_ind].rightControlPoint);
+                    leftControlPoints.Add(pos.LeftControlPoint);
+                    rightControlPoints.Add(pos.RightControlPoint);
 
                     sectorFromDT = sectorToDT;
                     prevPoint = point;
-
                     // break; ////
                 }
             }
@@ -398,8 +388,10 @@ namespace SatelliteTrajectory
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
         private Vector3D middleCartPoint;
-        public Vector3D leftControlPoint;
-        public Vector3D rightControlPoint;
+        private Vector3D leftControlPoint;
+        private Vector3D rightControlPoint;
+        private bool knowLeftConrol;
+        private bool knowRightConrol;
 
         private GeoPoint leftGeoPoint;
         private GeoPoint rightGeoPoint;
@@ -421,7 +413,6 @@ namespace SatelliteTrajectory
             Vector3D pitchRotDir = pitchTransfrom.Transform(dirVect); 
             return pitchRotDir;
         }
-
 
         public static Vector3D applyRollRotation(TrajectoryPoint point, Vector3D dirVect, double rollAngle)
         {
@@ -457,8 +448,7 @@ namespace SatelliteTrajectory
         }
 
         public LanePos(TrajectoryPoint pointKA, double viewAngle, double rollAngle)
-        {
-            
+        {            
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
             
@@ -466,7 +456,7 @@ namespace SatelliteTrajectory
             
             RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(pointKA.Velocity, AstronomyMath.ToDegrees(minAngle)));
             RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(pointKA.Velocity, AstronomyMath.ToDegrees(maxAngle)));
-           // return;
+           
             Vector3D leftVector = leftTransform.Transform(eDirVect);
             Vector3D rightVector = rightTransform.Transform(eDirVect);
 
@@ -517,8 +507,10 @@ namespace SatelliteTrajectory
             // leftControlPoint = leftCartPoint - middleCartPoint;
             // rightControlPoint = rightCartPoint - middleCartPoint;
 
-            leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
-            rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
+            //leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
+            //rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
+            knowLeftConrol = false;
+            knowRightConrol = false;
         }
          
         private Vector3D getControlPoint(Vector3D middlePoint, Vector3D sidePoint)
@@ -530,6 +522,36 @@ namespace SatelliteTrajectory
             controlPoint.Normalize();
             controlPoint = controlPoint * lenth;
             return controlPoint;
+        }
+
+        public Vector3D LeftControlPoint
+        {
+            get
+            {
+                if (knowLeftConrol)
+                    return leftControlPoint;
+                else
+                {                   
+                    leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
+                    knowLeftConrol = true;
+                    return leftControlPoint;
+                }
+            }
+        }
+
+        public Vector3D RightControlPoint
+        {
+            get
+            {
+                if (knowRightConrol)
+                    return rightControlPoint;
+                else
+                {                    
+                    rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
+                    knowRightConrol = true;
+                    return rightControlPoint;
+                }
+            }
         }
 
         public TrajectoryPoint TrajPoint{ get{ return trajPoint; } }
