@@ -21,9 +21,9 @@ namespace SatelliteSessions
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно            
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle; // Math.PI / 2;  
-            SatLane viewLane = new SatLane (trajectory, 0, viewAngle);
+            SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
             List<CaptureConf> confs = viewLane.getCaptureConfs(request);
-            
+
             double summ = 0;
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in confs)
@@ -52,21 +52,21 @@ namespace SatelliteSessions
             return (summ >= request.minCoverPerc);
         }
 
-        public static IList<StaticConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
-        {             
+        public static List<CaptureConf> getCaptureConfs(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
+        {
             if (requests.Count == 0)
                 throw new ArgumentException("Requests array is empty!");
-             
+
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно
-            
+
             // @todo вынести это в константы
             double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
             //double viewAngle = AstronomyMath.ToRad(5); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
-                        
+
             double Max_SOEN_anlge = requests[0].Max_SOEN_anlge;
             foreach (var req in requests)
             {
@@ -77,12 +77,15 @@ namespace SatelliteSessions
             double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
 
-            for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
             //for (double rollAngle = min_roll_angle + angleStep; rollAngle <= max_roll_angle; rollAngle += angleStep)
+
+            int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
+            //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
+            Parallel.For(0, num_steps, index =>
             {
+                double rollAngle = min_roll_angle + index * angleStep;
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
                 SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
-                continue;
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -102,21 +105,18 @@ namespace SatelliteSessions
 
                     conf.wktPolygon = pol.ToWtk();
                     conf.square = pol.Area;
-                    conf.rollAngle = rollAngle; 
+                    conf.rollAngle = rollAngle;
 
-                  
-                   ///// лучше куда-то вынести ////
                     calculatePitchArrays(conf, rollAngle, pointFrom);
-                  ///////////
                 }
                 captureConfs.AddRange(laneCaptureConfs);
             }
-            
-            return new List<StaticConf>();
-
+            );
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
                 captureConfs[ci].id = ci;
+
+            return captureConfs;
             
             //var rnd = new Random();
             //var result = captureConfs.OrderBy(item => rnd.Next());
@@ -130,10 +130,17 @@ namespace SatelliteSessions
             //}
             //return cconfss;
 
-            //DateTime myDate = DateTime.Parse(dateString);
+        }
+        public static IList<MPZ> getMPZArray(List<CaptureConf> captureConfs)
+        {
             Graph g = new Graph(captureConfs);
-            List<StaticConf> optimalChain = g.findOptimalChain();
+            List<MPZ> optimalChain = g.findOptimalChain();// .findOptimalChain();
             return optimalChain;
+        }
+        public static IList<MPZ> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
+        {
+            List<CaptureConf> captureConfs = getCaptureConfs(requests, data_begin, data_end);
+            return getMPZArray(captureConfs);            
         }
 
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
@@ -172,7 +179,7 @@ namespace SatelliteSessions
                 double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
                 double t = distOverSurf / pointFrom.Velocity.Length;
                 conf.pitchArray[pitch] = t;
-            } 
+            }
         }
 
         private static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
@@ -201,7 +208,7 @@ namespace SatelliteSessions
                     }                    
                 }
             }*/
-                       
+
             return newConf;
         }
 
@@ -209,14 +216,14 @@ namespace SatelliteSessions
         {
             /// @todo добавить минимально допустимое расстояние (по времени)
             return ((c1.dateFrom <= c2.dateTo && c2.dateTo <= c1.dateTo) || (c1.dateFrom <= c2.dateFrom && c2.dateFrom <= c1.dateTo)
-                  ||(c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
+                  || (c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
         }
 
         private static void compressCConfArray(ref List<CaptureConf> confs)
         {
             for (int i = 0; i < confs.Count; i++)
             {
-                for (int j = i+1; j < confs.Count; j++)
+                for (int j = i + 1; j < confs.Count; j++)
                 {
                     if (isNeedUnit(confs[i], confs[j]))
                     {
@@ -241,7 +248,7 @@ namespace SatelliteSessions
                         confs2.RemoveAt(j);
                     }
                 }
-            }             
-        }        
-    } 
+            }
+        }
+    }
 }
