@@ -7,15 +7,15 @@ using System.Windows.Media.Media3D;
 
 namespace SphericalGeom
 {
-    public class ArcChain
+    internal class ArcChain
     {
         // The n-th apex corresponds to the (n, n+1) arc.
         // len(vertices) - len(apexes) == 1
         protected List<Vector3D> apexes;
         protected List<Vector3D> vertices;
 
-        public IList<Vector3D> Apexes { get { return apexes; } }
-        public IList<Vector3D> Vertices { get { return vertices; } }
+        public List<Vector3D> Apexes { get { return apexes; } }
+        public List<Vector3D> Vertices { get { return vertices; } }
         public ICollection<Arc> Arcs
         {
             get
@@ -32,25 +32,25 @@ namespace SphericalGeom
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
         }
-        public ArcChain(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes) : this()
+        public ArcChain(IList<Vector3D> vertices, IList<Vector3D> apexes) : this()
         {
             if (vertices.Count - apexes.Count != 1)
                 throw new ArgumentException("Number of points and arcs is incosistent.");
 
-            foreach (var point_apex in vertices.Zip(apexes, (point, apex) => Tuple.Create(point, apex)))
+            for (int i = 0; i < vertices.Count; ++i)
             {
-                this.vertices.Add(point_apex.Item1);
-                this.apexes.Add(point_apex.Item2);
+                this.vertices.Add(vertices[i]);
+                this.apexes.Add(apexes[i]);
             }
         }
-        public ArcChain(IEnumerable<Vector3D> vertices, Vector3D apex) : this()
+        public ArcChain(IList<Vector3D> vertices, Vector3D apex) : this()
         {
-            foreach (var point in vertices)
+            for (int i = 0; i < vertices.Count - 1; ++i)
             {
                 this.apexes.Add(apex);
-                this.vertices.Add(point);
+                this.vertices.Add(vertices[i]);
             }
-            apexes.RemoveAt(apexes.Count - 1);
+            this.vertices.Add(vertices[vertices.Count - 1]);
         }
 
         public void Add(Vector3D point, Vector3D apex)
@@ -79,14 +79,14 @@ namespace SphericalGeom
         }
     }
 
-    public class ArcChainWithLabels<T> : ArcChain
+    internal class ArcChainWithLabels<T> : ArcChain
     {
         private List<T> labels;
 
-        public IList<T> Labels { get { return labels; } }
+        public List<T> Labels { get { return labels; } }
 
-        public ArcChainWithLabels(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes,
-                                  ICollection<T> labels) : base(vertices, apexes)
+        public ArcChainWithLabels(IList<Vector3D> vertices, IList<Vector3D> apexes,
+                                  IList<T> labels) : base(vertices, apexes)
         {
             if (labels.Count != vertices.Count)
                 throw new ArgumentException("Number of points and labels is incosistent.");
@@ -95,8 +95,8 @@ namespace SphericalGeom
             foreach (T label in labels)
                 this.labels.Add(label);
         }
-        public ArcChainWithLabels(ICollection<Vector3D> vertices, Vector3D apex,
-                                  ICollection<T> labels) : base(vertices, apex)
+        public ArcChainWithLabels(IList<Vector3D> vertices, Vector3D apex,
+                                  IList<T> labels) : base(vertices, apex)
         {
             if (labels.Count != vertices.Count)
                 throw new ArgumentException("Number of points and labels is incosistent.");
@@ -110,8 +110,8 @@ namespace SphericalGeom
             if (chain.Vertices.Count != labels.Count)
                 throw new ArgumentException("Number of points and labels is incosistent.");
 
-            base.apexes = chain.Apexes.ToList();
-            base.vertices = chain.Vertices.ToList();
+            base.apexes = chain.Apexes;
+            base.vertices = chain.Vertices;
 
             this.labels = new List<T>();
             foreach (T label in labels)

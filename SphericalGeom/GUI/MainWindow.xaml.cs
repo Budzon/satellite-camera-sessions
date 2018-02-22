@@ -27,7 +27,8 @@ namespace GUI
     {
         public TransformMatrix m_transformMatrix = new TransformMatrix();
         public int m_nChartModelIndex = -1;
-        public Ellipse3D Terra;
+      //  public Ellipse3D Terra;
+        public EllipseRegion3D Terra;
         private ViewModel.EarthSatelliteViewModel vm;
 
         public MainWindow()
@@ -35,7 +36,8 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-            Terra = new Ellipse3D(1, 1, 1, 100);            
+           // Terra = new Ellipse3D(1, 1, 1, 200);            
+            Terra = new EllipseRegion3D(1, 1, 1, 5, 150);
             PlotSphere(null, null);
         }
 
@@ -76,16 +78,22 @@ namespace GUI
 
         public void PlotSphere(object sender, RoutedEventArgs e)
         {
+            //Random rnd = new Random();
+            int nData = Terra.GetVertexNo();
 
-            var nData = Terra.GetVertexNo();
+            //for (int i = 0; i < nData; ++i)
+            //{
+            //    var p = Terra.GetPoint(i);
+            //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            //}
+ 
+            // Parallel.For(0, nData, i =>
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
-                if (vm.Requests.Count > 0 && vm.PointInIntersection(p.X, p.Y, p.Z))
-                {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
-                }
-                else if (vm.Requests.Count > 0 && vm.PointInDifference(p.X, p.Y, p.Z))
+
+
+                if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
                 }
@@ -97,17 +105,15 @@ namespace GUI
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
                 }
-                else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
-                {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
-                }
                 else if (vm.PointInLane(p.X, p.Y, p.Z))
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
-                }  
+                }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+
             }
+           // );
 
             ArrayList meshs = new ArrayList { Terra };
 
@@ -116,12 +122,17 @@ namespace GUI
 
             float viewRange = 2;
             m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
-        }
+        } 
 
         public void PlotSquares(object sender, RoutedEventArgs e)
         {
 
             var nData = Terra.GetVertexNo();
+            //for (int i = 0; i < nData; ++i)
+            //{
+            //    var p = Terra.GetPoint(i);
+            //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
+            //}
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
@@ -158,8 +169,7 @@ namespace GUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            vm.CreateCaptureIntervals();
-            // PlotSphere(null, null);                      
+            vm.CreateCaptureIntervals();              
         }
 
         private void Button_isRequestFeasible(object sender, RoutedEventArgs e)
@@ -167,14 +177,13 @@ namespace GUI
             vm.test_isRequestFeasible();
         }
 
- 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
+        private void getCaptureConfArray_Click(object sender, RoutedEventArgs e)
         {
             vm.test_getCaptureConfArray();
         }
 
-       
-       
+ 
+         
     }
 
 }

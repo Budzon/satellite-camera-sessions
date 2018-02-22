@@ -13,6 +13,9 @@ namespace SphericalGeom
     {
         public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)
         {
+            if (latticeOrigin.X == 0 && latticeOrigin.Y == 0)
+                throw new ArgumentException("latticeOrigin is north pole, try perturbing it a little bit");
+
             var latticeFrame = new ReferenceFrame(
                    latticeOrigin,
                    new Vector3D(-latticeOrigin.Y, latticeOrigin.X, 0),
@@ -35,13 +38,19 @@ namespace SphericalGeom
             List<GeoRect> checkerboard = SliceIntoSquares(boundingBox, squareSide);
             List<Polygon> squares = new List<Polygon>();
             foreach (GeoRect square in checkerboard)
-                squares.AddRange(Polygon.IntersectAndSubtract(p, new Polygon(square)).Item1);
+                squares.AddRange(Polygon.Intersect(p, new Polygon(square)));
             squares.ForEach(square => square.FromThisFrame(pFrame));
             p.FromThisFrame(pFrame);
             return squares;
         }
 
-        // rect does not contain poles and does not cross the 180 meridian
+        /// <summary>
+        /// Break the rectangle into squares of size <paramref name="squareSide"/>,
+        /// assuming that it does not contain poles and does not cross the 180 meridian.
+        /// </summary>
+        /// <param name="rect"></param>
+        /// <param name="squareSide">Square side in degrees.</param>
+        /// <returns></returns>
         public static List<GeoRect> SliceIntoSquares(GeoRect rect, double squareSide)
         {
             List<GeoRect> checkerboard = new List<GeoRect>();
@@ -116,56 +125,14 @@ namespace SphericalGeom
             return new Polygon(result, apex);
         }
 
-        // Returns intersection points with their relative positions from a1 and a2
-        public static Dictionary<Tuple<double, double>, Vector3D> IntersectTwoSmallArcs(
-            Vector3D a1, Vector3D b1, Vector3D apex1,
-            Vector3D a2, Vector3D b2, Vector3D apex2)
-        {
-
-            var normal1 = Vector3D.CrossProduct(Comparison.IsSmaller(apex1.Length, 1) ? a1 - apex1 : apex1 - a1, 
-                                                b1 - apex1);
-            normal1.Normalize();
-            var center1 = Vector3D.DotProduct(a1, normal1) * normal1;
-            var normal2 = Vector3D.CrossProduct(Comparison.IsSmaller(apex2.Length, 1) ? a2 - apex2 : apex2 - a2, 
-                                                b2 - apex2);
-            normal2.Normalize();
-            var center2 = Vector3D.DotProduct(a2, normal2) * normal2;
-
-            // Intersect two planes
-            var directionVector = Vector3D.CrossProduct(normal1, normal2);
-            var pointOnIntersection = SolveSLE2x3(normal1,
-                                                      normal2,
-                                                      Vector3D.DotProduct(a1, normal1),
-                                                      Vector3D.DotProduct(a2, normal2));
-            List<Vector3D> intersectPlanesOnSphere = 
-                IntersectLineUnitSphere(pointOnIntersection, directionVector);
-            
-            // Check if these points lie on the given arcs, i.e. positive dot product with inner normals
-            List<Vector3D> innerNormals = new List<Vector3D> {
-                Vector3D.CrossProduct(normal1, a1 - center1),
-                Vector3D.CrossProduct(b1 - center1, normal1),
-                Vector3D.CrossProduct(normal2, a2 - center2),
-                Vector3D.CrossProduct(b2 - center2, normal2)
-            };
-            
-            return intersectPlanesOnSphere.
-                   Where(point => 
-                         innerNormals.TrueForAll(normal => 
-                                                 !Comparison.IsNegative(Vector3D.DotProduct(normal, point)))).
-                   ToDictionary(point => 
-                                Tuple.Create(1 - Vector3D.DotProduct(point, a1 - center1),
-                                             1 - Vector3D.DotProduct(point, a2 - center2)));
-        }
-
-        public static Dictionary<Tuple<double, double>, Vector3D> IntersectSmallArcGreatArc(
-            Vector3D smallA, Vector3D smallB, Vector3D smallApex,
-            Vector3D greatA, Vector3D greatB)
-        {
-            return IntersectTwoSmallArcs(
-                smallA, smallB, smallApex,
-                greatA, greatB, new Vector3D(0, 0, 0));
-        }
-
+        /// <summary>
+        /// Solve a 2 by 3 system of linear equations.
+        /// </summary>
+        /// <param name="a1">Matrix first row.</param>
+        /// <param name="a2">Matrix second row.</param>
+        /// <param name="b1">First right hand side.</param>
+        /// <param name="b2">Second right hand side.</param>
+        /// <returns></returns>
         public static Vector3D SolveSLE2x3(Vector3D a1, Vector3D a2, double b1, double b2)
         {
             double x, y, z;
@@ -188,8 +155,8 @@ namespace SphericalGeom
             else if (!Comparison.IsZero(detYZ))
             {
                 x = 0;
-                y = (b1 * a2.Z - b2 * a1.Z) / detXZ;
-                z = (b2 * a1.Y - b1 * a2.Y) / detXZ;
+                y = (b1 * a2.Z - b2 * a1.Z) / detYZ;
+                z = (b2 * a1.Y - b1 * a2.Y) / detYZ;
             }
             else
                 throw new System.ArgumentException("System is rank deficient.");
@@ -219,7 +186,10 @@ namespace SphericalGeom
             List<double> parameters = SolveQuadraticEquation(dir.LengthSquared, 
                                                              2 * Vector3D.DotProduct(a, dir), 
                                                              a.LengthSquared - 1);
-            return parameters.Select(t => a + t * dir).ToList();
+            List<Vector3D> intersection = new List<Vector3D>();
+            for (int i = 0; i < parameters.Count; ++i)
+                intersection.Add(a + parameters[i] * dir);
+            return intersection;
         }
 
         public delegate double FuncDoubleToDouble(double x);
@@ -227,7 +197,7 @@ namespace SphericalGeom
         public static double FindMax(FuncDoubleToDouble f, double left, double right)
         {
             double maxf = f(left);
-            double dx = 1e-2, x = dx;
+            double dx = 1e-2, x = left + dx;
             while (x < right)
             {
                 maxf = Math.Max(maxf, f(x));
@@ -264,10 +234,37 @@ namespace SphericalGeom
             //}
             //return f((left + right) / 2);
         }
+
+        /// <summary>
+        /// just get crossings point of line (by point and vector) and sphere (radius R with the center (0,0,0) )
+        /// </summary>
+        /// <param name="vect"> directing vector</param>
+        /// <param name="point"> initial point </param>
+        /// <param name="R"> sphere radius</param>
+        /// <returns></returns>
+        public static Vector3D SphereVectIntersect(Vector3D vect, Point3D point, double R)
+        {
+            Vector3D dilatedPoint = new Vector3D(point.X / R, point.Y / R, point.Z / R);
+            List<Vector3D> intersection = Routines.IntersectLineUnitSphere(dilatedPoint, vect);
+
+            /// Possible optimization:
+            /// If point is outside of the sphere and vect is directed towards it, then the answer is always intersection[0].
+            Vector3D closest;
+            if (intersection.Count == 2)
+                closest = ((intersection[0] - dilatedPoint).Length < (intersection[1] - dilatedPoint).Length)
+                    ? intersection[0] : intersection[1];
+            else if (intersection.Count == 1)
+                closest = intersection[0];
+            else
+                throw new ArgumentException("Line and sphere do not intersect.");
+
+            return closest * R;
+        }
+
         public static double FindMin(FuncDoubleToDouble f, double left, double right)
         {
             double minf = f(left);
-            double dx = 1e-2, x = dx;
+            double dx = 1e-2, x = left + dx;
             while (x < right)
             {
                 minf = Math.Min(minf, f(x));

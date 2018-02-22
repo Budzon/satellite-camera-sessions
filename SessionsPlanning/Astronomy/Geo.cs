@@ -303,6 +303,11 @@ namespace Common
             return Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon1));
         }
 
+        public static double DistanceOverSurface(Vector3D p1, Vector3D p2)
+        {
+            return DistanceOverSurface(GeoPoint.FromCartesian(p1), GeoPoint.FromCartesian(p2));
+        }
+
         public static bool operator ==(GeoPoint p1, GeoPoint p2)
         {
             return p1.Latitude == p2.Latitude && p1.Longitude == p2.Longitude;

@@ -13,64 +13,178 @@ namespace SphericalGeom
 {
     public class Polygon
     {
+        #region Polygon private fields
         // The n-th apex corresponds to the (n, n+1) arc (including (-1, 0)).
         // len(vertices) == len(apexes)
-        protected List<Vector3D> apexes;
-        protected List<Vector3D> vertices;
-        protected bool isCounterclockwise;
+        private List<Vector3D> apexes;
+        private List<Vector3D> vertices;
 
+        private static Random rand;
+
+        private bool knowArcs;
+        private List<Arc> arcs;
+
+        private bool knowWtk;
+        private string wtk;
+
+        private bool knowArea;
+        private double area;
+
+        private bool knowCounterclockwise;
+        private bool counterclockwise;
+
+        private bool knowMiddle;
+        private Vector3D middle;
+        #endregion
+
+        #region Polygon properties
+        /// <summary>
+        /// Whether has zero vertices.
+        /// </summary>
         public bool IsEmpty { get { return vertices.Count == 0; } }
-        public IEnumerable<Vector3D> Apexes { get { return apexes; } }
-        public IEnumerable<Vector3D> Vertices { get { return vertices; } }
-        public IList<Arc> Arcs
+        /// <summary>
+        /// Number of vertices (and apexes).
+        /// </summary>
+        public int Count { get { return vertices.Count; } }
+
+        public IList<Vector3D> Apexes { get { return apexes; } }
+        public IList<Vector3D> Vertices { get { return vertices; } }
+        public IList<Arc> Arcs 
         {
             get
             {
-                var arcs = new List<Arc>();
-                for (int i = 0; i < vertices.Count; ++i)
-                    arcs.Add(new Arc(vertices[i], vertices[(i + 1) % vertices.Count], apexes[i]));
+                if (!knowArcs)
+                {
+                    arcs.Clear();
+                    for (int i = 0; i < Count; ++i)
+                        arcs.Add(new Arc(vertices[i], vertices[(i + 1) % Count], apexes[i]));
+                    knowArcs = true;
+                }
                 return arcs;
+            }
+        }
+
+        public double Area
+        {
+            get
+            {
+                if (!knowArea)
+                {
+                    area = 0;
+                    if (Count > 2)
+                    {
+                        double ang;
+                        for (int i = 0; i < Count; ++i)
+                        {
+                            ang = RotationAngleWithNextArc(i);
+                            if (!IsCounterclockwise)
+                                ang *= -1;
+                            area += ang;
+                            if (IsCounterclockwise == arcs[i].Counterclockwise)
+                                area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                            else
+                                area -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                        }
+                        area = Math.Min(2 * Math.PI - area, 2 * Math.PI + area);
+                    }
+                    knowArea = true;
+                }
+                return area;
             }
         }
         public Vector3D Middle
         {
             get
             {
-                if (IsEmpty)
-                    throw new DivideByZeroException("Polygon is empty.");
-                return vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
+                if (!knowMiddle)
+                {
+                    if (IsEmpty)
+                        throw new DivideByZeroException("Polygon is empty.");
+
+                    middle = vertices.Aggregate((prev, cur) => prev + cur) / vertices.Count;
+                    middle.Normalize();
+                    knowMiddle = true;
+                }
+                return middle;
             }
         }
-        public bool IsCounterclockwise { get { return isCounterclockwise; } }
+        public bool IsCounterclockwise
+        {
+            get
+            {
+                if (!knowCounterclockwise)
+                {
+                    if (Count < 3)
+                        // Convention.
+                        counterclockwise = true;
+                    else
+                    {
+                        /// Pick a vertex.
+                        /// We want to choose a search direction and check, whether
+                        /// a semiarc from the vertex in the direction intersects the polygon's interior.
+                        /// Two distinct cases exist:
+                        /// 
+                        /// 1. If there is a nonzero rotation at the vertex,
+                        /// then take the angle's bisector.
+                        /// 2. If there is no rotation (i.e. curve is smooth at the vertex),
+                        /// we pick CrossProduct(tangent, normal).
+                        double exteriorAngle = RotationAngleWithNextArc(0);
 
+                        Vector3D dir;
+                        bool rotation = !Comparison.IsZero(exteriorAngle);
+                        if (rotation)
+                            dir = Arcs[1].TangentA - Arcs[0].TangentB;
+                        else
+                            dir = Vector3D.CrossProduct(Arcs[0].TangentB, vertices[1]);
+                        dir.Normalize();
+                        /// 1e-10 precision is more than enough for real Earth regions
+                        /// (corresponds to cm)
+                        double t = 1e-10;
+                        Vector3D pointInside = vertices[1] + t * dir;
+                        pointInside.Normalize();
+                        bool inside = Contains(pointInside);
+                        if (rotation)
+                            counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
+                        else
+                            counterclockwise = inside;
+                    }
+                    knowCounterclockwise = true;
+                }
+                return counterclockwise;
+            }
+        }
+        #endregion
+
+        #region Polygon constructors
         public Polygon()
         {
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
-            isCounterclockwise = false;
+            arcs = new List<Arc>();
+            rand = new Random();
+            knowWtk = false;
+            knowArea = false;
+            knowCounterclockwise = false;
+            knowMiddle = false;
         }
-        public Polygon(ICollection<Vector3D> vertices, ICollection<Vector3D> apexes)
+        public Polygon(IEnumerable<Vector3D> vertices, IEnumerable<Vector3D> apexes)
             : this()
         {
-            if (vertices.Count != apexes.Count)
-                throw new ArgumentException("Number of points and arcs is incosistent.");
+            foreach (Vector3D vertex in vertices)
+                this.vertices.Add(vertex);
+            foreach (Vector3D apex in apexes)
+                this.apexes.Add(apex);
 
-            foreach (var point_apex in vertices.Zip(apexes, (point, apex) => Tuple.Create(point, apex)))
-            {
-                this.vertices.Add(point_apex.Item1);
-                this.apexes.Add(point_apex.Item2);
-            }
-            isCounterclockwise = CheckIfCounterclockwise();
+            if (this.vertices.Count != this.apexes.Count)
+                throw new ArgumentException("Number of points and arcs is incosistent.");
         }
         public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex)
             : this()
         {
-            foreach (var point in vertices)
-            {
-                this.apexes.Add(apex);
-                this.vertices.Add(point);
-            }
-            isCounterclockwise = CheckIfCounterclockwise();
+            foreach (Vector3D vertex in vertices)
+                this.vertices.Add(vertex);
+            for (int i = 0; i < this.vertices.Count; ++i)
+                apexes.Add(apex);
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
@@ -78,6 +192,7 @@ namespace SphericalGeom
         public Polygon(string wtkPolygon)
             : this()
         {
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
             List<Vector3D> points = new List<Vector3D>();
             var apex = new Vector3D(0, 0, 0);
@@ -89,10 +204,34 @@ namespace SphericalGeom
                 this.apexes.Add(apex);
                 this.vertices.Add(point);
             }
-            isCounterclockwise = CheckIfCounterclockwise();
+        }
+        #endregion
+
+        public static Polygon Hemisphere(Vector3D capCenter)
+        {
+            double ang = 1e-12, c = Math.Cos(ang), s = Math.Sin(ang);
+            Polygon basic = new Polygon(new List<Vector3D>{
+                new Vector3D(c, 0, s),
+                new Vector3D(0, c, s),
+                new Vector3D(-c, 0, s),
+                new Vector3D(0, -c, s)
+            });
+
+            Vector3D basisVec = Vector3D.CrossProduct(capCenter,
+                new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
+            ReferenceFrame capFrame = new ReferenceFrame(
+                basisVec,
+                Vector3D.CrossProduct(basisVec, capCenter),
+                capCenter);
+            basic.FromThisFrame(capFrame);
+            return basic;
         }
 
-        // Assume that polygon does not contain poles and does not cross the 180 meridian
+        /// <summary>
+        /// Builds a rectangular bounding box for the polygon,
+        /// assuming that it does not contain poles and does not cross the 180 meridian.
+        /// </summary>
+        /// <returns></returns>
         public GeoRect BoundingBox()
         {
             double maxLat = -90.0, minLat = 90.0, maxLon = -180.0, minLon = 180.0;
@@ -104,9 +243,16 @@ namespace SphericalGeom
                 minLon = Math.Min(minLon, arc.MinLongitudeDeg());
             }
 
+            //return new GeoRect(minLon, maxLon, minLat, maxLat);
             return GeoRect.Inflate(new GeoRect(minLon, maxLon, minLat, maxLat), 1 + 1e-3, 1 + 1e-3);
         }
 
+        /// <summary>
+        /// Breaks the polygon into Count triangles.
+        /// Each triangle consits of two consecutive polygon vertices and <paramref name="mid"/>.
+        /// </summary>
+        /// <param name="mid"></param>
+        /// <returns></returns>
         public IList<Polygon> Shatter(Vector3D mid)
         {
             var res = new List<Polygon>();
@@ -120,86 +266,126 @@ namespace SphericalGeom
 
         public bool Contains(Vector3D point)
         {
-            if (vertices.Count == 0 || Vector3D.DotProduct(Middle, point) < 0)
+            if (vertices.Count < 3 || Vector3D.DotProduct(Middle, point) < 0)
                 return false;
 
-            // Ray casting algorithm. Shoot a great semiarc and count intersections.
-            // Shoot an arc
-            Random rand = new Random();
-            int res = 0;
-            for (int i = 0; i < 5; ++i)
-            {
-                var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
-                                                (rand.NextDouble() - 0.5) * 1e-1,
-                                                (rand.NextDouble() - 0.5) * 1e-1);
-                var point2 = displacement - point;
-                point2.Normalize();
-                Arc halfGreat = new Arc(point, point2);
+            // Is point on the boundary?
+            for (int i = 0; i < Count; ++i)
+                if (Arcs[i].Contains(point))
+                    return true;
 
-                int numOfIntersections = 0;
-                foreach (Arc arc in Arcs)
-                    numOfIntersections += Arc.Intersect(arc, halfGreat).Count;
-                res += (numOfIntersections % 2);
-            }
-            return res >= 2;
+            // Ray casting algorithm.
+            Arc halfGreat;
+            Vector3D displacement, point2;
+            bool degenerate;
+
+            /// Shoot a random arc such that it doesn't cross any polygon vertex
+            /// nor does it begin on an edge. 
+            /// Such arc exists, because point is not on the boundary.
+            do
+            {
+                displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
+                                            (rand.NextDouble() - 0.5) * 1e-1,
+                                            (rand.NextDouble() - 0.5) * 1e-1);
+                point2 = displacement - point;
+                point2.Normalize();
+                halfGreat = new Arc(point, point2);
+
+                degenerate = false;
+                for (int i = 0; i < Count; ++i)
+                    degenerate |= halfGreat.Contains(vertices[i]);
+            } while (degenerate);
+
+            // Count intersections.
+            int numOfIntersections = 0;
+            for (int j = 0; j < Arcs.Count; ++j)
+                numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
+            return (numOfIntersections % 2) == 1;
+
+            //int res = 0;
+            //for (int i = 0; i < 10; ++i)
+            //{
+            //    var displacement = new Vector3D((rand.NextDouble() - 0.5) * 1e-1,
+            //                                    (rand.NextDouble() - 0.5) * 1e-1,
+            //                                    (rand.NextDouble() - 0.5) * 1e-1);
+            //    var point2 = displacement - point;
+            //    point2.Normalize();
+            //    Arc halfGreat = new Arc(point, point2);
+
+            //    int numOfIntersections = 0;
+            //    for (int j = 0; j < Arcs.Count; ++j)
+            //        numOfIntersections += Arc.Intersect(Arcs[j], halfGreat).ToList().Count;
+            //    res += (numOfIntersections % 2);
+            //}
+            //return res >= 7;
         }
 
+        /// <summary>
+        /// Transforms vertices and apexes to the given frame.
+        /// </summary>
+        /// <param name="frame"></param>
         public void ToThisFrame(ReferenceFrame frame)
         {
-            vertices = vertices.Select(v => frame.ToThisFrame(v)).ToList();
-            apexes = apexes.Select(a => frame.ToThisFrame(a)).ToList();
+            for (int i = 0; i < Count; ++i)
+            {
+                vertices[i] = frame.ToThisFrame(vertices[i]);
+                apexes[i] = frame.ToThisFrame(apexes[i]);
+            }
+            // Force Arcs recomputation if needed.
+            knowArcs = false;
         }
 
+        /// <summary>
+        /// Transforms vertices and apexes from the given frame.
+        /// </summary>
+        /// <remarks>Arcs are not recomputed!</remarks>
+        /// <param name="frame"></param>
         public void FromThisFrame(ReferenceFrame frame)
         {
-            vertices = vertices.Select(v => frame.ToBaseFrame(v)).ToList();
-            apexes = apexes.Select(a => frame.ToBaseFrame(a)).ToList();
+            for (int i = 0; i < Count; ++i)
+            {
+                vertices[i] = frame.ToBaseFrame(vertices[i]);
+                apexes[i] = frame.ToBaseFrame(apexes[i]);
+            }
+            // Force Arcs recomputation if needed.
+            knowArcs = false;
+        }
+
+        public static IList<Polygon> Intersect(Polygon p, Polygon q)
+        {
+            var intersection = new List<Polygon>();
+
+            List<Vector3D>[] vert;
+            List<pointType>[] type;
+            List<Vector3D>[] apex;
+            bool pInQ, qInP;
+
+            PrepareForClipping(p, q, out vert, out type, out apex, out pInQ, out qInP);
+
+            // No arc intersections, i.e. one is within the other or do not overlap at all
+            if (type[0].All(t => t == pointType.vertex))
+            {
+                if (pInQ)
+                    intersection.Add(p);
+                else if (qInP)
+                    intersection.Add(q);
+            }
+            else
+                intersection.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
+            return intersection;
         }
 
         public static Tuple<IList<Polygon>, IList<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
         {
             var intersection = new List<Polygon>();
             var difference = new List<Polygon>();
-            var pArcs = p.Arcs;
-            var qArcs = q.Arcs;
 
-            foreach (var pArc in pArcs)
-                foreach (var qArc in qArcs)
-                    Arc.UpdateWithIntersections(pArc, qArc);
+            List<Vector3D>[] vert;
+            List<pointType>[] type;
+            List<Vector3D>[] apex;
+            bool pInQ, qInP;
 
-            ArcChainWithLabels<pointType> pChain = pArcs.
-                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
-                Aggregate((head, tail) => head.Connect(tail));
-            pChain.Vertices.RemoveAt(pChain.Vertices.Count - 1);
-            pChain.Labels.RemoveAt(pChain.Labels.Count - 1);
-
-            ArcChainWithLabels<pointType> qChain = qArcs.
-                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
-                Aggregate((head, tail) => head.Connect(tail));
-            qChain.Vertices.RemoveAt(qChain.Vertices.Count - 1);
-            qChain.Labels.RemoveAt(qChain.Labels.Count - 1);
-
-            var vert = new IList<Vector3D>[2] { pChain.Vertices, qChain.Vertices };
-            var type = new IList<pointType>[2] { pChain.Labels, qChain.Labels };
-            var apex = new IList<Vector3D>[2] { pChain.Apexes, qChain.Apexes };
-
-            bool pInQ = q.Contains(vert[0][0]);
-            pointType curType = pInQ ? pointType.exit : pointType.enter;
-            for (int i = 0; i < vert[0].Count; ++i)
-                if (type[0][i] != pointType.vertex)
-                {
-                    type[0][i] = curType;
-                    curType = Not(curType);
-                }
-
-            bool qInP = p.Contains(vert[1][0]);
-            curType = qInP ? pointType.exit : pointType.enter;
-            for (int i = 0; i < vert[1].Count; ++i)
-                if (type[1][i] != pointType.vertex)
-                {
-                    type[1][i] = curType;
-                    curType = Not(curType);
-                }
+            PrepareForClipping(p, q, out vert, out type, out apex, out pInQ, out qInP);
 
             // No arc intersections, i.e. one is within the other or do not overlap at all
             if (type[0].All(t => t == pointType.vertex))
@@ -230,137 +416,50 @@ namespace SphericalGeom
 
         public string ToWtk()
         {
-            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
-
-            if (0 == vertices.Count)
-                return "";
-
-            string wkt = "POLYGON ((";
-
-            if (IsCounterclockwise)
+            if (!knowWtk)
             {
-                foreach (var ver in vertices)
+                Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+
+                if (0 == vertices.Count)
+                    wtk = "";
+                else
                 {
-                    GeoPoint gpoint = GeoPoint.FromCartesian(ver);
-                    wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                    wtk = "POLYGON ((";
+                    if (IsCounterclockwise)
+                    {
+                        foreach (var ver in vertices)
+                        {
+                            GeoPoint gpoint = GeoPoint.FromCartesian(ver);
+                            wtk += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                        }
+                        GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
+                        wtk += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+                    }
+                    else
+                    {
+                        for (int i = vertices.Count - 1; i >= 0; i--)
+                        {
+                            GeoPoint gpoint = GeoPoint.FromCartesian(vertices[i]);
+                            wtk += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
+                        }
+                        GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[vertices.Count - 1]);
+                        wtk += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+                    }
                 }
-                GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[0]);
-                wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
+                knowWtk = true;
             }
-            else
-            {
-                wkt = "POLYGON ((";
-                for (int i = vertices.Count - 1; i >= 0; i--)
-                {
-                    GeoPoint gpoint = GeoPoint.FromCartesian(vertices[i]);
-                    wkt += gpoint.Longitude.ToString().Replace(separator, '.') + " " + gpoint.Latitude.ToString().Replace(separator, '.') + ",";
-                }
-                GeoPoint firstpoint = GeoPoint.FromCartesian(vertices[vertices.Count - 1]);
-                wkt += firstpoint.Longitude.ToString().Replace(separator, '.') + " " + firstpoint.Latitude.ToString().Replace(separator, '.') + "))";
-            }
-
-            return wkt;
+            return wtk;
         }
-
-        public double Square()
+ 
+        #region Polygon private methods
+        private double RotationAngleWithNextArc(int curArcInd)
         {
-            //var wtkstr = ToWtk();
-            //SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkstr), 4326);            
-            //return (double)geom.STArea();
-            return Area();
-        }
-
-        private bool CheckIfCounterclockwise()
-        {
-            if (vertices.Count < 3)
-                return false;
-
-            double t = 1;
-            Vector3D pointInside;
-            bool inside = false;
-
-            Vector3D tangent1 = vertices[2] - vertices[1];
-            tangent1.Normalize();
-            Vector3D tangent2 = vertices[0] - vertices[1];
-            tangent2.Normalize();
-            Vector3D dir = tangent1 + tangent2;
-
-            do
-            {
-                t /= 2;
-                pointInside = vertices[1] + t * dir;
-                pointInside.Normalize();
-                inside = Contains(pointInside);
-            } while (t > 1e-20 && !inside);
-
-            if (!inside)
-            {
-                t = -1;
-                do
-                {
-                    t /= 2;
-                    pointInside = vertices[1] + t * dir;
-                    pointInside.Normalize();
-                    inside = Contains(pointInside);
-                } while (t < -1e-20 && !inside);
-            }
-
-            if (!inside)
-                throw new Exception("Too thin a polygon.");
-
-            // If here, pointInside is indeed inside
-            double angleSum = 0;
-            Vector3D v1, v2, cross;
-            for (int i = 0; i < vertices.Count - 1; ++i)
-            {
-                v1 = vertices[i] - pointInside;
-                v2 = vertices[i + 1] - pointInside;
-                v1.Normalize();
-                v2.Normalize();
-                cross = Vector3D.CrossProduct(v1, v2);
-                angleSum += (Vector3D.DotProduct(cross, pointInside) > 0) ? cross.Length : -cross.Length;
-            }
-            v1 = vertices[vertices.Count - 1] - pointInside;
-            v2 = vertices[0] - pointInside;
-            v1.Normalize();
-            v2.Normalize();
-            cross = Vector3D.CrossProduct(v1, v2);
-            angleSum += (Vector3D.DotProduct(cross, pointInside) > 0) ? cross.Length : -cross.Length;
-            return angleSum > 0;
-        }
-
-        private double Area()
-        {
-            var arcs = Arcs;
-            double angleSum = 0;
-            double sin, cos, ang;
-
-            for (int i = 0; i < arcs.Count - 1; ++i)
-            {
-                sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[i + 1].TangentA, arcs[i].TangentB), arcs[i].B);
-                cos = Vector3D.DotProduct(arcs[i].TangentB, arcs[i + 1].TangentA);
-                ang = Math.Atan2(sin, cos);
-                if (IsCounterclockwise && ang < 0)
-                    ang += 2 * Math.PI;
-                else if (!IsCounterclockwise && ang > 0)
-                    ang -= 2 * Math.PI;
-                angleSum += ang;
-            }
-            sin = Vector3D.DotProduct(Vector3D.CrossProduct(arcs[0].TangentA, arcs[arcs.Count - 1].TangentB), arcs[0].A);
-            cos = Vector3D.DotProduct(arcs[arcs.Count - 1].TangentB, arcs[0].TangentA);
-            ang = Math.Atan2(sin, cos);
-            if (IsCounterclockwise && ang < 0)
-                ang += 2 * Math.PI;
-            else if (!IsCounterclockwise && ang > 0)
-                ang -= 2 * Math.PI;
-            angleSum += ang;
-
-            double area;
-            if (IsCounterclockwise)
-                area = angleSum - (vertices.Count - 2) * Math.PI;
-            else
-                area = angleSum + (vertices.Count - 2) * Math.PI;
-            return Math.Abs(area);
+            int nextArcInd = (curArcInd == Count - 1) ? 0 : (curArcInd + 1);
+            double sin = Vector3D.DotProduct(
+                Vector3D.CrossProduct(Arcs[curArcInd].TangentB, Arcs[nextArcInd].TangentA),
+                Arcs[nextArcInd].A);
+            double cos = Vector3D.DotProduct(Arcs[curArcInd].TangentB, Arcs[nextArcInd].TangentA);
+            return Math.Atan2(sin, cos);
         }
 
         private enum pointType { vertex, enter, exit };
@@ -392,20 +491,26 @@ namespace SphericalGeom
                     return 0;
             }
         }
-        private static int NextUnvisitedIntersection(IList<pointType> type, IList<bool> visited)
+        private static int NextUnvisitedIntersection(List<pointType> type, List<bool> visited)
         {
             int ind = 0;
             while ((ind < type.Count) && ((type[ind] == pointType.vertex) || visited[ind]))
                 ++ind;
             return ind == type.Count ? -1 : ind;
         }
-        private static IList<Polygon> Traverse(IList<Vector3D>[] vert,
-                                               IList<pointType>[] type,
-                                               IList<Vector3D>[] apex,
+        private static IList<Polygon> Traverse(List<Vector3D>[] vert,
+                                               List<pointType>[] type,
+                                               List<Vector3D>[] apex,
                                                bool[] traverseForward)
         {
             var resPoly = new List<Polygon>();
-            var visited = new List<bool>[2] { vert[0].Select(v => false).ToList(), vert[1].Select(v => false).ToList() };
+            var visited = new List<bool>[2];
+            visited[0] = new List<bool>();
+            visited[1] = new List<bool>();
+            for (int i = 0; i < vert[0].Count; ++i)
+                visited[0].Add(false);
+            for (int i = 0; i < vert[1].Count; ++i)
+                visited[1].Add(false);
             var resVert = new List<Vector3D>();
             var resApex = new List<Vector3D>();
 
@@ -447,5 +552,49 @@ namespace SphericalGeom
             }
             return resPoly;
         }
+        private static void PrepareForClipping(Polygon p, Polygon q, out List<Vector3D>[] vert, out List<pointType>[] type, out List<Vector3D>[] apex, out bool pInQ, out bool qInP)
+        {
+            var pArcs = p.Arcs;
+            var qArcs = q.Arcs;
+
+            foreach (var pArc in pArcs)
+                foreach (var qArc in qArcs)
+                    Arc.UpdateWithIntersections(pArc, qArc);
+
+            ArcChainWithLabels<pointType> pChain = pArcs.
+                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+                Aggregate((head, tail) => head.Connect(tail));
+            pChain.Vertices.RemoveAt(pChain.Vertices.Count - 1);
+            pChain.Labels.RemoveAt(pChain.Labels.Count - 1);
+
+            ArcChainWithLabels<pointType> qChain = qArcs.
+                Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
+                Aggregate((head, tail) => head.Connect(tail));
+            qChain.Vertices.RemoveAt(qChain.Vertices.Count - 1);
+            qChain.Labels.RemoveAt(qChain.Labels.Count - 1);
+
+            vert = new List<Vector3D>[2] { pChain.Vertices, qChain.Vertices };
+            type = new List<pointType>[2] { pChain.Labels, qChain.Labels };
+            apex = new List<Vector3D>[2] { pChain.Apexes, qChain.Apexes };
+
+            pInQ = q.Contains(vert[0][0]);
+            pointType curType = pInQ ? pointType.exit : pointType.enter;
+            for (int i = 0; i < vert[0].Count; ++i)
+                if (type[0][i] != pointType.vertex)
+                {
+                    type[0][i] = curType;
+                    curType = Not(curType);
+                }
+
+            qInP = p.Contains(vert[1][0]);
+            curType = qInP ? pointType.exit : pointType.enter;
+            for (int i = 0; i < vert[1].Count; ++i)
+                if (type[1][i] != pointType.vertex)
+                {
+                    type[1][i] = curType;
+                    curType = Not(curType);
+                }
+        }
+        #endregion
     }
 }

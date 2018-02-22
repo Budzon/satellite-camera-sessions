@@ -181,8 +181,8 @@
                 <TextBlock x:Name="satelliteRoll" TextWrapping="Wrap" Text="{Binding SatelliteRoll, Converter={StaticResource DegreeToRadianConverter}}"/>
                 <Button x:Name="plotPolygon" Content="Plot it!" Click="PlotSphere"/>
                 <Button x:Name="plotSquares" Content="Plot squares!" Click="PlotSquares"/>
-                <Button x:Name="isRequestFeasible" Content="isRequestFeasible" Click="Button_isRequestFeasible" Margin="0,0,-1,0"/> 
-                <Button x:Name="getOptimalChain" Content="getCaptureConfs" Click="Button_Click_1"/>
+                <Button x:Name="isRequestFeasible" Content="isRequestFeasible" Click="Button_isRequestFeasible" Margin="0,0,-1,0"/>
+                <Button x:Name="getCaptureConfArray" Content="getCaptureConfArray" Click="getCaptureConfArray_Click" Margin="0,0,-1,0"/>
             </StackPanel>
 
 
