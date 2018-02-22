@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace OptimalChain
 {
     
-    public class MPZ
+    public class fakeMPZ
     {
         public int id { get; set; }
         public bool PWR_ON { get; set; }
@@ -16,7 +16,7 @@ namespace OptimalChain
         public int N_routes { get; set; }
         public List<Route> routes { get; set; }
 
-        public MPZ(int i)
+        public fakeMPZ(int i)
         {
             id = i;
             PWR_ON = false;
@@ -25,7 +25,7 @@ namespace OptimalChain
 
         }
 
-        public MPZ(int i, Route r)
+        public fakeMPZ(int i, Route r)
         {
             id = i;
             PWR_ON = false;

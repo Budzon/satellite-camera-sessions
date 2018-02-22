@@ -85,7 +85,7 @@ namespace TrajectoryTest
             DateTime endDt = new DateTime(2020, 1, 1);
 
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_5hours.dat"; // "trajectory_full.dat";
-            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, begDt, endDt); // @todo временно
+            Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, begDt, endDt); // @todo временно
 
             double maxError = 0; // сюда будет записана максимальная найденная ошибка
             int countErrors = 0; // сюда будет записано колво ошибок, превышающих errorLimit
@@ -98,10 +98,10 @@ namespace TrajectoryTest
                         rollAngle += viewAngle)
             {
                 //  основная (тестируемая) полоса 
-                var lane = trajectory.getCaptureLane(rollAngle, viewAngle, readStep: 2, polygonStep: 15);
+                SatLane lane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
 
                 // вспомогательная полоса, отсюда нужны только правые точки
-                var controlLane = trajectory.getCaptureLane(rollAngle + viewAngle, viewAngle, readStep: 1, polygonStep: 1); 
+                var controlLane = new SatLane(trajectory, rollAngle + viewAngle, viewAngle, polygonStep: 1); 
 
                 foreach (var control_sector in controlLane.Sectors)
                 {

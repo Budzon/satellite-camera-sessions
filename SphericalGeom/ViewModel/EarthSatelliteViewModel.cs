@@ -307,167 +307,7 @@ namespace ViewModel
             }
             var v = new Vector3D(x, y, z);
             return curDifference.Any(p => p.Contains(v));
-        }
-
-        public void q_CreateCaptureIntervals()
-        {
-
-            DateTime begDt = new DateTime(2000, 1, 1);
-            DateTime endDt = new DateTime(2020, 1, 1);
-
-            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_5hours.dat";
-            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, begDt, endDt); // @todo временно
-
-            double viewAngle = AstronomyMath.ToRad(45);
-            double rollAngle = AstronomyMath.ToRad(0);
-
-            // максимально детализированная полоса
-            SatLane viewLaneFull = new SatLane(trajectory, rollAngle, viewAngle, 1);
-
-            // полоса, в которой точек меньше в 16 раз
-            SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, 15);
-
-            foreach (var sector in viewLaneFull.Sectors)
-            {
-                Console.WriteLine("");
-            }
-        }
-
-
-        public void adadasdasdasdCreateCaptureIntervals()
-        {
-
-
-
-            DateTime begDt = new DateTime(2000, 1, 1);
-            DateTime endDt = new DateTime(2020, 1, 1);
-
-            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_5hours.dat";
-            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, begDt, endDt); // @todo временно
-
-            double viewAngle = AstronomyMath.ToRad(45);
-            double rollAngle = AstronomyMath.ToRad(0);
-
-            // максимально детализированная полоса
-            SatLane viewLaneFull = new SatLane(trajectory, rollAngle, viewAngle, 1);
-
-            // полоса, в которой точек меньше в 16 раз
-            SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, 15);
-
-
-            // Console.WriteLine("viewLaneFull.size = {0}, viewLane.size = {1}", viewLaneFull.lanePoints.Count, viewLane.lanePoints.Count);
-
-            int i = 0;
-            foreach (var point in trajectory.Points)
-            {
-                DateTime calc_time = new DateTime();
-                foreach (var sector in viewLaneFull.Sectors)
-                {
-                    if (sector.fromDT <= point.Time && point.Time <= sector.toDT)
-                    {
-                        calc_time = sector.getPointTime(point.Position.ToVector());
-                    }
-                }
-                var diff_msecs = (point.Time - calc_time).TotalMilliseconds;
-                if (Math.Abs(diff_msecs) > 9)
-                {
-                    foreach (var sector in viewLaneFull.Sectors)
-                    {
-                        if (sector.fromDT <= point.Time && point.Time <= sector.toDT)
-                        {
-                            calc_time = sector.getPointTime(point.Position.ToVector());
-                        }
-                    }
-                }
-                i++;
-            }
-        }
-        /*
-            DateTime begDt = new DateTime(2000, 1, 1);
-            DateTime endDt = new DateTime(2020, 1, 1);
-
-            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_5hours.dat";
-            SatTrajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, begDt, endDt); // @todo временно
-
-            double viewAngle = AstronomyMath.ToRad(45);
-            double rollAngle = AstronomyMath.ToRad(0);
-
-            // максимально детализированная полоса
-            SatLane viewLaneFull = trajectory.getCaptureLane(rollAngle, viewAngle, 1);
-  
-            LanePos lanePos1 = viewLaneFull.Sectors[0].sectorPoints[0];
-            LanePos lanePos2 = viewLaneFull.Sectors[0].sectorPoints[1];
-            LanePos lanePos3 = viewLaneFull.Sectors[0].sectorPoints[2];
-
-            double dist13 = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(lanePos1.MiddleGeoPoint, lanePos3.MiddleGeoPoint));
-            double dist12 = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(lanePos1.MiddleGeoPoint, lanePos2.MiddleGeoPoint));
-            double dist23 = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(lanePos2.MiddleGeoPoint, lanePos3.MiddleGeoPoint));
-            double test = dist13 - dist12 - dist23;
-
-            double dist2 = AstronomyMath.ToDegrees(lanePos1.getDistToPoint(lanePos2.MiddleGeoPoint));
-            
-
-            return;
-        }*/
-
-
-        DateTime getInterpolTime(DateTime dt1, DateTime dt2, double dist, double fullDist)
-        {
-            double fullTime13 = Math.Abs((dt1 - dt2).TotalMilliseconds);
-            double diffMiliSecs = fullTime13 * dist / fullDist;
-            var newTime = dt1.AddMilliseconds(diffMiliSecs);
-            return newTime;
-        }
-
-        public void test()
-        {
-
-            DateTime begDt = new DateTime(2000, 1, 1);
-            DateTime endDt = new DateTime(2020, 1, 1);
-
-            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_5hours.dat";
-            Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, begDt, endDt); // @todo временно
-
-            double viewAngle = AstronomyMath.ToRad(5);
-            double rollAngle = AstronomyMath.ToRad(0);
-
-            // максимально детализированная полоса
-            SatLane viewLaneFull = new SatLane(trajectory, rollAngle, viewAngle, 1);
-
-            // полоса, в которой точек меньше в 16 раз
-            SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, 2);
-
-            double maxError = 0;
-            int countErrors = 0;
-            int errorLimit = 3;
-
-            int i = 0;
-            foreach (var orig_sector in viewLaneFull.Sectors)
-            {
-                foreach (var orig_point in orig_sector.sectorPoints)
-                {
-                    var point = orig_point.MiddleCartPoint;
-
-                    DateTime calc_time = new DateTime();
-                    foreach (var sector in viewLane.Sectors)
-                    {
-                        if (sector.fromDT <= orig_point.Time && orig_point.Time <= sector.toDT)
-                        {
-                            calc_time = sector.getPointTime(point);
-                            i++;
-                        }
-                    }
-
-                    var diff_msecs = (orig_point.Time - calc_time).TotalMilliseconds;
-                    if (maxError < diff_msecs)
-                        maxError = diff_msecs;
-                    if (Math.Abs(diff_msecs) >= errorLimit)
-                    {
-                        countErrors++;
-                    }
-                }
-            }
-        }
+        } 
 
         public void test_vectors(Vector3D crossVector_1, Vector3D crossVector_2, Vector3D crossVector_3, Vector3D crossVector_4)
         {
@@ -499,41 +339,7 @@ namespace ViewModel
             Console.WriteLine();
             Console.WriteLine();
         }
-
-        public void testt()
-        {
-            List<Vector3D> verts = new List<Vector3D>()
-            {
-            new Vector3D(-0.852034459185435, 0.120130037485442, -0.509515509532664 ),
-            new Vector3D(-0.972504632989056, -0.156405344939802, -0.172545955875771 ),
-            new Vector3D(-0.549501530291284, -0.609902051020679, 0.571023253789464 ),
-            new Vector3D(-0.455742357633653, -0.633482054296441, 0.625299440542594 ),
-            new Vector3D(-0.469679375963483, -0.56027574121427, 0.68227001810233 ),
-            new Vector3D(-0.564279557617797, -0.536416675779779, 0.627571295392033 ),
-            new Vector3D(-0.989735755317796, -0.0808817092973809, -0.11781885989368 ),
-            new Vector3D(-0.869933396998213, 0.194610736332144, -0.453147377893121 ),
-            };
-
-            Polygon lanepol = new Polygon(verts);
-            Polygon pp = new Polygon(lanepol.ToWtk());
-
-        }
-
-        public void getCameraView()
-        {
-        }
-
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="I"></param>
-        /// <param name="h"></param>
-        /// <param name="v"></param>
-        /// <param name="w"></param>
-        /// <param name="b"></param>
-        /// <param name="pitch"></param>
-        /// <returns></returns>
+         
         public double getRollCorrection(double h, double v, double w, double b, double pitch)
         {
             double I = OptimalChain.Constants.orbital_inclination;
@@ -727,297 +533,12 @@ namespace ViewModel
             //LanePos pos = new LanePos(point, viewAngle, rollAngle);
             // captureLanes.Add(strip15);
         }
-
-        public void testViewArea()//Trajectory trajectory)
-        { 
-         //   for (double AngleDegree = 0; AngleDegree <= 45; AngleDegree += 5)
-            {
-                double rollAngleDegree = 30;
-                // double rollAngle = AstronomyMath.ToRad(45); // -0.78539816339744828;
-                double rollAngle = AstronomyMath.ToRad(rollAngleDegree);
-                double pitchAngle = AstronomyMath.ToRad(45);
-                double viewAngle = AstronomyMath.ToRad(1);
-                double minAngle = rollAngle - viewAngle / 2;
-                double maxAngle = rollAngle + viewAngle / 2;
-
-               // double h = 725;
-               // GeoPoint point = new GeoPoint(21.1834626801572, -15.6786539720217);
-                Vector3D position = new Vector3D( 6363.5108478, -1786.1444021, 2561.4350056);//GeoPoint.ToCartesian(point, Astronomy.Constants.EarthRadius + h);
-
-                Vector3D eDirVect = new Vector3D(-position.X, -position.Y, -position.Z);
-                Vector3D velo = new Vector3D(3.1737652626, 3.7964467971, -5.2171244942);
-                
-                //Vector3D rightRotAxis = -rotAxis;// Vector3D.CrossProduct(eDirVect, velo);
-
-                List<Vector3D> verts = new List<Vector3D>();
-
-                Vector3D rollAxis = Vector3D.CrossProduct(velo, eDirVect);
-                RotateTransform3D rollTransfrom = new RotateTransform3D(new AxisAngleRotation3D(velo, AstronomyMath.ToDegrees(rollAngle)));
-                
-                Vector3D pitchAxis = Vector3D.CrossProduct(velo, eDirVect);
-                RotateTransform3D pitchTransfrom = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle)));
-            
-                Vector3D dirVector = rollTransfrom.Transform(pitchTransfrom.Transform(eDirVect));
-                rollAxis = rollTransfrom.Transform(pitchTransfrom.Transform(rollAxis));     
-                
-                Vector3D rightLeftAxis = Vector3D.CrossProduct(dirVector, rollAxis);     
-                RotateTransform3D rightHorizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rightLeftAxis, AstronomyMath.ToDegrees(+viewAngle / 2)));
-                RotateTransform3D leftHorizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rightLeftAxis, AstronomyMath.ToDegrees(-viewAngle / 2)));
-                
-                Vector3D leftVector = leftHorizTransfrom.Transform(dirVector);     
-                Vector3D rightVector = rightHorizTransfrom.Transform(dirVector);
-
-                RotateTransform3D topVertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rollAxis, AstronomyMath.ToDegrees(+viewAngle / 2)));
-                RotateTransform3D botVertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rollAxis, AstronomyMath.ToDegrees(-viewAngle / 2)));
-
-                Vector3D topVector = topVertTransfrom.Transform(dirVector);  
-                Vector3D botVector = botVertTransfrom.Transform(dirVector);
-
-                test_vectors(leftVector, topVector, rightVector, botVector);
-
-                TrajectoryPoint point = new TrajectoryPoint(new DateTime(), position.ToPoint(), velo);
-                Vector3D rollDirVect = LanePos.getDirectionVector(point, AstronomyMath.ToRad(45), 0);
-                Vector3D rollPitchDirVect = LanePos.getDirectionVector(point, AstronomyMath.ToRad(45), AstronomyMath.ToRad(45));
-
-                Vector3D rollPoint = Routines.SphereVectIntersect(rollDirVect, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                Vector3D rollPithPoint = Routines.SphereVectIntersect(rollPitchDirVect, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(rollPithPoint)) * Astronomy.Constants.EarthRadius;
-                double speed = velo.Length;
-                double t =  dist / speed;          
-                Console.WriteLine("t = {0}", t);
-                Console.WriteLine("deltaRoll  = {0}", AstronomyMath.ToDegrees(t * OptimalChain.Constants.earthRotSpeed));  
-                 
-                //      double speed = OptimalChain.Constants.earthRotSpeed; // скорость вращения земли 7.2921158553e-5
-
-                //trajectory.GetPosition()
-
-                int i = 0, jj = 0;
-                int pos_ind = 0;
-                int sect_ind = 0;
-                double min_dist = 10000000000;
-
-                foreach (var sect in captureLanes[0].Sectors)
-                {
-                    pos_ind = 0;
-                    jj = 0;
-                    foreach (var pos in sect.sectorPoints)
-                    {
-                        var distt = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPithPoint), pos.LeftGeoPoint);
-                        if (min_dist > distt)
-                        {
-                            min_dist = distt;
-                            sect_ind = i;
-                            pos_ind = jj;
-                        }
-                        jj++;
-                    }
-                    i++;
-                }
-
-                var mp = captureLanes[0].Sectors[sect_ind].sectorPoints[pos_ind];
-
-                Console.WriteLine("min_dist = {0} ",AstronomyMath.ToDegrees( min_dist) );
-
-
-
-                //Console.WriteLine("leftVector.Length = {0}", leftVector.Length);
-                //Console.WriteLine("rightVector.Length = {0}", rightVector.Length);
-                //Console.WriteLine("topVector.Length = {0}", topVector.Length);
-                //Console.WriteLine("botVector.Length = {0}", botVector.Length);
-
-          //      verts.Add(SatTrajectory.SphereVectIntersect(leftVector, position.ToPoint(), Astronomy.Constants.EarthRadius));
-         //       verts.Add(SatTrajectory.SphereVectIntersect(rightVector, position.ToPoint(), Astronomy.Constants.EarthRadius));
-          //      verts.Add(SatTrajectory.SphereVectIntersect(topVector, position.ToPoint(), Astronomy.Constants.EarthRadius));
-          //      verts.Add(SatTrajectory.SphereVectIntersect(botVector, position.ToPoint(), Astronomy.Constants.EarthRadius));
-
-                var tanHalfVa = Math.Tan(viewAngle / 2);
-                var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
-                var angle_degr = AstronomyMath.ToDegrees(angle_rad);
-
-           /*
-                Console.WriteLine("angle = {0}", angle_degr);
-                var rrAxis = Vector3D.CrossProduct(topVector, rollAxis);
-                RotateTransform3D horizTransfrom_1 = new RotateTransform3D(new AxisAngleRotation3D(rrAxis, angle_degr));
-                Vector3D crossVector_1 = horizTransfrom_1.Transform(topVector);
-                Vector3D crossPoint_1 = SatTrajectory.SphereVectIntersect(crossVector_1, position.ToPoint(), Astronomy.Constants.EarthRadius);
-              //  verts.Add(crossPoint_1);
-                Console.WriteLine("crossPoint_1 = {0}; {1}; {2}", crossPoint_1.X, crossPoint_1.Y, crossPoint_1.Z);
-             
-                RotateTransform3D horizTransfrom_2 = new RotateTransform3D(new AxisAngleRotation3D(rrAxis, -angle_degr));
-                Vector3D crossVector_2 = horizTransfrom_2.Transform(topVector);
-                Vector3D crossPoint_2 = SatTrajectory.SphereVectIntersect(crossVector_2, position.ToPoint(), Astronomy.Constants.EarthRadius);
-              //  verts.Add(crossPoint_2);
-                Console.WriteLine("crossPoint_2 = {0}; {1}; {2}", crossPoint_2.X, crossPoint_2.Y, crossPoint_2.Z);
-
-                rrAxis = Vector3D.CrossProduct(botVector, rollAxis);
-                RotateTransform3D horizTransfrom_3 = new RotateTransform3D(new AxisAngleRotation3D(rrAxis, -angle_degr));
-                Vector3D crossVector_3 = horizTransfrom_3.Transform(botVector);
-                Vector3D crossPoint_3 = SatTrajectory.SphereVectIntersect(crossVector_3, position.ToPoint(), Astronomy.Constants.EarthRadius);
-              //  verts.Add(crossPoint_3);
-                Console.WriteLine("crossPoint_3 = {0}; {1}; {2}", crossPoint_3.X, crossPoint_3.Y, crossPoint_3.Z);
-                           
-                RotateTransform3D horizTransfrom_4 = new RotateTransform3D(new AxisAngleRotation3D(rrAxis, angle_degr));
-                Vector3D crossVector_4 = horizTransfrom_4.Transform(botVector);
-                Vector3D crossPoint_4 = SatTrajectory.SphereVectIntersect(crossVector_4, position.ToPoint(), Astronomy.Constants.EarthRadius);
-              //  verts.Add(crossPoint_4);
-              //  Console.WriteLine("crossPoint_4 = {0}; {1}; {2}", crossPoint_4.X, crossPoint_4.Y, crossPoint_4.Z);
-
-              //  test_vectors(topVector, botVector, topVector, botVector);
-             //   test_vectors(crossVector_1, crossVector_2, crossVector_3, crossVector_4);
-           */
-                
-           /*
-                Console.WriteLine("angle = {0}", angle_degr);
-                rotAxis = Vector3D.CrossProduct(rightVector, rightLeftAxis);
-                RotateTransform3D horizTransfrom_1 = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, angle_degr));
-                Vector3D crossVector_1 = horizTransfrom_1.Transform(rightVector);
-                Vector3D crossPoint_1 = SatTrajectory.SphereVectIntersect(crossVector_1, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint_1);
-                Console.WriteLine("crossPoint_1 = {0}; {1}; {2}", crossPoint_1.X, crossPoint_1.Y, crossPoint_1.Z);
-
-                rotAxis = Vector3D.CrossProduct(rightVector, rightLeftAxis);
-                RotateTransform3D horizTransfrom_2 = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, -angle_degr));
-                Vector3D crossVector_2 = horizTransfrom_2.Transform(rightVector);
-                Vector3D crossPoint_2 = SatTrajectory.SphereVectIntersect(crossVector_2, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint_2);
-                Console.WriteLine("crossPoint_2 = {0}; {1}; {2}", crossPoint_2.X, crossPoint_2.Y, crossPoint_2.Z);
-
-                rotAxis = Vector3D.CrossProduct(leftVector, rightLeftAxis);
-                RotateTransform3D horizTransfrom_3 = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, -angle_degr));
-                Vector3D crossVector_3 = horizTransfrom_3.Transform(leftVector);
-                Vector3D crossPoint_3 = SatTrajectory.SphereVectIntersect(crossVector_3, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint_3);
-                Console.WriteLine("crossPoint_3 = {0}; {1}; {2}", crossPoint_3.X, crossPoint_3.Y, crossPoint_3.Z);
-
-                rotAxis = Vector3D.CrossProduct(leftVector, rightLeftAxis);
-                RotateTransform3D horizTransfrom_4 = new RotateTransform3D(new AxisAngleRotation3D(rotAxis, angle_degr));
-                Vector3D crossVector_4 = horizTransfrom_4.Transform(leftVector);
-                Vector3D crossPoint_4 = SatTrajectory.SphereVectIntersect(crossVector_4, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint_4);
-                Console.WriteLine("crossPoint_4 = {0}; {1}; {2}", crossPoint_4.X, crossPoint_4.Y, crossPoint_4.Z);
-            
-                test_vectors(crossVector_1, crossVector_2, crossVector_3, crossVector_4);
-               */
-               // test_vectors(leftVector, topVector, rightVector, botVector);
-               // test_vectors(leftVector, rightVector, topVector, botVector);
-            
-
-                //verts.Add(crossPoint_1);
-
-               // Vector3D rightCrossPoint = SatTrajectory.SphereVectIntersect(leftVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-               //   Vector3D leftCrossPoint = SatTrajectory.SphereVectIntersect(rightVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-
-                //Console.WriteLine("botVector = {0}; {1}; {2}", botVector.X, botVector.Y, botVector.Z);  
-                //Console.WriteLine("topVector = {0}; {1}; {2}", topVector.X, topVector.Y, topVector.Z);
-
-                /*
-                Console.WriteLine("rightCrossPoint = {0}; {1}; {2}", rightCrossPoint.X, rightCrossPoint.Y, rightCrossPoint.Z);
-                Console.WriteLine("leftCrossPoint = {0}; {1}; {2}", leftCrossPoint.X, leftCrossPoint.Y, leftCrossPoint.Z);
-              
-                Console.WriteLine();
-                
-                
-                Vector3D crossPoint = SatTrajectory.SphereVectIntersect(topVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-                crossPoint = SatTrajectory.SphereVectIntersect(leftVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-                crossPoint = SatTrajectory.SphereVectIntersect(botVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-                crossPoint = SatTrajectory.SphereVectIntersect(rightVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-                
-                */
          
-
-                // verts.Add(GeoPoint.ToCartesian(point,1));
-                // Console.WriteLine("angle = {0}", angle);
-               
-                    int n = 5;
-                    double angle_h = angle_rad * 2 / n;
-
-                    for (int j = 1; j <= n - 1; j++)
-                    {
-                        Vector3D rAxis = Vector3D.CrossProduct(topVector, rollAxis);
-                        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                        RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
-                        Vector3D crossVector = vertTransfrom.Transform(topVector);
-                        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                        verts.Add(crossPoint);
-                    }
-
-                 //   Console.WriteLine("angle_degr = {0}\n", angle_degr);
-
-                    for (int j = 0; j <= n; j++)
-                    {
-                        Vector3D rAxis = Vector3D.CrossProduct(rightVector, velo);
-                        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                      //  Console.WriteLine("angle = {0}", angle);
-                        RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
-                        Vector3D crossVector = horizTransfrom.Transform(rightVector);
-                        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                        verts.Add(crossPoint);
-                    }
-
-
-                    for (int j = 1; j <= n - 1; j++)
-                    {
-                        Vector3D rAxis = Vector3D.CrossProduct(botVector, rollAxis);
-                        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                        RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
-                        Vector3D crossVector = vertTransfrom.Transform(botVector);
-                        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                        verts.Add(crossPoint);
-                    }
-
-                    for (int j = 0; j <= n; j++)
-                    {
-                        Vector3D rAxis = Vector3D.CrossProduct(leftVector, velo);
-                        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                        RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
-                        Vector3D crossVector = horizTransfrom.Transform(leftVector);
-                        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, position.ToPoint(), Astronomy.Constants.EarthRadius);
-                        verts.Add(crossPoint);
-                    }
-               
-                    
-
-                //verts.Add(GeoPoint.ToCartesian(point,1));
-
-                //vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(velo, AstronomyMath.ToDegrees(minAngle)));
-
-                polygons.Add(new Polygon(verts));
-          }
-           /*
-            Console.Write("x=[");
-            foreach (var pp in verts)
-            {
-                Console.Write("{0};  ", pp.X);
-            }
-            Console.WriteLine("]"); 
-
-            Console.Write("y=[");
-            foreach (var pp in verts)
-            {
-                Console.Write("{0};  ", pp.Y);
-            }
-            Console.WriteLine("]"); 
-            
-            Console.Write("z=[");
-            foreach (var pp in verts)
-            {
-                Console.Write("{0};  ", pp.Z);
-            }
-            Console.WriteLine("]"); 
-           */
-            //}
-            //curRequest = new Polygon(verts);
-        }
-
 
         public void CreateCaptureIntervals()
         {
-            test_roll_correction();
-            return;
+            //test_roll_correction();
+          //  return;
 
             polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
             polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
@@ -1081,76 +602,6 @@ namespace ViewModel
             SatLane strip15 = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
 
             captureLanes.Add(strip15);
-
-            return;
-
-            int i = 0, j = 0;
-            int pos_ind = 0;
-            int sect_ind = 0;
-            double min_dist = 10000000000;
-
-            foreach (var sect in strip15.Sectors)
-            {
-                pos_ind = 0;
-                j = 0;
-                foreach (var pos in sect.sectorPoints)
-                {
-                    var dist = GeoPoint.DistanceOverSurface(pos.LeftGeoPoint, new GeoPoint(0, 0));
-                    if (min_dist > dist)
-                    {
-                        min_dist = dist;
-                        sect_ind = i;
-                        pos_ind = j;
-                    }
-                    j++;
-                }
-                i++;
-            }
-
-            var mp = strip15.Sectors[sect_ind].sectorPoints[pos_ind];
-
-            Console.WriteLine("mp.Velo = {0}, \nmp.position = {1} ", mp.TrajPoint.Velocity, mp.TrajPoint.Position);
-
-
-            testViewArea();
-            return;
-
-            if (0 == Requests.Count)
-                return;
-
-            RequestParams reqparams = new RequestParams();
-            reqparams.id = 1;
-            reqparams.dateFrom = new DateTime(2000, 1, 1);
-            reqparams.dateTo = new DateTime(2020, 1, 1);
-            reqparams.wktPolygon = curRequest.ToWtk();
-
-            List<CaptureConf> comconfs = new List<CaptureConf>();
-
-            List<TargetWorkInterval> intervals = new List<TargetWorkInterval>();
-            foreach (var lane in captureLanes)
-            {
-                //foreach (var sect in lane.Sectors)
-                //{
-                //    IList<Polygon> intersections = Polygon.Intersect(sect.polygon, curRequest);
-
-                //    foreach (var inters in intersections)
-                //    {
-                //        captureIntervals.Add(inters); 
-                //    }
-                //}
-
-                //continue;
-
-                List<CaptureConf> confs = lane.getCaptureConfs(reqparams);
-                // List<TargetWorkInterval> wints = lane.getTargetIntervals(curRequest, 0);
-                foreach (var conf in confs)
-                {
-                    captureIntervals.Add(lane.getSegment(conf.dateFrom, conf.dateTo).Item1);
-                }
-                comconfs.AddRange(confs);
-            }
-
-
         }
 
         public void test_isRequestFeasible()
@@ -1175,18 +626,18 @@ namespace ViewModel
 
             List<RequestParams> requests = new List<RequestParams>();
 
-            polygons.Add(new Polygon("POLYGON ((-2 -6, -2 -2, -6 -2, -6 -6, -2 -6))"));
+            //polygons.Add(new Polygon("POLYGON ((-2 -6, -2 -2, -6 -2, -6 -6, -2 -6))"));
             
-            polygons.Add(new Polygon("POLYGON ((12 8, 12 12, 8 12, 8 8, 12 8))"));
+            //polygons.Add(new Polygon("POLYGON ((12 8, 12 12, 8 12, 8 8, 12 8))"));
             
-            polygons.Add(new Polygon("POLYGON ((6 2, 6 6, 2 6, 2 2, 6 2))"));
+            //polygons.Add(new Polygon("POLYGON ((6 2, 6 6, 2 6, 2 2, 6 2))"));
 
 
             polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
-            polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
+            //polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
             //polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
             //polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
-            polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
+            //polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
             // polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
 
             //foreach (var req in Requests)
@@ -1207,19 +658,41 @@ namespace ViewModel
                 id++;
             }
 
-            var res = Sessions.getCaptureConfs(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0));
-
+            /*
+            var res = Sessions.getCaptureConfArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0));
+            var rnd = new Random();
+            var result = res.OrderBy(item => rnd.Next());
+            res = result.ToList<CaptureConf>();
             DateTime end = DateTime.Now;
 
             Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
-
-
+            
             foreach (var conf in res)
             {
                 captureIntervals.Add(new Polygon(conf.wktPolygon));
             }
             Console.WriteLine("res.Count = {0}", res.Count());
-            return res;
+            return res;                            
+             */
+
+
+            IList<OptimalChain.fakeMPZ> res = Sessions.getMPZArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0));
+
+            DateTime end = DateTime.Now;
+            Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+            
+
+            foreach (var mpz in res)
+            {
+                foreach (var route in mpz.routes)
+                {
+                    string wkt = route.ShootingConf.wktPolygon;
+                    captureIntervals.Add(new Polygon(wkt));
+                }        
+            } 
+          
+            Console.WriteLine("res.Count = {0}", res.Count());
+            return new List<CaptureConf>();
         }
 
         public bool RegionCanBeCaptured { get; private set; }

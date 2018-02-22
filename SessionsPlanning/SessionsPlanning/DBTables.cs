@@ -11,15 +11,15 @@ using Astronomy;
 
 namespace DBTables
 {
-    public class SunTable
+    public static class SunTable
     {
-        public static const string Name = "TblSunPosition";
-        public static const string Id = "ID";
-        public static const string Time = "TM";
-        public static const string Lat = "F_SUN";
-        public static const string Lon = "L_SUN";
-        public static const string Rad = "R_SUN";
-        public static const string WriteTime = "WRT_TM";
+        public const string Name = "TblSunPosition";
+        public const string Id = "ID";
+        public const string Time = "TM";
+        public const string Lat = "F_SUN";
+        public const string Lon = "L_SUN";
+        public const string Rad = "R_SUN";
+        public const string WriteTime = "WRT_TM";
 
         public static int GetId(DataRow row)
         {
@@ -75,16 +75,16 @@ namespace DBTables
         }
     }
 
-    public class SatTable
+    public static class SatTable
     {
-        public static const string Name = "TblKAPosition";
-        public static const string Id = "ID";
-        public static const string Num = "N_KA";
-        public static const string Time = "TM";
-        public static const string Lat = "FI_SSPOINT";
-        public static const string Lon = "LAM_SSPOINT";
-        public static const string Rad = "R";
-        public static const string WriteTime = "WRT_TM";
+        public const string Name = "TblKAPosition";
+        public const string Id = "ID";
+        public const string Num = "N_KA";
+        public const string Time = "TM";
+        public const string Lat = "FI_SSPOINT";
+        public const string Lon = "LAM_SSPOINT";
+        public const string Rad = "R";
+        public const string WriteTime = "WRT_TM";
 
         public static int GetId(DataRow row)
         {
@@ -145,24 +145,24 @@ namespace DBTables
         }
     }
 
-    public class OrbitTable
+    public static class OrbitTable
     {
-        public static const string Name = "TblOrbit";
-        public static const string Id = "ID";
-        public static const string Num = "N_KA";
-        public static const string NumTurn = "N_VIT";
-        public static const string NumTurnDaily = "N_VIT_S";
-        public static const string TimeEquator = "T_EQUATOR";
-        public static const string TimeEquatorSec = "T_EQUATOR_SEC";
-        public static const string AscendingNodeLon = "LONGITUDE";
-        public static const string SunAngle = "SUN_ANGLE";
-        public static const string MajorSemiaxis = "MAJOR_SEMIAXIS";
-        public static const string InertialLon = "INRT_LONGITUDE";
-        public static const string Inclination = "INCLINATION";
-        public static const string Eccentricity = "ECCENTRICITY";
-        public static const string PericentreArg = "PRM_PERICENTRE";
-        public static const string LatitudeArg = "PRM_LATITUDE";
-        public static const string WriteTime = "WRT_TM";
+        public const string Name = "TblOrbit";
+        public const string Id = "ID";
+        public const string Num = "N_KA";
+        public const string NumTurn = "N_VIT";
+        public const string NumTurnDaily = "N_VIT_S";
+        public const string TimeEquator = "T_EQUATOR";
+        public const string TimeEquatorSec = "T_EQUATOR_SEC";
+        public const string AscendingNodeLon = "LONGITUDE";
+        public const string SunAngle = "SUN_ANGLE";
+        public const string MajorSemiaxis = "MAJOR_SEMIAXIS";
+        public const string InertialLon = "INRT_LONGITUDE";
+        public const string Inclination = "INCLINATION";
+        public const string Eccentricity = "ECCENTRICITY";
+        public const string PericentreArg = "PRM_PERICENTRE";
+        public const string LatitudeArg = "PRM_LATITUDE";
+        public const string WriteTime = "WRT_TM";
 
         public static int GetId(DataRow row)
         {
@@ -264,19 +264,19 @@ namespace DBTables
         }
     }
 
-    public class CoverageTable
+    public static class CoverageTable
     {
-        public static const string Name = "TblCoverage";
-        public static const string Id = "ID";
-        public static const string Num = "N_KA";
-        public static const string NadirTime = "TM";
-        public static const string NadirLat = "FI_SSPOINT";
-        public static const string NadirLon = "LAM_SSPOINT";
-        public static const string LeftLat = "FI_LSSP";
-        public static const string LeftLon = "LAM_LSSP";
-        public static const string RightLat = "FI_RSSP";
-        public static const string RightLon = "LAM_RSSP";
-        public static const string WriteTime = "WRT_TM";
+        public const string Name = "TblCoverage";
+        public const string Id = "ID";
+        public const string Num = "N_KA";
+        public const string NadirTime = "TM";
+        public const string NadirLat = "FI_SSPOINT";
+        public const string NadirLon = "LAM_SSPOINT";
+        public const string LeftLat = "FI_LSSP";
+        public const string LeftLon = "LAM_LSSP";
+        public const string RightLat = "FI_RSSP";
+        public const string RightLon = "LAM_RSSP";
+        public const string WriteTime = "WRT_TM";
 
         public static int GetId(DataRow row)
         {

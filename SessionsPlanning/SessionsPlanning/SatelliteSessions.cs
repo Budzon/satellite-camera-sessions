@@ -11,7 +11,6 @@ using Astronomy;
 using Common;
 using OptimalChain;
 
-using Common;
 using DBTables;
 
 using SphericalGeom;
@@ -57,7 +56,7 @@ namespace SatelliteSessions
             return (summ >= request.minCoverPerc);
         }
 
-        public static List<CaptureConf> getCaptureConfs(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
+        public static List<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
         {
             if (requests.Count == 0)
                 throw new ArgumentException("Requests array is empty!");
@@ -122,32 +121,16 @@ namespace SatelliteSessions
                 captureConfs[ci].id = ci;
 
             return captureConfs;
-            
-            //var rnd = new Random();
-            //var result = captureConfs.OrderBy(item => rnd.Next());
-            //captureConfs = result.ToList<CaptureConf>();
+         }
 
-            //var cconfss = new List<StaticConf>();
-            //foreach (var cc in captureConfs)
-            //{
-            //    var stc = new StaticConf(cc.id, cc.dateFrom, cc.dateTo, cc.timeDelta, cc.rollAngle, cc.square, cc.orders, cc.wktPolygon);
-            //    cconfss.Add(stc);
-            //}
-            //return cconfss;
-
-        }
-        public static IList<MPZ> getMPZArray(List<CaptureConf> captureConfs)
+        public static IList<OptimalChain.fakeMPZ> getMPZArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
         {
+            List<CaptureConf> captureConfs = getCaptureConfArray(requests, data_begin, data_end);
             Graph g = new Graph(captureConfs);
-            List<MPZ> optimalChain = g.findOptimalChain();// .findOptimalChain();
+            List<OptimalChain.fakeMPZ> optimalChain = g.findOptimalChain();// .findOptimalChain();
             return optimalChain;
         }
-        public static IList<MPZ> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
-        {
-            List<CaptureConf> captureConfs = getCaptureConfs(requests, data_begin, data_end);
-            return getMPZArray(captureConfs);            
-        }
-
+ 
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
             double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
@@ -256,9 +239,14 @@ namespace SatelliteSessions
             }             
         }        
     } 
+     
 
     public class SessionServices
     {
+        public static SatelliteSessions.MPZ getdfsdf()
+        {
+            return new SatelliteSessions.MPZ(new List<RouteMPZ>());
+        }
         public static List<MPZ> MakePlans(
             DateTime dateBegin,
             DateTime dateEnd,
@@ -269,7 +257,22 @@ namespace SatelliteSessions
             IList<RouteMPZ> deleteRoutes,
             DIOS.Common.SqlManager dbManager)
         {
-            return null;
+            List<MPZ> bolvanka = new List<MPZ>
+            {
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.SI),
+                                            new RouteMPZ(RegimeTypes.ZI),
+                                            new RouteMPZ(RegimeTypes.VI),
+                                            new RouteMPZ(RegimeTypes.NP)} ),
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.ZI_cal),
+                                            new RouteMPZ(RegimeTypes.ZI_fok_yust),
+                                            new RouteMPZ(RegimeTypes.NP_fok_yust)}),
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.KPI_load),
+                                            new RouteMPZ(RegimeTypes.KPI_unload),
+                                            new RouteMPZ(RegimeTypes.PUF_control),
+                                            new RouteMPZ(RegimeTypes.BBZU_control),
+                                            new RouteMPZ(RegimeTypes.Special)})
+            };
+            return bolvanka;
         }
 
         public static List<wktPolygonLit> GetLitOrNot(DIOS.Common.SqlManager manager, DateTime dateBegin, DateTime dateEnd)
@@ -281,22 +284,22 @@ namespace SatelliteSessions
             var satPositionTable = manager.GetSqlObject(CoverageTable.Name,
                 String.Format("where {0} between #{1}# and #{2}#", CoverageTable.NadirTime, date_begin, date_end));
 
-            List<LanePos> lane = new List<LanePos>();
-            foreach (var row in satPositionTable.Select())
-                lane.Add(CoverageTable.GetLanePos(row));
-            
+            List<LanePos> lane = new List<LanePos>(); 
+            foreach (var row in satPositionTable.Select()) 
+                lane.Add(CoverageTable.GetLanePos(row)); 
+
             var sunPositions = sunPositionTable.Select();
             int sunPositionsCount = sunPositions.Count();
             int curSunPositionIndex = 0;
 
-            List<wktPolygonLit> res = new List<wktPolygonLit>();
+            List<wktPolygonLit> res = new List<wktPolygonLit>(); 
 
-            bool onLitStreak = false;
-            int streakBegin = -1;
+            bool onLitStreak = false; 
+            int streakBegin = -1; 
 
             for (int i = 0; i < lane.Count - 1; ++i)
             {
-                while ((curSunPositionIndex < sunPositionsCount - 1) && SunTable.GetTime(sunPositions[curSunPositionIndex]) < lane[i].time)
+                while ((curSunPositionIndex < sunPositionsCount - 1) && SunTable.GetTime(sunPositions[curSunPositionIndex]) < lane[i].Time)
                     curSunPositionIndex++;
 
                 //var sun = Astronomy.SunPosition.GetPositionGreenwich(lane[i].time).ToVector();
@@ -304,8 +307,8 @@ namespace SatelliteSessions
                 SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
 
                 var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
-                bool allLit = LitAndNot.Item2.Count == 0;
-                bool allUnlit = LitAndNot.Item1.Count == 0;
+                bool allLit = LitAndNot.Item2.Count == 0;   
+                bool allUnlit = LitAndNot.Item1.Count == 0; 
 
                 if (streakBegin != -1)
                 {
@@ -316,10 +319,10 @@ namespace SatelliteSessions
                     }
                     else
                     {
-                        res.Add(new wktPolygonLit 
+                        res.Add(new wktPolygonLit
                         {
                             wktPolygon = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).ToWtk(),
-                            Lit = onLitStreak 
+                            Lit = onLitStreak
                         });
                         streakBegin = -1;
                     }
@@ -342,7 +345,7 @@ namespace SatelliteSessions
                         res.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), Lit = true });
                     foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
                         res.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), Lit = false });
-                }                
+                }
             }
 
             return res;

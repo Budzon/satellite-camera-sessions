@@ -399,6 +399,7 @@ namespace SatelliteTrajectory
         private TrajectoryPoint trajPoint;
 
         private double width;
+        private DateTime time;
 
         private RollOrientation roll;
 
@@ -445,6 +446,24 @@ namespace SatelliteTrajectory
         {
             Vector3D dirVector = getDirectionVector(point, rollAngle, pitchAngle);
             return Routines.SphereVectIntersect(dirVector, point.Position, Astronomy.Constants.EarthRadius);
+        }
+
+        public LanePos(Vector3D _leftPoint, Vector3D _middlePoint, Vector3D _rightPoint, DateTime _time)
+        {
+            knowLeftConrol = false;
+            knowRightConrol = false;
+
+            leftCartPoint = _leftPoint;
+            rightCartPoint = _rightPoint;
+            middleCartPoint = _middlePoint;
+            middleGeoPoint = GeoPoint.FromCartesian(_middlePoint);
+            
+            time = _time;
+            //TrajPoint = new TrajectoryPoint(,,_time);
+
+            leftGeoPoint = GeoPoint.FromCartesian(leftCartPoint);
+            rightGeoPoint = GeoPoint.FromCartesian(rightCartPoint);
+            width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
         }
 
         public LanePos(TrajectoryPoint pointKA, double viewAngle, double rollAngle)
@@ -504,6 +523,7 @@ namespace SatelliteTrajectory
             rightGeoPoint = GeoPoint.FromCartesian(rightCartPoint);
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
 
+            time = pointKA.Time;
             // leftControlPoint = leftCartPoint - middleCartPoint;
             // rightControlPoint = rightCartPoint - middleCartPoint;
 
@@ -556,7 +576,7 @@ namespace SatelliteTrajectory
 
         public TrajectoryPoint TrajPoint{ get{ return trajPoint; } }
 
-        public DateTime Time{ get{ return TrajPoint.Time; } }
+        public DateTime Time{ get{ return time; } }
 
         public Vector3D LeftCartPoint{ get{ return leftCartPoint; } }
 
@@ -618,7 +638,7 @@ namespace SatelliteTrajectory
 
             for (int i = 0; i < turn.Count - 1; ++i)
             {
-                Vector3D sun = Astronomy.SunPosition.GetPositionGreenwich(turn[i].time).ToVector();
+                Vector3D sun = Astronomy.SunPosition.GetPositionGreenwich(turn[i].Time).ToVector();
                 Polygon sector = FormSectorFromLanePoints(turn, i, i + 1);
 
                 var LitAndNot = Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
@@ -671,14 +691,14 @@ namespace SatelliteTrajectory
             for (int i = from; i < to; i += step)
             {
                 vertices.Add(turn[i].RightCartPoint);
-                apexes.Add(turn[i].rightControlPoint);
+                apexes.Add(turn[i].RightControlPoint);
             }
             vertices.Add(turn[to].RightCartPoint);
             apexes.Add(new Vector3D(0, 0, 0));
             for (int i = to; i > from; i -= step)
             {
                 vertices.Add(turn[i].LeftCartPoint);
-                apexes.Add(turn[i].leftControlPoint);
+                apexes.Add(turn[i].LeftControlPoint);
             }
             vertices.Add(turn[from].LeftCartPoint);
             apexes.Add(new Vector3D(0, 0, 0));
