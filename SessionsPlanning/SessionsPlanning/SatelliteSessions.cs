@@ -239,9 +239,12 @@ namespace SatelliteSessions
         /// <param name="DBManager">Параметры подключения к БД</param>
         /// <param name="timeFrom">Начало временного промежутка</param>
         /// <param name="timeTo">Конец временного промежутка</param>
+        /// <param name="turnNumber">Глобальный номер витка</param>
         /// <param name="partsLitAndNot">Список полигонов, помеченных флагом освещенности</param>
-        public static void checkIfViewLaneIsLit(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<wktPolygonLit> partsLitAndNot)
+        public static void checkIfViewLaneIsLit(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out int turnNumber, out List<wktPolygonLit> partsLitAndNot)
         {
+            turnNumber = OrbitTable.GetNumTurn(DBManager.GetSqlObject(OrbitTable.Name, "").Select()[0]);
+
             string date_begin = timeFrom.ToShortDateString();
             string date_end = timeTo.ToShortDateString();
             var sunPositionTable = DBManager.GetSqlObject(SunTable.Name,
