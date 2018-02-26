@@ -36,7 +36,7 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-           // Terra = new Ellipse3D(1, 1, 1, 200);            
+           // Terra = new Ellipse3D(1, 1, 1, 200);
             Terra = new EllipseRegion3D(1, 1, 1, 5, 150);
             PlotSphere(null, null);
         }
@@ -86,7 +86,7 @@ namespace GUI
             //    var p = Terra.GetPoint(i);
             //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
             //}
- 
+
             // Parallel.For(0, nData, i =>
             for (int i = 0; i < nData; ++i)
             {
@@ -118,7 +118,7 @@ namespace GUI
 
             float viewRange = 2;
             m_transformMatrix.CalculateProjectionMatrix(-viewRange, viewRange, -viewRange, viewRange, -viewRange, viewRange, 0.5);
-        } 
+        }
 
         public void PlotSquares(object sender, RoutedEventArgs e)
         {
@@ -165,7 +165,7 @@ namespace GUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            vm.CreateCaptureIntervals();              
+            vm.CreateCaptureIntervals();
         }
 
         private void Button_isRequestFeasible(object sender, RoutedEventArgs e)
@@ -178,8 +178,8 @@ namespace GUI
             vm.test_getCaptureConfArray();
         }
 
- 
-         
+
+
     }
 
 }

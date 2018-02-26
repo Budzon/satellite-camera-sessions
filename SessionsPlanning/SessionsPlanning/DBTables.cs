@@ -8,9 +8,102 @@ using System.Data;
 
 using Common;
 using Astronomy;
+using DIOS.Common;
 
 namespace DBTables
 {
+    public class DataFetcher
+    {
+        private static GeoPoint snkpoi = new GeoPoint(30.185089, 31.690301);
+        private SqlManager manager;
+
+        public DataFetcher(SqlManager _manager)
+        {
+            manager = _manager;
+        }
+
+        /// <summary>
+        /// Fetches space-time position of the Sun (NOT normalized to the Earth radius).
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        public List<SpaceTime> GetPositionSun(/*DateTime from, DateTime to*/)
+        {
+            DataTable sunPositionTable = manager.GetSqlObject(
+                SunTable.Name, ""
+                /*String.Format("where {0} between #{1}# and #{2}#", SunTable.Time, from.ToShortDateString(), to.ToShortDateString())*/);
+
+            List<SpaceTime> res = new List<SpaceTime>();
+            DataRow[] rows = sunPositionTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(new SpaceTime { Position = SunTable.GetPosition(row), Time = SunTable.GetTime(row) });
+
+            return res;
+        }
+
+        /// <summary>
+        /// In units of Earth radius.
+        /// </summary>
+        /// <returns></returns>
+        public Vector3D GetPositionUnitSNKPOI()
+        {
+            return GeoPoint.ToCartesian(snkpoi, 1);
+        }
+        public Vector3D GetPositionSNKPOI()
+        {
+            return GeoPoint.ToCartesian(snkpoi, Astronomy.Constants.EarthRadius);
+        }
+        /// <summary>
+        /// As lat-lon.
+        /// </summary>
+        /// <returns></returns>
+        public GeoPoint GetPositionGeoSNKPOI()
+        {
+            return snkpoi;
+        }
+
+        public List<PositionMNKPOI> GetPositionMNKPOI()
+        {
+            DataTable mnkpoiPositionTable = manager.GetSqlObject(
+                MnkpoiTable.Name, "");
+
+            List<PositionMNKPOI> res = new List<PositionMNKPOI>();
+            DataRow[] rows = mnkpoiPositionTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(new PositionMNKPOI
+                {
+                    Number = MnkpoiTable.GetNum(row),
+                    Position = MnkpoiTable.GetPositionGeo(row),
+                    Altitude = MnkpoiTable.GetAlt(row),
+                    TimeBeg = MnkpoiTable.GetTimeFrom(row),
+                    TimeEnd = MnkpoiTable.GetTimeTo(row)
+                });
+
+            return res;
+        }
+
+        /// <summary>
+        /// Fetches space-time position of the satellite (NOT normalized to the Earth radius).
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
+        {
+            DataTable satPositionTable = manager.GetSqlObject(
+                SunTable.Name, 
+                String.Format("where {0} between #{1}# and #{2}#", SunTable.Time, from.ToShortDateString(), to.ToShortDateString()));
+
+            List<SpaceTime> res = new List<SpaceTime>();
+            DataRow[] rows = satPositionTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
+
+            return res;
+        }
+    }
+
     public static class SunTable
     {
         public const string Name = "TblSunPosition";
@@ -381,5 +474,96 @@ namespace DBTables
         {
             return new SatelliteTrajectory.LanePos(GetLeftUnit(row), GetNadirUnit(row), GetRightUnit(row), GetNadirTime(row));
         }
+    }
+
+    public static class MnkpoiTable
+    {
+        public const string Name = "BNO_MNKPOI";
+        public const string Id = "ID";
+        public const string Num = "NUM";
+        public const string Lat = "LATITUDE";
+        public const string Lon = "LONGITUDE";
+        public const string Alt = "ALTITUDE";
+        public const string TimeFrom = "TMBEG";
+        public const string TimeTo = "TMEND";
+        public const string WriteTime = "WRT_TM";
+        public const string Sent = "SENT";
+
+        public static int GetId(DataRow row)
+        {
+            return (int)row[Id];
+        }
+
+        public static int GetNum(DataRow row)
+        {
+            return (int)row[Num];
+        }
+
+        /// <summary>
+        /// In radians.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public static double GetLat(DataRow row)
+        {
+            return Astronomy.AstronomyMath.ToRad((double)row[Lat]);
+        }
+        /// <summary>
+        /// In radians.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public static double GetLon(DataRow row)
+        {
+            return Astronomy.AstronomyMath.ToRad((double)row[Lon]);
+        }
+
+        public static double GetAlt(DataRow row)
+        {
+            return (double)row[Alt];
+        }
+
+        public static GeoPoint GetPositionGeo(DataRow row)
+        {
+            return new GeoPoint(GetLat(row), GetLon(row));
+        }
+
+        public static DateTime GetTimeFrom(DataRow row)
+        {
+            return (DateTime)row[TimeFrom];
+        }
+
+        public static DateTime GetTimeTo(DataRow row)
+        {
+            return (DateTime)row[TimeTo];
+        }
+
+        public static DateTime GetWriteTime(DataRow row)
+        {
+            return (DateTime)row[WriteTime];
+        }
+
+        public static int GetSent(DataRow row)
+        {
+            return (int)row[Sent];
+        }
+    }
+
+    public class SpaceTime
+    {
+        public Vector3D Position { get; set; }
+        public DateTime Time { get; set; }
+    }
+
+    public class PositionMNKPOI
+    {
+        public int Number { get; set; }
+        public GeoPoint Position { get; set; }
+        /// <summary>
+        /// Altitude in metres.
+        /// </summary>
+        public double Altitude { get; set; }
+        public DateTime TimeBeg { get; set; }
+        public DateTime TimeEnd { get; set; }
     }
 }
