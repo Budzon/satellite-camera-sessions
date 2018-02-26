@@ -34,9 +34,6 @@ namespace SatelliteTrajectory
 
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
-             
-            var points = trajectory.Points;
-            var count = trajectory.Count;
 
             createPolygons(minAngle, maxAngle, polygonStep);
         }
@@ -59,7 +56,6 @@ namespace SatelliteTrajectory
             int points_count = trajectory.Count;
 
             LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle);
-            //double width = (firstPos.LeftCartPoint - firstPos.RightCartPoint).Length / 2;
 
             DateTime sectorFromDT = firstPos.Time;
             DateTime sectorToDT;
@@ -169,7 +165,7 @@ namespace SatelliteTrajectory
                     foreach (var point in verts)
                     {
                         DateTime curTime = sector.getPointTime(point);
-                        if (curTime < request.dateFrom || request.dateTo < curTime)
+                        if (curTime < request.timeFrom || request.timeTo < curTime)
                         {
                             outOfRange = true;
                             break;
@@ -200,7 +196,7 @@ namespace SatelliteTrajectory
             return res;
         }
 
-        public Tuple<Polygon, TrajectoryPoint, TrajectoryPoint>  getSegment(DateTime begTime, DateTime endTime)
+        public Polygon getSegment(DateTime begTime, DateTime endTime)
         {
             if (Sectors.Count < 1)
                 return null;
@@ -263,10 +259,7 @@ namespace SatelliteTrajectory
             for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
                 polygonPoints.Add(rightPolygonPoints[ind]);
 
-            TrajectoryPoint pointFrom = trajectory.GetPoint(begTime);
-            TrajectoryPoint pointTo = trajectory.GetPoint(endTime); 
-            Polygon segmenPol = new Polygon(polygonPoints, new Vector3D(0, 0, 0));
-            return  Tuple.Create(segmenPol, pointFrom, pointTo);
+            return new Polygon(polygonPoints, new Vector3D(0, 0, 0));            
         }
         
         /*

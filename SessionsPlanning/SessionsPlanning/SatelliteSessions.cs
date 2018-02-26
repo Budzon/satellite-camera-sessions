@@ -18,13 +18,52 @@ using SphericalGeom;
 
 namespace SatelliteSessions
 {
+    /// <summary>
+    /// сеанс связи
+    /// </summary>
+    public class CommunicationSession
+    {
+        /// <summary>
+        ///  Id антенны
+        /// </summary>
+        public int id { get; set; }
+        /// <summary>
+        ///  Время начала 7-градусной зоныc
+        /// </summary>
+        public DateTime Zone5timeFrom { get; set; }
+        /// <summary>
+        /// Время конца 7-градусной зоны
+        /// </summary>
+        public DateTime Zone5timeTo { get; set; }
+        /// <summary>
+        /// Время начала 5-градусной зоны
+        /// </summary>
+        public DateTime Zone7timeFrom { get; set; }
+        /// <summary>
+        /// Время конца 5-градусной зоны
+        /// </summary>
+        public DateTime Zone7timeTo { get; set; }
+        /// <summary>
+        /// Список маршрутов на сброс, участвующих в этом сеансе 
+        /// </summary>
+        public List<RouteMPZ> routesToReset { get; set; }
+    }
+     
     public class Sessions
     {
-        public static bool isRequestFeasible(RequestParams request, DateTime data_begin, DateTime data_end)
+        /// <summary>
+        /// возвращает реализуемость заказа
+        /// </summary>
+        /// <param name="request">Заказ</param>
+        /// <param name="timeFrom">начало диапазона времени</param>
+        /// <param name="timeTo">конец диапазона времени</param>
+        /// <param name="coverage">Процент покрытия, которые можно получить.</param>
+        /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
+        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo, out double coverage, out List<CaptureConf> possibleConfs)
         {
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
-            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно            
-            double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle; // Math.PI / 2;  
+            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно            
+            double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle; 
             SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
             List<CaptureConf> confs = viewLane.getCaptureConfs(request);
 
@@ -53,10 +92,11 @@ namespace SatelliteSessions
                     region = toBeCoveredAfter;
                 }
             }
-            return (summ >= request.minCoverPerc);
+            coverage = summ;
+            possibleConfs =  new List<CaptureConf>(); /// @todo заполнять список конфигураций            
         }
 
-        public static List<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
+        public static List<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime timeFrom, DateTime timeTo)
         {
             if (requests.Count == 0)
                 throw new ArgumentException("Requests array is empty!");
@@ -64,11 +104,10 @@ namespace SatelliteSessions
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
-            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, data_begin, data_end); // @todo временно
+            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно
 
             // @todo вынести это в константы
             double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
-            //double viewAngle = AstronomyMath.ToRad(5); // на время тестирования
             double angleStep = viewAngle; // шаг равен углу обзора
 
             double Max_SOEN_anlge = requests[0].Max_SOEN_anlge;
@@ -80,9 +119,7 @@ namespace SatelliteSessions
 
             double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
-
-            //for (double rollAngle = min_roll_angle + angleStep; rollAngle <= max_roll_angle; rollAngle += angleStep)
-
+        
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
             //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
             Parallel.For(0, num_steps, index =>
@@ -95,17 +132,16 @@ namespace SatelliteSessions
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
                         continue;
                     List<CaptureConf> confs = viewLane.getCaptureConfs(request);
-                    compressCConfArray(ref confs);
-                    compressTwoCConfArrays(ref laneCaptureConfs, ref confs);
+                    CaptureConf.compressCConfArray(ref confs);
+                    CaptureConf.compressTwoCConfArrays(ref laneCaptureConfs, ref confs);
                     laneCaptureConfs.AddRange(confs);
                 }
 
                 foreach (var conf in laneCaptureConfs)
-                {
-                    var segmentTuple = viewLane.getSegment(conf.dateFrom, conf.dateTo);
-                    var pol = segmentTuple.Item1;
-                    TrajectoryPoint pointFrom = segmentTuple.Item2;
-                    TrajectoryPoint pointTo = segmentTuple.Item3;
+                { 
+                    var pol =  viewLane.getSegment(conf.dateFrom, conf.dateTo);
+                    TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
+                    TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo); 
 
                     conf.wktPolygon = pol.ToWtk();
                     conf.square = pol.Area;
@@ -123,14 +159,82 @@ namespace SatelliteSessions
             return captureConfs;
          }
 
-        public static IList<OptimalChain.fakeMPZ> getMPZArray(IList<RequestParams> requests, DateTime data_begin, DateTime data_end)
+        /// <summary>
+        /// Планирование в автоматическом режиме
+        /// </summary>
+        /// <param name="requests">Список заказов с "неотснятыми полигонами"</param>
+        /// <param name="timeFrom">Время начала промежутка планирования</param>
+        /// <param name="timeTo">Время конца промежутка планирования</param>
+        /// <param name="silentRanges">Список интервалов времени , в которые нельзя сбрасывать данные в СНКПОИ и/или МНКПОИ</param>
+        /// <param name="inactivityRanges">Список интервалов, когда нельзя проводить съемку</param>
+        /// <param name="routesToReset">Перечень маршрутов на сброс</param>
+        /// <param name="routesToDelete">Перечень маршрутов на удаление</param>
+        /// <param name="managerDB">параметры взаимодействия с БД</param>
+        /// <param name="mpzArray">Набор МПЗ</param>
+        /// <param name="sessions">Сеансы связи</param>
+        public static void getMPZArray(
+              IList<RequestParams> requests
+            , DateTime timeFrom
+            , DateTime timeTo
+            , List<Tuple<DateTime, DateTime>> silentRanges
+            , List<Tuple<DateTime, DateTime>> inactivityRanges
+            , List<RouteMPZ> routesToReset
+            , List<RouteMPZ> routesToDelete
+            , DIOS.Common.SqlManager managerDB
+            , out IList<OptimalChain.fakeMPZ> mpzArray
+            , out List<CommunicationSession> sessions)
         {
-            List<CaptureConf> captureConfs = getCaptureConfArray(requests, data_begin, data_end);
+            List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo);
+            ///@todo реализовать всё, что касается параметров silentRanges, inactivityRanges, routesToReset, routesToDelete, managerDB, sessions
             Graph g = new Graph(captureConfs);
-            List<OptimalChain.fakeMPZ> optimalChain = g.findOptimalChain();// .findOptimalChain();
-            return optimalChain;
+            mpzArray = g.findOptimalChain();
+            sessions = new List<CommunicationSession>();
         }
- 
+
+        /// <summary>
+        /// Рассчитать полигон съемки/видимости для заданной конфигурации СОЭНc
+        /// </summary>
+        /// <param name="dateTime"> Момент времени DateTimec</param>
+        /// <param name="rollAngle">Крен в радианах double</param>
+        /// <param name="pitchAngle"> Тангаж в радианах double</param>
+        /// <param name="duration">Продолжительность съемки в милисекундах</param>
+        /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <returns> полигон в формате WKT</returns>
+        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager DBManager)
+        {
+            string wkt_string = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
+            /// @todo реализовать 
+            return wkt_string;
+        }
+
+        /// <summary>
+        /// Проверка ПНб (программа наблюдений) на непротиворечивость
+        /// </summary>
+        /// <param name="MPZArray">Список МПЗ</param>
+        /// <param name="isIncompatible"> Флаг наличия конфликтов (True/False)</param>
+        /// <param name="incompatibleRoutes">Список конфликтов (может быть пустым)</param>
+        public static void checkCocmpatibility(List<MPZ> MPZArray, out bool isIncompatible, out List<Tuple<RouteMPZ, RouteMPZ>> incompatibleRoutes)
+        {
+            isIncompatible = true; 
+            incompatibleRoutes = new List<Tuple<RouteMPZ, RouteMPZ>>(); 
+            /// @todo реализовать 
+        }
+
+        /// <summary>
+        /// Нахождение в ПНб противоречий с заданным маршрутом
+        /// </summary>
+        /// <param name="MPZArray">Список МПЗ</param>
+        /// <param name="route">Маршрут, который надо проверить на совместимость с этим МПЗ</param>
+        /// <param name="isIncompatible">Флаг наличия конфликтов (True/False)</param>
+        /// <param name="incompatibleRoutes">. Список маршрутов, с которым конфликтует заданны маршрут: c</param>
+        public static void checkCocmpatibility(List<MPZ> MPZArray, RouteMPZ route, out bool isIncompatible, out List<RouteMPZ> incompatibleRoutes)
+        {
+            isIncompatible = true;
+            incompatibleRoutes = new List<RouteMPZ>();
+        }
+        
+
+        /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
             double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
@@ -168,76 +272,7 @@ namespace SatelliteSessions
                 double t = distOverSurf / pointFrom.Velocity.Length;
                 conf.pitchArray[pitch] = t;
             }
-        }
-
-        private static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
-        {
-            CaptureConf newConf = new CaptureConf();
-            newConf.rollAngle = confs1.rollAngle;
-            newConf.dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
-            newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
-            newConf.orders.AddRange(confs1.orders);
-            newConf.orders.AddRange(confs2.orders);
-
-            /*
-            for (int i = 0; i < confs1.orders.Count; i++)
-            {
-                newConf.orders.Add(confs1.orders[i]);
-                for (int j = 0; j < confs2.orders.Count; j++)
-                {
-                    if (confs1.orders[i].request.id != confs2.orders[j].request.id)
-                    {                       
-                        newConf.orders.Add(confs2.orders[j]);                        
-                    }
-                    else
-                    {
-                        var order = new Order();
-                        
-                    }                    
-                }
-            }*/
-
-            return newConf;
-        }
-
-        private static bool isNeedUnit(CaptureConf c1, CaptureConf c2)
-        {
-            /// @todo добавить минимально допустимое расстояние (по времени)
-            return ((c1.dateFrom <= c2.dateTo && c2.dateTo <= c1.dateTo) || (c1.dateFrom <= c2.dateFrom && c2.dateFrom <= c1.dateTo)
-                  || (c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
-        }
-
-        private static void compressCConfArray(ref List<CaptureConf> confs)
-        {
-            for (int i = 0; i < confs.Count; i++)
-            {
-                for (int j = i + 1; j < confs.Count; j++)
-                {
-                    if (isNeedUnit(confs[i], confs[j]))
-                    {
-                        CaptureConf comConf = unitCaptureConfs(confs[i], confs[j]);
-                        confs[i] = comConf;
-                        confs.RemoveAt(j);
-                    }
-                }
-            }
-        }
-
-        private static void compressTwoCConfArrays(ref List<CaptureConf> confs1, ref List<CaptureConf> confs2)
-        {
-            for (int i = 0; i < confs1.Count; i++)
-            {
-                for (int j = 0; j < confs2.Count; j++)
-                {
-                    if (isNeedUnit(confs1[i], confs2[j]))
-                    {
-                        CaptureConf unitConf = unitCaptureConfs(confs1[i], confs2[j]);
-                        confs1[i] = unitConf;
-                        confs2.RemoveAt(j);
-                    }
-                }
-            }             
-        }        
+        }               
     } 
      
 

@@ -138,6 +138,75 @@ namespace OptimalChain
             
         }
 
+
+        public static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
+        {
+            CaptureConf newConf = new CaptureConf();
+            newConf.rollAngle = confs1.rollAngle;
+            newConf.dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
+            newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
+            newConf.orders.AddRange(confs1.orders);
+            newConf.orders.AddRange(confs2.orders);
+
+            /*
+            for (int i = 0; i < confs1.orders.Count; i++)
+            {
+                newConf.orders.Add(confs1.orders[i]);
+                for (int j = 0; j < confs2.orders.Count; j++)
+                {
+                    if (confs1.orders[i].request.id != confs2.orders[j].request.id)
+                    {                       
+                        newConf.orders.Add(confs2.orders[j]);                        
+                    }
+                    else
+                    {
+                        var order = new Order();
+                        
+                    }                    
+                }
+            }*/
+
+            return newConf;
+        }
+
+        public static bool isNeedUnit(CaptureConf c1, CaptureConf c2)
+        {
+            /// @todo добавить минимально допустимое расстояние (по времени)
+            return ((c1.dateFrom <= c2.dateTo && c2.dateTo <= c1.dateTo) || (c1.dateFrom <= c2.dateFrom && c2.dateFrom <= c1.dateTo)
+                  || (c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
+        }
+
+        public static void compressCConfArray(ref List<CaptureConf> confs)
+        {
+            for (int i = 0; i < confs.Count; i++)
+            {
+                for (int j = i + 1; j < confs.Count; j++)
+                {
+                    if (isNeedUnit(confs[i], confs[j]))
+                    {
+                        CaptureConf comConf = unitCaptureConfs(confs[i], confs[j]);
+                        confs[i] = comConf;
+                        confs.RemoveAt(j);
+                    }
+                }
+            }
+        }
+
+        public static void compressTwoCConfArrays(ref List<CaptureConf> confs1, ref List<CaptureConf> confs2)
+        {
+            for (int i = 0; i < confs1.Count; i++)
+            {
+                for (int j = 0; j < confs2.Count; j++)
+                {
+                    if (isNeedUnit(confs1[i], confs2[j]))
+                    {
+                        CaptureConf unitConf = unitCaptureConfs(confs1[i], confs2[j]);
+                        confs1[i] = unitConf;
+                        confs2.RemoveAt(j);
+                    }
+                }
+            }
+        }        
        
     }
 
@@ -145,8 +214,8 @@ namespace OptimalChain
     {
         public int id { get; set; }
         public int priority { get; set; }
-        public DateTime dateFrom { get; set; }
-        public DateTime dateTo { get; set; }
+        public DateTime timeFrom { get; set; }
+        public DateTime timeTo { get; set; }
         public double Max_SOEN_anlge { get; set; }
         public double minCoverPerc { get; set; }
         public int Max_sun_angle { get; set; }
@@ -169,8 +238,8 @@ namespace OptimalChain
         {
             id = i;
             priority = p;
-            dateFrom = d1;
-            dateTo = d2;
+            timeFrom = d1;
+            timeTo = d2;
             Max_SOEN_anlge = max_a;
             minCoverPerc = min_p;
             Max_sun_angle = max_s_a;
