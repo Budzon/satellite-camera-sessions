@@ -124,22 +124,22 @@ namespace DBTables
             return (DateTime)row[Time];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLat(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lat]);
+            return (double)row[Lat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLon(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lon]);
+            return (double)row[Lon];
         }
 
         public static double GetRad(DataRow row)
