@@ -194,22 +194,22 @@ namespace DBTables
             return (DateTime)row[Time];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLat(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lat]);
+            return (double)row[Lat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLon(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lon]);
+            return (double)row[Lon];
         }
 
         public static double GetRad(DataRow row)
@@ -287,22 +287,22 @@ namespace DBTables
             return (double)row[TimeEquatorSec];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetAscendingNodeLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[AscendingNodeLon]);
+            return (double)row[AscendingNodeLon];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetSunAngle(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[SunAngle]);
+            return (double)row[SunAngle];
         }
 
         public static double GetMajorSemiaxis(DataRow row)
@@ -310,22 +310,22 @@ namespace DBTables
             return (double)row[MajorSemiaxis];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetInertialLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[InertialLon]);
+            return (double)row[InertialLon];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetInclination(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[Inclination]);
+            return (double)row[Inclination];
         }
 
         public static double GetEccentricity(DataRow row)
@@ -333,22 +333,22 @@ namespace DBTables
             return (double)row[Eccentricity];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetPericentreArg(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[PericentreArg]);
+            return (double)row[PericentreArg];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLatitudeArg(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[LatitudeArg]);
+            return (double)row[LatitudeArg];
         }
 
         public static DateTime GetWriteTime(DataRow row)
@@ -386,22 +386,22 @@ namespace DBTables
             return (DateTime)row[NadirTime];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetNadirLat(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[NadirLat]);
+            return (double)row[NadirLat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetNadirLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[NadirLon]);
+            return (double)row[NadirLon];
         }
 
         public static GeoPoint GetNadirGeo(DataRow row)
@@ -414,22 +414,22 @@ namespace DBTables
             return GeoPoint.ToCartesian(GetNadirGeo(row), 1);
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLeftLat(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[LeftLat]);
+            return (double)row[LeftLat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLeftLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[LeftLon]);
+            return (double)row[LeftLon];
         }
 
         public static GeoPoint GetLeftGeo(DataRow row)
@@ -442,22 +442,22 @@ namespace DBTables
             return GeoPoint.ToCartesian(GetLeftGeo(row), 1);
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetRightLat(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[RightLat]);
+            return (double)row[RightLat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetRightLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[RightLon]);
+            return (double)row[RightLon];
         }
 
         public static GeoPoint GetRightGeo(DataRow row)
@@ -500,22 +500,22 @@ namespace DBTables
         }
 
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLat(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lat]);
+            return (double)row[Lat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLon(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lon]);
+            return (double)row[Lon];
         }
 
         public static double GetAlt(DataRow row)
