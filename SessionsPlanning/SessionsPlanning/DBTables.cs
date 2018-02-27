@@ -91,9 +91,14 @@ namespace DBTables
         /// <returns></returns>
         public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
         {
+            //var sqlFrom = new System.Data.SqlTypes.SqlDateTime(from);
+            //var sqlTo = new System.Data.SqlTypes.SqlDateTime(to);
+            string datePattern = "MM.dd.yyyy HH:mm:ss";
+            string fromStr = from.ToString(datePattern);
+            string toStr = to.ToString(datePattern);
             DataTable satPositionTable = manager.GetSqlObject(
-                SunTable.Name, 
-                String.Format("where {0} between #{1}# and #{2}#", SunTable.Time, from.ToShortDateString(), to.ToShortDateString()));
+                SatTable.Name, 
+                String.Format("where {0} between '{1}' and '{2}'", SunTable.Time, fromStr, toStr));
 
             List<SpaceTime> res = new List<SpaceTime>();
             DataRow[] rows = satPositionTable.Select();
@@ -114,9 +119,9 @@ namespace DBTables
         public const string Rad = "R_SUN";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static long GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (long)row[Id];
         }
 
         public static DateTime GetTime(DataRow row)
@@ -179,14 +184,14 @@ namespace DBTables
         public const string Rad = "R";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static long GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (long)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         public static DateTime GetTime(DataRow row)
@@ -257,14 +262,14 @@ namespace DBTables
         public const string LatitudeArg = "PRM_LATITUDE";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static decimal GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (decimal)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         public static int GetNumTurn(DataRow row)
@@ -371,14 +376,14 @@ namespace DBTables
         public const string RightLon = "LAM_RSSP";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static long GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (long)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         public static DateTime GetNadirTime(DataRow row)
@@ -474,6 +479,11 @@ namespace DBTables
         {
             return new SatelliteTrajectory.LanePos(GetLeftUnit(row), GetNadirUnit(row), GetRightUnit(row), GetNadirTime(row));
         }
+
+        public static DateTime GetWriteTime(DataRow row)
+        {
+            return (DateTime)row[WriteTime];
+        }
     }
 
     public static class MnkpoiTable
@@ -489,14 +499,14 @@ namespace DBTables
         public const string WriteTime = "WRT_TM";
         public const string Sent = "SENT";
 
-        public static int GetId(DataRow row)
+        public static decimal GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (decimal)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         /// <summary>
@@ -543,9 +553,9 @@ namespace DBTables
             return (DateTime)row[WriteTime];
         }
 
-        public static int GetSent(DataRow row)
+        public static byte GetSent(DataRow row)
         {
-            return (int)row[Sent];
+            return (byte)row[Sent];
         }
     }
 
