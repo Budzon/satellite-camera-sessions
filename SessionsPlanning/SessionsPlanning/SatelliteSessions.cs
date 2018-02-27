@@ -213,7 +213,7 @@ namespace SatelliteSessions
         /// <param name="MPZArray">Список МПЗ</param>
         /// <param name="isIncompatible"> Флаг наличия конфликтов (True/False)</param>
         /// <param name="incompatibleRoutes">Список конфликтов (может быть пустым)</param>
-        public static void checkCocmpatibility(List<MPZ> MPZArray, out bool isIncompatible, out List<Tuple<RouteMPZ, RouteMPZ>> incompatibleRoutes)
+        public static void checkCompatibility(List<MPZ> MPZArray, out bool isIncompatible, out List<Tuple<RouteMPZ, RouteMPZ>> incompatibleRoutes)
         {
             isIncompatible = true; 
             incompatibleRoutes = new List<Tuple<RouteMPZ, RouteMPZ>>(); 
@@ -227,7 +227,7 @@ namespace SatelliteSessions
         /// <param name="route">Маршрут, который надо проверить на совместимость с этим МПЗ</param>
         /// <param name="isIncompatible">Флаг наличия конфликтов (True/False)</param>
         /// <param name="incompatibleRoutes">. Список маршрутов, с которым конфликтует заданны маршрут: c</param>
-        public static void checkCocmpatibility(List<MPZ> MPZArray, RouteMPZ route, out bool isIncompatible, out List<RouteMPZ> incompatibleRoutes)
+        public static void checkCompatibility(List<MPZ> MPZArray, RouteMPZ route, out bool isIncompatible, out List<RouteMPZ> incompatibleRoutes)
         {
             isIncompatible = true;
             incompatibleRoutes = new List<RouteMPZ>();
@@ -313,6 +313,97 @@ namespace SatelliteSessions
             }
         }
 
+
+        /// <summary>
+        /// ошибка создания маршрута
+        /// </summary>
+        public enum createMPZStatus
+        {
+            eSuccses,
+            eTotLong,            // Длительность МПЗ превышена
+            eRoutesIncompatible, // Маршрута противоречат друг другу
+            eIncorrectNumber     // Слишком много/мало маршрутов (если 0 или если больше 12)
+        }
+
+        /// <summary>
+        /// Создание МПЗ по заданным маршрутам и доп.параметрам
+        /// </summary>
+        /// <param name="routes">Набор маршрутов </param>
+        /// <param name="PWR_ON">признак PWR_ON</param>
+        /// <param name="mpz">параметры МПЗ</param>
+        /// <param name="error">ошибка создания</param>
+        public static void createMPZ(List<RouteMPZ> routes, int PWR_ON, out MPZ mpz, out createMPZStatus error)
+        { 
+            mpz = new MPZ(routes);
+            error = createMPZStatus.eSuccses;
+        }
+
+        /// <summary>
+        /// Расчет сеансов связи за заданный период времени
+        /// </summary>
+        /// <param name="timeFrom">Начало временного отрезка</param>
+        /// <param name="timeTo">Конец временного отрезка</param>
+        /// <returns>Все возможные сеансы связи за это время</returns>
+        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo)
+        {
+            return new List<CommunicationSession>();
+        }
+
+        /// <summary>
+        /// Создание маршрута на съемку
+        /// </summary>
+        /// <param name="timeFrom">Время начала съемки</param>
+        /// <param name="duration">длительность съемки (милисекунды)</param>
+        /// <param name="pitchAngle">тангаж</param>
+        /// <param name="rollAngle">крен</param>
+        /// <returns>Параметры маршрута</returns>
+        public static RouteMPZ createRouteToCapture(DateTime timeFrom, int duration, double pitchAngle, double rollAngle)
+        {
+            return new RouteMPZ(new RegimeTypes());
+        }
+
+        /// <summary>
+        /// Создание маршрута на удаление
+        /// </summary>
+        /// <param name="timeFrom">Время начала маршрута </param>
+        /// <param name="MPZ_Id">номер МПЗ удаляемого маршрута</param>
+        /// <param name="routeId">номер удаляемого маршрута</param>
+        /// <returns>Параметры маршрута</returns>
+        public static RouteMPZ createRouteToDelete(DateTime timeFrom, int MPZ_Id, int routeId)
+        {
+            return new RouteMPZ(new RegimeTypes());
+        }
+
+        /// <summary>
+        /// Создание маршрута на сброс
+        /// </summary>
+        /// <param name="timeFrom">Время начала маршрута </param>
+        /// <param name="MPZ_Id">номер МПЗ сбрасываемого маршрута</param>
+        /// <param name="routeId">номер сбрасываемого маршрута</param>
+        /// <param name="antennaId">идентификатор антенны</param>
+        /// <returns>Параметры маршрута</returns>
+        public static RouteMPZ createRouteToReset(DateTime timeFrom, int MPZ_Id, int routeId, int antennaId)
+        {
+            return new RouteMPZ(new RegimeTypes());
+        }
+
+        /// <summary>
+        /// Создание маршрута на съемку со сбросом
+        /// </summary>
+        /// <param name="timeFrom">Время начала маршрута </param>
+        /// <param name="duration">длительность съемки (милисекунды)</param>
+        /// <param name="pitchAngle">тангаж</param>
+        /// <param name="rollAngle">крен</param>
+        /// <param name="MPZ_Id">номер МПЗ сбрасываемого маршрута</param>
+        /// <param name="routeId">номер сбрасываемого маршрута</param>
+        /// <param name="antennaId">идентификатор антенны</param>
+        /// <returns>Параметры маршрута</returns>
+        public static RouteMPZ createRouteToCaptureWithReset(DateTime timeFrom, int duration, double pitchAngle, double rollAngle, int MPZ_Id, int routeId, int antennaId)
+        {
+            return new RouteMPZ(new RegimeTypes());
+        }
+
+
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
@@ -352,6 +443,7 @@ namespace SatelliteSessions
                 conf.pitchArray[pitch] = t;
             }
         }               
+
     } 
      
 
