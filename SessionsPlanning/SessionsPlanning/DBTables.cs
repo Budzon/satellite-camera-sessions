@@ -287,9 +287,9 @@ namespace DBTables
             return (DateTime)row[TimeEquator];
         }
 
-        public static double GetTimeEquatorSec(DataRow row)
+        public static Single GetTimeEquatorSec(DataRow row)
         {
-            return (double)row[TimeEquatorSec];
+            return (Single)row[TimeEquatorSec];
         }
         /// <summary>
         /// In degrees.
