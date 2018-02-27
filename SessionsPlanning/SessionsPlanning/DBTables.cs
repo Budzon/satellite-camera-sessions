@@ -8,9 +8,107 @@ using System.Data;
 
 using Common;
 using Astronomy;
+using DIOS.Common;
 
 namespace DBTables
 {
+    public class DataFetcher
+    {
+        private static GeoPoint snkpoi = new GeoPoint(30.185089, 31.690301);
+        private SqlManager manager;
+
+        public DataFetcher(SqlManager _manager)
+        {
+            manager = _manager;
+        }
+
+        /// <summary>
+        /// Fetches space-time position of the Sun (NOT normalized to the Earth radius).
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        public List<SpaceTime> GetPositionSun(/*DateTime from, DateTime to*/)
+        {
+            DataTable sunPositionTable = manager.GetSqlObject(
+                SunTable.Name, ""
+                /*String.Format("where {0} between #{1}# and #{2}#", SunTable.Time, from.ToShortDateString(), to.ToShortDateString())*/);
+
+            List<SpaceTime> res = new List<SpaceTime>();
+            DataRow[] rows = sunPositionTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(new SpaceTime { Position = SunTable.GetPosition(row), Time = SunTable.GetTime(row) });
+
+            return res;
+        }
+
+        /// <summary>
+        /// In units of Earth radius.
+        /// </summary>
+        /// <returns></returns>
+        public Vector3D GetPositionUnitSNKPOI()
+        {
+            return GeoPoint.ToCartesian(snkpoi, 1);
+        }
+        public Vector3D GetPositionSNKPOI()
+        {
+            return GeoPoint.ToCartesian(snkpoi, Astronomy.Constants.EarthRadius);
+        }
+        /// <summary>
+        /// As lat-lon.
+        /// </summary>
+        /// <returns></returns>
+        public GeoPoint GetPositionGeoSNKPOI()
+        {
+            return snkpoi;
+        }
+
+        public List<PositionMNKPOI> GetPositionMNKPOI()
+        {
+            DataTable mnkpoiPositionTable = manager.GetSqlObject(
+                MnkpoiTable.Name, "");
+
+            List<PositionMNKPOI> res = new List<PositionMNKPOI>();
+            DataRow[] rows = mnkpoiPositionTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(new PositionMNKPOI
+                {
+                    Number = MnkpoiTable.GetNum(row),
+                    Position = MnkpoiTable.GetPositionGeo(row),
+                    Altitude = MnkpoiTable.GetAlt(row),
+                    TimeBeg = MnkpoiTable.GetTimeFrom(row),
+                    TimeEnd = MnkpoiTable.GetTimeTo(row)
+                });
+
+            return res;
+        }
+
+        /// <summary>
+        /// Fetches space-time position of the satellite (NOT normalized to the Earth radius).
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
+        {
+            //var sqlFrom = new System.Data.SqlTypes.SqlDateTime(from);
+            //var sqlTo = new System.Data.SqlTypes.SqlDateTime(to);
+            string datePattern = "MM.dd.yyyy HH:mm:ss";
+            string fromStr = from.ToString(datePattern);
+            string toStr = to.ToString(datePattern);
+            DataTable satPositionTable = manager.GetSqlObject(
+                SatTable.Name, 
+                String.Format("where {0} between '{1}' and '{2}'", SunTable.Time, fromStr, toStr));
+
+            List<SpaceTime> res = new List<SpaceTime>();
+            DataRow[] rows = satPositionTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
+
+            return res;
+        }
+    }
+
     public static class SunTable
     {
         public const string Name = "TblSunPosition";
@@ -21,9 +119,9 @@ namespace DBTables
         public const string Rad = "R_SUN";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static long GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (long)row[Id];
         }
 
         public static DateTime GetTime(DataRow row)
@@ -31,22 +129,22 @@ namespace DBTables
             return (DateTime)row[Time];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLat(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lat]);
+            return (double)row[Lat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLon(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lon]);
+            return (double)row[Lon];
         }
 
         public static double GetRad(DataRow row)
@@ -86,14 +184,14 @@ namespace DBTables
         public const string Rad = "R";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static long GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (long)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         public static DateTime GetTime(DataRow row)
@@ -101,22 +199,22 @@ namespace DBTables
             return (DateTime)row[Time];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLat(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lat]);
+            return (double)row[Lat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLon(DataRow row)
         {
-            return Astronomy.AstronomyMath.ToRad((double)row[Lon]);
+            return (double)row[Lon];
         }
 
         public static double GetRad(DataRow row)
@@ -164,14 +262,14 @@ namespace DBTables
         public const string LatitudeArg = "PRM_LATITUDE";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static decimal GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (decimal)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         public static int GetNumTurn(DataRow row)
@@ -189,27 +287,27 @@ namespace DBTables
             return (DateTime)row[TimeEquator];
         }
 
-        public static double GetTimeEquatorSec(DataRow row)
+        public static Single GetTimeEquatorSec(DataRow row)
         {
-            return (double)row[TimeEquatorSec];
+            return (Single)row[TimeEquatorSec];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetAscendingNodeLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[AscendingNodeLon]);
+            return (double)row[AscendingNodeLon];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetSunAngle(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[SunAngle]);
+            return (double)row[SunAngle];
         }
 
         public static double GetMajorSemiaxis(DataRow row)
@@ -217,22 +315,22 @@ namespace DBTables
             return (double)row[MajorSemiaxis];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetInertialLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[InertialLon]);
+            return (double)row[InertialLon];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetInclination(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[Inclination]);
+            return (double)row[Inclination];
         }
 
         public static double GetEccentricity(DataRow row)
@@ -240,22 +338,22 @@ namespace DBTables
             return (double)row[Eccentricity];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetPericentreArg(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[PericentreArg]);
+            return (double)row[PericentreArg];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLatitudeArg(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[LatitudeArg]);
+            return (double)row[LatitudeArg];
         }
 
         public static DateTime GetWriteTime(DataRow row)
@@ -278,14 +376,14 @@ namespace DBTables
         public const string RightLon = "LAM_RSSP";
         public const string WriteTime = "WRT_TM";
 
-        public static int GetId(DataRow row)
+        public static long GetId(DataRow row)
         {
-            return (int)row[Id];
+            return (long)row[Id];
         }
 
-        public static int GetNum(DataRow row)
+        public static byte GetNum(DataRow row)
         {
-            return (int)row[Num];
+            return (byte)row[Num];
         }
 
         public static DateTime GetNadirTime(DataRow row)
@@ -293,22 +391,22 @@ namespace DBTables
             return (DateTime)row[NadirTime];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetNadirLat(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[NadirLat]);
+            return (double)row[NadirLat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetNadirLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[NadirLon]);
+            return (double)row[NadirLon];
         }
 
         public static GeoPoint GetNadirGeo(DataRow row)
@@ -321,22 +419,22 @@ namespace DBTables
             return GeoPoint.ToCartesian(GetNadirGeo(row), 1);
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLeftLat(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[LeftLat]);
+            return (double)row[LeftLat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetLeftLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[LeftLon]);
+            return (double)row[LeftLon];
         }
 
         public static GeoPoint GetLeftGeo(DataRow row)
@@ -349,22 +447,22 @@ namespace DBTables
             return GeoPoint.ToCartesian(GetLeftGeo(row), 1);
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetRightLat(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[RightLat]);
+            return (double)row[RightLat];
         }
         /// <summary>
-        /// In radians.
+        /// In degrees.
         /// </summary>
         /// <param name="row"></param>
         /// <returns></returns>
         public static double GetRightLon(DataRow row)
         {
-            return AstronomyMath.ToRad((double)row[RightLon]);
+            return (double)row[RightLon];
         }
 
         public static GeoPoint GetRightGeo(DataRow row)
@@ -381,5 +479,101 @@ namespace DBTables
         {
             return new SatelliteTrajectory.LanePos(GetLeftUnit(row), GetNadirUnit(row), GetRightUnit(row), GetNadirTime(row));
         }
+
+        public static DateTime GetWriteTime(DataRow row)
+        {
+            return (DateTime)row[WriteTime];
+        }
+    }
+
+    public static class MnkpoiTable
+    {
+        public const string Name = "BNO_MNKPOI";
+        public const string Id = "ID";
+        public const string Num = "NUM";
+        public const string Lat = "LATITUDE";
+        public const string Lon = "LONGITUDE";
+        public const string Alt = "ALTITUDE";
+        public const string TimeFrom = "TMBEG";
+        public const string TimeTo = "TMEND";
+        public const string WriteTime = "WRT_TM";
+        public const string Sent = "SENT";
+
+        public static decimal GetId(DataRow row)
+        {
+            return (decimal)row[Id];
+        }
+
+        public static byte GetNum(DataRow row)
+        {
+            return (byte)row[Num];
+        }
+
+        /// <summary>
+        /// In degrees.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public static double GetLat(DataRow row)
+        {
+            return (double)row[Lat];
+        }
+        /// <summary>
+        /// In degrees.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public static double GetLon(DataRow row)
+        {
+            return (double)row[Lon];
+        }
+
+        public static double GetAlt(DataRow row)
+        {
+            return (double)row[Alt];
+        }
+
+        public static GeoPoint GetPositionGeo(DataRow row)
+        {
+            return new GeoPoint(GetLat(row), GetLon(row));
+        }
+
+        public static DateTime GetTimeFrom(DataRow row)
+        {
+            return (DateTime)row[TimeFrom];
+        }
+
+        public static DateTime GetTimeTo(DataRow row)
+        {
+            return (DateTime)row[TimeTo];
+        }
+
+        public static DateTime GetWriteTime(DataRow row)
+        {
+            return (DateTime)row[WriteTime];
+        }
+
+        public static byte GetSent(DataRow row)
+        {
+            return (byte)row[Sent];
+        }
+    }
+
+    public class SpaceTime
+    {
+        public Vector3D Position { get; set; }
+        public DateTime Time { get; set; }
+    }
+
+    public class PositionMNKPOI
+    {
+        public int Number { get; set; }
+        public GeoPoint Position { get; set; }
+        /// <summary>
+        /// Altitude in metres.
+        /// </summary>
+        public double Altitude { get; set; }
+        public DateTime TimeBeg { get; set; }
+        public DateTime TimeEnd { get; set; }
     }
 }
