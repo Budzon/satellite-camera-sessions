@@ -127,6 +127,31 @@ namespace DBTables
 
             return res;
         }
+
+        public List<Tuple<int, List<SatelliteTrajectory.LanePos>>> GetViewLaneBrokenIntoTurns(DateTime from, DateTime to)
+        {
+            DataTable orbitTable = manager.GetSqlObject(OrbitTable.Name, "");
+            List<Tuple<int, DateTime>> turns = orbitTable.Select()
+                .Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
+            List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
+
+            int ind = 0;
+            while (turns[ind].Item2 < from)
+                ind++;
+            times.Add(Tuple.Create(turns[ind - 1].Item1, from));
+            while (turns[ind].Item2 < to)
+            {
+                times.Add(turns[ind]);
+                ind++;
+            }
+            times.Add(Tuple.Create(turns[ind].Item1, to));
+
+            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
+            for (int i = 0; i < times.Count - 1; ++i)
+                res.Add(Tuple.Create(times[i].Item1, GetViewLane(times[i].Item2, times[i + 1].Item2)));
+
+            return res;
+        }
     }
 
     public static class SunTable

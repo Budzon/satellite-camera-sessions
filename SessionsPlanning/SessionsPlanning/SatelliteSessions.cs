@@ -239,73 +239,77 @@ namespace SatelliteSessions
         /// <param name="DBManager">Параметры подключения к БД</param>
         /// <param name="timeFrom">Начало временного промежутка</param>
         /// <param name="timeTo">Конец временного промежутка</param>
-        /// <param name="turnNumber">Глобальный номер витка</param>
-        /// <param name="partsLitAndNot">Список полигонов, помеченных флагом освещенности</param>
-        public static void checkIfViewLaneIsLit(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out int turnNumber, out List<wktPolygonLit> partsLitAndNot)
+        /// <param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
+        public static void checkIfViewLaneIsLit(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot)
         {
-            turnNumber = OrbitTable.GetNumTurn(DBManager.GetSqlObject(OrbitTable.Name, "").Select()[0]);
-
             DataFetcher fetcher = new DataFetcher(DBManager);
-            List<LanePos> lane = fetcher.GetViewLane(timeFrom, timeTo);
+            var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
             List<SpaceTime> sunPositions = fetcher.GetPositionSun();
+            partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
 
             int sunPositionsCount = sunPositions.Count();
             int curSunPositionIndex = 0;
 
-            partsLitAndNot = new List<wktPolygonLit>();
-
-            bool onLitStreak = false;
-            int streakBegin = -1;
-
-            for (int i = 0; i < lane.Count - 1; ++i)
+            foreach (var lanePart in laneParts)
             {
-                while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
-                    curSunPositionIndex++;
+                var lane = lanePart.Item2;
+                List<wktPolygonLit> turnPartsLitAndNot = new List<wktPolygonLit>();
 
-                // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
-                Vector3D sun = sunPositions[curSunPositionIndex].Position;
-                SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
+                bool onLitStreak = false;
+                int streakBegin = -1;
 
-                var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
-                bool allLit = LitAndNot.Item2.Count == 0;
-                bool allUnlit = LitAndNot.Item1.Count == 0;
-
-                if (streakBegin != -1)
+                for (int i = 0; i < lane.Count - 1; ++i)
                 {
-                    // On streak -- either continue one or make a master-sector.
-                    if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
+                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
+                        curSunPositionIndex++;
+
+                    // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
+                    Vector3D sun = sunPositions[curSunPositionIndex].Position;
+                    SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
+
+                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
+                    bool allLit = LitAndNot.Item2.Count == 0;
+                    bool allUnlit = LitAndNot.Item1.Count == 0;
+
+                    if (streakBegin != -1)
                     {
-                        continue;
+                        // On streak -- either continue one or make a master-sector.
+                        if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            turnPartsLitAndNot.Add(new wktPolygonLit
+                            {
+                                wktPolygon = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).ToWtk(),
+                                sun = onLitStreak
+                            });
+                            streakBegin = -1;
+                        }
+                    }
+
+                    // Not on streak here -- either start one or just add to output lists.
+                    if (allLit)
+                    {
+                        onLitStreak = true;
+                        streakBegin = i;
+                    }
+                    else if (allUnlit) // totally unlit
+                    {
+                        onLitStreak = false;
+                        streakBegin = i;
                     }
                     else
                     {
-                        partsLitAndNot.Add(new wktPolygonLit
-                        {
-                            wktPolygon = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).ToWtk(),
-                            sun = onLitStreak
-                        });
-                        streakBegin = -1;
+                        foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
+                            turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), sun = true });
+                        foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
+                            turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), sun = false });
                     }
                 }
 
-                // Not on streak here -- either start one or just add to output lists.
-                if (allLit)
-                {
-                    onLitStreak = true;
-                    streakBegin = i;
-                }
-                else if (allUnlit) // totally unlit
-                {
-                    onLitStreak = false;
-                    streakBegin = i;
-                }
-                else
-                {
-                    foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
-                        partsLitAndNot.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), sun = true });
-                    foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
-                        partsLitAndNot.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), sun = false });
-                }
+                partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
             }
         }
 
