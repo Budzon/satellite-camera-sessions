@@ -245,18 +245,10 @@ namespace SatelliteSessions
         {
             turnNumber = OrbitTable.GetNumTurn(DBManager.GetSqlObject(OrbitTable.Name, "").Select()[0]);
 
-            string date_begin = timeFrom.ToShortDateString();
-            string date_end = timeTo.ToShortDateString();
-            var sunPositionTable = DBManager.GetSqlObject(SunTable.Name,
-                String.Format("where {0} between #{1}# and #{2}#", SunTable.Time, date_begin, date_end));
-            var satPositionTable = DBManager.GetSqlObject(CoverageTable.Name,
-                String.Format("where {0} between #{1}# and #{2}#", CoverageTable.NadirTime, date_begin, date_end));
+            DataFetcher fetcher = new DataFetcher(DBManager);
+            List<LanePos> lane = fetcher.GetViewLane(timeFrom, timeTo);
+            List<SpaceTime> sunPositions = fetcher.GetPositionSun();
 
-            List<LanePos> lane = new List<LanePos>();
-            foreach (var row in satPositionTable.Select())
-                lane.Add(CoverageTable.GetLanePos(row));
-
-            var sunPositions = sunPositionTable.Select();
             int sunPositionsCount = sunPositions.Count();
             int curSunPositionIndex = 0;
 
@@ -267,11 +259,11 @@ namespace SatelliteSessions
 
             for (int i = 0; i < lane.Count - 1; ++i)
             {
-                while ((curSunPositionIndex < sunPositionsCount - 1) && SunTable.GetTime(sunPositions[curSunPositionIndex]) < lane[i].Time)
+                while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
                     curSunPositionIndex++;
 
-                //var sun = Astronomy.SunPosition.GetPositionGreenwich(lane[i].time).ToVector();
-                var sun = SunTable.GetPositionUnitEarth(sunPositions[curSunPositionIndex]);
+                // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
+                Vector3D sun = sunPositions[curSunPositionIndex].Position;
                 SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
 
                 var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
