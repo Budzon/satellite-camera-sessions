@@ -14,6 +14,7 @@ namespace DBTables
 {
     public class DataFetcher
     {
+        private const string datePattern = "MM.dd.yyyy HH:mm:ss";
         private static GeoPoint snkpoi = new GeoPoint(30.185089, 31.690301);
         private SqlManager manager;
 
@@ -91,9 +92,6 @@ namespace DBTables
         /// <returns></returns>
         public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
         {
-            //var sqlFrom = new System.Data.SqlTypes.SqlDateTime(from);
-            //var sqlTo = new System.Data.SqlTypes.SqlDateTime(to);
-            string datePattern = "MM.dd.yyyy HH:mm:ss";
             string fromStr = from.ToString(datePattern);
             string toStr = to.ToString(datePattern);
             DataTable satPositionTable = manager.GetSqlObject(
@@ -104,6 +102,28 @@ namespace DBTables
             DataRow[] rows = satPositionTable.Select();
             foreach (DataRow row in rows)
                 res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
+
+            return res;
+        }
+
+        /// <summary>
+        /// Fetches the satellite's view lane from the coverage table.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        public List<SatelliteTrajectory.LanePos> GetViewLane(DateTime from, DateTime to)
+        {
+            string fromStr = from.ToString(datePattern);
+            string toStr = to.ToString(datePattern);
+            DataTable viewLaneTable = manager.GetSqlObject(
+                CoverageTable.Name,
+                String.Format("where {0} between '{1}' and '{2}'", SunTable.Time, fromStr, toStr));
+
+            List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
+            DataRow[] rows = viewLaneTable.Select();
+            foreach (DataRow row in rows)
+                res.Add(CoverageTable.GetLanePos(row));
 
             return res;
         }
