@@ -65,11 +65,10 @@ namespace SatelliteSessions
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно            
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle; 
             SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
-            List<CaptureConf> confs = viewLane.getCaptureConfs(request);
-
+            possibleConfs = viewLane.getCaptureConfs(request);           
             double summ = 0;
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
-            foreach (var conf in confs)
+            foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.orders)
                 {
@@ -92,8 +91,7 @@ namespace SatelliteSessions
                     region = toBeCoveredAfter;
                 }
             }
-            coverage = summ;
-            possibleConfs =  new List<CaptureConf>(); /// @todo заполнять список конфигураций            
+            coverage = summ;        
         }
 
         public static List<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime timeFrom, DateTime timeTo)
