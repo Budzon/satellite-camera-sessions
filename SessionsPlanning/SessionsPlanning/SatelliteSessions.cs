@@ -60,19 +60,19 @@ namespace SatelliteSessions
         /// <param name="managerDB">бд</param>
         /// <param name="coverage">Процент покрытия, которые можно получить.</param>
         /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
-        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo,   out double coverage, out List<CaptureConf> possibleConfs)
+        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DIOS.Common.SqlManager managerDB, DateTime timeTo,    out double coverage, out List<CaptureConf> possibleConfs)
         {
-            //string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
-            //Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно            
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
+            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно            
+           // DataFetcher fetcher = new DataFetcher(managerDB);
+           // Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle; 
             SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
             possibleConfs = viewLane.getCaptureConfs(request);           
             double summ = 0;
-            ////
-            // костыль /// FIXME @todo
+
+            //// костыль FIXME @todo
             foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.orders)
