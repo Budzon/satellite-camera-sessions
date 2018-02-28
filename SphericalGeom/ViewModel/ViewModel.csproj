@@ -61,6 +61,10 @@
       <Project>{7fe86e12-c04e-454c-a2d7-00d175f9b11b}</Project>
       <Name>SessionsPlanningLib</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\SqlManager\Dios.SqlManager.csproj">
+      <Project>{a290357f-46a1-48c1-888d-307cb3183782}</Project>
+      <Name>Dios.SqlManager</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SphericalGeom\SphericalGeom.csproj">
       <Project>{66f7848e-f105-4a6c-9941-3ff44ee9b9d7}</Project>
       <Name>SphericalGeom</Name>

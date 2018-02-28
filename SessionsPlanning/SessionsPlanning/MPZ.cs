@@ -9,14 +9,34 @@ namespace SatelliteSessions
     public class MPZ
     {
         private static int NextNumMpz = 101;
+        private OptimalChain.MPZParams parameters;
 
         public HeaderMPZ Header { get; set; }
         public List<RouteMPZ> Routes { get; set; }
+        public OptimalChain.MPZParams Parameters { get { return parameters; } }
 
+        public MPZ(OptimalChain.MPZParams inpParameters)
+        {
+            List<RouteMPZ> routes = new List<RouteMPZ>();
+            parameters = inpParameters;
+            foreach (var rout_params in inpParameters.routes)
+            {
+                routes.Add(new RouteMPZ(rout_params));
+            }
+
+            loadRoutes(routes);
+            ///@todo разобраться, реализовать
+        }
+ 
         public MPZ(IList<RouteMPZ> routes)
         {
+            loadRoutes(routes);
+        }
+ 
+        private void loadRoutes(IList<RouteMPZ> routes)
+        {
             Header = new HeaderMPZ();
-
+            Routes = new List<RouteMPZ>();
             Header.NPZ = NextNumMpz;
             NextNumMpz += 1;
             Header.Ntask = routes.Count;
@@ -26,6 +46,7 @@ namespace SatelliteSessions
                 Routes[i].NPZ = Header.NPZ;
             }
         }
+
     }
 
     public class HeaderMPZ
@@ -117,6 +138,14 @@ namespace SatelliteSessions
         public int Quant_InitValuePK { get; set; } // 14 bit
         public int Quant_InitValueMK { get; set; } // 14 bit
         public Bytes TaskRes { get; set; } // 106 byte
+
+        private OptimalChain.RouteParams parameters;
+        public OptimalChain.RouteParams Parameters { get {return parameters;} }
+
+        public RouteMPZ(OptimalChain.RouteParams inpParameters) : this(new RegimeTypes() )
+        {
+            parameters = inpParameters;
+        }
 
         public RouteMPZ(RegimeTypes regimeType)
         {

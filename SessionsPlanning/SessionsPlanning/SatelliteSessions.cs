@@ -57,9 +57,10 @@ namespace SatelliteSessions
         /// <param name="request">Заказ</param>
         /// <param name="timeFrom">начало диапазона времени</param>
         /// <param name="timeTo">конец диапазона времени</param>
+        /// <param name="managerDB">бд</param>
         /// <param name="coverage">Процент покрытия, которые можно получить.</param>
         /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
-        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo, out double coverage, out List<CaptureConf> possibleConfs)
+        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo,  DIOS.Common.SqlManager managerDB, out double coverage, out List<CaptureConf> possibleConfs)
         {
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно            
@@ -171,7 +172,7 @@ namespace SatelliteSessions
         /// <param name="mpzArray">Набор МПЗ</param>
         /// <param name="sessions">Сеансы связи</param>
         public static void getMPZArray(
-              IList<RequestParams> requests
+              List<RequestParams> requests
             , DateTime timeFrom
             , DateTime timeTo
             , List<Tuple<DateTime, DateTime>> silentRanges
@@ -179,13 +180,18 @@ namespace SatelliteSessions
             , List<RouteMPZ> routesToReset
             , List<RouteMPZ> routesToDelete
             , DIOS.Common.SqlManager managerDB
-            , out IList<OptimalChain.fakeMPZ> mpzArray
+            , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
         {
             List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo);
             ///@todo реализовать всё, что касается параметров silentRanges, inactivityRanges, routesToReset, routesToDelete, managerDB, sessions
             Graph g = new Graph(captureConfs);
-            mpzArray = g.findOptimalChain();
+            List<OptimalChain.MPZParams> mpz_params = g.findOptimalChain();
+            mpzArray = new List<MPZ>();
+            foreach (var mpz_param in mpz_params)
+            {
+                mpzArray.Add(new MPZ(mpz_param));
+            }            
             sessions = new List<CommunicationSession>();
         }
 
@@ -444,7 +450,7 @@ namespace SatelliteSessions
 
     } 
      
-
+    /*
     public class SessionServices
     {
         public static SatelliteSessions.MPZ getdfsdf()
@@ -479,6 +485,7 @@ namespace SatelliteSessions
             return bolvanka;
         }
     }
+    */
 
     public class wktPolygonLit
     {

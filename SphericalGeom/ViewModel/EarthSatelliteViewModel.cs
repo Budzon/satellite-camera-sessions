@@ -26,7 +26,7 @@ using SatelliteTrajectory;
 using SatelliteSessions;
 using DataParsers;
 using Astronomy;
-using OptimalChain;
+using OptimalChain; 
 
 namespace ViewModel
 {
@@ -344,9 +344,13 @@ namespace ViewModel
         {
             double I = OptimalChain.Constants.orbital_inclination;
             double R = Astronomy.Constants.EarthRadius;
-            double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - (R + h) * (R + h) / R / R * Math.Sin(pitch) * Math.Sin(pitch))) - pitch); 
-            double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I); 
-            double sinRoll = R * Math.Sin(d) / Math.Sqrt(R * R + (R + h) * (R + h) - 2 * R * (R + h) * Math.Cos(d)); 
+            //double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - (R + h) * (R + h) / R / R * Math.Sin(pitch) * Math.Sin(pitch))) - pitch);
+            //double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I);
+            //double sinRoll = R * Math.Sin(d) / Math.Sqrt(R * R + (R + h) * (R + h) - 2 * R * (R + h) * Math.Cos(d));
+            //return Math.Asin(sinRoll); 
+            double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch);
+            double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I);
+            double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
             return Math.Asin(sinRoll); 
         }
 
@@ -407,7 +411,8 @@ namespace ViewModel
             Console.WriteLine("v = {0};", velo);
 
             // расчитаем поправку по крену
-            double rollDelta = -AstronomyMath.ToRad( 0.730159124782707 );//getRollCorrection(h, velo, w, b, pitchAngle);
+            // double rollDelta = -AstronomyMath.ToRad( 0.730159124782707 );//
+            double rollDelta = getRollCorrection(h, velo, w, b, pitchAngle);
             Console.WriteLine("{0} рад - рассчитаная поправка по крену. В градусах - {1}", rollDelta, AstronomyMath.ToDegrees(rollDelta));
             var resTestPoint = LanePos.getSurfacePoint(point, 0 + rollDelta, pitchAngle);
 
@@ -537,17 +542,18 @@ namespace ViewModel
 
         public void CreateCaptureIntervals()
         {
-            //test_roll_correction();
-          //  return;
+            test_roll_correction_noroll();
+            return;
+            
 
             polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
-            polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
+      //      polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
 
-            polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
+      //      polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
 
-            polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
+      //      polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
 
-            polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
+       //     polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
            
          //   return;
             
@@ -610,12 +616,22 @@ namespace ViewModel
                 return;
             RequestParams reqparams = new RequestParams();
             reqparams.id = 1;
-            reqparams.dateFrom = new DateTime(2000, 1, 1);
-            reqparams.dateTo = new DateTime(2020, 1, 1);
+            reqparams.timeFrom = new DateTime(2000, 1, 1);
+            reqparams.timeTo = new DateTime(2020, 1, 1);
             reqparams.wktPolygon = curRequest.ToWtk();
             reqparams.minCoverPerc = 0.4;
-            Console.WriteLine(Sessions.isRequestFeasible(reqparams, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1)));
+            double isfes;
+            List<CaptureConf> possibleConfs;
+            //Sessions.isRequestFeasible(reqparams, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1), out isfes, out possibleConfs);
+            //Console.WriteLine(isfes);
         }
+
+        public void testgetMPZArray()
+        {
+            //getMPZArray();
+
+        }
+
 
 
         public IList<CaptureConf> test_getCaptureConfArray()
@@ -648,8 +664,8 @@ namespace ViewModel
             {
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = id;
-                reqparams.dateFrom = new DateTime(2000, 1, 1);
-                reqparams.dateTo = new DateTime(2020, 1, 1);
+                reqparams.timeFrom = new DateTime(2000, 1, 1);
+                reqparams.timeTo = new DateTime(2020, 1, 1);
                 reqparams.priority = 1;
                 reqparams.minCoverPerc = 0.4;
                 reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
@@ -658,13 +674,17 @@ namespace ViewModel
                 id++;
             }
 
+
             /*
-            var res = Sessions.getCaptureConfArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0));
+            var res = Sessions.getCaptureConfArray(
+                requests,
+                new DateTime(2000, 03, 13, 4, 0, 0),
+                new DateTime(2115, 03, 13, 4, 4, 0));
+
             var rnd = new Random();
             var result = res.OrderBy(item => rnd.Next());
             res = result.ToList<CaptureConf>();
             DateTime end = DateTime.Now;
-
             Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
             
             foreach (var conf in res)
@@ -673,26 +693,45 @@ namespace ViewModel
             }
             Console.WriteLine("res.Count = {0}", res.Count());
             return res;                            
-             */
+              */
 
 
-            IList<OptimalChain.fakeMPZ> res = Sessions.getMPZArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0));
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime,DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime,DateTime>>();
+            List<RouteMPZ> routesToReset = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager();
+            
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+            Sessions.getMPZArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0)
+                , silenceRanges
+                , inactivityRanges
+                , routesToReset
+                , routesToDelete
+                 , managerDB
+                , out mpzArray
+                , out sessions);
 
             DateTime end = DateTime.Now;
             Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
-            
 
-            foreach (var mpz in res)
+            foreach (var mpz in mpzArray)
             {
-                foreach (var route in mpz.routes)
+                foreach (var route in mpz.Parameters.routes)
                 {
-                    string wkt = route.ShootingConf.wktPolygon;
-                    captureIntervals.Add(new Polygon(wkt));
+                    if (route.ShootingConf != null)
+                    {
+                        string wkt = route.ShootingConf.wktPolygon;
+                        captureIntervals.Add(new Polygon(wkt));
+                    }
                 }        
-            } 
-          
-            Console.WriteLine("res.Count = {0}", res.Count());
+            }
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
             return new List<CaptureConf>();
+            
         }
 
         public bool RegionCanBeCaptured { get; private set; }

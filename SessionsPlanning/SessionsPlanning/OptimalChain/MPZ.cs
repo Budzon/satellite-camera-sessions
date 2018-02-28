@@ -7,37 +7,37 @@ using System.Threading.Tasks;
 namespace OptimalChain
 {
     
-    public class fakeMPZ
+    public class MPZParams
     {
         public int id { get; set; }
         public bool PWR_ON { get; set; }
         public DateTime start { get; set; }
         public DateTime end { get; set; }
         public int N_routes { get; set; }
-        public List<Route> routes { get; set; }
+        public List<RouteParams> routes { get; set; }
 
-        public fakeMPZ(int i)
+        public MPZParams(int i)
         {
             id = i;
             PWR_ON = false;
             N_routes = 0;
-            routes = new List<Route>();
+            routes = new List<RouteParams>();
 
         }
 
-        public fakeMPZ(int i, Route r)
+        public MPZParams(int i, RouteParams r)
         {
             id = i;
             PWR_ON = false;
             N_routes = 1;
-            routes = new List<Route>();
+            routes = new List<RouteParams>();
             routes.Add(r);
 
             start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);
         }
 
-        public bool AddRoute(Route r)
+        public bool AddRoute(RouteParams r)
         {
             if (N_routes > 11)
                 return false;
@@ -52,7 +52,7 @@ namespace OptimalChain
             return true;
         }
 
-        public Route GetLastRoute()
+        public RouteParams GetLastRoute()
         {
             if (routes.Count > 0)
                 return routes.Last();
@@ -62,7 +62,7 @@ namespace OptimalChain
         
     }
 
-    public class Route
+    public class RouteParams
     {
         public int id { get; set; }
         public int type { get; set; }
@@ -72,9 +72,9 @@ namespace OptimalChain
 
         public StaticConf ShootingConf { get; set; }
 
-        public List<Route> binded_routes { get; set; }
+        public List<RouteParams> binded_routes { get; set; }
 
-        public Route(int t, DateTime d1, DateTime d2)
+        public RouteParams(int t, DateTime d1, DateTime d2)
         {
             type = t;
             start = d1;
@@ -82,7 +82,7 @@ namespace OptimalChain
             binded_routes = null;
         }
 
-        public Route(int t, DateTime d1, DateTime d2, List<Route> br)
+        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br)
         {
             type = t;
             start = d1;
@@ -90,7 +90,7 @@ namespace OptimalChain
             binded_routes = br;
         }
 
-        public Route( StaticConf c)
+        public RouteParams( StaticConf c)
         {
             type = c.type;
             start = c.dateFrom;

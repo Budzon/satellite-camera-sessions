@@ -243,7 +243,7 @@ namespace OptimalChain
             return res;
         }
 
-        public List<fakeMPZ> findOptimalChain()
+        public List<MPZParams> findOptimalChain()
         {
             List<Vertex> sorted = this.deepGo(vertices[0]);
             sorted.Reverse();
@@ -269,12 +269,12 @@ namespace OptimalChain
                             {
                                 if (e.v1.path.Count > 0)
                                 {
-                                    fakeMPZ lastMPZ = e.v1.path.Last();
+                                    MPZParams lastMPZ = e.v1.path.Last();
                                     if (lastMPZ != null)
                                     {
                                         if (lastMPZ.N_routes < 12)
                                         {
-                                            Route lastRoute = lastMPZ.GetLastRoute();
+                                            RouteParams lastRoute = lastMPZ.GetLastRoute();
                                             int min_t = CountMinPause(lastRoute.type, v.s.type);
                                             
                                             if (lastRoute.end.AddMilliseconds(min_t) < v.s.dateFrom)
@@ -282,7 +282,7 @@ namespace OptimalChain
                                                    // Console.WriteLine("New route");
                                                     v.mark = mark_new;
                                                     v.path = e.v1.path.ToList();
-                                                    v.path.Last().AddRoute(new Route(v.s));
+                                                    v.path.Last().AddRoute(new RouteParams(v.s));
 
                                                 }
 
@@ -295,7 +295,7 @@ namespace OptimalChain
                                                 v.mark = mark_new;
                                                 v.path = e.v1.path.ToList();
                                                 int N = v.path.Count;
-                                                v.path.Add(new fakeMPZ(N, new Route(v.s)));
+                                                v.path.Add(new MPZParams(N, new RouteParams(v.s)));
                                             }
                                         }
                                         
@@ -306,7 +306,7 @@ namespace OptimalChain
                                 {
                                    // Console.WriteLine("START");
                                     v.mark = mark_new;
-                                    v.path.Add(new fakeMPZ(0, new Route(v.s)));
+                                    v.path.Add(new MPZParams(0, new RouteParams(v.s)));
                                 }
                             }
                            
@@ -340,7 +340,7 @@ namespace OptimalChain
 
         public double mark { get; set; }
 
-        public List<fakeMPZ> path { get; set; }
+        public List<MPZParams> path { get; set; }
 
         public Vertex(string k)
         {
@@ -352,7 +352,7 @@ namespace OptimalChain
 
             mark = -1;
             edges = null;
-            path = new List<fakeMPZ>();
+            path = new List<MPZParams>();
         }
         public Vertex(StaticConf ss,CaptureConf c)
         {
@@ -365,7 +365,7 @@ namespace OptimalChain
 
             mark = -1;
             edges = null;
-            path = new List<fakeMPZ>();
+            path = new List<MPZParams>();
         }
 
         public double countVertexPrice()
