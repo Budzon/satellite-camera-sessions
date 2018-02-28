@@ -110,12 +110,12 @@ namespace DBTables
         {
             List<SpaceTime> preTrajectory = GetPositionSat(from, to);
             TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
-            
+
             points[0] = new TrajectoryPoint
                 (
                     preTrajectory[0].Time,
                     preTrajectory[0].Position.ToPoint(),
-                    (preTrajectory[1].Position - preTrajectory[0].Position) / (preTrajectory[1].Time - preTrajectory[0].Time).Seconds
+                    (preTrajectory[1].Position - preTrajectory[0].Position) / (preTrajectory[1].Time - preTrajectory[0].Time).TotalSeconds
                 );
             for (int i = 1; i < preTrajectory.Count - 1; ++i)
                 points[i] = new TrajectoryPoint
@@ -123,14 +123,14 @@ namespace DBTables
                     preTrajectory[i].Time,
                     preTrajectory[i].Position.ToPoint(),
                     (preTrajectory[i + 1].Position - preTrajectory[i - 1].Position) 
-                        / (preTrajectory[i + 1].Time - preTrajectory[i - 1].Time).Seconds
+                        / (preTrajectory[i + 1].Time - preTrajectory[i - 1].Time).TotalSeconds
                 );
             points[preTrajectory.Count - 1] = new TrajectoryPoint
                 (
                     preTrajectory[preTrajectory.Count - 1].Time,
                     preTrajectory[preTrajectory.Count - 1].Position.ToPoint(),
                     (preTrajectory[preTrajectory.Count - 1].Position - preTrajectory[preTrajectory.Count - 2].Position) 
-                        / (preTrajectory[preTrajectory.Count - 1].Time - preTrajectory[preTrajectory.Count - 2].Time).Seconds
+                        / (preTrajectory[preTrajectory.Count - 1].Time - preTrajectory[preTrajectory.Count - 2].Time).TotalSeconds
                 );
 
             return Trajectory.Create(points);
@@ -152,29 +152,42 @@ namespace DBTables
 
             List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
             DataRow[] rows = viewLaneTable.Select();
-            foreach (DataRow row in rows)
-                res.Add(CoverageTable.GetLanePos(row));
+            if (rows.Length > 0)
+            {
+                foreach (DataRow row in rows)
+                    res.Add(CoverageTable.GetLanePos(row));
+            }
+            else
+            {
+                // db is empty, generate view lane from sat positions 
+                Trajectory traj = GetTrajectorySat(from, to);
+                foreach (TrajectoryPoint p in traj.Points)
+                    res.Add(new SatelliteTrajectory.LanePos(p, OptimalChain.Constants.camera_angle, 0));
+            }
 
             return res;
         }
 
         public List<Tuple<int, List<SatelliteTrajectory.LanePos>>> GetViewLaneBrokenIntoTurns(DateTime from, DateTime to)
         {
-            DataTable orbitTable = manager.GetSqlObject(OrbitTable.Name, "");
+            string fromStr = from.ToString(datePattern);
+            string toStr = to.ToString(datePattern);
+            DataTable orbitTable = manager.GetSqlObject(OrbitTable.Name, String.Format("where {0} between '{1}' and '{2}'", OrbitTable.TimeEquator, fromStr, toStr));
             List<Tuple<int, DateTime>> turns = orbitTable.Select()
                 .Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
             List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
 
             int ind = 0;
-            while (turns[ind].Item2 < from)
-                ind++;
-            times.Add(Tuple.Create(turns[ind - 1].Item1, from));
+            //while (turns[ind].Item2 < from)
+            //    ind++;
+            if (turns[0].Item2 > from)
+                times.Add(Tuple.Create(turns[0].Item1 - 1, from));
             while (turns[ind].Item2 < to)
             {
                 times.Add(turns[ind]);
                 ind++;
             }
-            times.Add(Tuple.Create(turns[ind].Item1, to));
+            times.Add(Tuple.Create(-1, to));
 
             List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
             for (int i = 0; i < times.Count - 1; ++i)
