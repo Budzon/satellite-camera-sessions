@@ -191,8 +191,7 @@ namespace SphericalGeom
 
         public Polygon(string wtkPolygon)
             : this()
-        {
-            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
+        { 
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
             List<Vector3D> points = new List<Vector3D>();
             var apex = new Vector3D(0, 0, 0);
