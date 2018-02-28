@@ -106,6 +106,36 @@ namespace DBTables
             return res;
         }
 
+        public Trajectory GetTrajectorySat(DateTime from, DateTime to)
+        {
+            List<SpaceTime> preTrajectory = GetPositionSat(from, to);
+            TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
+            
+            points[0] = new TrajectoryPoint
+                (
+                    preTrajectory[0].Time,
+                    preTrajectory[0].Position.ToPoint(),
+                    (preTrajectory[1].Position - preTrajectory[0].Position) / (preTrajectory[1].Time - preTrajectory[0].Time).Seconds
+                );
+            for (int i = 1; i < preTrajectory.Count - 1; ++i)
+                points[i] = new TrajectoryPoint
+                (
+                    preTrajectory[i].Time,
+                    preTrajectory[i].Position.ToPoint(),
+                    (preTrajectory[i + 1].Position - preTrajectory[i - 1].Position) 
+                        / (preTrajectory[i + 1].Time - preTrajectory[i - 1].Time).Seconds
+                );
+            points[preTrajectory.Count - 1] = new TrajectoryPoint
+                (
+                    preTrajectory[preTrajectory.Count - 1].Time,
+                    preTrajectory[preTrajectory.Count - 1].Position.ToPoint(),
+                    (preTrajectory[preTrajectory.Count - 1].Position - preTrajectory[preTrajectory.Count - 2].Position) 
+                        / (preTrajectory[preTrajectory.Count - 1].Time - preTrajectory[preTrajectory.Count - 2].Time).Seconds
+                );
+
+            return Trajectory.Create(points);
+        }
+
         /// <summary>
         /// Fetches the satellite's view lane from the coverage table.
         /// </summary>
