@@ -60,7 +60,7 @@ namespace SatelliteSessions
         /// <param name="managerDB">бд</param>
         /// <param name="coverage">Процент покрытия, которые можно получить.</param>
         /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
-        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo,  DIOS.Common.SqlManager managerDB, out double coverage, out List<CaptureConf> possibleConfs)
+        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo,   out double coverage, out List<CaptureConf> possibleConfs)
         {
             string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно            
@@ -68,6 +68,19 @@ namespace SatelliteSessions
             SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
             possibleConfs = viewLane.getCaptureConfs(request);           
             double summ = 0;
+            ////
+            // костыль /// FIXME @todo
+            foreach (var conf in possibleConfs)
+            {
+                foreach (var order in conf.orders)
+                {
+                    summ += order.intersection_coeff;
+                }
+            }
+            if (summ > 1)
+                summ = 1;
+            ////
+            /*
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in possibleConfs)
             {
@@ -92,6 +105,7 @@ namespace SatelliteSessions
                     region = toBeCoveredAfter;
                 }
             }
+            */
             coverage = summ;        
         }
 
