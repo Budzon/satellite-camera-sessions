@@ -214,7 +214,12 @@ namespace SatelliteTrajectory
             foreach (var sector in Sectors)
             {
                 var sectorPoints = sector.sectorPoints;
-                for (int i = 0; i < sectorPoints.Count; i++)
+
+                int i = 0;
+                if (polygonPoints.Count > 0) // уже начался полигон
+                    i = 1;
+
+                for (; i < sectorPoints.Count; i++)
                 {
                     if (sectorPoints[i].Time < begTime)
                         continue;
