@@ -23,7 +23,8 @@ public class DatParser
         if (!File.Exists(datFilename))
             throw new System.IO.FileNotFoundException("The file" + datFilename + "does not exist", "original");
 
-        TrajectoryPoint[] points;
+        List<TrajectoryPoint> pointList = new List<TrajectoryPoint>();
+       
         DateTime startDateTime = new DateTime();
         double duration = 0;
         double step = 0;
@@ -79,7 +80,7 @@ public class DatParser
             if (step <= 0 || duration <= 0 || pointsNumber <= 0 || startDateTime == null)
                 throw new System.ArgumentException("The trajectory data in file" + datFilename + "is incorrect!", "original");
 
-            points = new TrajectoryPoint[pointsNumber];
+            // points = new TrajectoryPoint[pointsNumber];
             
             Point3D position = new Point3D();
             Vector3D velocity = new Vector3D();
@@ -109,7 +110,7 @@ public class DatParser
                     if (dateBegin <= pointDt && pointDt <= dateEnd)
                     {
                         TrajectoryPoint point = new TrajectoryPoint(pointDt, position, velocity);
-                        points[pointInd] = point;                        
+                        pointList.Add(point);                        
                     }
                     else if (dateEnd < pointDt)
                         break;
@@ -138,7 +139,7 @@ public class DatParser
             }
         }
 
-        return Astronomy.Trajectory.Create(points);
+        return Astronomy.Trajectory.Create(pointList.ToArray());
     }
 
     private static string substrVal(string baseLine, string startLabel, string endLabel)
