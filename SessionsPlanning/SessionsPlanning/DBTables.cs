@@ -170,18 +170,24 @@ namespace DBTables
 
         public List<Tuple<int, List<SatelliteTrajectory.LanePos>>> GetViewLaneBrokenIntoTurns(DateTime from, DateTime to)
         {
-            string fromStr = from.ToString(datePattern);
-            string toStr = to.ToString(datePattern);
+            TimeSpan oneTurn = new TimeSpan(0, 100, 0);
+            string fromStr = (from - oneTurn).ToString(datePattern);
+            string toStr = (to + oneTurn).ToString(datePattern);
             DataTable orbitTable = manager.GetSqlObject(OrbitTable.Name, String.Format("where {0} between '{1}' and '{2}'", OrbitTable.TimeEquator, fromStr, toStr));
             List<Tuple<int, DateTime>> turns = orbitTable.Select()
                 .Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
             List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
 
             int ind = 0;
-            //while (turns[ind].Item2 < from)
-            //    ind++;
-            if (turns[0].Item2 > from)
-                times.Add(Tuple.Create(turns[0].Item1 - 1, from));
+            while (turns[ind].Item2 < from)
+                ind++;
+            if (turns[ind].Item2 == from)
+            {
+                times.Add(Tuple.Create(turns[ind].Item1, from));
+                ind++;
+            }
+            else
+                times.Add(Tuple.Create(turns[ind].Item1 - 1, from));
             while (turns[ind].Item2 < to)
             {
                 times.Add(turns[ind]);
