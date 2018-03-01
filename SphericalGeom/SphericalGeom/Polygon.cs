@@ -14,6 +14,8 @@ namespace SphericalGeom
     public class Polygon
     {
         #region Polygon private fields
+        private static double rotationAngleIfOverlap = 1; // degrees
+
         // The n-th apex corresponds to the (n, n+1) arc (including (-1, 0)).
         // len(vertices) == len(apexes)
         private List<Vector3D> apexes;
@@ -191,7 +193,7 @@ namespace SphericalGeom
 
         public Polygon(string wtkPolygon)
             : this()
-        { 
+        {
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
             List<Vector3D> points = new List<Vector3D>();
             var apex = new Vector3D(0, 0, 0);
@@ -371,6 +373,7 @@ namespace SphericalGeom
             }
             else
                 intersection.AddRange(Traverse(vert, type, apex, new bool[2] { true, true }));
+
             return intersection;
         }
 
@@ -556,9 +559,31 @@ namespace SphericalGeom
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
 
-            foreach (var pArc in pArcs)
-                foreach (var qArc in qArcs)
-                    Arc.UpdateWithIntersections(pArc, qArc);
+            ReferenceFrame rotate = new ReferenceFrame();
+            rotate.RotateBy(q.Middle, rotationAngleIfOverlap);
+            int rotationCount = 0;
+            bool allGood = false;
+            while (!allGood)
+            {
+                try
+                {
+                    foreach (var pArc in pArcs)
+                        foreach (var qArc in qArcs)
+                            Arc.UpdateWithIntersections(pArc, qArc);
+                    allGood = true;
+                }
+                catch (ArgumentException ex)
+                {
+                    p.knowArcs = false;
+                    q.knowArcs = false;
+
+                    q.ToThisFrame(rotate);
+                    rotationCount++;
+
+                    pArcs = p.Arcs;
+                    qArcs = q.Arcs;
+                }
+            }
 
             ArcChainWithLabels<pointType> pChain = pArcs.
                 Select(arc => arc.EmplaceIntermediatePoints<pointType>(pointType.vertex, pointType.enter)).
@@ -593,6 +618,14 @@ namespace SphericalGeom
                     type[1][i] = curType;
                     curType = Not(curType);
                 }
+
+            if (rotationCount > 0)
+            {
+                rotate = new ReferenceFrame();
+                rotate.RotateBy(q.Middle, rotationCount * rotationAngleIfOverlap);
+                q.FromThisFrame(rotate);
+                q.knowArcs = false;
+            }
         }
         #endregion
     }
