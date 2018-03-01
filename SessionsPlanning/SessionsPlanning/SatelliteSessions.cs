@@ -208,8 +208,39 @@ namespace SatelliteSessions
             foreach (var mpz_param in mpz_params)
             {
                 mpzArray.Add(new MPZ(mpz_param));
-            }            
-            sessions = new List<CommunicationSession>();
+            }
+            // mpz_params[0].routes[0].ShootingConf
+
+            { // тестовые данные для sessions
+                sessions = new List<CommunicationSession>();
+                double duration = (timeTo - timeFrom).TotalMinutes;
+                {
+                    CommunicationSession comSes = new CommunicationSession();
+                    comSes.id = 3;
+                    comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 10);
+                    comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 10);
+                    comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 8);
+                    comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 8);
+
+                    comSes.routesToReset = new List<RouteMPZ>();
+                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.SI));
+                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.NP));
+                    sessions.Add(comSes);
+                }
+                {
+                    CommunicationSession comSes = new CommunicationSession();
+                    comSes.id = 2;
+                    comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 9);
+                    comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 9);
+                    comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 7);
+                    comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 7);
+
+                    comSes.routesToReset = new List<RouteMPZ>();
+                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.VI));
+                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.ZI));
+                    sessions.Add(comSes);
+                }
+            }
         }
 
         /// <summary>
@@ -236,9 +267,23 @@ namespace SatelliteSessions
         /// <param name="incompatibleRoutes">Список конфликтов (может быть пустым)</param>
         public static void checkCompatibility(List<MPZ> MPZArray, out bool isIncompatible, out List<Tuple<RouteMPZ, RouteMPZ>> incompatibleRoutes)
         {
-            isIncompatible = true; 
-            incompatibleRoutes = new List<Tuple<RouteMPZ, RouteMPZ>>(); 
-            /// @todo реализовать 
+            List<RouteMPZ> routes = new List<RouteMPZ>();
+            incompatibleRoutes = new List<Tuple<RouteMPZ, RouteMPZ>>();
+            foreach (var mpz in MPZArray)
+            {
+                routes.AddRange(mpz.Routes);
+            }
+
+            if (routes.Count < 2)
+            {
+                isIncompatible = true;                
+            }
+            else 
+            {
+                isIncompatible = false;
+                incompatibleRoutes.Add(new Tuple<RouteMPZ, RouteMPZ>(routes[0], routes[1]));
+            }
+            /// @todo реализовать
         }
 
         /// <summary>
@@ -250,8 +295,23 @@ namespace SatelliteSessions
         /// <param name="incompatibleRoutes">. Список маршрутов, с которым конфликтует заданны маршрут: c</param>
         public static void checkCompatibility(List<MPZ> MPZArray, RouteMPZ route, out bool isIncompatible, out List<RouteMPZ> incompatibleRoutes)
         {
-            isIncompatible = true;
+            List<RouteMPZ> routes = new List<RouteMPZ>();
             incompatibleRoutes = new List<RouteMPZ>();
+            foreach (var mpz in MPZArray)
+            {
+                routes.AddRange(mpz.Routes);
+            }
+
+            if (routes.Count == 0)
+            {
+                isIncompatible = true;
+            }
+            else
+            {
+                isIncompatible = false;
+                incompatibleRoutes.Add(routes[0]);
+            }
+            /// @todo реализовать
         }
         
         /// <summary>
@@ -367,7 +427,35 @@ namespace SatelliteSessions
         /// <returns>Все возможные сеансы связи за это время</returns>
         public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo)
         {
-            return new List<CommunicationSession>();
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
+            double duration = (timeTo - timeFrom).TotalMinutes;
+            {
+                CommunicationSession comSes = new CommunicationSession();
+                comSes.id = 3;
+                comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 10);
+                comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 10);
+                comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 8);
+                comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 8);
+
+                comSes.routesToReset = new List<RouteMPZ>();
+                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.SI));
+                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.NP));
+                sessions.Add(comSes);
+            }
+            {
+                CommunicationSession comSes = new CommunicationSession();
+                comSes.id = 2;
+                comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 9);
+                comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 9);
+                comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 7);
+                comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 7);
+
+                comSes.routesToReset = new List<RouteMPZ>();
+                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.VI));
+                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.ZI));
+                sessions.Add(comSes);
+            }
+            return sessions;
         }
 
         /// <summary>
@@ -380,7 +468,7 @@ namespace SatelliteSessions
         /// <returns>Параметры маршрута</returns>
         public static RouteMPZ createRouteToCapture(DateTime timeFrom, int duration, double pitchAngle, double rollAngle)
         {
-            return new RouteMPZ(new RegimeTypes());
+            return new RouteMPZ(RegimeTypes.SI);
         }
 
         /// <summary>
@@ -392,7 +480,7 @@ namespace SatelliteSessions
         /// <returns>Параметры маршрута</returns>
         public static RouteMPZ createRouteToDelete(DateTime timeFrom, int MPZ_Id, int routeId)
         {
-            return new RouteMPZ(new RegimeTypes());
+            return new RouteMPZ(RegimeTypes.SI);
         }
 
         /// <summary>
@@ -405,7 +493,7 @@ namespace SatelliteSessions
         /// <returns>Параметры маршрута</returns>
         public static RouteMPZ createRouteToReset(DateTime timeFrom, int MPZ_Id, int routeId, int antennaId)
         {
-            return new RouteMPZ(new RegimeTypes());
+            return new RouteMPZ(RegimeTypes.SI);
         }
 
         /// <summary>
@@ -421,7 +509,7 @@ namespace SatelliteSessions
         /// <returns>Параметры маршрута</returns>
         public static RouteMPZ createRouteToCaptureWithReset(DateTime timeFrom, int duration, double pitchAngle, double rollAngle, int MPZ_Id, int routeId, int antennaId)
         {
-            return new RouteMPZ(new RegimeTypes());
+            return new RouteMPZ(RegimeTypes.SI);
         }
 
 
