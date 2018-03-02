@@ -58,6 +58,7 @@
     <Compile Include="ReferenceFrameTest.cs" />
     <Compile Include="PolygonTest.cs" />
     <Compile Include="TrajectoryStripTest.cs" />
+    <Compile Include="GeneralTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">
