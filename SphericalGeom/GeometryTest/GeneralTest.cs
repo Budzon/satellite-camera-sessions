@@ -16,37 +16,48 @@ namespace GeometryTest
     public class GeneralTest
     {
         [TestMethod]
-        public void TestOnRandomPolygons()
+        public void TestGetCaptureConfArrayOnRandomPolygons()
         {
             List<Polygon> polygons = new List<Polygon>();
             Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 40; i++)
+            for (int i = 0; i < 30; i++)
             {
-                Polygon randpol = getRandomPolygon(rand, 3, 10, 2, 10);
+                Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
                 polygons.Add(randpol);
             }
 
-            List<RequestParams> requests = new List<RequestParams>();
-            int id = 0;
-            foreach (var pol in polygons)
+            try
             {
-                RequestParams reqparams = new RequestParams();
-                reqparams.id = id;
-                reqparams.timeFrom = new DateTime(2015, 3, 12); // 12.03.2015 по 14.03.2016 
-                reqparams.timeTo = new DateTime(2016, 3, 14);
-                reqparams.priority = 1;
-                reqparams.minCoverPerc = 0.4;
-                reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
-                reqparams.wktPolygon = pol.ToWtk();
-                requests.Add(reqparams);
-                id++;
+                int id = 0;
+                List<RequestParams> requests = new List<RequestParams>();
+                foreach (var pol in polygons)
+                {
+                    RequestParams reqparams = new RequestParams();
+                    reqparams.id = id;
+                    reqparams.timeFrom = new DateTime(2015, 3, 12); // 12.03.2015 по 14.03.2016 
+                    reqparams.timeTo = new DateTime(2016, 3, 14);
+                    reqparams.priority = 1;
+                    reqparams.minCoverPerc = 0.4;
+                    reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                    reqparams.wktPolygon = pol.ToWtk();
+                    requests.Add(reqparams);
+                    id++;
+                }
+                var res = Sessions.getCaptureConfArray(
+                                    requests,
+                                    new DateTime(2000, 03, 13, 4, 0, 0),
+                                    new DateTime(2115, 03, 13, 4, 4, 0));
+
             }
-
-            var res = Sessions.getCaptureConfArray(
-              requests,
-              new DateTime(2000, 03, 13, 4, 0, 0),
-              new DateTime(2115, 03, 13, 4, 4, 0));
-
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
+                foreach (var pol in polygons)
+                {                    
+                    Console.WriteLine(pol.ToWtk());
+                }
+            }
+ 
         }
 
 
