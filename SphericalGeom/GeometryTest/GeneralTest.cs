@@ -46,8 +46,7 @@ namespace GeometryTest
                 var res = Sessions.getCaptureConfArray(
                                     requests,
                                     new DateTime(2000, 03, 13, 4, 0, 0),
-                                    new DateTime(2115, 03, 13, 4, 4, 0));
-
+                                    new DateTime(2115, 03, 13, 4, 4, 0));                
             }
             catch (Exception ex)
             {
@@ -56,6 +55,7 @@ namespace GeometryTest
                 {                    
                     Console.WriteLine(pol.ToWtk());
                 }
+                throw new Exception("error");
             }
  
         }
