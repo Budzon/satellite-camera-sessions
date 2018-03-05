@@ -303,6 +303,8 @@ namespace SatelliteSessions
             }
         }
 
+        public int Count { get { return bytes.Length; } }
+
         public Bytes(int count)
         {
             bytes = new Bits[count];
