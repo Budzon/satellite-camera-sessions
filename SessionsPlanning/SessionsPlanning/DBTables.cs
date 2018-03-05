@@ -96,7 +96,7 @@ namespace DBTables
             string toStr = to.ToString(datePattern);
             DataTable satPositionTable = manager.GetSqlObject(
                 SatTable.Name, 
-                String.Format("where {0} between '{1}' and '{2}'", SunTable.Time, fromStr, toStr));
+                String.Format("where {0} between '{1}' and '{2}'", SatTable.Time, fromStr, toStr));
 
             List<SpaceTime> res = new List<SpaceTime>();
             DataRow[] rows = satPositionTable.Select();
@@ -148,7 +148,7 @@ namespace DBTables
             string toStr = to.ToString(datePattern);
             DataTable viewLaneTable = manager.GetSqlObject(
                 CoverageTable.Name,
-                String.Format("where {0} between '{1}' and '{2}'", SunTable.Time, fromStr, toStr));
+                String.Format("where {0} between '{1}' and '{2}'", CoverageTable.NadirTime, fromStr, toStr));
 
             List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
             DataRow[] rows = viewLaneTable.Select();
