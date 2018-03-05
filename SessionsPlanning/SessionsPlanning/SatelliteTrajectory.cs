@@ -474,8 +474,6 @@ namespace SatelliteTrajectory
             knowRightConrol = false;
         }
          
-
-
         public static Vector3D applyPitchlRotation(TrajectoryPoint point, Vector3D dirVect, double pitchAngle)
         {
             Vector3D position = point.Position.ToVector();

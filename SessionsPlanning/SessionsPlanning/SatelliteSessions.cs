@@ -65,15 +65,14 @@ namespace SatelliteSessions
             // string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";     
             // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно      
             DataFetcher fetcher = new DataFetcher(managerDB);    
-            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);    
+            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle;     
             SatLane viewLane = new SatLane(trajectory, 0, viewAngle);       
             possibleConfs = viewLane.getCaptureConfs(request);      
             double summ = 0;
-
             
-           /*
+            /*
             foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.orders)
@@ -83,9 +82,8 @@ namespace SatelliteSessions
             }
             if (summ > 1)
                 summ = 1;
-           */
-          
-            
+            */
+                      
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in possibleConfs)
             {
@@ -253,10 +251,25 @@ namespace SatelliteSessions
         /// <param name="duration">Продолжительность съемки в милисекундах</param>
         /// <param name="DBManager">Параметры подключения к БД</param>
         /// <returns> полигон в формате WKT</returns>
-        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager DBManager)
+        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager managerDB)
         {
             string wkt_string = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
             /// @todo реализовать 
+
+            if (duration == 0)
+            {
+                DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
+                TrajectoryPoint? point = fetcher.GetPositionSat(dateTime);
+                // @todo обработать ситуацию, когда point == null (например когда траектории в бд нет)
+                Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
+             //   Polygon viewPolygon = 
+                /// ...  
+            }
+            else
+            {
+
+            }
+
             return wkt_string;
         }
 

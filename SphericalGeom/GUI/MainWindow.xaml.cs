@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define SPHERE
+
+using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -27,8 +29,11 @@ namespace GUI
     {
         public TransformMatrix m_transformMatrix = new TransformMatrix();
         public int m_nChartModelIndex = -1;
-      //  public Ellipse3D Terra;
+#if SPHERE
+       public Ellipse3D Terra;
+#else
         public EllipseRegion3D Terra;
+#endif
         private ViewModel.EarthSatelliteViewModel vm;
 
         public MainWindow()
@@ -36,8 +41,8 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
-           // Terra = new Ellipse3D(1, 1, 1, 200);
-            Terra = new EllipseRegion3D(1, 1, 1, 5, 150);
+            Terra = new Ellipse3D(1, 1, 1, 200);
+       //     Terra = new EllipseRegion3D(1, 1, 1, 20, 250);
             PlotSphere(null, null);
         }
 
@@ -93,18 +98,27 @@ namespace GUI
                 var p = Terra.GetPoint(i);
 
 
-                if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                bool flag = false;
+                int pol_ind = 0;
+                for (int pi = 0; pi < vm.polygons.Count; pi++)
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                    var pol = vm.polygons[pi];
+                    if (pol.Contains(new Vector3D(p.X, p.Y, p.Z)))
+                    {
+                        flag = true;
+                        pol_ind = pi;
+                        break;
+                    }
                 }
-                else if (vm.Requests.Count > 0 && vm.PointInRegion(p.X, p.Y, p.Z))
+
+                float polColor = (float)(pol_ind + 1) / vm.polygons.Count;
+                
+                if (flag)
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.0f));
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, polColor, (float)(1 - polColor), 0.0f));
                 }
                 else if (vm.PointInLane(p.X, p.Y, p.Z))
-                {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
-                }
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
 
