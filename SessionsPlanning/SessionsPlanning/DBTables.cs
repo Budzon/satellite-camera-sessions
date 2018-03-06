@@ -62,23 +62,13 @@ namespace DBTables
         {
             return snkpoi;
         }
-        // TO UPDATE WITH DATES
-        public List<PositionMNKPOI> GetPositionMNKPOI() // TO UPDATE WITH DATES
+        
+        public List<PositionMNKPOI> GetPositionMNKPOI(DateTime from, DateTime to)
         {
-            DataTable mnkpoiPositionTable = manager.GetSqlObject(
-                MnkpoiTable.Name, "");
-
             List<PositionMNKPOI> res = new List<PositionMNKPOI>();
-            DataRow[] rows = mnkpoiPositionTable.Select();
-            foreach (DataRow row in rows)
-                res.Add(new PositionMNKPOI
-                {
-                    Number = MnkpoiTable.GetNum(row),
-                    Position = MnkpoiTable.GetPositionGeo(row),
-                    Altitude = MnkpoiTable.GetAlt(row),
-                    TimeBeg = MnkpoiTable.GetTimeFrom(row),
-                    TimeEnd = MnkpoiTable.GetTimeTo(row)
-                });
+            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(MnkpoiTable.Name, MnkpoiTable.TimeFrom, from, to, false))
+                foreach (DataRow row in chunk.Rows)
+                    res.Add(MnkpoiTable.GetDataMNKPOI(row));
 
             return res;
         }
@@ -721,6 +711,18 @@ namespace DBTables
         public static GeoPoint GetPositionGeo(DataRow row)
         {
             return new GeoPoint(GetLat(row), GetLon(row));
+        }
+
+        public static PositionMNKPOI GetDataMNKPOI(DataRow row)
+        {
+            return new PositionMNKPOI
+                    {
+                        Number = MnkpoiTable.GetNum(row),
+                        Position = MnkpoiTable.GetPositionGeo(row),
+                        Altitude = MnkpoiTable.GetAlt(row),
+                        TimeBeg = MnkpoiTable.GetTimeFrom(row),
+                        TimeEnd = MnkpoiTable.GetTimeTo(row)
+                    };
         }
 
         public static DateTime GetTimeFrom(DataRow row)

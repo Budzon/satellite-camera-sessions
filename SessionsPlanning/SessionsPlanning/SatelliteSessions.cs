@@ -438,6 +438,66 @@ namespace SatelliteSessions
             }
         }
 
+        /// <summary>
+        /// Вычисление зон связи МНКПОИ за заданный промежуток времени.
+        /// </summary>
+        /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <param name="timeFrom">Начало временного промежутка</param>
+        /// <param name="timeTo">Конец временного промежутка</param>
+        /// <param name="zones">Зоны связи</param>
+        public static void getMNKPOICommuncationZones(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<CommunicationZoneMNKPOI> zones)
+        {
+            DataFetcher fetcher = new DataFetcher(DBManager);
+
+            System.Data.DataRow[] prePosRow = fetcher.GetDataBeforeEqualDate(MnkpoiTable.Name, MnkpoiTable.TimeFrom, timeFrom, 1);
+            if (prePosRow.Length < 1) // no data
+            {
+                zones = null;
+                return;
+            }
+
+            PositionMNKPOI prePos = MnkpoiTable.GetDataMNKPOI(prePosRow[0]);
+            List<PositionMNKPOI> positions = new List<PositionMNKPOI>();
+
+            if (prePos.TimeBeg < timeFrom)
+                positions.Add(prePos);
+            positions.AddRange(fetcher.GetPositionMNKPOI(timeFrom, timeTo));
+
+            zones = new List<CommunicationZoneMNKPOI>();
+            foreach (PositionMNKPOI pos in positions)
+            {
+                double R = Astronomy.Constants.EarthRadius;
+                double h = OptimalChain.Constants.orbit_height; // @todo get from db
+                double d = pos.Altitude / 1000; // altitude
+
+                zones.Add(new CommunicationZoneMNKPOI
+                    {
+                        CentreLat = pos.Position.Latitude,
+                        CentreLon = pos.Position.Longitude,
+                        IdNumber = pos.Number,
+                        Radius5 = ZoneRadius(R, h, d, 5),
+                        Radius7 = ZoneRadius(R, h, d, 7),
+                        From = timeFrom < pos.TimeBeg ? pos.TimeBeg : timeFrom,
+                        To = timeTo < pos.TimeEnd ? timeTo : pos.TimeEnd
+                    });
+            }
+            
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="R">Planet radius [km]</param>
+        /// <param name="h">Orbit height [km]</param>
+        /// <param name="d">Altitude [km]</param>
+        /// <param name="a">Zone angle [deg]</param>
+        /// <returns></returns>
+        private static double ZoneRadius(double R, double h, double d, double a)
+        {
+            double c = Math.Cos(AstronomyMath.ToRad(a));
+            double s = Math.Sin(AstronomyMath.ToRad(a));
+            return -(R + d) * c * s + c * Math.Sqrt((R + d) * (R + d) * s * s + (2 * R + h + d) * (h - d));
+        }
 
         /// <summary>
         /// ошибка создания маршрута
@@ -648,6 +708,15 @@ namespace SatelliteSessions
         public DateTime To {get;set;}
     }
  
-
+    public struct CommunicationZoneMNKPOI
+    {
+        public int IdNumber;
+        public DateTime From;
+        public DateTime To;
+        public double CentreLat;
+        public double CentreLon;
+        public double Radius5;
+        public double Radius7;
+    }
  
 }
