@@ -369,7 +369,7 @@ namespace SatelliteSessions
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
             var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
-            List<SpaceTime> sunPositions = fetcher.GetPositionSun();
+            List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
             partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
 
             int sunPositionsCount = sunPositions.Count();
