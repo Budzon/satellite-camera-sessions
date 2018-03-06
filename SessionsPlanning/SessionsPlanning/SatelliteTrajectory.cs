@@ -25,12 +25,14 @@ namespace SatelliteTrajectory
         private Astronomy.Trajectory trajectory;
         private double rollAngle;
         private double viewAngle;
- 
-        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle, int polygonStep = 15)
+        private double pitchAngle;
+
+        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _pitchAngle, double _viewAngle, int polygonStep = 15)
         {
             trajectory = _trajectory;
             rollAngle = _rollAngle;
             viewAngle = _viewAngle;
+            pitchAngle = _pitchAngle;
 
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
@@ -55,7 +57,7 @@ namespace SatelliteTrajectory
             TrajectoryPoint[] points = trajectory.Points;
             int points_count = trajectory.Count;
 
-            LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle);
+            LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle, 0);
 
             DateTime sectorFromDT = firstPos.Time;
             DateTime sectorToDT;
@@ -65,7 +67,7 @@ namespace SatelliteTrajectory
 
             for (int p_ind = 0; p_ind < points_count ; p_ind++)
             {
-                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle); 
+                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle, pitchAngle); 
                 sectorPoints.Add(pos);
 
                 if (p_ind == 0)
@@ -270,7 +272,7 @@ namespace SatelliteTrajectory
         private LanePos interpolatelanePosByTime(DateTime time)
         { 
             TrajectoryPoint trajPoint = trajectory.GetPoint(time); 
-            return new LanePos(trajPoint, viewAngle, rollAngle);
+            return new LanePos(trajPoint, viewAngle, rollAngle, 0);
         }
 
         /*
@@ -407,7 +409,7 @@ namespace SatelliteTrajectory
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
         }
 
-        public LanePos(TrajectoryPoint pointKA, double viewAngle, double rollAngle)
+        public LanePos(TrajectoryPoint pointKA, double viewAngle, double rollAngle, double pitchAngle)
         {
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
@@ -416,9 +418,15 @@ namespace SatelliteTrajectory
 
             RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(pointKA.Velocity, AstronomyMath.ToDegrees(minAngle)));
             RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(pointKA.Velocity, AstronomyMath.ToDegrees(maxAngle)));
+             
+            Vector3D pitchAxis = Vector3D.CrossProduct(pointKA.Velocity, eDirVect);
+            RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle)));
 
-            Vector3D leftVector = leftTransform.Transform(eDirVect);
-            Vector3D rightVector = rightTransform.Transform(eDirVect);
+            Vector3D leftVector = pitchTransform.Transform(leftTransform.Transform(eDirVect));
+            Vector3D rightVector = pitchTransform.Transform(rightTransform.Transform(eDirVect));
+
+           // Vector3D leftVector = leftTransform.Transform(eDirVect);
+           // Vector3D rightVector = rightTransform.Transform(eDirVect);
 
             Vector3D leftCrossPoint = Routines.SphereVectIntersect(leftVector, pointKA.Position, Astronomy.Constants.EarthRadius);
             Vector3D rightCrossPoint = Routines.SphereVectIntersect(rightVector, pointKA.Position, Astronomy.Constants.EarthRadius);

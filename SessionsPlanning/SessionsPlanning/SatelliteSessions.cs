@@ -69,7 +69,7 @@ namespace SatelliteSessions
             Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle;     
-            SatLane viewLane = new SatLane(trajectory, 0, viewAngle);       
+            SatLane viewLane = new SatLane(trajectory, 0, 0, viewAngle);       
             possibleConfs = viewLane.getCaptureConfs(request);      
             double summ = 0;
             
@@ -142,7 +142,7 @@ namespace SatelliteSessions
             {
                 double rollAngle = min_roll_angle + index * angleStep;
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-                SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -273,7 +273,7 @@ namespace SatelliteSessions
                 DateTime timeTo = dateTime.AddMilliseconds(duration);
                 DataFetcher fetcher = new DataFetcher(managerDB);
                 Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
-                SatLane viewLane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle,  OptimalChain.Constants.camera_angle);
 
                 if (viewLane.Sectors.Count > 0)
                 {
