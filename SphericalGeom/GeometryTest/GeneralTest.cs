@@ -56,7 +56,7 @@ namespace GeometryTest
                 {                    
                     Console.WriteLine(pol.ToWtk());
                 }
-                throw new Exception("error");
+                throw ex;
             }
  
 

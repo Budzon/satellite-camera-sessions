@@ -51,7 +51,7 @@ namespace SatelliteSessions
 
     public class HeaderMPZ
     {
-        public const int NKA = 2;
+        public const int NKA = 3;
         public static TimeSpan TON_DELTA = new TimeSpan(0, 2, 30);
         public static TimeSpan TTASK_MAX = new TimeSpan(0, 23, 20);
 

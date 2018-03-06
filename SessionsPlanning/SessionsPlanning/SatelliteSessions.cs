@@ -10,7 +10,8 @@ using SatelliteTrajectory;
 using Astronomy;
 using Common;
 using OptimalChain;
-
+using Microsoft.SqlServer.Types;
+using System.Data.SqlTypes;
 using DBTables;
 
 using SphericalGeom;
@@ -65,15 +66,14 @@ namespace SatelliteSessions
             // string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";     
             // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно      
             DataFetcher fetcher = new DataFetcher(managerDB);    
-            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);    
+            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle;     
             SatLane viewLane = new SatLane(trajectory, 0, viewAngle);       
             possibleConfs = viewLane.getCaptureConfs(request);      
             double summ = 0;
-
             
-           /*
+            /*
             foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.orders)
@@ -83,9 +83,8 @@ namespace SatelliteSessions
             }
             if (summ > 1)
                 summ = 1;
-           */
-          
-            
+            */
+                      
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in possibleConfs)
             {
@@ -253,11 +252,55 @@ namespace SatelliteSessions
         /// <param name="duration">Продолжительность съемки в милисекундах</param>
         /// <param name="DBManager">Параметры подключения к БД</param>
         /// <returns> полигон в формате WKT</returns>
-        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager DBManager)
+        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager managerDB)
         {
-            string wkt_string = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
-            /// @todo реализовать 
-            return wkt_string;
+            string wtk = "";
+            if (duration == 0)
+            {
+                DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
+                TrajectoryPoint? point = fetcher.GetPositionSat(dateTime);
+                // @todo обработать ситуацию, когда point == null (например когда траектории в бд нет)
+                if (point == null)
+                {
+                    return wtk;
+                }
+                Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
+                Polygon viewPol = Routines.getViewPolygon((TrajectoryPoint)point, dirVector, OptimalChain.Constants.camera_angle);
+                wtk = viewPol.ToWtk();             
+            }
+            else
+            {
+                DateTime timeTo = dateTime.AddMilliseconds(duration);
+                DataFetcher fetcher = new DataFetcher(managerDB);
+                Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
+
+                if (viewLane.Sectors.Count > 0)
+                {
+                    List<Vector3D> leftLanePoints = new List<Vector3D>();
+                    List<Vector3D> rightLanePoints = new List<Vector3D>();
+
+                    for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
+                    {
+                        var sect = viewLane.Sectors[sectId];
+                        int i = 0;
+                        if (sectId > 0)
+                            i = 1;
+                        for (; i < sect.sectorPoints.Count; i++)
+                        {
+                            var pos = sect.sectorPoints[i];
+                            leftLanePoints.Add(pos.LeftCartPoint);
+                            rightLanePoints.Add(pos.RightCartPoint);
+                        }
+                    }
+                    for (int i = rightLanePoints.Count - 1; i >= 0; i--)
+                        leftLanePoints.Add(rightLanePoints[i]);
+
+                    Polygon pol = new Polygon(leftLanePoints);
+                    wtk = pol.ToWtk();
+                }
+            }
+            return wtk;
         }
 
         /// <summary>
