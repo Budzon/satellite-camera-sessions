@@ -26,7 +26,7 @@ using SatelliteTrajectory;
 using SatelliteSessions;
 using DataParsers;
 using Astronomy;
-using OptimalChain; 
+using OptimalChain;
 
 namespace ViewModel
 {
@@ -55,7 +55,7 @@ namespace ViewModel
         private List<Polygon> curIntersection;
         private List<Polygon> curDifference;
         private List<SatLane> captureLanes;
-        
+
 
         private bool hasChanged;
 
@@ -307,7 +307,7 @@ namespace ViewModel
             }
             var v = new Vector3D(x, y, z);
             return curDifference.Any(p => p.Contains(v));
-        } 
+        }
 
         public void test_vectors(Vector3D crossVector_1, Vector3D crossVector_2, Vector3D crossVector_3, Vector3D crossVector_4)
         {
@@ -339,7 +339,7 @@ namespace ViewModel
             Console.WriteLine();
             Console.WriteLine();
         }
-         
+
         public double getRollCorrection(double h, double v, double w, double b, double pitch)
         {
             double I = OptimalChain.Constants.orbital_inclination;
@@ -351,14 +351,14 @@ namespace ViewModel
             double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch);
             double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I);
             double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
-            return Math.Asin(sinRoll); 
+            return Math.Asin(sinRoll);
         }
 
-        public Polygon getPointPolygon(Vector3D point)
+        public Polygon getPointPolygon(Vector3D point, double delta = 0.1)
         {
             GeoPoint gp = GeoPoint.FromCartesian(point);
             Console.WriteLine(gp.ToString());
-            double delta = 0.1;
+
 
             GeoPoint gp1 = new GeoPoint(gp.Latitude + delta, gp.Longitude);
             GeoPoint gp2 = new GeoPoint(gp.Latitude, gp.Longitude + delta);
@@ -373,7 +373,7 @@ namespace ViewModel
 
             return new Polygon(verts);
         }
-         
+
         public void test_roll_correction_noroll()
         {
             double viewAngle = AstronomyMath.ToRad(1);
@@ -385,10 +385,10 @@ namespace ViewModel
             int count = trajectory.Count;
             var points = trajectory.Points;
             var point = points[514];
-                        
+
             // начальные данные
             double pitchAngle = AstronomyMath.ToRad(30);
-            
+
 
             var nadirPoint = LanePos.getSurfacePoint(point, 0, 0);
             Vector3D pointPitch = LanePos.getSurfacePoint(point, 0, pitchAngle);
@@ -411,8 +411,8 @@ namespace ViewModel
             Console.WriteLine("v = {0};", velo);
 
             // расчитаем поправку по крену
-            // double rollDelta = -AstronomyMath.ToRad( 0.730159124782707 );//
-            double rollDelta = getRollCorrection(h, velo, w, b, pitchAngle);
+            double rollDelta = -AstronomyMath.ToRad(0.0928849189990871);//
+            // double rollDelta = getRollCorrection(h, velo, w, b, pitchAngle);
             Console.WriteLine("{0} рад - рассчитаная поправка по крену. В градусах - {1}", rollDelta, AstronomyMath.ToDegrees(rollDelta));
             var resTestPoint = LanePos.getSurfacePoint(point, 0 + rollDelta, pitchAngle);
 
@@ -422,12 +422,12 @@ namespace ViewModel
             Console.WriteLine("Упреждение по времени = {0} секунд ", deltaTime);
             Console.WriteLine("Упреждение по расстоянию = {0} км ", dist * Astronomy.Constants.EarthRadius);
             DateTime time_2 = point.Time.AddSeconds(deltaTime);
-            TrajectoryPoint point_2  = trajectory.GetPoint(time_2); // получим точку траектории, отстающую от начальной на deltaTime
+            TrajectoryPoint point_2 = trajectory.GetPoint(time_2); // получим точку траектории, отстающую от начальной на deltaTime
             var nadirPoint_2 = LanePos.getSurfacePoint(point_2, 0, 0);
 
             Console.WriteLine("{0} км - расстояние между p2 и точкой, полученной с рассчитанным упреждением по крену и начальным тангажем ",
                  GeoPoint.DistanceOverSurface(resTestPoint, nadirPoint_2) * Astronomy.Constants.EarthRadius);
-           
+
             Console.WriteLine("{0} км - расстояние между p2 и pitchPoint",
                  GeoPoint.DistanceOverSurface(pointPitch, nadirPoint_2) * Astronomy.Constants.EarthRadius);
 
@@ -441,7 +441,7 @@ namespace ViewModel
 
         public void test_roll_correction()
         {
-            test_roll_correction_noroll();                 
+            test_roll_correction_noroll();
             return;
 
             //double rollAngleDegree = 30;
@@ -454,7 +454,7 @@ namespace ViewModel
 
             int count = trajectory.Count;
             var points = trajectory.Points;
-            
+
             double minDist = 10000000000;
             int pindd = 0;
             for (int ii = 0; ii < count; ii++)
@@ -511,8 +511,8 @@ namespace ViewModel
             Console.WriteLine("{0} рад - рассчитаная поправка по крену. В градусах - {1}", rollDelta, AstronomyMath.ToDegrees(rollDelta));
 
             // точка, полученная из начальной с учетом поправки по крену
-            Vector3D resPointRollPitch = LanePos.getSurfacePoint(point, rollAngle + rollDelta, pitchAngle); 
-            
+            Vector3D resPointRollPitch = LanePos.getSurfacePoint(point, rollAngle + rollDelta, pitchAngle);
+
             // расстояние между точкой, взятой только с креном, и точкой, взятой и с креном и с тангажом 
             double dist = GeoPoint.DistanceOverSurface(pointRoll, pointRollPitch);
             double deltaTime = Math.Sign(pitchAngle) * dist / velo; // время, которое потребуется для преодаления dist с текущей скоростью.
@@ -523,40 +523,112 @@ namespace ViewModel
 
             Vector3D preRollPoint = LanePos.getSurfacePoint(pre_point, rollAngle, 0);
             double dist_roll = GeoPoint.DistanceOverSurface(preRollPoint, resPointRollPitch);
-            
+
             Console.WriteLine("{0} км - расстояние до точки, в которую хотим попасть (должно быить близко к 0)", dist_roll * Astronomy.Constants.EarthRadius);
 
             Console.WriteLine("{0} км - расстояние между точкой с тангажом и креном без упреждений и  точкой  c креном (полученной с упреждением по времени)",
                 GeoPoint.DistanceOverSurface(pointRollPitch, preRollPoint) * Astronomy.Constants.EarthRadius);
 
-            Console.WriteLine("{0} км - расстояние между точкой с креном и тангажом и точкой, полученной при помощи упреждения по крену ", 
+            Console.WriteLine("{0} км - расстояние между точкой с креном и тангажом и точкой, полученной при помощи упреждения по крену ",
                 GeoPoint.DistanceOverSurface(pointRollPitch, resPointRollPitch) * Astronomy.Constants.EarthRadius);
-                        
+
             //double dist_roll = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(point.Position.ToVector()), GeoPoint.FromCartesian(pre_point.Position.ToVector()));
             //Console.WriteLine("dist_roll = {0}", dist_roll);
 
             //LanePos pos = new LanePos(point, viewAngle, rollAngle);
             // captureLanes.Add(strip15);
         }
-         
+
+        public void testGetSegment()
+        {
+            double rollAngle = -0.78539816339744828;
+            double viewAngle = OptimalChain.Constants.camera_angle;
+            var trajectory = DatParser.getTrajectoryFromDatFile("trajectory_1day.dat", new DateTime(2000, 1, 1), new DateTime(2020, 1, 1));
+            SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
+
+            DateTime dt1 = DateTime.Parse("12.03.2015 19:11:38");
+            DateTime dt2 = DateTime.Parse("12.03.2015 19:17:27");
+
+            var pol = viewLane.getSegment(dt1, dt2);
+
+            var str = pol.ToWtk();
+        }
+
+        void testbd()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
+
+            DateTime dt1 = DateTime.Parse("12.03.2012 19:11:38");
+            DateTime dt2 = DateTime.Parse("12.03.2015 19:17:27");
+            DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
+            // List<DBTables.SpaceTime> points = fetcher.GetPositionSat(dt1, dt2);
+            TrajectoryPoint? point = fetcher.GetPositionSat(dtx);
+
+            int i = 4;
+        }
+
+
+        public void testViewPolygon()
+        {
+            GeoPoint gppoint = new GeoPoint(0, 0);
+            double h = 725;
+            Vector3D position = GeoPoint.ToCartesian(gppoint, Astronomy.Constants.EarthRadius + h);// new Vector3D(6363.5108478, -1786.1444021, 2561.4350056); 
+            //Vector3D eDirVect = new Vector3D(-position.X, -position.Y, -position.Z);
+            Vector3D velo = new Vector3D(0, 0, 1);
+            TrajectoryPoint point = new TrajectoryPoint(new DateTime(), position.ToPoint(), velo);
+            double rollAngle = AstronomyMath.ToRad(0);
+            double pitchAngle = AstronomyMath.ToRad(0);
+            double viewAngle = AstronomyMath.ToRad(20);
+
+            Vector3D dir = LanePos.getDirectionVector(point, rollAngle, pitchAngle);
+            var pol1 = Routines.getViewPolygon(point, dir, viewAngle);
+          //  Console.WriteLine(pol1.ToWtk());
+          //  polygons.Add(pol1);
+            //     polygons.Add(getPointPolygon(position, 6));
+            // var p = Routines.SphereVectIntersect(dir, point.Position, Astronomy.Constants.EarthRadius);
+            // polygons.Add(getPointPolygon(p, 10));
+            //  polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
+        }
+
+
+        public void testGetSoenPolygon()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+            DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
+            string wkt = Sessions.getSOENViewPolygon(dtx, rollAngle: 0, pitchAngle: 0, duration: 0 /*20*60*1000*/, managerDB: manager);
+            Polygon pol = new Polygon(wkt);
+            polygons.Add(pol);
+            //string wkt = "POLYGON ((143.31151656322 21.1384733467903,143.325989824923 21.1551503774817,143.34046584544 21.1718254813315,143.35494500364 21.1884990899768,143.369427678717 21.2051716348972,143.383914250232 21.2218435474621,143.312353550372 21.2758490005165,143.330248453101 21.2623504694091,143.34813989278 21.2488502827733,143.366028336297 21.2353480917981,143.29445471734 21.2893462247353,143.279971857154 21.2726665055836,143.265492781527 21.2559862452807,143.251017111003 21.2393050122197,143.236544466485 21.2226223746932,143.222074469189 21.2059379008455,143.239969981605 21.1924485189598,143.257861480248 21.1789577211096,143.275749432268 21.1654651588919,143.293634304438 21.1519704837213,143.31151656322 21.1384733467903))";
+            // polygons.Add(new Polygon("POLYGON ((143.31151656322 21.1384733467903,143.325989824923 21.1551503774817,143.34046584544 21.1718254813315,143.35494500364 21.1884990899768,143.369427678717 21.2051716348972,143.383914250232 21.2218435474621,143.312353550372 21.2758490005165,143.330248453101 21.2623504694091,143.34813989278 21.2488502827733,143.366028336297 21.2353480917981,143.29445471734 21.2893462247353,143.279971857154 21.2726665055836,143.265492781527 21.2559862452807,143.251017111003 21.2393050122197,143.236544466485 21.2226223746932,143.222074469189 21.2059379008455,143.239969981605 21.1924485189598,143.257861480248 21.1789577211096,143.275749432268 21.1654651588919,143.293634304438 21.1519704837213,143.31151656322 21.1384733467903))"));
+            // polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
+        }
 
         public void CreateCaptureIntervals()
         {
-            test_roll_correction_noroll();
+            testGetSoenPolygon();
             return;
-            
 
+            testViewPolygon();
+            return;
+
+            //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
-      //      polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
+            polygons.Add(new Polygon("POLYGON ((175.953568029491 2.93951720723808,177.053149762516 -4.04109892624247,-175.953568029491 -2.93951720723808,-177.053149762516 4.04109892624247,175.953568029491 2.93951720723808))"));
+            return;
+            //      polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
 
-      //      polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
+            //      polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
 
-      //      polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
+            //      polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
 
-       //     polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
-           
-         //   return;
-            
+            //     polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
+
+            //   return;
+
             /*
             pol1 = new Polygon(new List<Vector3D> ()
             {
@@ -584,7 +656,7 @@ namespace ViewModel
             });
 
             return;*/
-            
+
             double rollAngle = AstronomyMath.ToRad(0); // -0.78539816339744828;
             double viewAngle = AstronomyMath.ToRad(90);
 
@@ -604,7 +676,6 @@ namespace ViewModel
                 return;
             }
 
-
             SatLane strip15 = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
 
             captureLanes.Add(strip15);
@@ -616,14 +687,23 @@ namespace ViewModel
                 return;
             RequestParams reqparams = new RequestParams();
             reqparams.id = 1;
+
+            ///12.03.2015
+            //  по 
+            //14.03.2015
             reqparams.timeFrom = new DateTime(2000, 1, 1);
             reqparams.timeTo = new DateTime(2020, 1, 1);
             reqparams.wktPolygon = curRequest.ToWtk();
             reqparams.minCoverPerc = 0.4;
+            reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
             double isfes;
             List<CaptureConf> possibleConfs;
-            //Sessions.isRequestFeasible(reqparams, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1), out isfes, out possibleConfs);
-            //Console.WriteLine(isfes);
+            Sessions.isRequestFeasible(reqparams, new DateTime(2015, 3, 12, 7, 5, 5), new DateTime(2015, 3, 12, 8, 25, 5), managerDB, out isfes, out possibleConfs);
+            Console.WriteLine(isfes);
         }
 
         public void testgetMPZArray()
@@ -636,6 +716,14 @@ namespace ViewModel
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
+            //Random rand = new Random((int)DateTime.Now.Ticks);
+            //for (int i = 0; i < 40; i++)
+            //{
+            //    Polygon randpol = getRandomPolygon(rand, 3, 10, 5, 15);
+            //    polygons.Add(randpol);
+            //}
+            //return null;
+
             DateTime start = DateTime.Now;
             //  if (curRequest == null)
             //      return null;
@@ -643,29 +731,32 @@ namespace ViewModel
             List<RequestParams> requests = new List<RequestParams>();
 
             //polygons.Add(new Polygon("POLYGON ((-2 -6, -2 -2, -6 -2, -6 -6, -2 -6))"));
-            
+
             //polygons.Add(new Polygon("POLYGON ((12 8, 12 12, 8 12, 8 8, 12 8))"));
-            
+
             //polygons.Add(new Polygon("POLYGON ((6 2, 6 6, 2 6, 2 2, 6 2))"));
 
+            //   polygons.Add(new Polygon("POLYGON((-29 27,  -23 33 , -21 31, -27 25, -29 27)"));
+            //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
+            polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
+            //      polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
+            //      polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
+            //      polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
+            //      polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
+            //      polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
 
-            polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
-            //polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
-            //polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
-            //polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
-            //polygons.Add(new Polygon("POLYGON ((-29 27, -27 25, -21 31, -23 33 , -29 27))"));
-            // polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
-
+            ///
             //foreach (var req in Requests)
-            //{
+            //{       
             //    var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
+
             int id = 0;
             foreach (var pol in polygons)
             {
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = id;
-                reqparams.timeFrom = new DateTime(2000, 1, 1);
-                reqparams.timeTo = new DateTime(2020, 1, 1);
+                reqparams.timeFrom = new DateTime(2015, 3, 12); // 12.03.2015 по 14.03.2016 
+                reqparams.timeTo = new DateTime(2016, 3, 14);
                 reqparams.priority = 1;
                 reqparams.minCoverPerc = 0.4;
                 reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
@@ -676,36 +767,38 @@ namespace ViewModel
 
 
             /*
-            var res = Sessions.getCaptureConfArray(
-                requests,
-                new DateTime(2000, 03, 13, 4, 0, 0),
-                new DateTime(2115, 03, 13, 4, 4, 0));
+          var res = Sessions.getCaptureConfArray(
+              requests,
+              new DateTime(2000, 03, 13, 4, 0, 0),
+              new DateTime(2115, 03, 13, 4, 4, 0));
 
-            var rnd = new Random();
-            var result = res.OrderBy(item => rnd.Next());
-            res = result.ToList<CaptureConf>();
-            DateTime end = DateTime.Now;
-            Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+          var rnd = new Random();
+          var result = res.OrderBy(item => rnd.Next());
+          res = result.ToList<CaptureConf>();
+          DateTime end = DateTime.Now;
+          Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
             
-            foreach (var conf in res)
-            {
-                captureIntervals.Add(new Polygon(conf.wktPolygon));
-            }
-            Console.WriteLine("res.Count = {0}", res.Count());
-            return res;                            
-              */
+          foreach (var conf in res)
+          {
+              captureIntervals.Add(new Polygon(conf.wktPolygon));
+          }
+          Console.WriteLine("res.Count = {0}", res.Count());
+          return res;                            
+           */
 
 
-            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime,DateTime>>();
-            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime,DateTime>>();
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
             List<RouteMPZ> routesToReset = new List<RouteMPZ>();
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager();
-            
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
 
-            Sessions.getMPZArray(requests, new DateTime(2000, 03, 13, 4, 0, 0), new DateTime(2115, 03, 13, 4, 4, 0)
+            //12.03.2015 по 14.03.2015
+            Sessions.getMPZArray(requests, new DateTime(2000, 03, 12, 0, 0, 0), new DateTime(2020, 03, 14, 0, 0, 0)
                 , silenceRanges
                 , inactivityRanges
                 , routesToReset
@@ -726,12 +819,12 @@ namespace ViewModel
                         string wkt = route.ShootingConf.wktPolygon;
                         captureIntervals.Add(new Polygon(wkt));
                     }
-                }        
+                }
             }
 
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
             return new List<CaptureConf>();
-            
+
         }
 
         public bool RegionCanBeCaptured { get; private set; }
