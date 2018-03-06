@@ -9,6 +9,7 @@ using SphericalGeom;
 using Common;
 using OptimalChain;
 using SatelliteSessions;
+using DBTables;
 
 namespace GeometryTest
 {
@@ -58,8 +59,28 @@ namespace GeometryTest
                 throw ex;
             }
  
+
+
         }
 
+        //[TestMethod]
+        //public void TestIsRequestFeasible()
+        //{
+        //    DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+
+        //    DateTime from = new DateTime(2019, 01, 01, 1, 0, 0);
+        //    DateTime to = new DateTime(2019, 01, 05, 12, 0, 0);
+
+        //    //var sun = fetcher.GetPositionSun(from, to);
+        //    //sun.Clear();
+        //    //var sat = fetcher.GetPositionSat(from, to);
+        //    //sat.Clear();
+        //    //var traj = fetcher.GetTrajectorySat(from, to);
+        //    var viewLane = fetcher.GetViewLane(from, to);
+        //    //var orbit = fetcher.GetDataBetweenDates(OrbitTable.Name, OrbitTable.TimeEquator, from, to);
+        //    //List<Tuple<int, DateTime>> orbit_turns = orbit.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
+        //    //var turns = fetcher.GetViewLaneBrokenIntoTurns(from, to);
+        //}
 
 
 
