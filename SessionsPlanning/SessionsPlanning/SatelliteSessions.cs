@@ -463,13 +463,13 @@ namespace SatelliteSessions
                 positions.Add(prePos);
             positions.AddRange(fetcher.GetPositionMNKPOI(timeFrom, timeTo));
 
+            double R = Astronomy.Constants.EarthRadius;
+            double h = fetcher.GetPositionSat(timeFrom, timeTo).Select(spaceTime => spaceTime.Position.Length - R).Average();
+
             zones = new List<CommunicationZoneMNKPOI>();
             foreach (PositionMNKPOI pos in positions)
             {
-                double R = Astronomy.Constants.EarthRadius;
-                double h = OptimalChain.Constants.orbit_height; // @todo get from db
                 double d = pos.Altitude / 1000; // altitude
-
                 zones.Add(new CommunicationZoneMNKPOI
                     {
                         CentreLat = pos.Position.Latitude,
