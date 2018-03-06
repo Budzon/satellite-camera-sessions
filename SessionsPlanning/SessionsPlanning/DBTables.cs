@@ -15,6 +15,9 @@ namespace DBTables
     public class DataFetcher
     {
         private const string datePattern = "MM.dd.yyyy HH:mm:ss";
+        //private static TimeSpan sunStep = new TimeSpan(0, 1, 1);
+        //private static TimeSpan oneTurn = new TimeSpan(0, 100, 0);
+        private static TimeSpan chunkLength = new TimeSpan(3, 0, 0, 0);
         private static GeoPoint snkpoi = new GeoPoint(30.185089, 31.690301);
         private SqlManager manager;
 
@@ -29,16 +32,12 @@ namespace DBTables
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        public List<SpaceTime> GetPositionSun(/*DateTime from, DateTime to*/)
+        public List<SpaceTime> GetPositionSun(DateTime from, DateTime to)
         {
-            DataTable sunPositionTable = manager.GetSqlObject(
-                SunTable.Name, ""
-                /*String.Format("where {0} between #{1}# and #{2}#", SunTable.Time, from.ToShortDateString(), to.ToShortDateString())*/);
-
             List<SpaceTime> res = new List<SpaceTime>();
-            DataRow[] rows = sunPositionTable.Select();
-            foreach (DataRow row in rows)
-                res.Add(new SpaceTime { Position = SunTable.GetPosition(row), Time = SunTable.GetTime(row) });
+            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(SunTable.Name, SunTable.Time, from, to, true))
+                foreach (DataRow row in chunk.Rows)
+                    res.Add(new SpaceTime { Position = SunTable.GetPosition(row), Time = SunTable.GetTime(row) });
 
             return res;
         }
@@ -63,8 +62,8 @@ namespace DBTables
         {
             return snkpoi;
         }
-
-        public List<PositionMNKPOI> GetPositionMNKPOI()
+        // TO UPDATE WITH DATES
+        public List<PositionMNKPOI> GetPositionMNKPOI() // TO UPDATE WITH DATES
         {
             DataTable mnkpoiPositionTable = manager.GetSqlObject(
                 MnkpoiTable.Name, "");
@@ -92,70 +91,60 @@ namespace DBTables
         /// <returns></returns>
         public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
         {
-            string fromStr = from.ToString(datePattern);
-            string toStr = to.ToString(datePattern);
-            DataTable satPositionTable = manager.GetSqlObject(
-                SatTable.Name, 
-                String.Format("where {0} between '{1}' and '{2}'", SatTable.Time, fromStr, toStr));
-
             List<SpaceTime> res = new List<SpaceTime>();
-            DataRow[] rows = satPositionTable.Select();
-            foreach (DataRow row in rows)
-                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
+            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(SatTable.Name, SatTable.Time, from, to, true))
+                foreach (DataRow row in chunk.Rows)
+                    res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
 
             return res;
-        }    
+        }
 
         public TrajectoryPoint? GetPositionSat(DateTime dtime)
         {
             string dtimestr = dtime.ToString(datePattern);
 
-            DataTable beforePos = manager.GetSqlObject(
-                SatTable.Name,
-                String.Format("where {0} < '{1}' ORDER BY {0} DESC", SatTable.Time, dtimestr),
-                limit: 1);
+            DataRow[] beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, dtime, 1);
+            DataRow[] afterPos = GetDataAfterEqualDate(SatTable.Name, SatTable.Time, dtime, 2);
 
-            DataTable afterPos = manager.GetSqlObject(
-                SatTable.Name,
-                String.Format("where {0} >= '{1}' ORDER BY {0} ASC", SatTable.Time, dtimestr),
-                limit: 2
-                );
-
-            if (beforePos.Rows.Count < 1 || afterPos.Rows.Count < 2)
-            { 
+            if (beforePos.Length < 1 || afterPos.Length < 2)
+            {
                 return null;
             }
-            
-            var point1 = new SpaceTime { Position = SatTable.GetPosition(beforePos.Select()[0]), Time = SatTable.GetTime(beforePos.Select()[0]) };
-            var point2 = new SpaceTime { Position = SatTable.GetPosition(afterPos.Select()[0]), Time = SatTable.GetTime(afterPos.Select()[0]) };
-            var point3 = new SpaceTime { Position = SatTable.GetPosition(afterPos.Select()[1]), Time = SatTable.GetTime(afterPos.Select()[1]) };
+
+            var point1 = new SpaceTime { Position = SatTable.GetPosition(beforePos[0]), Time = SatTable.GetTime(beforePos[0]) };
+            var point2 = new SpaceTime { Position = SatTable.GetPosition(afterPos[0]), Time = SatTable.GetTime(afterPos[0]) };
+            var point3 = new SpaceTime { Position = SatTable.GetPosition(afterPos[1]), Time = SatTable.GetTime(afterPos[1]) };
 
             if (point2.Time == dtime) // на случай, если такая точка уже есть
             {
-                return SpaceTime.createTrajectoryPoint(point2, point3); 
-            } 
+                return SpaceTime.createTrajectoryPoint(point2, point3);
+            }
 
             TrajectoryPoint first_point = SpaceTime.createTrajectoryPoint(point1, point2);
             TrajectoryPoint second_point = SpaceTime.createTrajectoryPoint(point2, point3);
 
             Trajectory trajectory = Trajectory.Create(new TrajectoryPoint[2]{first_point, second_point});
-             
+
             return  trajectory.GetPoint(dtime);;
         }
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to)
         {
             List<SpaceTime> preTrajectory = GetPositionSat(from, to);
+            
+            if (preTrajectory.Count < 2)
+                return Trajectory.Create(new TrajectoryPoint[0]);
+
             TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
 
-            points[0] = SpaceTime.createTrajectoryPoint(preTrajectory[0], preTrajectory[1]); 
+            points[0] = SpaceTime.createTrajectoryPoint(preTrajectory[0], preTrajectory[1]);
 
             for (int i = 1; i < preTrajectory.Count - 1; ++i)
                 points[i] = SpaceTime.createTrajectoryPoint(preTrajectory[i], preTrajectory[i + 1]);
 
             points[preTrajectory.Count - 1] = SpaceTime.createTrajectoryPoint(preTrajectory[preTrajectory.Count - 1],
-                                                                              preTrajectory[preTrajectory.Count - 2]); 
-  
+                                                                              preTrajectory[preTrajectory.Count - 2]);
+
             return Trajectory.Create(points);
         }
 
@@ -167,63 +156,142 @@ namespace DBTables
         /// <returns></returns>
         public List<SatelliteTrajectory.LanePos> GetViewLane(DateTime from, DateTime to)
         {
-            string fromStr = from.ToString(datePattern);
-            string toStr = to.ToString(datePattern);
-            DataTable viewLaneTable = manager.GetSqlObject(
-                CoverageTable.Name,
-                String.Format("where {0} between '{1}' and '{2}'", CoverageTable.NadirTime, fromStr, toStr));
-
             List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
-            DataRow[] rows = viewLaneTable.Select();
-            if (rows.Length > 0)
-            {
-                foreach (DataRow row in rows)
-                    res.Add(CoverageTable.GetLanePos(row));
-            }
-            else
-            {
-                // db is empty, generate view lane from sat positions 
-                Trajectory traj = GetTrajectorySat(from, to);
-                foreach (TrajectoryPoint p in traj.Points)
-                    res.Add(new SatelliteTrajectory.LanePos(p, OptimalChain.Constants.camera_angle, 0));
-            }
+            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(CoverageTable.Name, CoverageTable.NadirTime, from, to, true))
+                if (chunk.Rows.Length > 0)
+                {
+                    foreach (DataRow row in chunk.Rows)
+                        res.Add(CoverageTable.GetLanePos(row));
+                }
+                else
+                {
+                    // db is empty, generate view lane from sat positions
+                    Trajectory traj = GetTrajectorySat(from, to);
+                    foreach (TrajectoryPoint p in traj.Points)
+                        res.Add(new SatelliteTrajectory.LanePos(p, OptimalChain.Constants.camera_angle, 0));
+                }
 
             return res;
         }
 
         public List<Tuple<int, List<SatelliteTrajectory.LanePos>>> GetViewLaneBrokenIntoTurns(DateTime from, DateTime to)
         {
-            TimeSpan oneTurn = new TimeSpan(0, 100, 0);
-            string fromStr = (from - oneTurn).ToString(datePattern);
-            string toStr = (to + oneTurn).ToString(datePattern);
-            DataTable orbitTable = manager.GetSqlObject(OrbitTable.Name, String.Format("where {0} between '{1}' and '{2}'", OrbitTable.TimeEquator, fromStr, toStr));
-            List<Tuple<int, DateTime>> turns = orbitTable.Select()
-                .Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
-            List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
-
-            int ind = 0;
-            while (turns[ind].Item2 < from)
-                ind++;
-            if (turns[ind].Item2 == from)
-            {
-                times.Add(Tuple.Create(turns[ind].Item1, from));
-                ind++;
-            }
-            else
-                times.Add(Tuple.Create(turns[ind].Item1 - 1, from));
-            while (turns[ind].Item2 < to)
-            {
-                times.Add(turns[ind]);
-                ind++;
-            }
-            times.Add(Tuple.Create(-1, to));
-
             List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
+            List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
+            DataRow[] preRows;
+
+            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false))
+            {
+                List<Tuple<int, DateTime>> turns = chunk.Rows.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
+
+                preRows = GetDataBeforeEqualDate(OrbitTable.Name, OrbitTable.TimeEquator, chunk.Begin, 1);
+                if (preRows.Length < 1) // no data about turns that began before the given date
+                    return null;
+                Tuple<int, DateTime> preTurn = Tuple.Create(OrbitTable.GetNumTurn(preRows[0]), OrbitTable.GetTimeEquator(preRows[0]));
+                
+                times.Add(Tuple.Create(preTurn.Item1, chunk.Begin)); 
+
+                int ind = 0;
+                if (preTurn.Item2 == chunk.Begin) // == turns[0].Item2
+                    ind++;
+                while (ind < turns.Count)
+                {
+                    times.Add(turns[ind]);
+                    ind++;
+                }
+                times.Add(Tuple.Create(-1, chunk.End));
+            }
+
             for (int i = 0; i < times.Count - 1; ++i)
-                res.Add(Tuple.Create(times[i].Item1, GetViewLane(times[i].Item2, times[i + 1].Item2)));
+            {
+                int cur_turn = times[i].Item1;
+                DateTime start = times[i].Item2;
+
+                while (i + 1 < times.Count - 1 && (times[i + 1].Item1 == -1 || times[i + 1].Item1 == cur_turn))
+                    ++i;
+                res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2)));
+            }
 
             return res;
         }
+
+        /// <summary>
+        /// Fetches data from a database that lies within the given dates.
+        /// Returns a collection whose elements corresponds to three-day-long time intervals.
+        /// </summary>
+        /// <param name="tableName"></param>
+        /// <param name="dateFieldName"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="margin"></param>
+        /// <returns></returns>
+        private IEnumerable<DataChunk> GetDataBetweenDatesInChunks(string tableName, string dateFieldName, DateTime from, DateTime to, bool includeEnd)
+        {
+            if (from > to)
+                throw new ArgumentException("Beginning of the time interval must be bigger than its end.");
+
+            DateTime start = from;
+            DateTime finish = start + chunkLength;
+
+            while (finish < to)
+            {
+                yield return new DataChunk
+                {
+                    Rows = GetDataBetweenDates(tableName, dateFieldName, start, finish, false),
+                    Begin = start,
+                    End = finish
+                };
+                start += chunkLength;
+                finish += chunkLength;
+            }
+
+            yield return new DataChunk
+            {
+                Rows = GetDataBetweenDates(tableName, dateFieldName, start, to, includeEnd),
+                Begin = start,
+                End = to
+            };
+        }
+
+        public DataRow[] GetDataBetweenDates(string tableName, string dateFieldName, DateTime from, DateTime to, bool includeEnd)
+        {
+            string fromStr = from.ToString(datePattern);
+            string toStr = to.ToString(datePattern);
+            DataTable table = manager.GetSqlObject(tableName,
+                String.Format("where {0} >= '{1}' and {0} <{3} '{2}' ORDER BY {0} ASC", dateFieldName, fromStr, toStr, includeEnd ? "=" : ""));
+            return table.Select();
+        }
+
+        public DataRow[] GetDataBeforeDate(string tableName, string dateFieldName, DateTime date, int count)
+        {
+            return manager.GetSqlObject(
+                tableName,
+                String.Format("where {0} < '{1}' ORDER BY {0} DESC", dateFieldName, date.ToString(datePattern)),
+                limit: count).Select();
+        }
+
+        public DataRow[] GetDataBeforeEqualDate(string tableName, string dateFieldName, DateTime date, int count)
+        {
+            return manager.GetSqlObject(
+                tableName,
+                String.Format("where {0} <= '{1}' ORDER BY {0} DESC", dateFieldName, date.ToString(datePattern)),
+                limit: count).Select();
+        }
+
+        public DataRow[] GetDataAfterEqualDate(string tableName, string dateFieldName, DateTime date, int count)
+        {
+            return manager.GetSqlObject(
+                tableName,
+                String.Format("where {0} >= '{1}' ORDER BY {0} ASC", dateFieldName, date.ToString(datePattern)),
+                limit: count).Select();
+        }
+    }
+
+    internal struct DataChunk
+    {
+        public DataRow[] Rows;
+        public DateTime Begin;
+        public DateTime End;
     }
 
     public static class SunTable
@@ -680,12 +748,12 @@ namespace DBTables
     {
         public Vector3D Position { get; set; }
         public DateTime Time { get; set; }
-        
+
         /// <summary>
         /// Получить TrajectoryPoint из двух SpaceTime
         /// </summary>
         /// <param name="point"></param>
-        /// <param name="additionalPoint"></param>        
+        /// <param name="additionalPoint"></param>
         /// <returns>точку типа TrajectoryPoint</returns>
         public static TrajectoryPoint createTrajectoryPoint(SpaceTime point, SpaceTime additionalPoint)
         {
@@ -699,7 +767,7 @@ namespace DBTables
                     point.Time,
                     point.Position.ToPoint(),
                     velocity);
-              
+
             return trajPoint;
         }
     }
