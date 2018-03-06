@@ -379,7 +379,7 @@ namespace ViewModel
             double viewAngle = AstronomyMath.ToRad(1);
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(DatFileName, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1));
 
-            SatLane strip = new SatLane(trajectory, 0, viewAngle);
+            SatLane strip = new SatLane(trajectory, 0, 0, viewAngle);
             captureLanes.Add(strip);
 
             int count = trajectory.Count;
@@ -544,7 +544,7 @@ namespace ViewModel
             double rollAngle = -0.78539816339744828;
             double viewAngle = OptimalChain.Constants.camera_angle;
             var trajectory = DatParser.getTrajectoryFromDatFile("trajectory_1day.dat", new DateTime(2000, 1, 1), new DateTime(2020, 1, 1));
-            SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
+            SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
 
             DateTime dt1 = DateTime.Parse("12.03.2015 19:11:38");
             DateTime dt2 = DateTime.Parse("12.03.2015 19:17:27");
@@ -599,9 +599,13 @@ namespace ViewModel
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
-            string wkt = Sessions.getSOENViewPolygon(dtx, rollAngle: 0, pitchAngle: 0, duration: 0 /*20*60*1000*/, managerDB: manager);
-            Polygon pol = new Polygon(wkt);
-            polygons.Add(pol);
+            string wkt = Sessions.getSOENViewPolygon(dtx, rollAngle: 0, pitchAngle: 0, duration:  1*60*1000, managerDB: manager);            
+            Console.WriteLine(wkt);
+            
+
+            //Polygon pol = new Polygon(wkt);
+            //polygons.Add(pol);
+
             //string wkt = "POLYGON ((143.31151656322 21.1384733467903,143.325989824923 21.1551503774817,143.34046584544 21.1718254813315,143.35494500364 21.1884990899768,143.369427678717 21.2051716348972,143.383914250232 21.2218435474621,143.312353550372 21.2758490005165,143.330248453101 21.2623504694091,143.34813989278 21.2488502827733,143.366028336297 21.2353480917981,143.29445471734 21.2893462247353,143.279971857154 21.2726665055836,143.265492781527 21.2559862452807,143.251017111003 21.2393050122197,143.236544466485 21.2226223746932,143.222074469189 21.2059379008455,143.239969981605 21.1924485189598,143.257861480248 21.1789577211096,143.275749432268 21.1654651588919,143.293634304438 21.1519704837213,143.31151656322 21.1384733467903))";
             // polygons.Add(new Polygon("POLYGON ((143.31151656322 21.1384733467903,143.325989824923 21.1551503774817,143.34046584544 21.1718254813315,143.35494500364 21.1884990899768,143.369427678717 21.2051716348972,143.383914250232 21.2218435474621,143.312353550372 21.2758490005165,143.330248453101 21.2623504694091,143.34813989278 21.2488502827733,143.366028336297 21.2353480917981,143.29445471734 21.2893462247353,143.279971857154 21.2726665055836,143.265492781527 21.2559862452807,143.251017111003 21.2393050122197,143.236544466485 21.2226223746932,143.222074469189 21.2059379008455,143.239969981605 21.1924485189598,143.257861480248 21.1789577211096,143.275749432268 21.1654651588919,143.293634304438 21.1519704837213,143.31151656322 21.1384733467903))"));
             // polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
@@ -609,10 +613,12 @@ namespace ViewModel
 
         public void CreateCaptureIntervals()
         {
-            testGetSoenPolygon();
-            return;
+             testGetSoenPolygon();
+             return;
 
-            testViewPolygon();
+          ////////  testViewPolygon();
+          
+            
             return;
 
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
@@ -676,7 +682,7 @@ namespace ViewModel
                 return;
             }
 
-            SatLane strip15 = new SatLane(trajectory, rollAngle, viewAngle, polygonStep: 15);
+            SatLane strip15 = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
 
             captureLanes.Add(strip15);
         }

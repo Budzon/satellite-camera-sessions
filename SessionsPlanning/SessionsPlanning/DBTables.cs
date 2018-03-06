@@ -168,7 +168,7 @@ namespace DBTables
                     // db is empty, generate view lane from sat positions
                     Trajectory traj = GetTrajectorySat(from, to);
                     foreach (TrajectoryPoint p in traj.Points)
-                        res.Add(new SatelliteTrajectory.LanePos(p, OptimalChain.Constants.camera_angle, 0));
+                        res.Add(new SatelliteTrajectory.LanePos(p, OptimalChain.Constants.camera_angle, 0, 0));
                 }
 
             return res;
