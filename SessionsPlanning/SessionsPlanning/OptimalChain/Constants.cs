@@ -22,5 +22,6 @@ namespace OptimalChain
         public const double earthRotSpeed = Math.PI / (12 * 60 * 60);
         public const int pitchStep = 1; // в градусах
         public const double orbital_inclination = 1.7104; // угл наклона орбиты в градусах
+        public const double orbit_height = 650; // км (или 720?)
     }
 }
