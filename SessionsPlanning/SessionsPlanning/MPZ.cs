@@ -292,30 +292,36 @@ namespace SatelliteSessions
         private Bits[] bytes;
 
         /// <summary>
-        /// Возвращает бит по его номеру в сквозной нумерации.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public byte this[int index]
-        {
-            get
-            {
-                return bytes[index / 8][index % 8];
-            }
-            set
-            {
-                bytes[index / 8][index % 8] = value;
-            }
-        }
-
-        /// <summary>
         /// Возвращает байт по его номеру.
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public Bits GetByte(int index)
+        public Bits this[int index]
         {
-            return bytes[index];
+            get
+            {
+                return bytes[index];
+            }
+        }
+
+        /// <summary>
+        /// Возвращает бит по его номеру в сквозной нумерации.
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public byte GetBit(int index)
+        {
+            return bytes[index / 8][index % 8];
+        }
+        /// <summary>
+        /// Задает значение биту по его номеру в сквозной нумерации.
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="bit"></param>
+        /// <returns></returns>
+        public void SetBit(int index, byte bit)
+        {
+            bytes[index / 8][index % 8] = bit;
         }
 
         public int Count { get { return bytes.Length; } }
