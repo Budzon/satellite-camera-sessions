@@ -65,7 +65,11 @@ namespace OptimalChain
     public class RouteParams
     {
         public int id { get; set; }
-        public int type { get; set; }
+        public int type { get; set; }//0 -- удаление, 1 -- съемка, 2 -- сброс, 3 -- съемка со сбросом
+        public string shooting_channel { get; set; }// pk, mk, cm
+
+        public int shooting_type { get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+
         public bool energo_save_mode { get; set; }
         public DateTime start { get; set; }
         public DateTime end { get; set; }
@@ -74,17 +78,21 @@ namespace OptimalChain
 
         public List<RouteParams> binded_routes { get; set; }
 
-        public RouteParams(int t, DateTime d1, DateTime d2)
+        public RouteParams(int t, DateTime d1, DateTime d2, int st, string channel)
         {
             type = t;
+            shooting_channel = channel;
+            shooting_type = st;
             start = d1;
             end = d2;
             binded_routes = null;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br)
+        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br, int st, string channel)
         {
             type = t;
+            shooting_channel = channel;
+            shooting_type = st;
             start = d1;
             end = d2;
             binded_routes = br;
@@ -96,7 +104,9 @@ namespace OptimalChain
             start = c.dateFrom;
             end = c.dateTo;
             binded_routes = null;
-
+            ShootingConf = c;
+            shooting_channel = c.shooting_channel;
+            shooting_type = c.shooting_type;
         }
     }
 }

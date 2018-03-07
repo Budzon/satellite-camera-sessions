@@ -11,6 +11,11 @@ namespace OptimalChain
         public int id;
 
         public int type { get; set; }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
+
+        public string shooting_channel { get; set; }// pk, mk, cm
+
+        public int shooting_type { get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная
+
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
 
@@ -19,6 +24,8 @@ namespace OptimalChain
 
          public double square { get; set; }//площадь полосы
         public List<Order> orders { get; set; }
+
+        public List<Tuple<int, int>> connected_routes { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         public string wktPolygon { get; set; }
         /// <summary>
@@ -32,7 +39,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int T = 0)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int T = 1, string channel = "pk", int stype = 0, List<Tuple<int, int>> CR = null)
         {
             id = i;
             dateFrom = d1;
@@ -42,8 +49,11 @@ namespace OptimalChain
 
             square = s;
             orders = o;
+            connected_routes = CR;
             wktPolygon = polygon;
             type = T;
+            shooting_type = stype;
+            shooting_channel = channel;
         }
 
         public double reConfigureMilisecinds(StaticConf s2)
@@ -69,6 +79,10 @@ namespace OptimalChain
     {
         public int id;
         public int type { get; set; }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
+
+        public string shooting_channel { get; set; }// pk, mk, cm
+
+        public int shooting_type{ get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
         public DateTime dateFrom { get; set; }//время начала для съемки в надир
         public DateTime dateTo { get; set; }//время окончания для съемки в надир
 
@@ -79,13 +93,15 @@ namespace OptimalChain
         public double rollAngle { get; set; }//крен для съемки в надир
 
         public double square { get; set; }//площадь полосы
-        public string wktPolygon { get; set; }
-        public List<Order> orders { get; set; }
+        public string wktPolygon { get; set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
+        public List<Order> orders { get; set; }//cвязанные заказы. Список пуст только для маршрута на удаление
+
+        public List<Tuple<int, int>> connected_routes { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         /// <summary>
         /// Конструктор для создания конфигурации
         /// </summary>
-        /// <param name="T">тип конфигурации: 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом</param>
+        /// <param name="T">тип конфигурации: 1-- съемка, 2 -- сброс, 0 -- удаление, 3 -- съемка со сброосом</param>
         /// <param name="d1">время начала для съемки в надир</param>
         /// <param name="d2">время конца для съемки в надир</param>
         /// <param name="delta">возможный модуль отклонения по времени от съемки в надир</param>
@@ -93,7 +109,7 @@ namespace OptimalChain
         /// <param name="pA">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
         /// <param name="s">площадь полосы</param>
         /// <param name="o">список заказов</param>
-        public CaptureConf( DateTime d1, DateTime d2, double delta, double r,  Dictionary<double, double> pA, double s, List<Order> o,int T=0)
+        public CaptureConf(DateTime d1, DateTime d2, double delta, double r, Dictionary<double, double> pA, double s, List<Order> o, int T = 1, string channel="pk", int stype=0,  List<Tuple<int, int>> CR=null)
         {
             id = -1;
             dateFrom = d1;
@@ -102,10 +118,13 @@ namespace OptimalChain
             pitchArray = pA;
 
             type = T;
+            shooting_type = stype;
+            shooting_channel = channel;
             timeDelta = delta;
             square = s;
 
             orders = o;
+            connected_routes = CR;
 
         }
 
@@ -117,7 +136,7 @@ namespace OptimalChain
 
         public StaticConf DefaultStaticConf()
         {
-            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, type);
+            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, type, shooting_channel,shooting_type,connected_routes);
         }
 
 
@@ -125,12 +144,31 @@ namespace OptimalChain
         public StaticConf CreateStaticConf(int delta, int sign)
         {
             try{
-                double r = rollAngle;
-                double t = 0.750491578357562;
+                //double pitch = pitchArray[delta];
+                double pitch = pitchArray[0];
+
+                var h = 720.330932208252;  // высота траектории, км.
+                var w = 7.2921158533E-05;  // скорость вращения земли в радианах
+                var b = 0.00225708715578222;  // широта подспутниковой точки в радианах
+                var v = 0.0010139813837136; // скорость подспутниковой точки в радианах
+
+                double I = 1.7104; // наклонение орбиты в радианах. OptimalChain.Constants.orbital_inclination;
+                double R = 6371.3; // радиус в км.  Astronomy.Constants.EarthRadius;
+                double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch);
+
+                //Разница между двумя позициями спутника
+                double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch;
+
+
+                double d = Math.Cos(bm) * w / v * b2 * Math.Sin(I);
+                double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
+
+                double r = Math.Asin(sinRoll); ;
+                
                 DateTime d1 = dateFrom.AddSeconds(delta*sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, t, r, square, orders, wktPolygon, type);
+                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, type, shooting_channel, shooting_type, connected_routes);
             }
             catch{
                 return null;
