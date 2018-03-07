@@ -41,8 +41,11 @@ namespace GUI
             InitializeComponent();
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
+#if SPHERE
             Terra = new Ellipse3D(1, 1, 1, 200);
-       //     Terra = new EllipseRegion3D(1, 1, 1, 20, 250);
+#else
+            Terra = new EllipseRegion3D(1, 1, 1, 20, 250);
+#endif
             PlotSphere(null, null);
         }
 
@@ -112,7 +115,7 @@ namespace GUI
                 }
 
                 float polColor = (float)(pol_ind + 1) / vm.polygons.Count;
-                
+
                 if (flag)
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, polColor, (float)(1 - polColor), 0.0f));
@@ -123,7 +126,7 @@ namespace GUI
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
 
             }
-           // );
+            // );
 
             ArrayList meshs = new ArrayList { Terra };
 

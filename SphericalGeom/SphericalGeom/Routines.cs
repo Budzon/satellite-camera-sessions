@@ -361,26 +361,27 @@ namespace SphericalGeom
                 Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
                 verts.Add(crossPoint);
             }
-
+                      
             for (int j = 1; j <= pointsNum - 1; j++)
             {
                 Vector3D rAxis = Vector3D.CrossProduct(botVector, botTopAxis);
                 double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
+                RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
                 Vector3D crossVector = vertTransfrom.Transform(botVector);
                 Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
                 verts.Add(crossPoint);
             }
-
-            for (int j = 0; j <= pointsNum; j++)
-            {
-                Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
-                double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
-                Vector3D crossVector = horizTransfrom.Transform(leftVector);
-                Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-            }
+             
+          for (int j = 0; j <= pointsNum; j++)
+          {
+              Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
+              double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
+              RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
+              Vector3D crossVector = horizTransfrom.Transform(leftVector);
+              Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+              verts.Add(crossPoint);
+          }
+          
             return new Polygon(verts);
         }
 
