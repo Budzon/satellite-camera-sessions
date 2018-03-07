@@ -445,7 +445,7 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного промежутка</param>
         /// <param name="timeTo">Конец временного промежутка</param>
         /// <param name="zones">Зоны связи</param>
-        public static void getMNKPOICommuncationZones(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<CommunicationZoneMNKPOI> zones)
+        public static void getMNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<CommunicationZoneMNKPOI> zones)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
 
@@ -482,6 +482,29 @@ namespace SatelliteSessions
                     });
             }
             
+        }
+
+        /// <summary>
+        /// Вычисление зоны связи СНКПОИ.
+        /// </summary>
+        /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <param name="zone">Зона связи</param>
+        public static void getSNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, out CommunicationZoneSNKPOI zone)
+        {
+            DataFetcher fetcher = new DataFetcher(DBManager);
+            double R = Astronomy.Constants.EarthRadius;
+            double h = OptimalChain.Constants.orbit_height; // okay to take as a constant?
+            double d = 0; // altitude ?
+            
+            GeoPoint snkpoi = fetcher.GetPositionGeoSNKPOI();
+
+            zone = new CommunicationZoneSNKPOI
+            {
+                CentreLat = snkpoi.Latitude,
+                CentreLon = snkpoi.Longitude,
+                Radius5 = ZoneRadius(R, h, d, 5),
+                Radius7 = ZoneRadius(R, h, d, 7)
+            };
         }
 
         /// <summary>
@@ -767,9 +790,41 @@ namespace SatelliteSessions
         public int IdNumber;
         public DateTime From;
         public DateTime To;
+        /// <summary>
+        /// In degrees.
+        /// </summary>
         public double CentreLat;
+        /// <summary>
+        /// In degrees.
+        /// </summary>
         public double CentreLon;
+        /// <summary>
+        /// In km.
+        /// </summary>
         public double Radius5;
+        /// <summary>
+        /// In km.
+        /// </summary>
+        public double Radius7;
+    }
+
+    public struct CommunicationZoneSNKPOI
+    {
+        /// <summary>
+        /// In degrees.
+        /// </summary>
+        public double CentreLat;
+        /// <summary>
+        /// In degrees.
+        /// </summary>
+        public double CentreLon;
+        /// <summary>
+        /// In km.
+        /// </summary>
+        public double Radius5;
+        /// <summary>
+        /// In km.
+        /// </summary>
         public double Radius7;
 
 
