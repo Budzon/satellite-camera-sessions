@@ -27,7 +27,7 @@ namespace SatelliteSessions
         /// <summary>
         ///  Id антенны
         /// </summary>
-        public int id { get; set; }
+        public int antennaId { get; set; }
         /// <summary>
         ///  Время начала 7-градусной зоныc
         /// </summary>
@@ -216,7 +216,7 @@ namespace SatelliteSessions
                 double duration = (timeTo - timeFrom).TotalMinutes;
                 {
                     CommunicationSession comSes = new CommunicationSession();
-                    comSes.id = 3;
+                    comSes.antennaId = 3;
                     comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 10);
                     comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 10);
                     comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 8);
@@ -229,7 +229,7 @@ namespace SatelliteSessions
                 }
                 {
                     CommunicationSession comSes = new CommunicationSession();
-                    comSes.id = 2;
+                    comSes.antennaId = 2;
                     comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 9);
                     comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 9);
                     comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 7);
@@ -491,7 +491,7 @@ namespace SatelliteSessions
         /// <param name="h">Orbit height [km]</param>
         /// <param name="d">Altitude [km]</param>
         /// <param name="a">Zone angle [deg]</param>
-        /// <returns></returns>
+        /// <returns>радиус зоны в километрах</returns>
         private static double ZoneRadius(double R, double h, double d, double a)
         {
             double c = Math.Cos(AstronomyMath.ToRad(a));
@@ -529,8 +529,61 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного отрезка</param>
         /// <param name="timeTo">Конец временного отрезка</param>
         /// <returns>Все возможные сеансы связи за это время</returns>
-        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo)
+        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            List<CommunicationZoneMNKPOI> zones;
+            getMNKPOICommuncationZones(managerDB, timeFrom, timeTo, out zones);
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+
+            int count = trajectory.Count;
+            var points = trajectory.Points;
+
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
+
+            //CommunicationSession 
+            foreach (var zone in zones)
+            {
+                bool prevIn5zone = false;
+                bool prevIn7zone = false;
+                CommunicationSession tempSession = new CommunicationSession();
+                for (int i = 0; i < count; i++)
+                {
+                    TrajectoryPoint point = points[i]; // @todo struct копироованиe?
+
+                    bool in5zone, in7zone;
+                    zone.isPointInZone(point.Position, out in5zone, out in7zone);
+
+                    if (in5zone && !prevIn5zone) // текущая точка в 5ти гр. зоне, причем предыдущая не в пятиградусной зоне (или текущая точка - первая (i==0)  )
+                    {
+                        tempSession.Zone5timeFrom = point.Time; /// @todo интерполяция                                                                
+                    }
+
+                    if (in7zone && !prevIn7zone) // текущая точка в 7ти гр. зоне, причем предыдущая не в 7ти гр. зоне )
+                    {
+                        tempSession.Zone7timeFrom = point.Time; /// @todo интерполяция    
+                    }
+
+                    if (!in7zone && prevIn7zone) // вышли из семиградусной зоны (текущая точка не в семиградусной зоне, а предыдущая в семиградусной)
+                    {
+                        tempSession.Zone7timeTo = point.Time; /// @todo интерполяция    
+                    }
+
+                    if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
+                    {
+                        tempSession.Zone5timeTo = point.Time; /// @todo интерполяция                        
+                        tempSession.antennaId = zone.IdNumber;
+                        sessions.Add(tempSession);
+                        tempSession = new CommunicationSession();
+                    }
+
+                    prevIn5zone = in5zone;
+                    prevIn7zone = in7zone;                                        
+                }
+            }
+
+            /*
             List<CommunicationSession> sessions = new List<CommunicationSession>();
             double duration = (timeTo - timeFrom).TotalMinutes;
             {
@@ -559,6 +612,7 @@ namespace SatelliteSessions
                 comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.ZI));
                 sessions.Add(comSes);
             }
+             */
             return sessions;
         }
 
@@ -717,6 +771,19 @@ namespace SatelliteSessions
         public double CentreLon;
         public double Radius5;
         public double Radius7;
+
+
+        public void isPointInZone(Point3D checkPoint, out bool in5zone, out bool in7zone )
+        {
+            GeoPoint point = GeoPoint.FromCartesian(checkPoint.ToVector());
+            GeoPoint centre = new GeoPoint(CentreLat, CentreLon);
+            double dist = GeoPoint.DistanceOverSurface(centre, point) * Astronomy.Constants.EarthRadius;
+            in5zone = dist <= Radius5;
+            in7zone = dist <= Radius7;            
+        }
+
+  
+
     }
  
 }
