@@ -700,8 +700,10 @@ namespace ViewModel
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime,DateTime>>();
             List<RouteMPZ> routesToReset = new List<RouteMPZ>();
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager();
-            
+            //DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager();
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
 
