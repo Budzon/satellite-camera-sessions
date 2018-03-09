@@ -603,8 +603,7 @@ namespace SatelliteSessions
 
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
-                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
-                    tempSession.antennaId = zone.IdNumber;
+                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);                    
                     tempSession.routesToReset = new List<RouteMPZ>(); // @todo уточнить
                     sessions.Add(tempSession);
                     tempSession = new CommunicationSession();
@@ -649,7 +648,13 @@ namespace SatelliteSessions
                 else                
                     trajectory = fullTrajectory;
 
-                getSessionFromZone(zone, trajectory, sessions);
+                List<CommunicationSession> cur_sessions = new List<CommunicationSession>();
+                getSessionFromZone(zone, trajectory, cur_sessions);
+                foreach (var sess in cur_sessions)
+                {
+                    sess.antennaId = zone.IdNumber;
+                }
+                sessions.AddRange(cur_sessions);
             }
 
             getSessionFromZone(sZone, fullTrajectory, sessions);
