@@ -388,8 +388,7 @@ namespace ViewModel
 
             // начальные данные
             double pitchAngle = AstronomyMath.ToRad(30);
-
-
+            
             var nadirPoint = LanePos.getSurfacePoint(point, 0, 0);
             Vector3D pointPitch = LanePos.getSurfacePoint(point, 0, pitchAngle);
             double h = point.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
@@ -600,8 +599,7 @@ namespace ViewModel
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
             string wkt = Sessions.getSOENViewPolygon(dtx, rollAngle: 0, pitchAngle: 0, duration:  1*60*1000, managerDB: manager);            
-            Console.WriteLine(wkt);
-            
+            Console.WriteLine(wkt);          
 
             //Polygon pol = new Polygon(wkt);
             //polygons.Add(pol);
@@ -611,14 +609,29 @@ namespace ViewModel
             // polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
         }
 
+
+        public void sdfsdf()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+            DateTime dtx = DateTime.Parse("01.01.2019 0:57:00");
+            DateTime dtx2 = DateTime.Parse("13.02.2019 3:57:00");
+            
+            List<CommunicationZoneMNKPOI> zones;
+            Sessions.getMNKPOICommunicationZones(manager, dtx, dtx2, out zones); 
+
+            List<CommunicationSession> sessions = Sessions.createCommunicationSessions(dtx, dtx2, manager);
+            int i = 3;
+        }
+
         public void CreateCaptureIntervals()
         {
-             testGetSoenPolygon();
-             return;
+            sdfsdf();
+            return;
 
-          ////////  testViewPolygon();
-          
-            
+          ////////  testViewPolygon(); 
+
             return;
 
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
@@ -712,13 +725,7 @@ namespace ViewModel
             Console.WriteLine(isfes);
         }
 
-        public void testgetMPZArray()
-        {
-            //getMPZArray();
-
-        }
-
-
+ 
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
@@ -828,7 +835,7 @@ namespace ViewModel
                     }
                 }
             }
-
+            
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
             return new List<CaptureConf>();
 

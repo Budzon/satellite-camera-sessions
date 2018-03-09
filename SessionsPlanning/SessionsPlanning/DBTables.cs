@@ -679,9 +679,9 @@ namespace DBTables
             return (decimal)row[Id];
         }
 
-        public static byte GetNum(DataRow row)
+        public static Int16 GetNum(DataRow row)
         {
-            return (byte)row[Num];
+            return (Int16)row[Num];
         }
 
         /// <summary>

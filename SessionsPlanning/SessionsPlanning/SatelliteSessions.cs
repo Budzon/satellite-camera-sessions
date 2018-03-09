@@ -27,7 +27,7 @@ namespace SatelliteSessions
         /// <summary>
         ///  Id антенны
         /// </summary>
-        public int id { get; set; }
+        public int antennaId { get; set; }
         /// <summary>
         ///  Время начала 7-градусной зоныc
         /// </summary>
@@ -216,7 +216,7 @@ namespace SatelliteSessions
                 double duration = (timeTo - timeFrom).TotalMinutes;
                 {
                     CommunicationSession comSes = new CommunicationSession();
-                    comSes.id = 3;
+                    comSes.antennaId = 3;
                     comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 10);
                     comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 10);
                     comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 8);
@@ -229,7 +229,7 @@ namespace SatelliteSessions
                 }
                 {
                     CommunicationSession comSes = new CommunicationSession();
-                    comSes.id = 2;
+                    comSes.antennaId = 2;
                     comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 9);
                     comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 9);
                     comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 7);
@@ -445,7 +445,7 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного промежутка</param>
         /// <param name="timeTo">Конец временного промежутка</param>
         /// <param name="zones">Зоны связи</param>
-        public static void getMNKPOICommuncationZones(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<CommunicationZoneMNKPOI> zones)
+        public static void getMNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<CommunicationZoneMNKPOI> zones)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
 
@@ -485,13 +485,36 @@ namespace SatelliteSessions
         }
 
         /// <summary>
+        /// Вычисление зоны связи СНКПОИ.
+        /// </summary>
+        /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <param name="zone">Зона связи</param>
+        public static void getSNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, out CommunicationZoneSNKPOI zone)
+        {
+            DataFetcher fetcher = new DataFetcher(DBManager);
+            double R = Astronomy.Constants.EarthRadius;
+            double h = OptimalChain.Constants.orbit_height; // okay to take as a constant?
+            double d = 0; // altitude ?
+            
+            GeoPoint snkpoi = fetcher.GetPositionGeoSNKPOI();
+
+            zone = new CommunicationZoneSNKPOI
+            {
+                CentreLat = snkpoi.Latitude,
+                CentreLon = snkpoi.Longitude,
+                Radius5 = ZoneRadius(R, h, d, 5),
+                Radius7 = ZoneRadius(R, h, d, 7)
+            };
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="R">Planet radius [km]</param>
         /// <param name="h">Orbit height [km]</param>
         /// <param name="d">Altitude [km]</param>
         /// <param name="a">Zone angle [deg]</param>
-        /// <returns></returns>
+        /// <returns>радиус зоны в километрах</returns>
         private static double ZoneRadius(double R, double h, double d, double a)
         {
             double c = Math.Cos(AstronomyMath.ToRad(a));
@@ -510,6 +533,7 @@ namespace SatelliteSessions
             eIncorrectNumber     // Слишком много/мало маршрутов (если 0 или если больше 12)
         }
 
+
         /// <summary>
         /// Создание МПЗ по заданным маршрутам и доп.параметрам
         /// </summary>
@@ -523,42 +547,113 @@ namespace SatelliteSessions
             error = createMPZStatus.eSuccses;
         }
 
+
+        private static DateTime getIntersectionTime(TrajectoryPoint first_point, TrajectoryPoint second_point, Vector3D centre, double zoneR)
+        {
+            double angle_zone = Math.Asin(zoneR / (OptimalChain.Constants.orbit_height + Astronomy.Constants.EarthRadius));
+
+            double first_angle = Vector3D.AngleBetween(first_point.Position.ToVector(), centre);
+            double second_angle = Vector3D.AngleBetween(second_point.Position.ToVector(), centre);
+
+            double fullSpan = (first_point.Time - second_point.Time).TotalMilliseconds;
+
+            double deltaTime = fullSpan * Math.Abs(angle_zone - first_angle) / Math.Abs(second_angle - first_angle);
+            DateTime resTime = first_point.Time.AddMilliseconds(deltaTime);
+
+            return resTime;
+        }
+
+        private static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, List<CommunicationSession> sessions)
+        {
+            Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(zone.CentreLat, zone.CentreLon), 1);
+
+            bool prevIn5zone = false;
+            bool prevIn7zone = false;
+            CommunicationSession tempSession = new CommunicationSession();
+
+            int count = trajectory.Count;
+            var points = trajectory.Points;
+            for (int i = 0; i < count; i++)
+            {
+                TrajectoryPoint point = points[i]; // @todo struct копироованиe?
+
+                bool in5zone = zone.isPointInZone(point.Position, zone.Radius5);
+                bool in7zone = zone.isPointInZone(point.Position, zone.Radius7);
+
+                if (in5zone && !prevIn5zone) // текущая точка в 5ти гр. зоне, причем предыдущая не в пятиградусной зоне (или текущая точка - первая (i==0)  )
+                {
+                    if (i == 0)
+                        tempSession.Zone5timeFrom = point.Time;
+                    else
+                        tempSession.Zone5timeFrom = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
+                }
+
+                if (in7zone && !prevIn7zone) // текущая точка в 7ти гр. зоне, причем предыдущая не в 7ти гр. зоне )
+                {
+                    if (i == 0)
+                        tempSession.Zone7timeFrom = point.Time;
+                    else
+                        tempSession.Zone7timeFrom = getIntersectionTime(points[i - 1], point, centre, zone.Radius7);
+                }
+
+                if (!in7zone && prevIn7zone) // вышли из семиградусной зоны (текущая точка не в семиградусной зоне, а предыдущая в семиградусной)
+                {
+                    tempSession.Zone7timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius7);
+                }
+
+                if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
+                {
+                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
+                    tempSession.antennaId = zone.IdNumber;
+                    tempSession.routesToReset = new List<RouteMPZ>(); // @todo уточнить
+                    sessions.Add(tempSession);
+                    tempSession = new CommunicationSession();
+                }
+
+                prevIn5zone = in5zone;
+                prevIn7zone = in7zone;
+            }
+        }
+
         /// <summary>
         /// Расчет сеансов связи за заданный период времени
         /// </summary>
         /// <param name="timeFrom">Начало временного отрезка</param>
         /// <param name="timeTo">Конец временного отрезка</param>
         /// <returns>Все возможные сеансы связи за это время</returns>
-        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo)
+        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            
+            CommunicationZoneSNKPOI sZone;
+            getSNKPOICommunicationZones(managerDB, out sZone);
+
+            List<CommunicationZoneMNKPOI> mZones;
+            getMNKPOICommunicationZones(managerDB, timeFrom, timeTo, out mZones);
+             
+            if (mZones == null)
+                return new List<CommunicationSession>();
+            if (mZones.Count == 0)
+                return new List<CommunicationSession>();
+
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+            
             List<CommunicationSession> sessions = new List<CommunicationSession>();
-            double duration = (timeTo - timeFrom).TotalMinutes;
-            {
-                CommunicationSession comSes = new CommunicationSession();
-                comSes.id = 3;
-                comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 10);
-                comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 10);
-                comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 8);
-                comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 8);
 
-                comSes.routesToReset = new List<RouteMPZ>();
-                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.SI));
-                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.NP));
-                sessions.Add(comSes);
-            }
+            foreach (var zone in mZones)
             {
-                CommunicationSession comSes = new CommunicationSession();
-                comSes.id = 2;
-                comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 9);
-                comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 9);
-                comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 7);
-                comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 7);
+                Trajectory trajectory;
+                if (zone.From > timeFrom || zone.To < timeTo) // если временной промежуток зоны более строгий, чем  timeFrom - timeTo
+                    trajectory = fetcher.GetTrajectorySat(zone.From > timeFrom ? zone.From : timeFrom,
+                                                          zone.To < timeTo ? zone.To : timeTo); // то загружаем траекторию с заданными временными промежутками
+                else                
+                    trajectory = fullTrajectory;
 
-                comSes.routesToReset = new List<RouteMPZ>();
-                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.VI));
-                comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.ZI));
-                sessions.Add(comSes);
+                getSessionFromZone(zone, trajectory, sessions);
             }
+
+            getSessionFromZone(sZone, fullTrajectory, sessions);
+
             return sessions;
         }
 
@@ -615,7 +710,6 @@ namespace SatelliteSessions
         {
             return new RouteMPZ(RegimeTypes.SI);
         }
-
 
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
@@ -708,15 +802,45 @@ namespace SatelliteSessions
         public DateTime To {get;set;}
     }
  
-    public struct CommunicationZoneMNKPOI
+
+    public class CommunicationZone
+    {
+        /// <summary>
+        /// In degrees.
+        /// </summary>
+        public double CentreLat;
+        /// <summary>
+        /// In degrees.
+        /// </summary>
+        public double CentreLon;
+        /// <summary>
+        /// In km.
+        /// </summary>
+        public double Radius5;
+        /// <summary>
+        /// In km.
+        /// </summary>
+        public double Radius7;
+        
+        public bool isPointInZone(Point3D checkPoint, double zoneRadius)
+        {
+            double angleZone = Math.Asin(zoneRadius / (OptimalChain.Constants.orbit_height + Astronomy.Constants.EarthRadius));
+            Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(CentreLat, CentreLon), 1);
+            double angleKA = AstronomyMath.ToRad(Vector3D.AngleBetween(checkPoint.ToVector(), centre));
+            return angleKA <= angleZone;
+        }   
+    }
+
+
+    public class CommunicationZoneMNKPOI : CommunicationZone
     {
         public int IdNumber;
         public DateTime From;
-        public DateTime To;
-        public double CentreLat;
-        public double CentreLon;
-        public double Radius5;
-        public double Radius7;
+        public DateTime To;     
+    }
+
+    public class CommunicationZoneSNKPOI : CommunicationZone
+    {        
     }
  
 }
