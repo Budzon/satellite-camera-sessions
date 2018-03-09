@@ -286,3 +286,17 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+SessionsPlanning/SessionsPlanning/SqlServerTypes/readme.htm
+SphericalGeom/GeometryTest/SqlServerTypes/Loader.cs
+SphericalGeom/GeometryTest/SqlServerTypes/readme.htm
+SphericalGeom/SphericalGeom/SqlServerTypes/Loader.cs
+SphericalGeom/SphericalGeom/SqlServerTypes/readme.htm
+SphericalGeom/ViewModel/SqlServerTypes/Loader.cs
+SphericalGeom/ViewModel/SqlServerTypes/readme.htm
+SessionsPlanning/Astronomy/SqlServerTypes/Loader.cs
+SessionsPlanning/Astronomy/SqlServerTypes/readme.htm
+SessionsPlanning/SessionsPlanning/SqlServerTypes/Loader.cs
+SqlManager/SqlServerTypes/Loader.cs
+SqlManager/SqlServerTypes/readme.htm
+SphericalGeom/GUI/SqlServerTypes/Loader.cs
+SphericalGeom/GUI/SqlServerTypes/readme.htm
