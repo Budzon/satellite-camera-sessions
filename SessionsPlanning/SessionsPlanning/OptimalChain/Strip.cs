@@ -25,7 +25,7 @@ namespace OptimalChain
          public double square { get; set; }//площадь полосы
         public List<Order> orders { get; set; }
 
-        public List<Tuple<int, int>> connected_routes { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public Tuple<int, int> connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         public string wktPolygon { get; set; }
         /// <summary>
@@ -39,7 +39,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int T = 1, string channel = "pk", int stype = 0, List<Tuple<int, int>> CR = null)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int T = 1, string channel = "pk", int stype = 0, Tuple<int, int> CR = null)
         {
             id = i;
             dateFrom = d1;
@@ -49,7 +49,7 @@ namespace OptimalChain
 
             square = s;
             orders = o;
-            connected_routes = CR;
+            connected_route = CR;
             wktPolygon = polygon;
             type = T;
             shooting_type = stype;
@@ -96,7 +96,7 @@ namespace OptimalChain
         public string wktPolygon { get; set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
         public List<Order> orders { get; set; }//cвязанные заказы. Список пуст только для маршрута на удаление
 
-        public List<Tuple<int, int>> connected_routes { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public Tuple<int, int> connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         /// <summary>
         /// Конструктор для создания конфигурации
@@ -109,7 +109,7 @@ namespace OptimalChain
         /// <param name="pA">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
         /// <param name="s">площадь полосы</param>
         /// <param name="o">список заказов</param>
-        public CaptureConf(DateTime d1, DateTime d2, double delta, double r, Dictionary<double, double> pA, double s, List<Order> o, int T = 1, string channel="pk", int stype=0,  List<Tuple<int, int>> CR=null)
+        public CaptureConf(DateTime d1, DateTime d2, double delta, double r, Dictionary<double, double> pA, double s, List<Order> o, int T = 1, string channel="pk", int stype=0,  Tuple<int, int> CR=null)
         {
             id = -1;
             dateFrom = d1;
@@ -124,7 +124,7 @@ namespace OptimalChain
             square = s;
 
             orders = o;
-            connected_routes = CR;
+            connected_route = CR;
 
         }
 
@@ -136,7 +136,7 @@ namespace OptimalChain
 
         public StaticConf DefaultStaticConf()
         {
-            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, type, shooting_channel,shooting_type,connected_routes);
+            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, type, shooting_channel,shooting_type,connected_route);
         }
 
 
@@ -168,7 +168,7 @@ namespace OptimalChain
                 DateTime d1 = dateFrom.AddSeconds(delta*sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, type, shooting_channel, shooting_type, connected_routes);
+                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, type, shooting_channel, shooting_type, connected_route);
             }
             catch{
                 return null;
