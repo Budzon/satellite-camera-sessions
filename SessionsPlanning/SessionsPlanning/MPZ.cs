@@ -57,7 +57,7 @@ namespace SatelliteSessions
 
         public int NPZ { get; set; } // 24 bit
         public int Nka { get; set; } // 4 bit
-        public Bits CONF_RLCI { get; set; } // 4 bit
+        public byte CONF_RLCI { get; set; } // 4 bit
         public int Ntask { get; set; } // 4 bit
         public int PWR_ON { get; set; } // 1 bit
         public int Session_key_ON { get; set; } // 1 bit
@@ -68,24 +68,24 @@ namespace SatelliteSessions
         public DateTime ton { get; set; }
         public TimeSpan Ttask { get; set; }
         public TimeSpan Tvideo { get; set; }
-        public Bytes CONF_C { get; set; } // 2 bytes
-        public Bytes CONF_B { get; set; } // 2 bytes
-        public Bytes CONF_Z { get; set; } // 4 bytes
-        public Bytes CONF_P { get; set; } // 10 bytes
-        public Bytes CONF_M { get; set; } // 10 bytes
-        public Bytes CONF_F { get; set; } // 14 bytes
+        public byte[] CONF_C { get; set; } // 2 bytes
+        public byte[] CONF_B { get; set; } // 2 bytes
+        public byte[] CONF_Z { get; set; } // 4 bytes
+        public byte[] CONF_P { get; set; } // 10 bytes
+        public byte[] CONF_M { get; set; } // 10 bytes
+        public byte[] CONF_F { get; set; } // 14 bytes
         public int CodTm { get; set; } // 4 bit
         public int RegTM { get; set; } // 2 bit
         public int TypeTm { get; set; } // 2 bit
         public double[] Delta_Pasp { get; set; } // length 6
         public int Delta_Autotune { get; set; } // 2 bytes
-        public Bytes TitleRes { get; set; } // 114 bytes
+        public byte[] TitleRes { get; set; } // 114 bytes
 
         public HeaderMPZ()
         {
             // NPZ to be filled in MPZ
             Nka = HeaderMPZ.NKA;
-            CONF_RLCI = new Bits(4); // TO FILL
+            // CONF_RLCI TO FILL
             // Ntask to be filled in MPZ
             PWR_ON = 0; // default
             Session_key_ON = 0; // default
@@ -96,18 +96,18 @@ namespace SatelliteSessions
             //TODO: ton = routes[0].
             //TODO: Ttask
             Tvideo = new TimeSpan(0, 0, 90); // default TODO
-            CONF_C = new Bytes(2);
-            CONF_B = new Bytes(2);
-            CONF_Z = new Bytes(4);
-            CONF_P = new Bytes(10);
-            CONF_M = new Bytes(10);
-            CONF_F = new Bytes(14);
+            CONF_C = new byte[2];
+            CONF_B = new byte[2];
+            CONF_Z = new byte[4];
+            CONF_P = new byte[10];
+            CONF_M = new byte[10];
+            CONF_F = new byte[14];
             CodTm = 10; // default
             RegTM = 0; // default
             TypeTm = 0; // default
             Delta_Pasp = new double[6] { 0, 0, 0, 0, 0, 0 };
             Delta_Autotune = 0; //default
-            TitleRes = new Bytes(114);
+            TitleRes = new byte[114];
         }
     }
 
@@ -118,26 +118,26 @@ namespace SatelliteSessions
         public int REGka { get; set; } // 2 bit
         public Coord InitCoord { get; set; }
         public int N_PK { get; set; } // 3 bit
-        public Bits Z { get; set; } // 5 bit
+        public byte Z { get; set; } // 5 bit
         public int N_MK { get; set; } // 8 bit
         public TimeSpan Ts { get; set; }
         public TimeSpan Troute { get; set; }
-        public Bits REGta { get; set; } // 16 bit
+        public byte[] REGta { get; set; } // 16 bit
         public int RegimeType { get; set; } 
-        public Bits REGta_Param { get; set; } // 16 bit
+        public byte[] REGta_Param { get; set; } // 16 bit
         public IdFile IDFile { get; set; }
         public int Delta_T { get; set; } // 1 byte
         public int Hroute { get; set; } // 1 byte
         public int Target_Rate { get; set; } // 2 byte
-        public Bytes Session_key { get; set; } // 16 byte
-        public Bytes Tune_Param { get; set; } // 64 byte
+        public byte[] Session_key { get; set; } // 16 byte
+        public byte[] Tune_Param { get; set; } // 64 byte
         public int W_D_MpZ { get; set; } // 4 byte
         public int Coef_tang { get; set; } // 2 byte
         public int Target_RatePK { get; set; } // 2 byte
         public int Target_RateMK { get; set; } // 2 byte
         public int Quant_InitValuePK { get; set; } // 14 bit
         public int Quant_InitValueMK { get; set; } // 14 bit
-        public Bytes TaskRes { get; set; } // 106 byte
+        public byte[] TaskRes { get; set; } // 106 byte
 
         private OptimalChain.RouteParams parameters;
         public OptimalChain.RouteParams Parameters { get {return parameters;} }
@@ -188,53 +188,26 @@ namespace SatelliteSessions
 
             N_PK = 0; // default
 
-            Z = new Bits(5);
-            for (int i = 0; i < Z.Count; ++i)
-                Z[i] = 1; // default
+            Z = 1 + 2 + 4 + 8 + 16; // default
 
             N_MK = 0; // default
 
             // Ts -- TODO
             // Troute -- TODO
 
-            REGta = new Bits(16); // 0-11 are 0 by default
-            int tmp = (int)regimeType;
-            for (int i = 12; i < 16; ++i) // fill the regime type
-            {
-                REGta[i] = (byte)(tmp % 2);
-                tmp /= 2;
-            }
+            REGta = new byte[2] { 0, (byte)regimeType }; // 0-11 are 0 by default
+            for (int i = 8; i < 12; ++i) // fill the regime type
+                REGta[1] *= 2;
 
-            REGta_Param = new Bits(16);
+            REGta_Param = new byte[2];
             switch (regimeType)
             {
                 case RegimeTypes.SI:
                 case RegimeTypes.ZI:
                 case RegimeTypes.VI:
                 case RegimeTypes.NP:
-                    REGta_Param[0] = 1; //
-                    REGta_Param[1] = 1; // default 
-                    REGta_Param[2] = 0; //
-
-                    REGta_Param[3] = 0;
-
-                    REGta_Param[4] = 1; //
-                    REGta_Param[5] = 1; // default 
-                    REGta_Param[6] = 0; //
-
-                    REGta_Param[7] = 0;
-
-                    REGta_Param[8] = 0; // default
-                    REGta_Param[9] = 0; // 
-
-                    REGta_Param[10] = 1; // default
-                    REGta_Param[11] = 0; //
-
-                    REGta_Param[12] = 1; // ALWAYS SAME AS [10, 11]
-                    REGta_Param[13] = 0; //
-
-                    REGta_Param[14] = 0;
-                    REGta_Param[15] = 0;
+                    REGta_Param[0] = 1 + 2 + 16 + 32; // default
+                    REGta_Param[1] = 4 + 16; // default
                     break;
                 case RegimeTypes.ZI_cal:
                 case RegimeTypes.ZI_fok_yust:
@@ -254,15 +227,15 @@ namespace SatelliteSessions
             Delta_T = 0; // default
             Hroute = 0; // болванка
             Target_Rate = 0; // default
-            Session_key = new Bytes(16); // болванка
-            Tune_Param = new Bytes(64); // болванка
+            Session_key = new byte[16]; // болванка
+            Tune_Param = new byte[64]; // болванка
             W_D_MpZ = 0; // default
             Coef_tang = 0; // default
             Target_RatePK = 0; // default
             Target_RateMK = 0; // default
             Quant_InitValuePK = 0; // default
             Quant_InitValueMK = 0; // default
-            TaskRes = new Bytes(106);
+            TaskRes = new byte[106];
         }
     }
 
@@ -287,81 +260,81 @@ namespace SatelliteSessions
         public int TNPos { get; set; }
     }
 
-    public class Bytes
-    {
-        private Bits[] bytes;
+    //public class Bytes
+    //{
+    //    private Bits[] bytes;
 
-        /// <summary>
-        /// Возвращает байт по его номеру.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public Bits this[int index]
-        {
-            get
-            {
-                return bytes[index];
-            }
-        }
+    //    /// <summary>
+    //    /// Возвращает байт по его номеру.
+    //    /// </summary>
+    //    /// <param name="index"></param>
+    //    /// <returns></returns>
+    //    public Bits this[int index]
+    //    {
+    //        get
+    //        {
+    //            return bytes[index];
+    //        }
+    //    }
 
-        /// <summary>
-        /// Возвращает бит по его номеру в сквозной нумерации.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public byte GetBit(int index)
-        {
-            return bytes[index / 8][index % 8];
-        }
-        /// <summary>
-        /// Задает значение биту по его номеру в сквозной нумерации.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <param name="bit"></param>
-        /// <returns></returns>
-        public void SetBit(int index, byte bit)
-        {
-            bytes[index / 8][index % 8] = bit;
-        }
+    //    /// <summary>
+    //    /// Возвращает бит по его номеру в сквозной нумерации.
+    //    /// </summary>
+    //    /// <param name="index"></param>
+    //    /// <returns></returns>
+    //    public byte GetBit(int index)
+    //    {
+    //        return bytes[index / 8][index % 8];
+    //    }
+    //    /// <summary>
+    //    /// Задает значение биту по его номеру в сквозной нумерации.
+    //    /// </summary>
+    //    /// <param name="index"></param>
+    //    /// <param name="bit"></param>
+    //    /// <returns></returns>
+    //    public void SetBit(int index, byte bit)
+    //    {
+    //        bytes[index / 8][index % 8] = bit;
+    //    }
 
-        public int Count { get { return bytes.Length; } }
+    //    public int Count { get { return bytes.Length; } }
 
-        public Bytes(int count)
-        {
-            bytes = new Bits[count];
-            for (int i = 0; i < count; ++i)
-                bytes[i] = new Bits();
-        }
-    }
+    //    public Bytes(int count)
+    //    {
+    //        bytes = new Bits[count];
+    //        for (int i = 0; i < count; ++i)
+    //            bytes[i] = new Bits();
+    //    }
+    //}
 
 
-    public class Bits
-    {
-        private byte[] bits;
-        private int count;
+    //public class Bits
+    //{
+    //    private byte[] bits;
+    //    private int count;
 
-        /// <summary>
-        ///  Возвращает бит по его номеру.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public byte this[int index]
-        {
-            get
-            {
-                return bits[index];
-            }
-            set
-            {
-                bits[index] = value;
-            }
-        }
-        public int Count { get { return count; } }
+    //    /// <summary>
+    //    ///  Возвращает бит по его номеру.
+    //    /// </summary>
+    //    /// <param name="index"></param>
+    //    /// <returns></returns>
+    //    public byte this[int index]
+    //    {
+    //        get
+    //        {
+    //            return bits[index];
+    //        }
+    //        set
+    //        {
+    //            bits[index] = value;
+    //        }
+    //    }
+    //    public int Count { get { return count; } }
 
-        public Bits(int count = 8)
-        {
-            bits = new byte[count];
-            this.count = count;
-        }
-    }
+    //    public Bits(int count = 8)
+    //    {
+    //        bits = new byte[count];
+    //        this.count = count;
+    //    }
+    //}
 }
