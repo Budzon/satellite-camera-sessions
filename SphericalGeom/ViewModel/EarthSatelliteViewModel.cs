@@ -729,7 +729,7 @@ namespace ViewModel
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
-            //Random rand = new Random((int)DateTime.Now.Ticks);
+                         //Random rand = new Random((int)DateTime.Now.Ticks);
             //for (int i = 0; i < 40; i++)
             //{
             //    Polygon randpol = getRandomPolygon(rand, 3, 10, 5, 15);
@@ -743,7 +743,9 @@ namespace ViewModel
 
             List<RequestParams> requests = new List<RequestParams>();
 
-            //polygons.Add(new Polygon("POLYGON ((-2 -6, -2 -2, -6 -2, -6 -6, -2 -6))"));
+            polygons.Clear();
+
+            polygons.Add(new Polygon("POLYGON ((-2 -6, -2 -2, -6 -2, -6 -6, -2 -6))"));
 
             //polygons.Add(new Polygon("POLYGON ((12 8, 12 12, 8 12, 8 8, 12 8))"));
 
@@ -751,7 +753,7 @@ namespace ViewModel
 
             //   polygons.Add(new Polygon("POLYGON((-29 27,  -23 33 , -21 31, -27 25, -29 27)"));
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
-            polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
+            //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             //      polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
             //      polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
             //      polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
@@ -823,6 +825,7 @@ namespace ViewModel
 
             DateTime end = DateTime.Now;
             Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+
 
             foreach (var mpz in mpzArray)
             {
