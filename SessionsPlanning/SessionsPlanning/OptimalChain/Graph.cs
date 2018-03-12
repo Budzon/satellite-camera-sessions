@@ -372,12 +372,17 @@ namespace OptimalChain
         public double countVertexPrice()
         {
             double sum = 0;
-            int[] pr_coef = new int[]{ 10, 100, 1000};
-            foreach(Order o in s.orders)
+            if (s.type != 2)
             {
-                sum += s.square * o.intersection_coeff*pr_coef[o.request.priority-1];
+             int[] pr_coef = new int[]{ 10, 100, 1000};
+             foreach(Order o in s.orders)
+             {
+                 sum += s.square * o.intersection_coeff*pr_coef[o.request.priority-1];
+             }
+             return sum;
             }
-            return sum;
+
+            return 1;
         }
 
         public void addEdge(Vertex v2,double w)
