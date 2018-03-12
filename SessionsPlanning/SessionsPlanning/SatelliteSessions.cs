@@ -547,16 +547,15 @@ namespace SatelliteSessions
             mpz = new MPZ(routes);
             error = createMPZStatus.eSuccses;
         }
-
-
+        
         private static DateTime getIntersectionTime(TrajectoryPoint first_point, TrajectoryPoint second_point, Vector3D centre, double zoneR)
         {
             double angle_zone = Math.Asin(zoneR / (OptimalChain.Constants.orbit_height + Astronomy.Constants.EarthRadius));
 
-            double first_angle = Vector3D.AngleBetween(first_point.Position.ToVector(), centre);
-            double second_angle = Vector3D.AngleBetween(second_point.Position.ToVector(), centre);
+            double first_angle = AstronomyMath.ToRad(Vector3D.AngleBetween(first_point.Position.ToVector(), centre));
+            double second_angle = AstronomyMath.ToRad(Vector3D.AngleBetween(second_point.Position.ToVector(), centre));
 
-            double fullSpan = (first_point.Time - second_point.Time).TotalMilliseconds;
+            double fullSpan = (second_point.Time - first_point.Time).TotalMilliseconds;
 
             double deltaTime = fullSpan * Math.Abs(angle_zone - first_angle) / Math.Abs(second_angle - first_angle);
             DateTime resTime = first_point.Time.AddMilliseconds(deltaTime);
@@ -564,9 +563,8 @@ namespace SatelliteSessions
             return resTime;
         }
 
-        private static List<CommunicationSession> getSessionFromZone(CommunicationZone zone, Trajectory trajectory)
-        {
-            List<CommunicationSession> sessions = new List<CommunicationSession>();
+        public static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, List<CommunicationSession> sessions)
+        { 
             Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(zone.CentreLat, zone.CentreLon), 1);
 
             bool prevIn5zone = false;
@@ -606,15 +604,15 @@ namespace SatelliteSessions
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
                     tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);                    
-                    tempSession.routesToReset = new List<RouteMPZ>(); // @todo уточнить
-                    sessions.Add(tempSession);
+                    tempSession.routesToReset = new List<RouteMPZ>();
+                    tempSession.antennaId = zone.IdNumber;
+                    sessions.Add(tempSession);                    
                     tempSession = new CommunicationSession();
                 }
 
                 prevIn5zone = in5zone;
                 prevIn7zone = in7zone;
-            }
-            return sessions;
+            }            
         }
 
         /// <summary>
@@ -651,30 +649,11 @@ namespace SatelliteSessions
                 else                
                     trajectory = fullTrajectory;
 
-                List<CommunicationSession> mnkpoiSessions = getSessionFromZone(zone, trajectory);
-                foreach (var sess in mnkpoiSessions)
-                {
-                    List<int> antenna = fetcher.getNKPOIStation("MIGS");
-                    if (antenna.Count != 0)
-                        sess.antennaId = antenna[0];
-                    else
-                        sess.antennaId = 0;
-                    sess.antennaId = zone.IdNumber;
-                }
-                sessions.AddRange(mnkpoiSessions);
-            }
-            List<CommunicationSession> snkpoiSessions = getSessionFromZone(sZone, fullTrajectory);
-
-            List<int> antennas = fetcher.getNKPOIStation("FIGS");
-            
-            foreach (int antenna_id in antennas)
-            {
-                List<CommunicationSession> curSnkpoiSessions = new List<CommunicationSession>(snkpoiSessions);
-                foreach (var sess in curSnkpoiSessions)                
-                    sess.antennaId = antenna_id;       
-                sessions.AddRange(curSnkpoiSessions);
+                getSessionFromZone(zone, trajectory, sessions);      
             }
 
+            getSessionFromZone(sZone, fullTrajectory, sessions);
+              
             return sessions;
         }
 
@@ -829,6 +808,11 @@ namespace SatelliteSessions
         /// <summary>
         /// In degrees.
         /// </summary>
+        public virtual int IdNumber { get; set;}
+
+        /// <summary>
+        /// In degrees.
+        /// </summary>
         public double CentreLat;
         /// <summary>
         /// In degrees.
@@ -854,14 +838,14 @@ namespace SatelliteSessions
 
 
     public class CommunicationZoneMNKPOI : CommunicationZone
-    {
-        public int IdNumber;
+    {        
         public DateTime From;
         public DateTime To;     
     }
 
     public class CommunicationZoneSNKPOI : CommunicationZone
-    {        
+    {
+        public override int IdNumber { get { return 0; } }
     }
  
 }
