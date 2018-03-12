@@ -492,6 +492,7 @@ namespace SatelliteSessions
         public static void getSNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, out CommunicationZoneSNKPOI zone)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
+            
             double R = Astronomy.Constants.EarthRadius;
             double h = OptimalChain.Constants.orbit_height; // okay to take as a constant?
             double d = 0; // altitude ?
@@ -563,8 +564,9 @@ namespace SatelliteSessions
             return resTime;
         }
 
-        private static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, List<CommunicationSession> sessions)
+        private static List<CommunicationSession> getSessionFromZone(CommunicationZone zone, Trajectory trajectory)
         {
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
             Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(zone.CentreLat, zone.CentreLon), 1);
 
             bool prevIn5zone = false;
@@ -612,6 +614,7 @@ namespace SatelliteSessions
                 prevIn5zone = in5zone;
                 prevIn7zone = in7zone;
             }
+            return sessions;
         }
 
         /// <summary>
@@ -648,16 +651,29 @@ namespace SatelliteSessions
                 else                
                     trajectory = fullTrajectory;
 
-                List<CommunicationSession> cur_sessions = new List<CommunicationSession>();
-                getSessionFromZone(zone, trajectory, cur_sessions);
-                foreach (var sess in cur_sessions)
+                List<CommunicationSession> mnkpoiSessions = getSessionFromZone(zone, trajectory);
+                foreach (var sess in mnkpoiSessions)
                 {
+                    List<int> antenna = fetcher.getNKPOIStation("MIGS");
+                    if (antenna.Count != 0)
+                        sess.antennaId = antenna[0];
+                    else
+                        sess.antennaId = 0;
                     sess.antennaId = zone.IdNumber;
                 }
-                sessions.AddRange(cur_sessions);
+                sessions.AddRange(mnkpoiSessions);
             }
+            List<CommunicationSession> snkpoiSessions = getSessionFromZone(sZone, fullTrajectory);
 
-            getSessionFromZone(sZone, fullTrajectory, sessions);
+            List<int> antennas = fetcher.getNKPOIStation("FIGS");
+            
+            foreach (int antenna_id in antennas)
+            {
+                List<CommunicationSession> curSnkpoiSessions = new List<CommunicationSession>(snkpoiSessions);
+                foreach (var sess in curSnkpoiSessions)                
+                    sess.antennaId = antenna_id;       
+                sessions.AddRange(curSnkpoiSessions);
+            }
 
             return sessions;
         }
