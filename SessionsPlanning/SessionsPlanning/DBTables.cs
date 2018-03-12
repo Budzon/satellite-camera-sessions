@@ -241,7 +241,7 @@ namespace DBTables
         private IEnumerable<DataChunk> GetDataBetweenDatesInChunks(string tableName, string dateFieldName, DateTime from, DateTime to, bool includeEnd)
         {
             if (from > to)
-                throw new ArgumentException("Beginning of the time interval must be bigger than its end.");
+                throw new ArgumentException("Beginning of the time interval cannot be bigger than its end.");
 
             DateTime start = from;
             DateTime finish = start + chunkLength;
