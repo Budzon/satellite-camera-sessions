@@ -78,7 +78,9 @@ namespace OptimalChain
 
         public List<RouteParams> binded_routes { get; set; }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, int st, string channel)
+        public int File_Size { get; set; } //объем файла в Мб
+
+        public RouteParams(int t, DateTime d1, DateTime d2, int st=0, string channel ="pk", int fs = 0)
         {
             type = t;
             shooting_channel = channel;
@@ -86,9 +88,10 @@ namespace OptimalChain
             start = d1;
             end = d2;
             binded_routes = null;
+            File_Size = fs;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br, int st, string channel)
+        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br, int st = 0, string channel = "pk", int fs = 0)
         {
             type = t;
             shooting_channel = channel;
@@ -96,6 +99,7 @@ namespace OptimalChain
             start = d1;
             end = d2;
             binded_routes = br;
+            File_Size = fs;
         }
 
         public RouteParams( StaticConf c)
