@@ -845,7 +845,7 @@ namespace SatelliteSessions
 
     public class CommunicationZoneSNKPOI : CommunicationZone
     {
-        public override int IdNumber { get { return 0; } }
+        public override int IdNumber { get { return -1; } }
     }
  
 }
