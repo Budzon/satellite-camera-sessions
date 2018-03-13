@@ -27,6 +27,18 @@ namespace GeometryTest
                 polygons.Add(randpol);
             }
 
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+            DateTime dt1 = new DateTime(2019, 1, 4);
+            DateTime dt2 = new DateTime(2019, 1, 8);
+
+            DataFetcher fetcher = new DataFetcher(manager);
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+            if (trajectory.Count == 0)
+                throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+
             try
             {
                 int id = 0;
@@ -35,8 +47,8 @@ namespace GeometryTest
                 {
                     RequestParams reqparams = new RequestParams();
                     reqparams.id = id;
-                    reqparams.timeFrom = new DateTime(2015, 3, 12); // 12.03.2015 по 14.03.2016 
-                    reqparams.timeTo = new DateTime(2016, 3, 14);
+                    reqparams.timeFrom = dt1;
+                    reqparams.timeTo = dt2;
                     reqparams.priority = 1;
                     reqparams.minCoverPerc = 0.4;
                     reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
@@ -44,11 +56,9 @@ namespace GeometryTest
                     requests.Add(reqparams);
                     id++;
                 }
-                var res = Sessions.getCaptureConfArray(
-                                    requests,
-                                    new DateTime(2000, 03, 13, 4, 0, 0),
-                                    new DateTime(2115, 03, 13, 4, 4, 0));                
+                var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());                
             }
+
             catch (Exception ex)
             {
                 Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
@@ -58,30 +68,83 @@ namespace GeometryTest
                 }
                 throw ex;
             }
- 
-
 
         }
 
-        //[TestMethod]
-        //public void TestIsRequestFeasible()
-        //{
-        //    DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+        [TestMethod]
+        public void TestIsRequestFeasible()
+        {
+            List<Polygon> polygons = new List<Polygon>();
+            Random rand = new Random((int)DateTime.Now.Ticks);
+            for (int i = 0; i < 30; i++)
+            {
+                Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
+                polygons.Add(randpol);
+            }
 
-        //    DateTime from = new DateTime(2019, 01, 01, 1, 0, 0);
-        //    DateTime to = new DateTime(2019, 01, 05, 12, 0, 0);
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-        //    //var sun = fetcher.GetPositionSun(from, to);
-        //    //sun.Clear();
-        //    //var sat = fetcher.GetPositionSat(from, to);
-        //    //sat.Clear();
-        //    //var traj = fetcher.GetTrajectorySat(from, to);
-        //    var viewLane = fetcher.GetViewLane(from, to);
-        //    //var orbit = fetcher.GetDataBetweenDates(OrbitTable.Name, OrbitTable.TimeEquator, from, to);
-        //    //List<Tuple<int, DateTime>> orbit_turns = orbit.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
-        //    //var turns = fetcher.GetViewLaneBrokenIntoTurns(from, to);
-        //}
+            DateTime dt1 = new DateTime(2019, 1, 4);
+            DateTime dt2 = new DateTime(2019, 1, 8);
 
+            DataFetcher fetcher = new DataFetcher(manager);
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+            if (trajectory.Count == 0)
+                throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+            
+            
+            foreach (var pol in polygons)
+            {
+                try
+                {
+                    RequestParams reqparams = new RequestParams();
+                    reqparams.id = 0;
+                    reqparams.timeFrom = dt1;
+                    reqparams.timeTo = dt2;
+                    reqparams.priority = 1;
+                    reqparams.minCoverPerc = 0.4;
+                    reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                    reqparams.wktPolygon = pol.ToWtk(); 
+                 
+                    double cover;
+                    List<CaptureConf> output;
+                    Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Ошибка обнаружена на следующем полигоне:");
+
+                    Console.WriteLine(pol.ToWtk());
+
+                    throw ex;
+                }
+
+            }
+
+        }
+
+           
+
+
+
+            //    DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+
+            //    DateTime from = new DateTime(2019, 01, 01, 1, 0, 0);
+            //    DateTime to = new DateTime(2019, 01, 05, 12, 0, 0);
+
+            //    //var sun = fetcher.GetPositionSun(from, to);
+            //    //sun.Clear();
+            //    //var sat = fetcher.GetPositionSat(from, to);
+            //    //sat.Clear();
+            //    //var traj = fetcher.GetTrajectorySat(from, to);
+            //    var viewLane = fetcher.GetViewLane(from, to);
+            //    //var orbit = fetcher.GetDataBetweenDates(OrbitTable.Name, OrbitTable.TimeEquator, from, to);
+            //    //List<Tuple<int, DateTime>> orbit_turns = orbit.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
+            //    //var turns = fetcher.GetViewLaneBrokenIntoTurns(from, to);
+            //
+      
 
 
         /// <summary>

@@ -36,6 +36,9 @@
     <Reference Include="Dios.SqlManager">
       <HintPath>..\..\SqlManager\Dios.SqlManager.dll</HintPath>
     </Reference>
+    <Reference Include="Dios.SqlManager">
+      <HintPath>..\..\SqlManager\Dios.Interfaces.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.SqlServer.Types, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <HintPath>..\..\SphericalGeom\packages\Microsoft.SqlServer.Types.14.0.314.76\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
       <Private>True</Private>

@@ -75,6 +75,7 @@
     <Compile Include="SqlServerTypes\Loader.cs" />
     <Compile Include="TrajectoryStripTest.cs" />
     <Compile Include="GeneralTest.cs" />
+    <Compile Include="CreateSessionTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">
