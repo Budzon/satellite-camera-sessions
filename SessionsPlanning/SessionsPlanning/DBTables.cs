@@ -63,6 +63,29 @@ namespace DBTables
             return snkpoi;
         }
         
+        /// <summary>
+        /// Fetches MNKPOI position such that <paramref name="time"/> lies in [timeBegin, timeEnd).
+        /// </summary>
+        /// <param name="time"></param>
+        /// <returns></returns>
+        public PositionMNKPOI GetPositionMNKPOI(DateTime time)
+        {
+            System.Data.DataRow[] prePosRow = GetDataBeforeEqualDate(MnkpoiTable.Name, MnkpoiTable.TimeFrom, time, 1);
+            if (prePosRow.Length > 0)
+            {
+                PositionMNKPOI prePos = MnkpoiTable.GetDataMNKPOI(prePosRow[0]);
+                if (prePos.TimeEnd > time)
+                    return prePos;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Fetches MNKPOI positions whose timeBegin lies in the interval [from, to).
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
         public List<PositionMNKPOI> GetPositionMNKPOI(DateTime from, DateTime to)
         {
             List<PositionMNKPOI> res = new List<PositionMNKPOI>();
@@ -218,7 +241,7 @@ namespace DBTables
         private IEnumerable<DataChunk> GetDataBetweenDatesInChunks(string tableName, string dateFieldName, DateTime from, DateTime to, bool includeEnd)
         {
             if (from > to)
-                throw new ArgumentException("Beginning of the time interval must be bigger than its end.");
+                throw new ArgumentException("Beginning of the time interval cannot be bigger than its end.");
 
             DateTime start = from;
             DateTime finish = start + chunkLength;

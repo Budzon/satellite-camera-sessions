@@ -19,7 +19,13 @@ namespace OptimalChain
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
 
+        /// <summary>
+        /// В радианах.
+        /// </summary>
         public double pitch { get; set; }
+        /// <summary>
+        /// В радианах.
+        /// </summary>
         public double roll { get; set; }
 
          public double square { get; set; }//площадь полосы

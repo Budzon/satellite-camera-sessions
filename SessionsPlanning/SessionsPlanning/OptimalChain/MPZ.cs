@@ -112,5 +112,54 @@ namespace OptimalChain
             shooting_channel = c.shooting_channel;
             shooting_type = c.shooting_type;
         }
+
+        /// <summary>
+        /// Суммарный поток информации от ПК и МК [бит/с].
+        /// </summary>
+        /// <param name="roll">Крен в радианах.</param>
+        /// <param name="pitch">Тангаж в радианах.</param>
+        /// <param name="hroute">Код средней высоты местности на маршруте.</param>
+        /// <param name="codVznCalibr">Поправка длительности времени накопления на шаг ВЗН.</param>
+        /// <param name="Nm">Количество незамаскированных спектральных зон МК.</param>
+        /// <param name="Zm">Коэффициент сжатия МК.</param>
+        /// <param name="Np">Флаг включения ПК: 1 (вкл) или 0 (выкл).</param>
+        /// <param name="Zp">Коэффициент сжатия ПК.</param>
+        /// <returns></returns>
+        public static double InformationFluxInBits(double roll, double pitch, int hroute, int codVznCalibr, int Nm, int Zm, int Np, int Zp)
+        {
+            /// (N_bit * N_pix * N_channel * N_fpzs + S_tm) / L_pc, где
+            ///     N_bit = 12 -- разрядность данных ПК,
+            ///     N_pix = 768 -- число пикселов в подканале ПК,
+            ///     N_channel = 2 -- число каналов в одном ФПЗС ПК,
+            ///     N_fpzs = 12 -- число микросхем ФПЗС в ПК,
+            ///     S_tm = 3105 -- число бит телеметрической информации на одну строку изображения ПК
+            ///     L_pc = 0.9722 -- отношение размера пиксела ПК к фокусному расстоянию * 1e6.
+            double factor_p = 224289 / 0.9722;
+            /// (N_bit * N_pix * N_fpzs + S_tm) / 2 / L_mc, где
+            ///     N_bit = 12 -- разрядность данных МК,
+            ///     N_pix = 384 -- число пикселов в подканале МК,
+            ///     N_fpzs = 12 -- число микросхем ФПЗС в МК,
+            ///     S_tm = 3105 -- число бит телеметрической информации на одну строку изображения МК,
+            ///     L_mc = 1.9445 -- отношение размера пиксела МК к фокусному расстоянию * 1e6.
+            double factor_m = 58401 / 1.9445 / 2;
+
+            return 1e6 * WD(roll, pitch) * (0.9 + hroute / 2000.0) * (Np * (factor_p / Zp) + Nm * (factor_m / Zm)) / codVznCalibr;
+        }
+
+        /// <summary>
+        /// Скорость бега изображения [1/с].
+        /// </summary>
+        /// <param name="roll">Крен в радианах.</param>
+        /// <param name="pitch">Тангаж в радианах.</param>
+        /// <returns></returns>
+        public static double WD(double roll, double pitch)
+        {
+            double mu = 398603; // [km^3 / s^2] -- гравитационный параметр Земли
+            double R = Astronomy.Constants.EarthRadius;
+            double H = OptimalChain.Constants.orbit_height;
+            double WD0 = R / H * Math.Sqrt(mu / Math.Pow(R + H, 3)); // [1 / s] -- WD в надир
+
+            return WD0 * Math.Pow(Math.Cos(pitch), 2) * Math.Cos(roll);
+        }
     }
 }

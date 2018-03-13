@@ -481,6 +481,41 @@ namespace SatelliteSessions
         }
 
         /// <summary>
+        /// Вычисление зон связи СНКПОИ и МНКПОИ в заданный момент времени.
+        /// </summary>
+        /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <param name="time">Интересующий момент времени</param>
+        /// <param name="snkpoi">Зона связи СНКПОИ</param>
+        /// <param name="mnkpoi">Зона связи МНКПОИ</param>
+        public static void getCommunicationZones(DIOS.Common.SqlManager DBManager, DateTime time, out CommunicationZoneSNKPOI snkpoi, out CommunicationZoneMNKPOI mnkpoi)
+        {
+            DataFetcher fetcher = new DataFetcher(DBManager);
+            getSNKPOICommunicationZones(DBManager, out snkpoi);
+
+            PositionMNKPOI mnkpoiPos = fetcher.GetPositionMNKPOI(time);
+            if (mnkpoiPos == null)
+            {
+                mnkpoi = null;
+            }
+            else
+            {
+                double R = Astronomy.Constants.EarthRadius;
+                double h = OptimalChain.Constants.orbit_height;
+                double d = mnkpoiPos.Altitude / 1000;
+                mnkpoi = new CommunicationZoneMNKPOI
+                    {
+                        CentreLat = mnkpoiPos.Position.Latitude,
+                        CentreLon = mnkpoiPos.Position.Longitude,
+                        IdNumber = mnkpoiPos.Number,
+                        Radius5 = ZoneRadius(R, h, d, 5),
+                        Radius7 = ZoneRadius(R, h, d, 7),
+                        From = time,
+                        To = time
+                    };
+            }
+        }
+
+        /// <summary>
         /// Вычисление зон связи МНКПОИ за заданный промежуток времени.
         /// </summary>
         /// <param name="DBManager">Параметры подключения к БД</param>
@@ -490,19 +525,17 @@ namespace SatelliteSessions
         public static void getMNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<CommunicationZoneMNKPOI> zones)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
-
-            System.Data.DataRow[] prePosRow = fetcher.GetDataBeforeEqualDate(MnkpoiTable.Name, MnkpoiTable.TimeFrom, timeFrom, 1);
-            if (prePosRow.Length < 1) // no data
-            {
-                zones = null;
-                return;
-            }
-
-            PositionMNKPOI prePos = MnkpoiTable.GetDataMNKPOI(prePosRow[0]);
             List<PositionMNKPOI> positions = new List<PositionMNKPOI>();
 
-            if (prePos.TimeBeg < timeFrom)
-                positions.Add(prePos);
+            // Check if timeFrom is covered by a work interval that started strictly before.
+            System.Data.DataRow[] prePosRow = fetcher.GetDataBeforeDate(MnkpoiTable.Name, MnkpoiTable.TimeFrom, timeFrom, 1);
+            if (prePosRow.Length > 0)
+            {
+                PositionMNKPOI prePos = MnkpoiTable.GetDataMNKPOI(prePosRow[0]);
+                if (prePos.TimeEnd > timeFrom)
+                    positions.Add(prePos);
+            }
+            // Add work intervals such that timeFrom <= timeBegin < timeTo.
             positions.AddRange(fetcher.GetPositionMNKPOI(timeFrom, timeTo));
 
             double R = Astronomy.Constants.EarthRadius;
