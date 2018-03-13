@@ -405,11 +405,13 @@ namespace SatelliteSessions
                         }
                         else
                         {
-                            turnPartsLitAndNot.Add(new wktPolygonLit
-                            {
-                                wktPolygon = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).ToWtk(),
-                                sun = onLitStreak
-                            });
+                            List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).BreakIntoLobes();
+                            foreach (Polygon piece in pieces)
+                                turnPartsLitAndNot.Add(new wktPolygonLit
+                                {
+                                    wktPolygon = piece.ToWtk(),
+                                    sun = onLitStreak
+                                });
                             streakBegin = -1;
                         }
                     }
@@ -428,9 +430,11 @@ namespace SatelliteSessions
                     else
                     {
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
-                            turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), sun = true });
+                            foreach(Polygon piece in p.BreakIntoLobes())
+                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
-                            turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = p.ToWtk(), sun = false });
+                            foreach (Polygon piece in p.BreakIntoLobes())
+                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = false });
                     }
                 }
 

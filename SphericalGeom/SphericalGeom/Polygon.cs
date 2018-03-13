@@ -265,6 +265,35 @@ namespace SphericalGeom
             return res;
         }
 
+        public List<Polygon> BreakIntoLobes()
+        {
+            Polygon[] lobes = new Polygon[4];
+
+            Vector3D Zp = new Vector3D(0, 0, 1);
+            Vector3D Zm = new Vector3D(0, 0, -1);
+            Vector3D Xp = new Vector3D(1, 0, 0);
+            Vector3D Xm = new Vector3D(-1, 0, 0);
+            Vector3D Yp = new Vector3D(0, 1, 0);
+            Vector3D Ym = new Vector3D(0, -1, 0);
+
+            lobes[0] = new Polygon(new List<Vector3D> { Zp, Xp, Zm, Yp });
+            lobes[1] = new Polygon(new List<Vector3D> { Zp, Yp, Zm, Xm });
+            lobes[2] = new Polygon(new List<Vector3D> { Zp, Xm, Zm, Ym });
+            lobes[3] = new Polygon(new List<Vector3D> { Zp, Ym, Zm, Xp });
+
+            //Polygon[] lobes = new Polygon[2]
+            //{
+            //    Hemisphere(new Vector3D(1, 0, 0)),
+            //    Hemisphere(new Vector3D(-1, 0, 0))
+            //};
+
+            List<Polygon> res = new List<Polygon>();
+            for (int i = 0; i < lobes.Length; ++i)
+                res.AddRange(Polygon.Intersect(this, lobes[i]));
+
+            return res;
+        }
+
         public bool Contains(Vector3D point)
         {
             if (vertices.Count < 3 || Vector3D.DotProduct(Middle, point) < 0)
