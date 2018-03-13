@@ -125,7 +125,7 @@ namespace OptimalChain
         /// <param name="Np">Флаг включения ПК: 1 (вкл) или 0 (выкл).</param>
         /// <param name="Zp">Коэффициент сжатия ПК.</param>
         /// <returns></returns>
-        public static double InformationFluxInBits(double roll, double pitch, int hroute, double codVznCalibr, int Nm, int Zm, int Np, int Zp)
+        public static double InformationFluxInBits(double roll, double pitch, int hroute, int codVznCalibr, int Nm, int Zm, int Np, int Zp)
         {
             /// (N_bit * N_pix * N_channel * N_fpzs + S_tm) / L_pc, где
             ///     N_bit = 12 -- разрядность данных ПК,
