@@ -24,6 +24,10 @@ namespace SatelliteSessions
     /// </summary>
     public class CommunicationSession
     {
+        public CommunicationSession()
+        {
+            routesToReset = new List<RouteMPZ>();
+        }
         /// <summary>
         ///  Id антенны
         /// </summary>
@@ -49,7 +53,7 @@ namespace SatelliteSessions
         /// </summary>
         public List<RouteMPZ> routesToReset { get; set; }
     }
-     
+
     public class Sessions
     {
         /// <summary>
@@ -61,30 +65,18 @@ namespace SatelliteSessions
         /// <param name="managerDB">бд</param>
         /// <param name="coverage">Процент покрытия, которые можно получить.</param>
         /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
-        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo,  DIOS.Common.SqlManager managerDB, out double coverage, out List<CaptureConf> possibleConfs)
+        public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, out double coverage, out List<CaptureConf> possibleConfs)
         {
             // string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";     
             // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно      
-            DataFetcher fetcher = new DataFetcher(managerDB);    
+            DataFetcher fetcher = new DataFetcher(managerDB);
             Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
-            double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle;     
-            SatLane viewLane = new SatLane(trajectory, 0, 0, viewAngle);       
-            possibleConfs = viewLane.getCaptureConfs(request);      
+            double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle;
+            SatLane viewLane = new SatLane(trajectory, 0, 0, viewAngle);
+            possibleConfs = viewLane.getCaptureConfs(request);
             double summ = 0;
-            
-            /*
-            foreach (var conf in possibleConfs)
-            {
-                foreach (var order in conf.orders)
-                {
-                    summ += order.intersection_coeff;  
-                }
-            }
-            if (summ > 1)
-                summ = 1;
-            */
-                      
+
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in possibleConfs)
             {
@@ -108,21 +100,12 @@ namespace SatelliteSessions
                     region.Clear();
                     region = toBeCoveredAfter;
                 }
-            }            
-            coverage = summ;        
+            }
+            coverage = summ;
         }
 
-        public static List<CaptureConf> getCaptureConfArray(IList<RequestParams> requests, DateTime timeFrom, DateTime timeTo)
-        {
-            if (requests.Count == 0)
-                throw new ArgumentException("Requests array is empty!");
-
-            List<CaptureConf> captureConfs = new List<CaptureConf>();
-
-            string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
-            Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно
-
-            // @todo вынести это в константы
+        private static void getCaptureConfArrayForTrajectory(IList<RequestParams> requests, Trajectory trajectory, List<CaptureConf> captureConfs)
+        { 
             double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
             double angleStep = viewAngle; // шаг равен углу обзора
 
@@ -135,7 +118,7 @@ namespace SatelliteSessions
 
             double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
-        
+
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
             //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
             Parallel.For(0, num_steps, index =>
@@ -154,10 +137,10 @@ namespace SatelliteSessions
                 }
 
                 foreach (var conf in laneCaptureConfs)
-                { 
-                    var pol =  viewLane.getSegment(conf.dateFrom, conf.dateTo);
+                {
+                    var pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
                     TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
-                    TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo); 
+                    TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
 
                     conf.wktPolygon = pol.ToWtk();
                     conf.square = pol.Area;
@@ -167,13 +150,48 @@ namespace SatelliteSessions
                 }
                 captureConfs.AddRange(laneCaptureConfs);
             }
-            );
+            );              
+        }
+
+        public static List<CaptureConf> getCaptureConfArray(
+            IList<RequestParams> requests,
+            DateTime timeFrom,
+            DateTime timeTo,
+            DIOS.Common.SqlManager managerDB,
+            List<Tuple<DateTime, DateTime>> inactivityRanges)
+        {
+            if (requests.Count == 0)
+                return new List<CaptureConf>();
+
+            //string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
+            //Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно
+            DataFetcher fetcher = new DataFetcher(managerDB);
+
+            inactivityRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
+
+            List<Trajectory> trajSpans = new List<Trajectory>();
+
+            DateTime firstDt = timeFrom;
+
+            foreach (var timeSpan in inactivityRanges)
+            {
+                if (firstDt < timeSpan.Item1)                
+                    trajSpans.Add(fetcher.GetTrajectorySat(firstDt, timeSpan.Item1));                
+                firstDt = timeSpan.Item2;
+            }
+
+            trajSpans.Add(fetcher.GetTrajectorySat(firstDt, timeTo));
+
+            List<CaptureConf> captureConfs = new List<CaptureConf>();
+
+            foreach (var trajectory in  trajSpans)
+                getCaptureConfArrayForTrajectory(requests, trajectory, captureConfs);
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
                 captureConfs[ci].id = ci;
-
+ 
             return captureConfs;
-         }
+        }
 
         /// <summary>
         /// Планирование в автоматическом режиме
@@ -200,49 +218,73 @@ namespace SatelliteSessions
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
         {
-            List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo);
-            ///@todo реализовать всё, что касается параметров silentRanges, inactivityRanges, routesToReset, routesToDelete, managerDB, sessions
-            Graph g = new Graph(captureConfs);
-            List<OptimalChain.MPZParams> mpz_params = g.findOptimalChain();
+            List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges);
+            ///@todo реализовать всё, что касается параметров silentRanges, inactivityRanges, routesToReset, routesToDelete,  sessions
+
+            Graph graph = new Graph(captureConfs);
+            List<OptimalChain.MPZParams> mpz_params = graph.findOptimalChain();
             mpzArray = new List<MPZ>();
             foreach (var mpz_param in mpz_params)
             {
                 mpzArray.Add(new MPZ(mpz_param));
             }
-            // mpz_params[0].routes[0].ShootingConf
 
-            { // тестовые данные для sessions
-                sessions = new List<CommunicationSession>();
-                double duration = (timeTo - timeFrom).TotalMinutes;
-                {
-                    CommunicationSession comSes = new CommunicationSession();
-                    comSes.antennaId = 3;
-                    comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 10);
-                    comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 10);
-                    comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 8);
-                    comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 8);
+            sessions = new List<CommunicationSession>();
 
-                    comSes.routesToReset = new List<RouteMPZ>();
-                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.SI));
-                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.NP));
-                    sessions.Add(comSes);
-                }
-                {
-                    CommunicationSession comSes = new CommunicationSession();
-                    comSes.antennaId = 2;
-                    comSes.Zone5timeFrom = timeFrom.AddMinutes(duration / 9);
-                    comSes.Zone5timeTo = timeTo.AddMinutes(-duration / 9);
-                    comSes.Zone7timeFrom = timeFrom.AddMinutes(duration / 7);
-                    comSes.Zone7timeTo = timeTo.AddMinutes(-duration / 7);
+            List<CommunicationSession> snkpoiSessions = new List<CommunicationSession>();
+            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, snkpoiSessions);
 
-                    comSes.routesToReset = new List<RouteMPZ>();
-                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.VI));
-                    comSes.routesToReset.Add(new RouteMPZ(RegimeTypes.ZI));
-                    sessions.Add(comSes);
-                }
+            List<CommunicationSession> mnkpoiSessions = new List<CommunicationSession>();
+            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, mnkpoiSessions);
+
+            foreach (var mpz_param in mpz_params)
+            {
+                List<RouteParams> dropRoutes = mpz_param.routes.Where(route => route.type == 2).ToList();
+                List<CommunicationSession> sSessions = new List<CommunicationSession>();
+                putRoutesInSessions(dropRoutes, snkpoiSessions, sSessions);
+                List<CommunicationSession> mSessions = new List<CommunicationSession>();
+                putRoutesInSessions(dropRoutes, mnkpoiSessions, mSessions);
+                sessions.AddRange(sSessions);
+                sessions.AddRange(mSessions);
             }
+
         }
 
+
+        private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
+        {
+            foreach (var route in routes)
+            {
+                bool success = false;
+                foreach (var session in finalSessions) // сначала пробуем добавить в уже использующиеся сессии
+                {
+                    if (session.Zone7timeFrom <= route.start &&
+                         route.end <= session.Zone7timeTo)
+                    {
+                        session.routesToReset.Add(new RouteMPZ(route));
+                        routes.Remove(route);
+                        success = true;
+                        break;
+                    }
+                }
+                if (!success) // берём новую сессию из nkpoiSessions
+                {
+                    foreach (var session in nkpoiSessions)
+                    {
+                        // тут пробуем впихнуть
+                        if (session.Zone7timeFrom <= route.start &&
+                             route.end <= session.Zone7timeTo)
+                        {
+                            session.routesToReset.Add(new RouteMPZ(route));
+                            nkpoiSessions.Remove(session);
+                            routes.Remove(route);
+                            break;
+                        }
+                    }
+                }
+
+            }
+        }
         /// <summary>
         /// Рассчитать полигон съемки/видимости для заданной конфигурации СОЭНc
         /// </summary>
@@ -266,14 +308,14 @@ namespace SatelliteSessions
                 }
                 Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
                 Polygon viewPol = Routines.getViewPolygon((TrajectoryPoint)point, dirVector, OptimalChain.Constants.camera_angle);
-                wtk = viewPol.ToWtk();             
+                wtk = viewPol.ToWtk();
             }
             else
             {
                 DateTime timeTo = dateTime.AddMilliseconds(duration);
                 DataFetcher fetcher = new DataFetcher(managerDB);
                 Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
-                SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle,  OptimalChain.Constants.camera_angle);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
 
                 if (viewLane.Sectors.Count > 0)
                 {
@@ -320,9 +362,9 @@ namespace SatelliteSessions
 
             if (routes.Count < 2)
             {
-                isIncompatible = true;                
+                isIncompatible = true;
             }
-            else 
+            else
             {
                 isIncompatible = false;
                 incompatibleRoutes.Add(new Tuple<RouteMPZ, RouteMPZ>(routes[0], routes[1]));
@@ -357,7 +399,7 @@ namespace SatelliteSessions
             }
             /// @todo реализовать
         }
-        
+
         /// <summary>
         /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
         /// </summary>
@@ -518,7 +560,7 @@ namespace SatelliteSessions
                         To = timeTo < pos.TimeEnd ? timeTo : pos.TimeEnd
                     });
             }
-            
+
         }
 
         /// <summary>
@@ -529,11 +571,11 @@ namespace SatelliteSessions
         public static void getSNKPOICommunicationZones(DIOS.Common.SqlManager DBManager, out CommunicationZoneSNKPOI zone)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
-            
+
             double R = Astronomy.Constants.EarthRadius;
             double h = OptimalChain.Constants.orbit_height; // okay to take as a constant?
             double d = 0; // altitude ?
-            
+
             GeoPoint snkpoi = fetcher.GetPositionGeoSNKPOI();
 
             zone = new CommunicationZoneSNKPOI
@@ -580,11 +622,11 @@ namespace SatelliteSessions
         /// <param name="mpz">параметры МПЗ</param>
         /// <param name="error">ошибка создания</param>
         public static void createMPZ(List<RouteMPZ> routes, int PWR_ON, out MPZ mpz, out createMPZStatus error)
-        { 
+        {
             mpz = new MPZ(routes);
             error = createMPZStatus.eSuccses;
         }
-        
+
         private static DateTime getIntersectionTime(TrajectoryPoint first_point, TrajectoryPoint second_point, Vector3D centre, double zoneR)
         {
             double angle_zone = Math.Asin(zoneR / (OptimalChain.Constants.orbit_height + Astronomy.Constants.EarthRadius));
@@ -601,7 +643,7 @@ namespace SatelliteSessions
         }
 
         public static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, List<CommunicationSession> sessions)
-        { 
+        {
             Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(zone.CentreLat, zone.CentreLon), 1);
 
             bool prevIn5zone = false;
@@ -640,16 +682,53 @@ namespace SatelliteSessions
 
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
-                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);                    
+                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
                     tempSession.routesToReset = new List<RouteMPZ>();
                     tempSession.antennaId = zone.IdNumber;
-                    sessions.Add(tempSession);                    
+                    sessions.Add(tempSession);
                     tempSession = new CommunicationSession();
                 }
 
                 prevIn5zone = in5zone;
                 prevIn7zone = in7zone;
-            }            
+            }
+        }
+
+
+        private static void getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<CommunicationSession> sessions)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            CommunicationZoneSNKPOI sZone;
+            getSNKPOICommunicationZones(managerDB, out sZone);
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+            getSessionFromZone(sZone, fullTrajectory, sessions);
+        }
+
+        private static void getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<CommunicationSession> sessions)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+
+            List<CommunicationZoneMNKPOI> mZones;
+            getMNKPOICommunicationZones(managerDB, timeFrom, timeTo, out mZones);
+
+            if (mZones == null)
+                return;
+            if (mZones.Count == 0)
+                return;
+
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+
+            foreach (var zone in mZones)
+            {
+                Trajectory trajectory;
+                if (zone.From > timeFrom || zone.To < timeTo) // если временной промежуток зоны более строгий, чем  timeFrom - timeTo
+                    trajectory = fetcher.GetTrajectorySat(zone.From > timeFrom ? zone.From : timeFrom,
+                                                          zone.To < timeTo ? zone.To : timeTo); // то загружаем траекторию с заданными временными промежутками
+                else
+                    trajectory = fullTrajectory;
+
+                getSessionFromZone(zone, trajectory, sessions);
+            }
         }
 
         /// <summary>
@@ -660,37 +739,9 @@ namespace SatelliteSessions
         /// <returns>Все возможные сеансы связи за это время</returns>
         public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            
-            CommunicationZoneSNKPOI sZone;
-            getSNKPOICommunicationZones(managerDB, out sZone);
-
-            List<CommunicationZoneMNKPOI> mZones;
-            getMNKPOICommunicationZones(managerDB, timeFrom, timeTo, out mZones);
-             
-            if (mZones == null)
-                return new List<CommunicationSession>();
-            if (mZones.Count == 0)
-                return new List<CommunicationSession>();
-
-            Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
-            
             List<CommunicationSession> sessions = new List<CommunicationSession>();
-
-            foreach (var zone in mZones)
-            {
-                Trajectory trajectory;
-                if (zone.From > timeFrom || zone.To < timeTo) // если временной промежуток зоны более строгий, чем  timeFrom - timeTo
-                    trajectory = fetcher.GetTrajectorySat(zone.From > timeFrom ? zone.From : timeFrom,
-                                                          zone.To < timeTo ? zone.To : timeTo); // то загружаем траекторию с заданными временными промежутками
-                else                
-                    trajectory = fullTrajectory;
-
-                getSessionFromZone(zone, trajectory, sessions);      
-            }
-
-            getSessionFromZone(sZone, fullTrajectory, sessions);
-              
+            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
+            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
             return sessions;
         }
 
@@ -786,10 +837,10 @@ namespace SatelliteSessions
                 double t = distOverSurf / pointFrom.Velocity.Length;
                 conf.pitchArray[pitch] = t;
             }
-        }               
+        }
 
-    } 
-     
+    }
+
     /*
     public class SessionServices
     {
@@ -829,23 +880,23 @@ namespace SatelliteSessions
 
     public class wktPolygonLit
     {
-        public string wktPolygon {get;set;}
-        public bool sun {get;set;}
+        public string wktPolygon { get; set; }
+        public bool sun { get; set; }
     }
 
     public struct TimeInterval
     {
-        public DateTime From {get;set;}
-        public DateTime To {get;set;}
+        public DateTime From { get; set; }
+        public DateTime To { get; set; }
     }
- 
+
 
     public class CommunicationZone
     {
         /// <summary>
         /// In degrees.
         /// </summary>
-        public virtual int IdNumber { get; set;}
+        public virtual int IdNumber { get; set; }
 
         /// <summary>
         /// In degrees.
@@ -863,26 +914,26 @@ namespace SatelliteSessions
         /// In km.
         /// </summary>
         public double Radius7;
-        
+
         public bool isPointInZone(Point3D checkPoint, double zoneRadius)
         {
             double angleZone = Math.Asin(zoneRadius / (OptimalChain.Constants.orbit_height + Astronomy.Constants.EarthRadius));
             Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(CentreLat, CentreLon), 1);
             double angleKA = AstronomyMath.ToRad(Vector3D.AngleBetween(checkPoint.ToVector(), centre));
             return angleKA <= angleZone;
-        }   
+        }
     }
 
 
     public class CommunicationZoneMNKPOI : CommunicationZone
-    {        
+    {
         public DateTime From;
-        public DateTime To;     
+        public DateTime To;
     }
 
     public class CommunicationZoneSNKPOI : CommunicationZone
     {
         public override int IdNumber { get { return -1; } }
     }
- 
+
 }

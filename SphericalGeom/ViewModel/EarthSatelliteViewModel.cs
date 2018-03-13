@@ -630,6 +630,7 @@ namespace ViewModel
             sdfsdf();
             return;
 
+
           ////////  testViewPolygon(); 
 
             return;
@@ -770,8 +771,8 @@ namespace ViewModel
             {
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = id;
-                reqparams.timeFrom = new DateTime(2015, 3, 12); // 12.03.2015 по 14.03.2016 
-                reqparams.timeTo = new DateTime(2016, 3, 14);
+                reqparams.timeFrom = new DateTime(2019, 1, 4); // 12.03.2015 по 14.03.2016 
+                reqparams.timeTo = new DateTime(2019, 1, 8);
                 reqparams.priority = 1;
                 reqparams.minCoverPerc = 0.4;
                 reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
@@ -814,7 +815,7 @@ namespace ViewModel
             List<CommunicationSession> sessions;
 
             //12.03.2015 по 14.03.2015
-            Sessions.getMPZArray(requests, new DateTime(2000, 03, 12, 0, 0, 0), new DateTime(2020, 03, 14, 0, 0, 0)
+            Sessions.getMPZArray(requests, new DateTime(2019, 1, 4), new DateTime(2019, 1, 8)
                 , silenceRanges
                 , inactivityRanges
                 , routesToReset
