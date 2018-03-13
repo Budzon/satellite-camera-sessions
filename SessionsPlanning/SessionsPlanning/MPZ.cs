@@ -123,7 +123,7 @@ namespace SatelliteSessions
         public TimeSpan Ts { get; set; }
         public TimeSpan Troute { get; set; }
         public byte[] REGta { get; set; } // 16 bit
-        public int RegimeType { get; set; } 
+        public RegimeTypes RegimeType { get; set; } 
         public byte[] REGta_Param { get; set; } // 16 bit
         public IdFile IDFile { get; set; }
         public int Delta_T { get; set; } // 1 byte
@@ -139,16 +139,21 @@ namespace SatelliteSessions
         public int Quant_InitValueMK { get; set; } // 14 bit
         public byte[] TaskRes { get; set; } // 106 byte
 
+        private int zip_pk;
+        private int zip_mk;
+
         private OptimalChain.RouteParams parameters;
         public OptimalChain.RouteParams Parameters { get {return parameters;} }
 
         public RouteMPZ(OptimalChain.RouteParams inpParameters) : this(new RegimeTypes() )
         {
             parameters = inpParameters;
+            parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
         }
 
         public RouteMPZ(RegimeTypes regimeType)
         {
+            RegimeType = regimeType;
             NPZ = -1; // to be filled in the MPZ constructor
             Nroute = -1; // to be filled in the MPZ constructor
 
@@ -188,7 +193,7 @@ namespace SatelliteSessions
 
             N_PK = 0; // default
 
-            Z = 1 + 2 + 4 + 8 + 16; // default
+            Z = unchecked((byte)(~7)); // default
 
             N_MK = 0; // default
 
@@ -237,6 +242,32 @@ namespace SatelliteSessions
             Quant_InitValueMK = 0; // default
             TaskRes = new byte[106];
         }
+
+        /// <summary>
+        /// В Мб.
+        /// </summary>
+        /// <param name="routeParams"></param>
+        /// <returns></returns>
+        private double ComputeFileSize(OptimalChain.RouteParams routeParams)
+        {
+            int Nm = 0;
+            for (int i = 3; i < 7; ++i)
+                Nm += ByteRoutines.GetBit(Z, i);
+            int Np = ByteRoutines.GetBit(Z, 7);
+
+            int CodVznCalibr;
+            if (RegimeType == RegimeTypes.ZI_cal)
+                if (REGta_Param[1] == 0)
+                    CodVznCalibr = 1;
+                else
+                    CodVznCalibr = REGta_Param[1];
+            else
+                CodVznCalibr = 1;
+
+            return OptimalChain.RouteParams.InformationFluxInBits(
+                routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch,
+                Hroute, CodVznCalibr, Nm, zip_mk, Np, zip_pk) * Troute.TotalSeconds / (1 << 23);
+        }
     }
 
     public enum RegimeTypes 
@@ -258,6 +289,38 @@ namespace SatelliteSessions
         public int TNPZ { get; set; }
         public int TNroute { get; set; }
         public int TNPos { get; set; }
+    }
+
+    public static class ByteRoutines
+    {
+        public static int GetBit(byte[] data, int index)
+        {
+            return GetBit(data[index / 8], index % 8);
+        }
+
+        public static int GetBit(byte datum, int index)
+        {
+            if (index > 7)
+                throw new IndexOutOfRangeException(
+                    String.Format("Trying to access the {0}-th bit of a byte.", index));
+            return (datum & (1 << index)) != 0 ? 1 : 0;
+        }
+
+        public static void SetBitOne(ref byte datum, int index)
+        {
+            if (index > 7)
+                throw new IndexOutOfRangeException(
+                    String.Format("Trying to access the {0}-th bit of a byte.", index));
+            datum |= (byte)(1 << index);
+        }
+
+        public static void SetBitZero(ref byte datum, int index)
+        {
+            if (index > 7)
+                throw new IndexOutOfRangeException(
+                    String.Format("Trying to access the {0}-th bit of a byte.", index));
+            datum &= unchecked((byte)(~(1 << index)));
+        }
     }
 
     //public class Bytes
