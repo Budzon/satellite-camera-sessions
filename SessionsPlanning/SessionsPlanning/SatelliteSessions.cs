@@ -206,26 +206,7 @@ namespace SatelliteSessions
  
             return captureConfs;
         }
-        
-
-        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
-        {
-            List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
-
-            List<MPZ> res = new List<MPZ>();
-            List<RouteMPZ> routesTemp = new List<RouteMPZ>();
-            for (int i = 0; i < routes.Count; i++)
-            {
-                routesTemp.Add(routes[i]);
-                if (routesTemp.Count == 12 || i == routes.Count - 1)
-                {                    
-                    res.Add(new MPZ(routesTemp));
-                    routesTemp = new List<RouteMPZ>();
-                }                
-            }
-
-            return res;
-        }
+         
 
         /// <summary>
         /// Планирование в автоматическом режиме
@@ -300,7 +281,7 @@ namespace SatelliteSessions
             List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = captureConfs.Select(conf => new Tuple<DateTime, DateTime>(conf.dateFrom, conf.dateTo)).ToList();
             silentAndCaptureRanges.AddRange(silentRanges);
 
-            List<Tuple<DateTime, DateTime>> freeRanges = getFreeTimeSpan(silentAndCaptureRanges);
+            List<Tuple<DateTime, DateTime>> freeRanges = getFreeTimeSpans(silentAndCaptureRanges, timeFrom, timeTo);
 
 
 
@@ -318,12 +299,9 @@ namespace SatelliteSessions
                 var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
                 CaptureConf newConf = new CaptureConf(confTimeFrom, prevDropTime, roll, new List<Order>(), 2, connectedRoute);
                 prevDropTime = confTimeFrom;
-
-
             }
 
-
-
+            
 
             DateTime dtStartDrop = new DateTime();
             List<CaptureConf> confsToDrop = new List<CaptureConf>();
@@ -364,32 +342,65 @@ namespace SatelliteSessions
             }
 
         }
+         
+        
 
-
-        private static List<Tuple<DateTime, DateTime>> getFreeTimeSpan(List<Tuple<DateTime, DateTime>> silentRanges)
+        public static List<Tuple<DateTime, DateTime>> getFreeTimeSpans(List<Tuple<DateTime, DateTime>> silentRanges, DateTime timeFrom, DateTime timeTo)
         {
-            // compress Ranges
-            List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>();
-            for (int i = 0; i < silentRanges.Count; i++)
+            List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = compressTimeSpans(silentRanges);
+            return invertTimeSpans(compressedSilentAndCaptureRanges, timeFrom, timeTo);  
+        }
+
+        public static List<Tuple<DateTime, DateTime>> compressTimeSpans(List<Tuple<DateTime, DateTime>> silentRanges)
+        {
+            // соеденим пересекающиеся диапазоны
+            List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>(silentRanges);
+            compressedSilentAndCaptureRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
+            List<Tuple<DateTime, DateTime>> res = new List<Tuple<DateTime, DateTime>>();
+
+            for (int i = 0; i < compressedSilentAndCaptureRanges.Count; i++)
             {
-                var curRange = silentRanges[i];
-                for (int j = i; j < silentRanges.Count; j++)
+                var curRange = compressedSilentAndCaptureRanges[i];
+                for (int j = i+1; j < compressedSilentAndCaptureRanges.Count; j++)
                 {
-                    var comRange = silentRanges[j];
+                    var comRange = compressedSilentAndCaptureRanges[j];
                     if (curRange.Item1 <= comRange.Item1 && comRange.Item1 <= curRange.Item2 ||
                         curRange.Item1 <= comRange.Item2 && comRange.Item2 <= curRange.Item2)
                     {
                         var itemFrom = curRange.Item1 < comRange.Item1 ? curRange.Item1 : comRange.Item1;
                         var itemTo = curRange.Item2 > comRange.Item2 ? curRange.Item2 : comRange.Item2;
                         curRange = new Tuple<DateTime, DateTime>(itemFrom, itemTo);
-                        silentRanges.Remove(comRange);
+                        compressedSilentAndCaptureRanges.Remove(comRange);
                         j--;
                     }
                 }
+                res.Add(curRange);
             }
 
-            return new List<Tuple<DateTime, DateTime>>(); // @todo
+            return res;
         }
+
+        public static List<Tuple<DateTime, DateTime>> invertTimeSpans(List<Tuple<DateTime, DateTime>> inputSpans, DateTime timeFrom, DateTime timeTo)
+        {
+            inputSpans.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
+
+            List<Tuple<DateTime, DateTime>> res = new List<Tuple<DateTime, DateTime>>();
+
+            DateTime firstDt = timeFrom;
+
+            foreach (var timeSpan in inputSpans)
+            {
+                if (firstDt != timeSpan.Item1)
+                    res.Add(new Tuple<DateTime, DateTime>(firstDt, timeSpan.Item1));
+                firstDt = timeSpan.Item2;
+            }
+
+            if (firstDt != timeTo)
+                res.Add(new Tuple<DateTime, DateTime>(firstDt, timeTo));
+
+            return res;
+        }
+
 
         private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
         {
@@ -425,6 +436,34 @@ namespace SatelliteSessions
 
             }
         }
+
+
+        /// <summary>
+        /// Создание ПНб по набору маршрутов
+        /// </summary>
+        /// <param name="routesParams"> Набор маршрутов RouteParams</param>
+        /// <returns> набор МПЗ, созданный из маршутов</returns>
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
+        {
+            List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
+
+            List<MPZ> res = new List<MPZ>();
+            List<RouteMPZ> routesTemp = new List<RouteMPZ>();
+            for (int i = 0; i < routes.Count; i++)
+            {
+                routesTemp.Add(routes[i]);
+                if (routesTemp.Count == 12 || i == routes.Count - 1)
+                {
+                    res.Add(new MPZ(routesTemp));
+                    routesTemp = new List<RouteMPZ>();
+                }
+            }
+
+            return res;
+        }
+
+
+
         /// <summary>
         /// Рассчитать полигон съемки/видимости для заданной конфигурации СОЭНc
         /// </summary>
