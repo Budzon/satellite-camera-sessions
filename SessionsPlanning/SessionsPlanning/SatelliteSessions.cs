@@ -191,6 +191,26 @@ namespace SatelliteSessions
  
             return captureConfs;
         }
+        
+
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
+        {
+            List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
+
+            List<MPZ> res = new List<MPZ>();
+            List<RouteMPZ> routesTemp = new List<RouteMPZ>();
+            for (int i = 0; i < routes.Count; i++)
+            {
+                routesTemp.Add(routes[i]);
+                if (routesTemp.Count == 12 || i == routes.Count - 1)
+                {                    
+                    res.Add(new MPZ(routesTemp));
+                    routesTemp = new List<RouteMPZ>();
+                }                
+            }
+
+            return res;
+        }
 
         /// <summary>
         /// Планирование в автоматическом режиме
@@ -352,6 +372,8 @@ namespace SatelliteSessions
                     }
                 }
             }
+
+            return new List<Tuple<DateTime, DateTime>>(); // @todo
         }
 
         private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
