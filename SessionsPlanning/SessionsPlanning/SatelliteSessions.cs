@@ -472,11 +472,17 @@ namespace SatelliteSessions
                     else
                     {
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
-                            foreach(Polygon piece in p.BreakIntoLobes())
+                        {
+                            List<Polygon> pieces = p.BreakIntoLobes();
+                            foreach (Polygon piece in pieces)
                                 turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
+                        }
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
-                            foreach (Polygon piece in p.BreakIntoLobes())
+                        {
+                            List<Polygon> pieces = p.BreakIntoLobes();
+                            foreach (Polygon piece in pieces)
                                 turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = false });
+                        }  
                     }
                 }
 
