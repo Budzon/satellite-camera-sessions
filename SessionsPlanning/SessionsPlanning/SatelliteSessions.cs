@@ -80,7 +80,7 @@ namespace SatelliteSessions
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in possibleConfs)
             {
-                foreach (var order in conf.orders)
+                foreach (var order in conf.Orders)
                 {
                     var notCoveredBefore = new List<SphericalGeom.Polygon>();
                     var toBeCoveredAfter = new List<SphericalGeom.Polygon>();
@@ -142,10 +142,8 @@ namespace SatelliteSessions
                     TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
                     TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
 
-                    conf.wktPolygon = pol.ToWtk();
-                    conf.square = pol.Area;
-                    conf.rollAngle = rollAngle;
-
+                    conf.setPolygon(pol);
+                    
                     calculatePitchArrays(conf, rollAngle, pointFrom);
                 }
                 captureConfs.AddRange(laneCaptureConfs);
@@ -201,7 +199,7 @@ namespace SatelliteSessions
         /// <param name="timeTo">Время конца промежутка планирования</param>
         /// <param name="silentRanges">Список интервалов времени , в которые нельзя сбрасывать данные в СНКПОИ и/или МНКПОИ</param>
         /// <param name="inactivityRanges">Список интервалов, когда нельзя проводить съемку</param>
-        /// <param name="routesToReset">Перечень маршрутов на сброс</param>
+        /// <param name="routesToDrop">Перечень маршрутов на сброс</param>
         /// <param name="routesToDelete">Перечень маршрутов на удаление</param>
         /// <param name="managerDB">параметры взаимодействия с БД</param>
         /// <param name="mpzArray">Набор МПЗ</param>
@@ -212,14 +210,28 @@ namespace SatelliteSessions
             , DateTime timeTo
             , List<Tuple<DateTime, DateTime>> silentRanges
             , List<Tuple<DateTime, DateTime>> inactivityRanges
-            , List<RouteMPZ> routesToReset
+            , List<RouteMPZ> routesToDrop
             , List<RouteMPZ> routesToDelete
             , DIOS.Common.SqlManager managerDB
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
         {
             List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges);
-            ///@todo реализовать всё, что касается параметров silentRanges, inactivityRanges, routesToReset, routesToDelete,  sessions
+            ///@todo реализовать всё, что касается параметров silentRanges, routesToReset, routesToDelete
+
+            DateTime confsDateFrom = new DateTime();
+            if (captureConfs.Count > 0)
+            {            
+                captureConfs.OrderBy(conf => conf.dateFrom); // сортируем по времени
+                confsDateFrom = captureConfs[0].dateFrom;
+            }
+            else
+            {
+                confsDateFrom = timeFrom;
+            }
+
+          
+
 
             Graph graph = new Graph(captureConfs);
             List<OptimalChain.MPZParams> mpz_params = graph.findOptimalChain();
@@ -802,8 +814,8 @@ namespace SatelliteSessions
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
-            double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
-            foreach (var req in conf.orders)
+            double maxAngle = conf.Orders[0].request.Max_SOEN_anlge;
+            foreach (var req in conf.Orders)
             {
                 if (req.request.Max_SOEN_anlge < maxAngle)
                     maxAngle = req.request.Max_SOEN_anlge;

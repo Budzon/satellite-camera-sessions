@@ -183,15 +183,15 @@ namespace SatelliteTrajectory
                     }
                     if (outOfRange)
                         break;
-                    CaptureConf newcc = new CaptureConf();
+                                       
                     Order order = new Order();
                     order.captured = int_pol;
                     order.request = request;
                     double subsquare = int_pol.Area;
                     order.intersection_coeff = subsquare / square;
-                    newcc.orders.Add(order);
-                    newcc.dateFrom = tmin;
-                    newcc.dateTo = tmax;
+
+                    CaptureConf newcc = new CaptureConf(tmin, tmax, rollAngle, new List<Order> {order}, 0, null);                    
+                    
                     res.Add(newcc);
                 }
             }

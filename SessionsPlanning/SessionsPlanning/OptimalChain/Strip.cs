@@ -28,7 +28,7 @@ namespace OptimalChain
         /// </summary>
         public double roll { get; set; }
 
-         public double square { get; set; }//площадь полосы
+        public double square { get; set; }//площадь полосы
         public List<Order> orders { get; set; }
 
         public Tuple<int, int> connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
@@ -69,13 +69,13 @@ namespace OptimalChain
             double a2 = s2.roll;
             double b2 = s2.pitch;
 
-            double c_gamma = (1 + Math.Tan(a1)*Math.Tan(a2) + Math.Tan(b1) * Math.Tan(b2)) / (Math.Sqrt(1 + Math.Tan(a1) * Math.Tan(a1) + Math.Tan(b1) * Math.Tan(b1))* Math.Sqrt(1 + Math.Tan(a2) * Math.Tan(a2) + Math.Tan(b2) * Math.Tan(b2)));
+            double c_gamma = (1 + Math.Tan(a1) * Math.Tan(a2) + Math.Tan(b1) * Math.Tan(b2)) / (Math.Sqrt(1 + Math.Tan(a1) * Math.Tan(a1) + Math.Tan(b1) * Math.Tan(b1)) * Math.Sqrt(1 + Math.Tan(a2) * Math.Tan(a2) + Math.Tan(b2) * Math.Tan(b2)));
             double gamma = Math.Acos(c_gamma);
 
             if (gamma < Constants.min_degree)
                 return Constants.minDeltaT;
 
-            double ms = ((gamma - Constants.min_degree)/Constants.angle_velocity_max)*1000  + Constants.minDeltaT;
+            double ms = ((gamma - Constants.min_degree) / Constants.angle_velocity_max) * 1000 + Constants.minDeltaT;
 
             return ms;
         }
@@ -83,84 +83,100 @@ namespace OptimalChain
 
     public class CaptureConf
     {
-        public int id;
-        public int type { get; set; }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
-
-        public string shooting_channel { get; set; }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
-
-        public int shooting_type{ get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
-        public DateTime dateFrom { get; set; }//время начала для съемки в надир
-        public DateTime dateTo { get; set; }//время окончания для съемки в надир
-
+        public int id { get; set; }
+        public int confType { get { return mConfType; } }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
+        public string shootingChannel { get { return mShootingChannel; } }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
+        public int shootingType { get { return mShootingType; } }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+        public DateTime dateFrom { get { return mDateFrom; } }//время начала для съемки в надир
+        public DateTime dateTo { get { return mDateTo; } }//время окончания для съемки в надир       
+        public double rollAngle { get { return mRollAngle; } }//крен для съемки c нулевым тангажом
+        public double square { get { return mSquare; } }//площадь полосы
+        public string wktPolygon { get { return mWktPolygon; } } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
+        public List<Order> Orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
+        public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        
         public double timeDelta { get; set; }// возможный модуль отклонения по времени от съемки в надир. 
+        public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
 
-        public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа
+        private List<Order> mOrders;
+        private double mSquare;
+        private string mWktPolygon;
+        private string mShootingChannel;
+        private int mShootingType;
+        private int mConfType;
+        private Tuple<int, int> mConnectedRoute;
+        private DateTime mDateFrom;
+        private DateTime mDateTo; 
+        private double mRollAngle;
 
-        public double rollAngle { get; set; }//крен для съемки c нулевым тангажом
+        public void setPolygon(SphericalGeom.Polygon pol)
+        {
+            mSquare = pol.Area;
+            mWktPolygon = pol.ToWtk();
+        }
 
-        public double square { get; set; }//площадь полосы
-        public string wktPolygon { get; set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
-        public List<Order> orders { get; set; }//cвязанные заказы. Список пуст только для маршрута на удаление
-
-        public Tuple<int, int> connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public void setPitchDependency(Dictionary<double, double> _pitchArray, double _timeDelta)
+        {
+            pitchArray = _pitchArray;
+            timeDelta = _timeDelta;
+        }
 
         /// <summary>
         /// Конструктор для создания конфигурации
-        /// </summary>
-        /// <param name="T">тип конфигурации: 1-- съемка, 2 -- сброс, 0 -- удаление, 3 -- съемка со сброосом</param>
-        /// <param name="d1">время начала для съемки в надир</param>
-        /// <param name="d2">время конца для съемки в надир</param>
-        /// <param name="delta">возможный модуль отклонения по времени от съемки в надир</param>
-        /// <param name="r">крен для съемки в надир</param>
-        /// <param name="pA">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
-        /// <param name="s">площадь полосы</param>
-        /// <param name="o">список заказов</param>
+        /// </summary>        
+        /// <param name="_dateFrom">время начала для съемки в надир</param>
+        /// <param name="_dateTo">время конца для съемки в надир</param>
+        /// <param name="_timeDelta">возможный модуль отклонения по времени от съемки в надир</param>
+        /// <param name="_rollAngle">крен для съемки в надир</param>
+        /// <param name="_pitchArray">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
+        /// <param name="_square">площадь полосы</param>
+        /// <param name="_orders">список заказов</param>
+        /// <param name="_type">тип конфигурации: 1-- съемка, 2 -- сброс, 0 -- удаление, 3 -- съемка со сброосом</param>        
         public CaptureConf(
-            DateTime d1,
-            DateTime d2,
-            double delta, 
-            double r,
-            Dictionary<double, double> pA,
-            double s,
-            List<Order> o,
-            int T = 1,
-            string channel="pk",
-            int stype=0,
-            Tuple<int, int> CR=null)
+            DateTime _dateFrom,
+            DateTime _dateTo,
+            double _rollAngle,
+            List<Order> _orders,
+            int _confType,
+            Tuple<int, int> _connectedRoute)
         {
+            if (mOrders == null)
+                throw new ArgumentException("Orders array can not be empty");
+
+            if (mOrders.Count == 0)
+                throw new ArgumentException("Orders array can not be empty");
+
+            mShootingChannel = mOrders[0].request.requestChannel;
+            mShootingType = mOrders[0].request.shootingType;
+
+            foreach (var order in _orders)
+            {
+                if (order.request.shootingType != shootingType
+                  || order.request.requestChannel != shootingChannel)
+                    throw new ArgumentException("Orders array can not contain orders with different channels or types.");
+            }
+
             id = -1;
-            dateFrom = d1;
-            dateTo = d2;
-            rollAngle = r;
-            pitchArray = pA;
-
-            type = T;
-            shooting_type = stype;
-            shooting_channel = channel;
-            timeDelta = delta;
-            square = s;
-
-            orders = o;
-            connected_route = CR;
-
-        }
-
-        public CaptureConf()
-        {
-            orders = new List<Order>();
+            mOrders = _orders;
+            mDateFrom = _dateFrom;
+            mDateTo = _dateTo;
+            mRollAngle = _rollAngle;
+            mConfType = _confType;
+            mConnectedRoute = _connectedRoute;
             pitchArray = new Dictionary<double, double>();
+            timeDelta = 0;
         }
+
 
         public StaticConf DefaultStaticConf()
         {
-            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, type, shooting_channel,shooting_type,connected_route);
+            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, Orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
         }
-
-
 
         public StaticConf CreateStaticConf(int delta, int sign)
         {
-            try{
+            try
+            {
                 //double pitch = pitchArray[delta];
                 double pitch = pitchArray[0];
 
@@ -175,34 +191,40 @@ namespace OptimalChain
 
                 //Разница между двумя позициями спутника
                 double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch;
-
-
+                
                 double d = Math.Cos(bm) * w / v * b2 * Math.Sin(I);
                 double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
 
                 double r = Math.Asin(sinRoll); ;
-                
-                DateTime d1 = dateFrom.AddSeconds(delta*sign);
+
+                DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, type, shooting_channel, shooting_type, connected_route);
+                return new StaticConf(id, d1, d2, pitch, r, square, Orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
             }
-            catch{
+            catch
+            {
                 return null;
             }
-            
+
         }
 
 
         public static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
         {
-            CaptureConf newConf = new CaptureConf();
-            newConf.rollAngle = confs1.rollAngle;
-            newConf.dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
-            newConf.dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
-            newConf.orders.AddRange(confs1.orders);
-            newConf.orders.AddRange(confs2.orders);
+            if (confs1.shootingType != confs2.shootingType ||
+                confs1.shootingChannel != confs2.shootingChannel ||
+                confs1.confType != confs2.confType)
+                throw new ArgumentException("it is impossible to unite confs with different channels or types.");
 
+            var dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
+            var dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
+            var orders = new List<Order>();
+            orders.AddRange(confs1.Orders);
+            orders.AddRange(confs2.Orders);
+            Tuple<int, int> newConnectedRoute = confs1.connectedRoute;
+            CaptureConf newConf = new CaptureConf(dateFrom, dateTo, confs1.rollAngle, orders, confs1.confType, newConnectedRoute);
+            
             /*
             for (int i = 0; i < confs1.orders.Count; i++)
             {
@@ -261,8 +283,8 @@ namespace OptimalChain
                     }
                 }
             }
-        }        
-       
+        }
+
     }
 
     public class RequestParams
@@ -276,6 +298,8 @@ namespace OptimalChain
         public int Max_sun_angle { get; set; }
         public int Min_sun_angle { get; set; }
         public string wktPolygon { get; set; }
+        public string requestChannel { get; set; }
+        public int shootingType { get; set; }
 
         /// <summary>
         /// Конструктор параметров заказа
