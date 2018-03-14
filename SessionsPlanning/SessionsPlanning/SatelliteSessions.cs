@@ -77,6 +77,20 @@ namespace SatelliteSessions
             possibleConfs = viewLane.getCaptureConfs(request);
             double summ = 0;
 
+            /////// @todo костыль ////////////
+            foreach (var conf in possibleConfs)
+            {
+                foreach (var order in conf.orders)
+                {
+                    summ += order.intersection_coeff;
+                }
+            }
+            if (summ > 1)
+                summ = 1;
+
+            coverage = summ;
+            ///////////////////////////
+            /*
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
  
             foreach (var conf in possibleConfs)
@@ -103,6 +117,7 @@ namespace SatelliteSessions
                 }
             }
             coverage = summ;
+            */
         }
 
         private static void getCaptureConfArrayForTrajectory(IList<RequestParams> requests, Trajectory trajectory, List<CaptureConf> captureConfs)
@@ -939,8 +954,8 @@ namespace SatelliteSessions
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
-            double maxAngle = conf.Orders[0].request.Max_SOEN_anlge;
-            foreach (var req in conf.Orders)
+            double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
+            foreach (var req in conf.orders)
             {
                 if (req.request.Max_SOEN_anlge < maxAngle)
                     maxAngle = req.request.Max_SOEN_anlge;

@@ -92,7 +92,7 @@ namespace OptimalChain
         public double rollAngle { get { return mRollAngle; } }//крен для съемки c нулевым тангажом
         public double square { get { return mSquare; } }//площадь полосы
         public string wktPolygon { get { return mWktPolygon; } } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
-        public List<Order> Orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
+        public List<Order> orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
         public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         
         public double timeDelta { get; set; }// возможный модуль отклонения по времени от съемки в надир. 
@@ -168,7 +168,7 @@ namespace OptimalChain
 
         public StaticConf DefaultStaticConf()
         {
-            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, Orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
+            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
         }
 
         public StaticConf CreateStaticConf(int delta, int sign)
@@ -198,7 +198,7 @@ namespace OptimalChain
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, pitch, r, square, Orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
+                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
             }
             catch
             {
@@ -218,8 +218,8 @@ namespace OptimalChain
             var dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
             var dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
             var orders = new List<Order>();
-            orders.AddRange(confs1.Orders);
-            orders.AddRange(confs2.Orders);
+            orders.AddRange(confs1.orders);
+            orders.AddRange(confs2.orders);
             Tuple<int, int> newConnectedRoute = confs1.connectedRoute;
             CaptureConf newConf = new CaptureConf(dateFrom, dateTo, confs1.rollAngle, orders, confs1.confType, newConnectedRoute);
             
