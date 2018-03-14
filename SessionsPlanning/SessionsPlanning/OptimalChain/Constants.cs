@@ -31,5 +31,8 @@ namespace OptimalChain
         public const int pitchStep = 1; // угол изменения тангажа в градусах
         public const double orbital_inclination = 1.7104; // угол наклона орбиты в градусах
         public const double orbit_height = 720; // км (или 650?)
+        public const double routeDeleteTime = 15; // время на удаление маршрута
+        public const double smallDeleteInterval = 20;
+        public const double bigDeleteInterval = 60;
     }
 }
