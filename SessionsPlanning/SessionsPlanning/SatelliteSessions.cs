@@ -31,7 +31,7 @@ namespace SatelliteSessions
         /// <summary>
         ///  Id антенны
         /// </summary>
-        public int antennaId { get; set; }
+        public string nkpoiType { get; set; } // "MIGS" or "FIGS"
         /// <summary>
         ///  Время начала 7-градусной зоныc
         /// </summary>
@@ -218,6 +218,7 @@ namespace SatelliteSessions
         {
             List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges);
             ///@todo реализовать всё, что касается параметров silentRanges, routesToReset, routesToDelete
+            
 
             DateTime confsDateFrom = new DateTime();
             if (captureConfs.Count > 0)
@@ -230,7 +231,22 @@ namespace SatelliteSessions
                 confsDateFrom = timeFrom;
             }
 
-          
+            DateTime dtStartDrop = new DateTime();
+            List<CaptureConf> confsToDrop = new List<CaptureConf>();
+            foreach (RouteMPZ route in routesToDrop) 
+            {
+               // route.   
+                //route.Parameters.start
+                //CaptureConf dropCaptureConf = new CaptureConf()
+            }
+
+
+            DateTime dtStartDelete = new DateTime();
+            foreach (RouteMPZ route in routesToDrop)
+            {
+                //route.Parameters.start
+                //CaptureConf dropCaptureConf = new CaptureConf()
+            }
 
 
             Graph graph = new Graph(captureConfs);
@@ -243,11 +259,8 @@ namespace SatelliteSessions
 
             sessions = new List<CommunicationSession>();
 
-            List<CommunicationSession> snkpoiSessions = new List<CommunicationSession>();
-            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, snkpoiSessions);
-
-            List<CommunicationSession> mnkpoiSessions = new List<CommunicationSession>();
-            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, mnkpoiSessions);
+            List<CommunicationSession> snkpoiSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
+            List<CommunicationSession> mnkpoiSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
 
             foreach (var mpz_param in mpz_params)
             {
@@ -696,7 +709,7 @@ namespace SatelliteSessions
                 {
                     tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
                     tempSession.routesToReset = new List<RouteMPZ>();
-                    tempSession.antennaId = zone.IdNumber;
+                    //tempSession.antennaId = zone.IdNumber;
                     sessions.Add(tempSession);
                     tempSession = new CommunicationSession();
                 }
@@ -707,26 +720,31 @@ namespace SatelliteSessions
         }
 
 
-        private static void getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<CommunicationSession> sessions)
+        private static List<CommunicationSession> getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
             DataFetcher fetcher = new DataFetcher(managerDB);
             CommunicationZoneSNKPOI sZone;
             getSNKPOICommunicationZones(managerDB, out sZone);
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
             getSessionFromZone(sZone, fullTrajectory, sessions);
+            foreach (var sess in  sessions)            
+                sess.nkpoiType = "FIGS";
+            
+            return sessions;
         }
 
-        private static void getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<CommunicationSession> sessions)
+        private static List<CommunicationSession> getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
             DataFetcher fetcher = new DataFetcher(managerDB);
-
             List<CommunicationZoneMNKPOI> mZones;
             getMNKPOICommunicationZones(managerDB, timeFrom, timeTo, out mZones);
 
             if (mZones == null)
-                return;
+                return new List<CommunicationSession>();
             if (mZones.Count == 0)
-                return;
+                return new List<CommunicationSession>();
 
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
@@ -741,6 +759,11 @@ namespace SatelliteSessions
 
                 getSessionFromZone(zone, trajectory, sessions);
             }
+
+            foreach (var sess in sessions)            
+                sess.nkpoiType = "MIGS";
+            
+            return sessions;
         }
 
         /// <summary>
@@ -750,10 +773,12 @@ namespace SatelliteSessions
         /// <param name="timeTo">Конец временного отрезка</param>
         /// <returns>Все возможные сеансы связи за это время</returns>
         public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
-        {
+        {            
+            List<CommunicationSession> snkpoSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
+            List<CommunicationSession> mnkpoSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> sessions = new List<CommunicationSession>();
-            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
-            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
+            sessions.AddRange(snkpoSessions);
+            sessions.AddRange(mnkpoSessions);
             return sessions;
         }
 
