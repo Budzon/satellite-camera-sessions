@@ -86,7 +86,7 @@ namespace OptimalChain
         public int id;
         public int type { get; set; }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
 
-        public string shooting_channel { get; set; }// pk, mk, cm
+        public string shooting_channel { get; set; }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
 
         public int shooting_type{ get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
         public DateTime dateFrom { get; set; }//время начала для съемки в надир
@@ -96,7 +96,7 @@ namespace OptimalChain
 
         public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа
 
-        public double rollAngle { get; set; }//крен для съемки в надир
+        public double rollAngle { get; set; }//крен для съемки c нулевым тангажом
 
         public double square { get; set; }//площадь полосы
         public string wktPolygon { get; set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
@@ -115,7 +115,18 @@ namespace OptimalChain
         /// <param name="pA">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
         /// <param name="s">площадь полосы</param>
         /// <param name="o">список заказов</param>
-        public CaptureConf(DateTime d1, DateTime d2, double delta, double r, Dictionary<double, double> pA, double s, List<Order> o, int T = 1, string channel="pk", int stype=0,  Tuple<int, int> CR=null)
+        public CaptureConf(
+            DateTime d1,
+            DateTime d2,
+            double delta, 
+            double r,
+            Dictionary<double, double> pA,
+            double s,
+            List<Order> o,
+            int T = 1,
+            string channel="pk",
+            int stype=0,
+            Tuple<int, int> CR=null)
         {
             id = -1;
             dateFrom = d1;
@@ -278,7 +289,7 @@ namespace OptimalChain
         /// <param name="max_s_a">Максимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="min_s_a">Минимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="polygon">Полигон заказа в формае WKT</param>
-        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a,int min_s_a, string polygon)
+        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon)
         {
             id = i;
             priority = p;
