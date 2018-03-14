@@ -78,6 +78,7 @@ namespace SatelliteSessions
             double summ = 0;
 
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
+ 
             foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.Orders)
@@ -219,7 +220,6 @@ namespace SatelliteSessions
             List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges);
             ///@todo реализовать всё, что касается параметров silentRanges, routesToReset, routesToDelete
             
-
             DateTime confsDateFrom = new DateTime();
             if (captureConfs.Count > 0)
             {            
@@ -231,22 +231,77 @@ namespace SatelliteSessions
                 confsDateFrom = timeFrom;
             }
 
+
+            DateTime prevDeleteTime = timeFrom;
+            List<CaptureConf> confsToDelete = new List<CaptureConf>();
+            int deleteInd = 1;
+            foreach (RouteMPZ route in routesToDelete)
+            {
+                DateTime confTimeTo = prevDeleteTime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
+
+                if (confTimeTo > confsDateFrom) // началась съемка.
+                {
+                    // вроде ничего не меняется? @todo
+                }
+
+                double roll = route.Parameters.ShootingConf.roll;
+                var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
+                CaptureConf newConf = new CaptureConf(prevDeleteTime, confTimeTo, roll, new List<Order>(), 2, connectedRoute);
+                if (deleteInd == 12)
+                {
+                    prevDeleteTime = confTimeTo.AddSeconds(OptimalChain.Constants.bigDeleteInterval);
+                    deleteInd = 1;
+                }
+                else
+                {
+                    prevDeleteTime = confTimeTo.AddSeconds(OptimalChain.Constants.smallDeleteInterval);
+                    deleteInd++;
+                }
+            }
+
+            if (deleteInd != 12)
+                prevDeleteTime = prevDeleteTime.AddSeconds(OptimalChain.Constants.bigDeleteInterval);
+                      
+            List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = captureConfs.Select(conf => new Tuple<DateTime, DateTime>(conf.dateFrom, conf.dateTo)).ToList();
+            silentAndCaptureRanges.AddRange(silentRanges);
+
+            List<Tuple<DateTime, DateTime>> freeRanges = getFreeTimeSpan(silentAndCaptureRanges);
+
+
+
+            DateTime prevDropTime = confsDateFrom;
+            foreach (RouteMPZ route in routesToDrop)
+            {
+                DateTime confTimeFrom = prevDropTime.AddSeconds(-route.Parameters.getDropTime());
+                
+                if (confTimeFrom < prevDeleteTime)
+                {
+
+                }
+
+                double roll = route.Parameters.ShootingConf.roll;
+                var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
+                CaptureConf newConf = new CaptureConf(confTimeFrom, prevDropTime, roll, new List<Order>(), 2, connectedRoute);
+                prevDropTime = confTimeFrom;
+
+
+            }
+
+
+
+
             DateTime dtStartDrop = new DateTime();
             List<CaptureConf> confsToDrop = new List<CaptureConf>();
             foreach (RouteMPZ route in routesToDrop) 
             {
-               // route.   
+                double dropTime = route.Parameters.getDropTime();
                 //route.Parameters.start
                 //CaptureConf dropCaptureConf = new CaptureConf()
             }
 
 
             DateTime dtStartDelete = new DateTime();
-            foreach (RouteMPZ route in routesToDrop)
-            {
-                //route.Parameters.start
-                //CaptureConf dropCaptureConf = new CaptureConf()
-            }
+       
 
 
             Graph graph = new Graph(captureConfs);
@@ -275,6 +330,29 @@ namespace SatelliteSessions
 
         }
 
+
+        private static List<Tuple<DateTime, DateTime>> getFreeTimeSpan(List<Tuple<DateTime, DateTime>> silentRanges)
+        {
+            // compress Ranges
+            List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>();
+            for (int i = 0; i < silentRanges.Count; i++)
+            {
+                var curRange = silentRanges[i];
+                for (int j = i; j < silentRanges.Count; j++)
+                {
+                    var comRange = silentRanges[j];
+                    if (curRange.Item1 <= comRange.Item1 && comRange.Item1 <= curRange.Item2 ||
+                        curRange.Item1 <= comRange.Item2 && comRange.Item2 <= curRange.Item2)
+                    {
+                        var itemFrom = curRange.Item1 < comRange.Item1 ? curRange.Item1 : comRange.Item1;
+                        var itemTo = curRange.Item2 > comRange.Item2 ? curRange.Item2 : comRange.Item2;
+                        curRange = new Tuple<DateTime, DateTime>(itemFrom, itemTo);
+                        silentRanges.Remove(comRange);
+                        j--;
+                    }
+                }
+            }
+        }
 
         private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
         {
@@ -497,17 +575,11 @@ namespace SatelliteSessions
                     else
                     {
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
-                        {
-                            List<Polygon> pieces = p.BreakIntoLobes();
-                            foreach (Polygon piece in pieces)
+                            foreach(Polygon piece in p.BreakIntoLobes())
                                 turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
-                        }
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
-                        {
-                            List<Polygon> pieces = p.BreakIntoLobes();
-                            foreach (Polygon piece in pieces)
+                            foreach (Polygon piece in p.BreakIntoLobes())
                                 turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = false });
-                        }  
                     }
                 }
 

@@ -125,13 +125,11 @@ namespace OptimalChain
         /// Конструктор для создания конфигурации
         /// </summary>        
         /// <param name="_dateFrom">время начала для съемки в надир</param>
-        /// <param name="_dateTo">время конца для съемки в надир</param>
-        /// <param name="_timeDelta">возможный модуль отклонения по времени от съемки в надир</param>
-        /// <param name="_rollAngle">крен для съемки в надир</param>
-        /// <param name="_pitchArray">Массив, ставящий в соответствие упреждение по времени значению угла тангажа</param>
-        /// <param name="_square">площадь полосы</param>
+        /// <param name="_dateTo">время конца для съемки в надир</param> 
+        /// <param name="_rollAngle">крен для съемки c нулевым тангажом</param>  
         /// <param name="_orders">список заказов</param>
-        /// <param name="_type">тип конфигурации: 1-- съемка, 2 -- сброс, 0 -- удаление, 3 -- съемка со сброосом</param>        
+        /// <param name="_confType">тип конфигурации: 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом</param>        
+        /// <param name="_connectedRoute">связанные мрашруты</param>
         public CaptureConf(
             DateTime _dateFrom,
             DateTime _dateTo,
@@ -140,14 +138,14 @@ namespace OptimalChain
             int _confType,
             Tuple<int, int> _connectedRoute)
         {
-            if (mOrders == null)
+            if (_orders == null)
                 throw new ArgumentException("Orders array can not be empty");
 
-            if (mOrders.Count == 0)
+            if (_orders.Count == 0)
                 throw new ArgumentException("Orders array can not be empty");
 
-            mShootingChannel = mOrders[0].request.requestChannel;
-            mShootingType = mOrders[0].request.shootingType;
+            mShootingChannel = _orders[0].request.requestChannel;
+            mShootingType = _orders[0].request.shootingType;
 
             foreach (var order in _orders)
             {
