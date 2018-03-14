@@ -34,6 +34,7 @@ namespace SphericalGeom
 
         private bool knowCounterclockwise;
         private bool counterclockwise;
+        private bool knowAreaOrientation;
 
         private bool knowMiddle;
         private Vector3D middle;
@@ -70,28 +71,32 @@ namespace SphericalGeom
         {
             get
             {
-                if (!knowArea)
-                {
-                    area = 0;
-                    if (Count > 2)
-                    {
-                        double ang;
-                        for (int i = 0; i < Count; ++i)
-                        {
-                            ang = RotationAngleWithNextArc(i);
-                            if (!IsCounterclockwise)
-                                ang *= -1;
-                            area += ang;
-                            if (IsCounterclockwise == arcs[i].Counterclockwise)
-                                area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
-                            else
-                                area -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
-                        }
-                        area = Math.Min(2 * Math.PI - area, 2 * Math.PI + area);
-                    }
-                    knowArea = true;
-                }
+                if (!knowAreaOrientation)
+                    SetAreaOrientation();
                 return area;
+                //if (!knowArea)
+                //{
+                //    area = 0;
+                //    if (Count > 2)
+                //    {
+                //        double ang;
+                //        for (int i = 0; i < Count; ++i)
+                //        {
+                //            ang = RotationAngleWithNextArc(i);
+                //            if (!IsCounterclockwise)
+                //                ang *= -1;
+                //            area += ang;
+                //            if (IsCounterclockwise == arcs[i].Counterclockwise)
+                //                area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                //            else
+                //                area -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                //        }
+                //        area = 2 * Math.PI - area;
+                //        //area = Math.Min(2 * Math.PI - area, 2 * Math.PI + area);
+                //    }
+                //    knowArea = true;
+                //}
+                //return area;
             }
         }
         public Vector3D Middle
@@ -109,50 +114,58 @@ namespace SphericalGeom
                 }
                 return middle;
             }
+            private set // USE WITH CARE ONLY FOR BIG POLYS LIKE HEMISPHERES
+            {
+                knowMiddle = true;
+                middle = value;
+            }
         }
         public bool IsCounterclockwise
         {
             get
             {
-                if (!knowCounterclockwise)
-                {
-                    if (Count < 3)
-                        // Convention.
-                        counterclockwise = true;
-                    else
-                    {
-                        /// Pick a vertex.
-                        /// We want to choose a search direction and check, whether
-                        /// a semiarc from the vertex in the direction intersects the polygon's interior.
-                        /// Two distinct cases exist:
-                        /// 
-                        /// 1. If there is a nonzero rotation at the vertex,
-                        /// then take the angle's bisector.
-                        /// 2. If there is no rotation (i.e. curve is smooth at the vertex),
-                        /// we pick CrossProduct(tangent, normal).
-                        double exteriorAngle = RotationAngleWithNextArc(0);
-
-                        Vector3D dir;
-                        bool rotation = !Comparison.IsZero(exteriorAngle);
-                        if (rotation)
-                            dir = Arcs[1].TangentA - Arcs[0].TangentB;
-                        else
-                            dir = Vector3D.CrossProduct(Arcs[0].TangentB, vertices[1]);
-                        dir.Normalize();
-                        /// 1e-10 precision is more than enough for real Earth regions
-                        /// (corresponds to cm)
-                        double t = 1e-10;
-                        Vector3D pointInside = vertices[1] + t * dir;
-                        pointInside.Normalize();
-                        bool inside = Contains(pointInside);
-                        if (rotation)
-                            counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
-                        else
-                            counterclockwise = inside;
-                    }
-                    knowCounterclockwise = true;
-                }
+                if (!knowAreaOrientation)
+                    SetAreaOrientation();
                 return counterclockwise;
+                //if (!knowCounterclockwise)
+                //{
+                //    if (Count < 3)
+                //        // Convention.
+                //        counterclockwise = true;
+                //    else
+                //    {
+                //        /// Pick a vertex.
+                //        /// We want to choose a search direction and check, whether
+                //        /// a semiarc from the vertex in the direction intersects the polygon's interior.
+                //        /// Two distinct cases exist:
+                //        /// 
+                //        /// 1. If there is a nonzero rotation at the vertex,
+                //        /// then take the angle's bisector.
+                //        /// 2. If there is no rotation (i.e. curve is smooth at the vertex),
+                //        /// we pick CrossProduct(tangent, normal).
+                //        double exteriorAngle = RotationAngleWithNextArc(0);
+
+                //        Vector3D dir;
+                //        bool rotation = !Comparison.IsZero(exteriorAngle);
+                //        if (rotation)
+                //            dir = Arcs[1].TangentA - Arcs[0].TangentB;
+                //        else
+                //            dir = Vector3D.CrossProduct(Arcs[0].TangentB, vertices[1]);
+                //        dir.Normalize();
+                //        /// 1e-10 precision is more than enough for real Earth regions
+                //        /// (corresponds to cm)
+                //        double t = 1e-10;
+                //        Vector3D pointInside = vertices[1] + t * dir;
+                //        pointInside.Normalize();
+                //        bool inside = Contains(pointInside);
+                //        if (rotation)
+                //            counterclockwise = Comparison.IsPositive(exteriorAngle) == inside;
+                //        else
+                //            counterclockwise = inside;
+                //    }
+                //    knowCounterclockwise = true;
+                //}
+                //return true;// counterclockwise;
             }
         }
         #endregion
@@ -167,6 +180,7 @@ namespace SphericalGeom
             knowWtk = false;
             knowArea = false;
             knowCounterclockwise = false;
+            knowAreaOrientation = false;
             knowMiddle = false;
         }
         public Polygon(IEnumerable<Vector3D> vertices, IEnumerable<Vector3D> apexes)
@@ -269,23 +283,43 @@ namespace SphericalGeom
         {
             Polygon[] lobes = new Polygon[4];
 
-            Vector3D Zp = new Vector3D(0, 0, 1);
-            Vector3D Zm = new Vector3D(0, 0, -1);
-            Vector3D Xp = new Vector3D(1, 0, 0);
-            Vector3D Xm = new Vector3D(-1, 0, 0);
+            double h = 1e-2, z = Math.Sqrt(1 - 2*h*h);
+            Vector3D N = new Vector3D(Math.Sqrt(2)*h, 0, z);
+            Vector3D S = new Vector3D(Math.Sqrt(2) * h, 0, -z);
+            Vector3D X = new Vector3D(1, 0, 0);
             Vector3D Yp = new Vector3D(0, 1, 0);
             Vector3D Ym = new Vector3D(0, -1, 0);
+            Vector3D N_Yp = new Vector3D(-h, h, z);
+            Vector3D N_Ym = new Vector3D(-h, -h, z);
+            Vector3D S_Yp = new Vector3D(-h, h, -z);
+            Vector3D S_Ym = new Vector3D(-h, -h, -z);
+            Vector3D Xm_Yp = new Vector3D(-Math.Sqrt(1 - h * h), h, 0);
+            Vector3D Xm_Ym = new Vector3D(-Math.Sqrt(1 - h * h), -h, 0);
 
-            lobes[0] = new Polygon(new List<Vector3D> { Zp, Xp, Zm, Yp });
-            lobes[1] = new Polygon(new List<Vector3D> { Zp, Yp, Zm, Xm });
-            lobes[2] = new Polygon(new List<Vector3D> { Zp, Xm, Zm, Ym });
-            lobes[3] = new Polygon(new List<Vector3D> { Zp, Ym, Zm, Xp });
-
-            //Polygon[] lobes = new Polygon[2]
-            //{
-            //    Hemisphere(new Vector3D(1, 0, 0)),
-            //    Hemisphere(new Vector3D(-1, 0, 0))
-            //};
+            lobes[0] = new Polygon(
+                new List<Vector3D> { N, Yp, S, S_Yp, Xm_Yp, N_Yp },
+                new List<Vector3D> 
+                { 
+                    new Vector3D(),
+                    new Vector3D(),
+                    new Vector3D(0, 0, -z),
+                    new Vector3D(0, h, 0),
+                    new Vector3D(0, h, 0),
+                    new Vector3D(0, 0, z)
+                });
+            lobes[1] = new Polygon(
+                new List<Vector3D> { N, Ym, S, S_Ym, Xm_Ym, N_Ym },
+                new List<Vector3D>
+                { 
+                    new Vector3D(),
+                    new Vector3D(),
+                    new Vector3D(0, 0, -z),
+                    new Vector3D(0, -h, 0),
+                    new Vector3D(0, -h, 0),
+                    new Vector3D(0, 0, z)
+                });
+            lobes[2] = new Polygon(new List<Vector3D> { N, X, S, Yp });
+            lobes[3] = new Polygon(new List<Vector3D> { N, X, S, Ym });
 
             List<Polygon> res = new List<Polygon>();
             for (int i = 0; i < lobes.Length; ++i)
@@ -483,6 +517,30 @@ namespace SphericalGeom
         }
  
         #region Polygon private methods
+        private void SetAreaOrientation()
+        {
+            area = 0;
+            // Compute area as if counterclockwise.
+            for (int i = 0; i < Count; ++i)
+            {
+                area += RotationAngleWithNextArc(i);
+                if (arcs[i].Counterclockwise)
+                    area += arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+                else
+                    area -= arcs[i].CentralAngle * arcs[i].Radius * arcs[i].GeodesicCurvature;
+            }
+            area = 2 * Math.PI - area;
+
+            if (Comparison.IsSmaller(area, 2 * Math.PI))
+                counterclockwise = true;
+            else
+            {
+                area = 4 * Math.PI - area;
+                counterclockwise = false;
+            }
+            knowAreaOrientation = true;
+        }
+
         private double RotationAngleWithNextArc(int curArcInd)
         {
             int nextArcInd = (curArcInd == Count - 1) ? 0 : (curArcInd + 1);
