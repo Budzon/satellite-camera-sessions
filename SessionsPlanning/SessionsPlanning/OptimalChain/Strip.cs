@@ -94,9 +94,8 @@ namespace OptimalChain
         public string wktPolygon { get { return mWktPolygon; } } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
         public List<Order> orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
         public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
-
-        public double timeDelta { get; set; }// возможный модуль отклонения по времени от съемки в надир. 
-        public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
+        public double timeDelta { get { return mTimeDelta; } }// возможный модуль отклонения по времени от съемки в надир. 
+        public Dictionary<double, double> pitchArray { get { return mPitchArray; } } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
 
         private List<Order> mOrders;
         private double mSquare;
@@ -108,6 +107,8 @@ namespace OptimalChain
         private DateTime mDateFrom;
         private DateTime mDateTo;
         private double mRollAngle;
+        private double mTimeDelta;
+        private Dictionary<double, double> mPitchArray;
 
         public void setPolygon(SphericalGeom.Polygon pol)
         {
@@ -117,8 +118,8 @@ namespace OptimalChain
 
         public void setPitchDependency(Dictionary<double, double> _pitchArray, double _timeDelta)
         {
-            pitchArray = _pitchArray;
-            timeDelta = _timeDelta;
+            mPitchArray = _pitchArray;
+            mTimeDelta = _timeDelta;
         }
 
         /// <summary>
@@ -161,8 +162,8 @@ namespace OptimalChain
             mRollAngle = _rollAngle;
             mConfType = _confType;
             mConnectedRoute = _connectedRoute;
-            pitchArray = new Dictionary<double, double>();
-            timeDelta = 0;
+            mPitchArray = new Dictionary<double, double>();
+            mTimeDelta = 0;
         }
 
 
