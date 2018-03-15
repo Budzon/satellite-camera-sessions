@@ -258,11 +258,8 @@ namespace SatelliteSessions
                     throw new Exception("No trajectory data.");
                 }
                 Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-                Vector3D eDirVect = -KAbegin.Position.ToVector(); ;
-                RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(KAbegin.Velocity, AstronomyMath.ToDegrees(inpParameters.ShootingConf.roll)));
-                RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(Vector3D.CrossProduct(KAbegin.Velocity, eDirVect), AstronomyMath.ToDegrees(inpParameters.ShootingConf.pitch)));
-                Vector3D lookAt = rollTransform.Transform(pitchTransform.Transform(eDirVect));
-                Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(SphericalGeom.Routines.SphereVectIntersect(lookAt, KAbegin.Position, Astronomy.Constants.EarthRadius));
+                Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
+                    KAbegin, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
 
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
@@ -296,7 +293,10 @@ namespace SatelliteSessions
 
 
                     double l1, l2, b1, b2, s1, s2, s3;
-                    SphericalGeom.Routines.GetCoridorParams(KAbegin, p1_.Value, p2_.Value, p3_.Value, out b1, out b2, out l1, out l2, out s1, out s2, out s3);
+                    SphericalGeom.Routines.GetCoridorParams(
+                        KAbegin, p1_.Value, p2_.Value, p3_.Value, 
+                        parameters.ShootingConf.roll, parameters.ShootingConf.pitch, 
+                        out b1, out b2, out l1, out l2, out s1, out s2, out s3);
                     Polinomial_Coeff = new PolinomCoef
                     {
                         L1 = l1,
