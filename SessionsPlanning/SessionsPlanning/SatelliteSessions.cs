@@ -1024,20 +1024,12 @@ namespace SatelliteSessions
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
-
-
             double minMaxSoenAngle = conf.orders.Min(order => order.request.Max_SOEN_anlge);
 
-            double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
+            if (minMaxSoenAngle > OptimalChain.Constants.max_pitch_angle) 
+                minMaxSoenAngle = OptimalChain.Constants.max_pitch_angle;
 
-
-            foreach (var req in conf.orders)
-            {
-                if (req.request.Max_SOEN_anlge < maxAngle)
-                    maxAngle = req.request.Max_SOEN_anlge;
-            }
-
-            double maxPitchAngle = Math.Abs(maxAngle) - Math.Abs(rollAngle);
+            double maxPitchAngle = Math.Abs(minMaxSoenAngle) - Math.Abs(rollAngle);
             double timeDelta;
             if (0 == maxPitchAngle)
             {
