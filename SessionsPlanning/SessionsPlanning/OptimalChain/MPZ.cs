@@ -103,7 +103,7 @@ namespace OptimalChain
 
         public StaticConf ShootingConf { get; set; }
 
-        public List<RouteParams> binded_routes { get; set; }
+        public Tuple<int,int> binded_route { get; set; }
 
         public int File_Size { get; set; } //объем файла в Мб
 
@@ -119,18 +119,18 @@ namespace OptimalChain
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_routes = null;
+            binded_route = null;
             File_Size = fs;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br, int st = 0, string channel = "pk", int fs = 0)
+        public RouteParams(int t, DateTime d1, DateTime d2,Tuple<int,int>  br, int st = 0, string channel = "pk", int fs = 0)
         {
             type = t;
             shooting_channel = channel;
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_routes = br;
+            binded_route = br;
             File_Size = fs;
         }
 
@@ -139,7 +139,7 @@ namespace OptimalChain
             type = c.type;
             start = c.dateFrom;
             end = c.dateTo;
-            binded_routes = null;
+            binded_route = c.connected_route;
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
             shooting_type = c.shooting_type;
