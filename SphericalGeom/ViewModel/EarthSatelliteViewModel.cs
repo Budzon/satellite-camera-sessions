@@ -711,8 +711,11 @@ namespace ViewModel
             ///12.03.2015
             //  по 
             //14.03.2015
-            reqparams.timeFrom = new DateTime(2000, 1, 1);
-            reqparams.timeTo = new DateTime(2020, 1, 1);
+            DateTime dt1 = new DateTime(2019, 1, 4);
+            DateTime dt2 = new DateTime(2025, 3, 14);
+
+            reqparams.timeFrom = dt1; // new DateTime(2000, 1, 1);
+            reqparams.timeTo = dt2; // new DateTime(2020, 1, 1);
             reqparams.wktPolygon = curRequest.ToWtk();
             reqparams.minCoverPerc = 0.4;
             reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
@@ -722,7 +725,7 @@ namespace ViewModel
 
             double isfes;
             List<CaptureConf> possibleConfs;
-            Sessions.isRequestFeasible(reqparams, new DateTime(2015, 3, 12, 7, 5, 5), new DateTime(2015, 3, 12, 8, 25, 5), managerDB, out isfes, out possibleConfs);
+            Sessions.isRequestFeasible(reqparams, dt1, dt2, managerDB, out isfes, out possibleConfs);
             Console.WriteLine(isfes);
         }
 

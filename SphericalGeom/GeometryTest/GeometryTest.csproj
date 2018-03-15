@@ -76,6 +76,9 @@
     <Compile Include="TrajectoryStripTest.cs" />
     <Compile Include="GeneralTest.cs" />
     <Compile Include="CreateSessionTest.cs" />
+    <Compile Include="RoutesAndMPZTest.cs" />
+    <Compile Include="TimeOperationsTest.cs" />
+    <Compile Include="CofigurationsTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">

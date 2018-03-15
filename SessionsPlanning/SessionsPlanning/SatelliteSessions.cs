@@ -26,12 +26,12 @@ namespace SatelliteSessions
     {
         public CommunicationSession()
         {
-            routesToReset = new List<RouteMPZ>();
+            routesToDrop = new List<RouteMPZ>();
         }
         /// <summary>
         ///  Id антенны
         /// </summary>
-        public int antennaId { get; set; }
+        public string nkpoiType { get; set; } // "MIGS" or "FIGS"
         /// <summary>
         ///  Время начала 7-градусной зоныc
         /// </summary>
@@ -51,7 +51,7 @@ namespace SatelliteSessions
         /// <summary>
         /// Список маршрутов на сброс, участвующих в этом сеансе 
         /// </summary>
-        public List<RouteMPZ> routesToReset { get; set; }
+        public List<RouteMPZ> routesToDrop { get; set; }
     }
 
     public class Sessions
@@ -77,10 +77,25 @@ namespace SatelliteSessions
             possibleConfs = viewLane.getCaptureConfs(request);
             double summ = 0;
 
-            List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
+            /////// @todo костыль ////////////
             foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.orders)
+                {
+                    summ += order.intersection_coeff;
+                }
+            }
+            if (summ > 1)
+                summ = 1;
+
+            coverage = summ;
+            ///////////////////////////
+            /*
+            List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
+ 
+            foreach (var conf in possibleConfs)
+            {
+                foreach (var order in conf.Orders)
                 {
                     var notCoveredBefore = new List<SphericalGeom.Polygon>();
                     var toBeCoveredAfter = new List<SphericalGeom.Polygon>();
@@ -102,6 +117,7 @@ namespace SatelliteSessions
                 }
             }
             coverage = summ;
+            */
         }
 
         private static void getCaptureConfArrayForTrajectory(IList<RequestParams> requests, Trajectory trajectory, List<CaptureConf> captureConfs)
@@ -142,10 +158,8 @@ namespace SatelliteSessions
                     TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
                     TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
 
-                    conf.wktPolygon = pol.ToWtk();
-                    conf.square = pol.Area;
-                    conf.rollAngle = rollAngle;
-
+                    conf.setPolygon(pol);
+                    
                     calculatePitchArrays(conf, rollAngle, pointFrom);
                 }
                 captureConfs.AddRange(laneCaptureConfs);
@@ -192,6 +206,7 @@ namespace SatelliteSessions
  
             return captureConfs;
         }
+         
 
         /// <summary>
         /// Планирование в автоматическом режиме
@@ -201,7 +216,7 @@ namespace SatelliteSessions
         /// <param name="timeTo">Время конца промежутка планирования</param>
         /// <param name="silentRanges">Список интервалов времени , в которые нельзя сбрасывать данные в СНКПОИ и/или МНКПОИ</param>
         /// <param name="inactivityRanges">Список интервалов, когда нельзя проводить съемку</param>
-        /// <param name="routesToReset">Перечень маршрутов на сброс</param>
+        /// <param name="routesToDrop">Перечень маршрутов на сброс</param>
         /// <param name="routesToDelete">Перечень маршрутов на удаление</param>
         /// <param name="managerDB">параметры взаимодействия с БД</param>
         /// <param name="mpzArray">Набор МПЗ</param>
@@ -212,16 +227,54 @@ namespace SatelliteSessions
             , DateTime timeTo
             , List<Tuple<DateTime, DateTime>> silentRanges
             , List<Tuple<DateTime, DateTime>> inactivityRanges
-            , List<RouteMPZ> routesToReset
+            , List<RouteMPZ> routesToDrop
             , List<RouteMPZ> routesToDelete
             , DIOS.Common.SqlManager managerDB
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
         {
-            List<CaptureConf> captureConfs = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges);
-            ///@todo реализовать всё, что касается параметров silentRanges, inactivityRanges, routesToReset, routesToDelete,  sessions
+            List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges);
+            ///@todo реализовать всё, что касается параметров silentRanges, routesToReset, routesToDelete
+         
+            List<CaptureConf> confsToDelete = getConfsToDelete(routesToDelete, timeFrom, timeTo);
+            confsToDelete.Sort(delegate(CaptureConf conf1, CaptureConf conf2) { return conf1.dateFrom.CompareTo(conf2.dateTo); }); // сортируем по времени завершения
+            
+            List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = confsToCapture.Select(conf => new Tuple<DateTime, DateTime>(conf.dateFrom, conf.dateTo)).ToList();
+            silentAndCaptureRanges.AddRange(silentRanges);
 
-            Graph graph = new Graph(captureConfs);
+            if (confsToDelete.Count > 0) // если есть конигурации на удаление, нам с ними нельзя пересекаться.
+            {
+                DateTime deleteTimeTo = confsToDelete.Last().dateTo;
+                if (timeFrom != deleteTimeTo)
+                    silentAndCaptureRanges.Add(new Tuple<DateTime, DateTime>(timeFrom, deleteTimeTo));
+            }
+            silentAndCaptureRanges = compressTimeRanges(silentAndCaptureRanges);
+
+            List<CommunicationSession> snkpoiSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
+            List<CommunicationSession> mnkpoiSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
+
+            List<CommunicationSession> nkpoiSessions = new List<CommunicationSession>();
+            nkpoiSessions.AddRange(snkpoiSessions);
+            nkpoiSessions.AddRange(mnkpoiSessions);
+
+            List<Tuple<DateTime, DateTime>> freeRanges = new List<Tuple<DateTime, DateTime>>();            
+            foreach (var session in nkpoiSessions)
+            {
+                var timeSpan = new Tuple<DateTime, DateTime>(session.Zone5timeFrom, session.Zone5timeTo);
+                List<Tuple<DateTime, DateTime>> freeRangesForSession = getFreeTimeRanges(timeSpan, silentAndCaptureRanges);
+                freeRanges.AddRange(freeRangesForSession);
+            }
+            freeRanges = compressTimeRanges(freeRanges);
+            freeRanges = freeRanges.OrderByDescending(range => (range.Item2 - range.Item1).TotalSeconds).ToList();
+
+            List<CaptureConf> confsToDrop = getConfsToDrop(routesToDrop, freeRanges);
+
+            List<CaptureConf> allConfs = new List<CaptureConf>();
+            allConfs.AddRange(confsToDelete);
+            allConfs.AddRange(confsToDrop);
+            allConfs.AddRange(confsToCapture);
+
+            Graph graph = new Graph(allConfs);
             List<OptimalChain.MPZParams> mpz_params = graph.findOptimalChain();
             mpzArray = new List<MPZ>();
             foreach (var mpz_param in mpz_params)
@@ -230,13 +283,7 @@ namespace SatelliteSessions
             }
 
             sessions = new List<CommunicationSession>();
-
-            List<CommunicationSession> snkpoiSessions = new List<CommunicationSession>();
-            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, snkpoiSessions);
-
-            List<CommunicationSession> mnkpoiSessions = new List<CommunicationSession>();
-            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, mnkpoiSessions);
-
+             
             foreach (var mpz_param in mpz_params)
             {
                 List<RouteParams> dropRoutes = mpz_param.routes.Where(route => route.type == 2).ToList();
@@ -247,9 +294,134 @@ namespace SatelliteSessions
                 sessions.AddRange(sSessions);
                 sessions.AddRange(mSessions);
             }
-
         }
 
+        public static List<CaptureConf> getConfsToDrop(List<RouteMPZ> routesToDrop, List<Tuple<DateTime, DateTime>> freeRanges)
+        {
+            List<CaptureConf> res = new List<CaptureConf>();
+            double summFreeTime = freeRanges.Sum(range => (range.Item2 - range.Item1).TotalSeconds);
+
+            int prevRouteInd = 0;
+            foreach (var range in freeRanges)
+            {
+                double curTime = (range.Item2 - range.Item1).TotalSeconds;
+                int numRoutes = (int)(routesToDrop.Count * curTime / summFreeTime);
+
+                double sumDropTime = routesToDrop.Sum(route => route.Parameters.getDropTime());
+
+                DateTime spanCentre = range.Item1.AddSeconds(curTime / 2); // середина отрезка
+                DateTime dropFrom = spanCentre.AddSeconds(sumDropTime / 2); // время начала сброса (без учёта дельты)
+
+                DateTime prevTime = dropFrom;
+                for (int i = prevRouteInd; i < prevRouteInd + numRoutes; i++)
+                {
+                    var route = routesToDrop[i];
+                    double roll = route.Parameters.ShootingConf.roll;
+                    var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
+                    DateTime dropTimeTo = prevTime.AddSeconds(route.Parameters.getDropTime());
+                    CaptureConf newConf = new CaptureConf(prevTime, dropTimeTo, roll, new List<Order>(route.Parameters.ShootingConf.orders), 2, connectedRoute);
+
+                    DateTime dropTimeCentre = prevTime.AddSeconds(route.Parameters.getDropTime() / 2);
+                    double timeDelta = Math.Min((dropTimeCentre - range.Item1).TotalSeconds, (range.Item2 - dropTimeCentre).TotalSeconds);
+                    newConf.setPitchDependency(new Dictionary<double, double>(), timeDelta);
+                    res.Add(newConf);
+                }
+                prevRouteInd = prevRouteInd + numRoutes - 1;
+            }
+            return res;
+        }
+
+        public static List<CaptureConf> getConfsToDelete(List<RouteMPZ> routesToDelete, DateTime timeFrom, DateTime timeTo)
+        {
+            List<CaptureConf> res = new List<CaptureConf>();
+
+            DateTime prevDeleteTime = timeFrom;
+            List<CaptureConf> confsToDelete = new List<CaptureConf>();
+            int deleteInd = 1;
+            foreach (RouteMPZ route in routesToDelete)
+            {
+                DateTime confTimeTo = prevDeleteTime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
+
+                //if (confTimeTo > confsDateFrom) // началась съемка.
+                //{
+                    // вроде ничего от этого не меняется? @todo
+                //}
+
+                double roll = route.Parameters.ShootingConf.roll;
+                var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
+                CaptureConf newConf = new CaptureConf(prevDeleteTime, confTimeTo, roll, new List<Order>(), 2, connectedRoute);
+                res.Add(newConf);
+
+                if (deleteInd == 12)
+                {
+                    prevDeleteTime = confTimeTo.AddSeconds(OptimalChain.Constants.bigDeleteInterval);
+                    deleteInd = 1;
+                }
+                else
+                {
+                    prevDeleteTime = confTimeTo.AddSeconds(OptimalChain.Constants.smallDeleteInterval);
+                    deleteInd++;
+                }
+            } 
+
+            return res;
+        }
+         
+        
+        public static List<Tuple<DateTime, DateTime>> getFreeTimeRanges(Tuple<DateTime, DateTime> timeSpan, List<Tuple<DateTime, DateTime>> forbiddenRanges)
+        {
+            List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = compressTimeRanges(forbiddenRanges);
+            return invertTimeSpans(compressedSilentAndCaptureRanges, timeSpan.Item1, timeSpan.Item2);  
+        }
+
+        public static List<Tuple<DateTime, DateTime>> compressTimeRanges(List<Tuple<DateTime, DateTime>> silentRanges)
+        {
+            // соеденим пересекающиеся диапазоны
+            List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>(silentRanges);
+            compressedSilentAndCaptureRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
+            List<Tuple<DateTime, DateTime>> res = new List<Tuple<DateTime, DateTime>>();
+
+            for (int i = 0; i < compressedSilentAndCaptureRanges.Count; i++)
+            {
+                var curRange = compressedSilentAndCaptureRanges[i];
+                for (int j = i+1; j < compressedSilentAndCaptureRanges.Count; j++)
+                {
+                    var comRange = compressedSilentAndCaptureRanges[j];
+                    if (curRange.Item1 <= comRange.Item1 && comRange.Item1 <= curRange.Item2 ||
+                        curRange.Item1 <= comRange.Item2 && comRange.Item2 <= curRange.Item2)
+                    {
+                        var itemFrom = curRange.Item1 < comRange.Item1 ? curRange.Item1 : comRange.Item1;
+                        var itemTo = curRange.Item2 > comRange.Item2 ? curRange.Item2 : comRange.Item2;
+                        curRange = new Tuple<DateTime, DateTime>(itemFrom, itemTo);
+                        compressedSilentAndCaptureRanges.Remove(comRange);
+                        j--;
+                    }
+                }
+                res.Add(curRange);
+            }
+            return res;
+        }
+
+        public static List<Tuple<DateTime, DateTime>> invertTimeSpans(List<Tuple<DateTime, DateTime>> inputSpans, DateTime timeFrom, DateTime timeTo)
+        {
+            inputSpans.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
+
+            List<Tuple<DateTime, DateTime>> res = new List<Tuple<DateTime, DateTime>>();
+
+            DateTime firstDt = timeFrom;
+
+            foreach (var timeSpan in inputSpans)
+            {
+                if (firstDt != timeSpan.Item1)
+                    res.Add(new Tuple<DateTime, DateTime>(firstDt, timeSpan.Item1));
+                firstDt = timeSpan.Item2;
+            }
+
+            if (firstDt != timeTo)
+                res.Add(new Tuple<DateTime, DateTime>(firstDt, timeTo));
+
+            return res;
+        }
 
         private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
         {
@@ -261,7 +433,7 @@ namespace SatelliteSessions
                     if (session.Zone7timeFrom <= route.start &&
                          route.end <= session.Zone7timeTo)
                     {
-                        session.routesToReset.Add(new RouteMPZ(route));
+                        session.routesToDrop.Add(new RouteMPZ(route));
                         routes.Remove(route);
                         success = true;
                         break;
@@ -275,7 +447,7 @@ namespace SatelliteSessions
                         if (session.Zone7timeFrom <= route.start &&
                              route.end <= session.Zone7timeTo)
                         {
-                            session.routesToReset.Add(new RouteMPZ(route));
+                            session.routesToDrop.Add(new RouteMPZ(route));
                             nkpoiSessions.Remove(session);
                             routes.Remove(route);
                             break;
@@ -285,6 +457,34 @@ namespace SatelliteSessions
 
             }
         }
+
+
+        /// <summary>
+        /// Создание ПНб по набору маршрутов
+        /// </summary>
+        /// <param name="routesParams"> Набор маршрутов RouteParams</param>
+        /// <returns> набор МПЗ, созданный из маршутов</returns>
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
+        {
+            List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
+
+            List<MPZ> res = new List<MPZ>();
+            List<RouteMPZ> routesTemp = new List<RouteMPZ>();
+            for (int i = 0; i < routes.Count; i++)
+            {
+                routesTemp.Add(routes[i]);
+                if (routesTemp.Count == 12 || i == routes.Count - 1)
+                {
+                    res.Add(new MPZ(routesTemp));
+                    routesTemp = new List<RouteMPZ>();
+                }
+            }
+
+            return res;
+        }
+
+
+
         /// <summary>
         /// Рассчитать полигон съемки/видимости для заданной конфигурации СОЭНc
         /// </summary>
@@ -683,8 +883,8 @@ namespace SatelliteSessions
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
                     tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
-                    tempSession.routesToReset = new List<RouteMPZ>();
-                    tempSession.antennaId = zone.IdNumber;
+                    tempSession.routesToDrop = new List<RouteMPZ>();
+                    //tempSession.antennaId = zone.IdNumber;
                     sessions.Add(tempSession);
                     tempSession = new CommunicationSession();
                 }
@@ -695,26 +895,31 @@ namespace SatelliteSessions
         }
 
 
-        private static void getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<CommunicationSession> sessions)
+        private static List<CommunicationSession> getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
             DataFetcher fetcher = new DataFetcher(managerDB);
             CommunicationZoneSNKPOI sZone;
             getSNKPOICommunicationZones(managerDB, out sZone);
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
             getSessionFromZone(sZone, fullTrajectory, sessions);
+            foreach (var sess in  sessions)            
+                sess.nkpoiType = "FIGS";
+            
+            return sessions;
         }
 
-        private static void getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<CommunicationSession> sessions)
+        private static List<CommunicationSession> getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
         {
+            List<CommunicationSession> sessions = new List<CommunicationSession>();
             DataFetcher fetcher = new DataFetcher(managerDB);
-
             List<CommunicationZoneMNKPOI> mZones;
             getMNKPOICommunicationZones(managerDB, timeFrom, timeTo, out mZones);
 
             if (mZones == null)
-                return;
+                return new List<CommunicationSession>();
             if (mZones.Count == 0)
-                return;
+                return new List<CommunicationSession>();
 
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
@@ -729,6 +934,11 @@ namespace SatelliteSessions
 
                 getSessionFromZone(zone, trajectory, sessions);
             }
+
+            foreach (var sess in sessions)            
+                sess.nkpoiType = "MIGS";
+            
+            return sessions;
         }
 
         /// <summary>
@@ -738,10 +948,12 @@ namespace SatelliteSessions
         /// <param name="timeTo">Конец временного отрезка</param>
         /// <returns>Все возможные сеансы связи за это время</returns>
         public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
-        {
+        {            
+            List<CommunicationSession> snkpoSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
+            List<CommunicationSession> mnkpoSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> sessions = new List<CommunicationSession>();
-            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
-            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
+            sessions.AddRange(snkpoSessions);
+            sessions.AddRange(mnkpoSessions);
             return sessions;
         }
 

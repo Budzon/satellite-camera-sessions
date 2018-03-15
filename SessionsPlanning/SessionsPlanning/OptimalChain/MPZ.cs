@@ -107,6 +107,11 @@ namespace OptimalChain
 
         public int File_Size { get; set; } //объем файла в Мб
 
+        public double getDropTime()
+        {
+            return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
+        }
+
         public RouteParams(int t, DateTime d1, DateTime d2, int st=0, string channel ="pk", int fs = 0)
         {
             type = t;
