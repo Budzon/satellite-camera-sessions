@@ -139,6 +139,9 @@ namespace OptimalChain
             int _confType,
             Tuple<int, int> _connectedRoute)
         {
+            if (_dateFrom >= _dateTo)
+                throw new ArgumentException("Incorrect time interval");
+
             if (_orders == null)
                 throw new ArgumentException("Orders array can not be empty");
 

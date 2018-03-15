@@ -181,9 +181,13 @@ namespace SatelliteTrajectory
                             tmax = curTime;
                         }
                     }
+
                     if (outOfRange)
                         break;
-                                       
+                    
+                    if (tmin >= tmax)
+                        continue;
+
                     Order order = new Order();
                     order.captured = int_pol;
                     order.request = request;
@@ -203,11 +207,16 @@ namespace SatelliteTrajectory
             if (Sectors.Count < 1)
                 return null;
 
+            if (begTime >= endTime)
+                throw new ArgumentException("Incorrect time interval");
+
             var lastSector = Sectors[Sectors.Count - 1];
             var lastPoint = lastSector.sectorPoints[lastSector.sectorPoints.Count - 1];
 
             if (Sectors[0].sectorPoints[0].Time > begTime || lastPoint.Time < endTime)
                 throw new System.ArgumentException("Incorrect time interval.");
+
+
 
             List<Vector3D> polygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();

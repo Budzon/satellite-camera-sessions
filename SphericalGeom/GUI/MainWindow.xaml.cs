@@ -120,6 +120,8 @@ namespace GUI
                 {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, polColor, (float)(1 - polColor), 0.0f));
                 }
+                else if (vm.PointInPolygon(p.X, p.Y, p.Z))
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
                 else if (vm.PointInLane(p.X, p.Y, p.Z))
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 else

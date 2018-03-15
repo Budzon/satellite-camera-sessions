@@ -29,56 +29,61 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            List<Polygon> polygons = new List<Polygon>();
-            Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 30; i++)
+            for (int testi = 0; testi < 20; testi++)
             {
-                Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
-                polygons.Add(randpol);
-            }
-
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
-            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
-
-            DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 8);
-
-            DataFetcher fetcher = new DataFetcher(manager);
-            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
-
-            if (trajectory.Count == 0)
-                throw new Exception("На эти даты нет траектории в БД, тест некорректный");
-
-            try
-            {
-                int id = 0;
-                List<RequestParams> requests = new List<RequestParams>();
-                foreach (var pol in polygons)
+                List<Polygon> polygons = new List<Polygon>();
+                Random rand = new Random((int)DateTime.Now.Ticks);
+                for (int i = 0; i < 15; i++)
                 {
-                    RequestParams reqparams = new RequestParams();
-                    reqparams.id = id;
-                    reqparams.timeFrom = dt1;
-                    reqparams.timeTo = dt2;
-                    reqparams.priority = 1;
-                    reqparams.minCoverPerc = 0.4;
-                    reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
-                    reqparams.wktPolygon = pol.ToWtk();
-                    requests.Add(reqparams);
-                    id++;
+                    Polygon randpol = getRandomPolygon(rand, 3, 8, 2, 8);
+                    polygons.Add(randpol);
                 }
-                var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());                
-            }
+                
+                string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-            catch (Exception ex)
-            {
-                Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
-                foreach (var pol in polygons)
-                {                    
-                    Console.WriteLine(pol.ToWtk());
+                DateTime dt1 = new DateTime(2019, 1, 4);
+                DateTime dt2 = new DateTime(2019, 1, 8);
+
+                DataFetcher fetcher = new DataFetcher(manager);
+                Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+                if (trajectory.Count == 0)
+                    throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+
+                try
+                {
+                    int id = 0;
+                    List<RequestParams> requests = new List<RequestParams>();
+                    foreach (var pol in polygons)
+                    {
+                        RequestParams reqparams = new RequestParams();
+                        reqparams.id = id;
+                        reqparams.timeFrom = dt1;
+                        reqparams.timeTo = dt2;
+                        reqparams.priority = 1;
+                        reqparams.minCoverPerc = 0.4;
+                        reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                        reqparams.wktPolygon = pol.ToWtk();
+                        requests.Add(reqparams);
+                        id++;
+                    }
+                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
                 }
-                throw ex;
+
+                catch (Exception ex)
+                {
+                    List<string> lines = new List<string>();
+                    Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
+                    foreach (var pol in polygons)
+                    {
+                        Console.WriteLine(pol.ToWtk());
+                        lines.Add(pol.ToWtk());
+                    }
+                    System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
+                    throw ex;
+                }
             }
-            
         }
 
 
@@ -179,21 +184,15 @@ namespace GeometryTest
                 throw ex;
             }
 
-
-
         }
-
-
-
-                  
-
+         
 
 
         [TestMethod]
         public void TestIsRequestFeasible()
         {
 
-            for (int testi = 0; testi < 10; testi++)
+            for (int testi = 0; testi < 100; testi++)
             {
 
                 List<Polygon> polygons = new List<Polygon>();

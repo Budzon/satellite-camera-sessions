@@ -242,7 +242,10 @@ namespace ViewModel
 
         public bool PointInPolygon(double x, double y, double z)
         {
-            return curRequest.Contains(new Vector3D(x, y, z));
+            if (curRequest != null)
+                return curRequest.Contains(new Vector3D(x, y, z));
+            else
+                return false;
         }
 
         public bool PointInBoundingBox(double x, double y, double z)
@@ -388,7 +391,7 @@ namespace ViewModel
 
             // начальные данные
             double pitchAngle = AstronomyMath.ToRad(30);
-            
+
             var nadirPoint = LanePos.getSurfacePoint(point, 0, 0);
             Vector3D pointPitch = LanePos.getSurfacePoint(point, 0, pitchAngle);
             double h = point.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
@@ -583,8 +586,8 @@ namespace ViewModel
 
             Vector3D dir = LanePos.getDirectionVector(point, rollAngle, pitchAngle);
             var pol1 = Routines.getViewPolygon(point, dir, viewAngle);
-          //  Console.WriteLine(pol1.ToWtk());
-          //  polygons.Add(pol1);
+            //  Console.WriteLine(pol1.ToWtk());
+            //  polygons.Add(pol1);
             //     polygons.Add(getPointPolygon(position, 6));
             // var p = Routines.SphereVectIntersect(dir, point.Position, Astronomy.Constants.EarthRadius);
             // polygons.Add(getPointPolygon(p, 10));
@@ -598,8 +601,8 @@ namespace ViewModel
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
-            string wkt = Sessions.getSOENViewPolygon(dtx, rollAngle: 0, pitchAngle: 0, duration:  1*60*1000, managerDB: manager);            
-            Console.WriteLine(wkt);          
+            string wkt = Sessions.getSOENViewPolygon(dtx, rollAngle: 0, pitchAngle: 0, duration: 1 * 60 * 1000, managerDB: manager);
+            Console.WriteLine(wkt);
 
             //Polygon pol = new Polygon(wkt);
             //polygons.Add(pol);
@@ -617,9 +620,9 @@ namespace ViewModel
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("01.01.2019 0:57:00");
             DateTime dtx2 = DateTime.Parse("13.02.2019 3:57:00");
-            
+
             List<CommunicationZoneMNKPOI> zones;
-            Sessions.getMNKPOICommunicationZones(manager, dtx, dtx2, out zones); 
+            Sessions.getMNKPOICommunicationZones(manager, dtx, dtx2, out zones);
 
             List<CommunicationSession> sessions = Sessions.createCommunicationSessions(dtx, dtx2, manager);
             int i = 3;
@@ -631,7 +634,7 @@ namespace ViewModel
             return;
 
 
-          ////////  testViewPolygon(); 
+            ////////  testViewPolygon(); 
 
             return;
 
@@ -729,11 +732,11 @@ namespace ViewModel
             Console.WriteLine(isfes);
         }
 
- 
+
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
-                         //Random rand = new Random((int)DateTime.Now.Ticks);
+            //Random rand = new Random((int)DateTime.Now.Ticks);
             //for (int i = 0; i < 40; i++)
             //{
             //    Polygon randpol = getRandomPolygon(rand, 3, 10, 5, 15);
@@ -749,16 +752,17 @@ namespace ViewModel
 
             polygons.Clear();
 
-            polygons.Add(new Polygon("POLYGON ((-2 -6, -2 -2, -6 -2, -6 -6, -2 -6))"));
+            polygons.Add(new Polygon("POLYGON ((-2 -4, -2 -2, -4 -2, -4 -4, -2 -4))"));
 
             //polygons.Add(new Polygon("POLYGON ((12 8, 12 12, 8 12, 8 8, 12 8))"));
 
             //polygons.Add(new Polygon("POLYGON ((6 2, 6 6, 2 6, 2 2, 6 2))"));
 
-           // polygons.Add(new Polygon("POLYGON((-29 27,  -23 33 , -21 31, -27 25, -29 27)"));
+            // polygons.Add(new Polygon("POLYGON((-29 27,  -23 33 , -21 31, -27 25, -29 27)"));
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
-            //      polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
+            //     polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
+            //polygons.Add(new Polygon("POLYGON ((1 -1, 1 1, -1 1, -1 -1, 1 -1))"));
             //      polygons.Add(new Polygon("POLYGON ((0 0, 0 4, -4 4, -4 0, 0 0))"));
             //      polygons.Add(new Polygon("POLYGON ((-14 22, -18 26, -22 22, -18 18, -14 22))"));
             //      polygons.Add(new Polygon("POLYGON ((-24 16, -12 28, -16 32, -28 20, -24 16))"));
@@ -769,13 +773,40 @@ namespace ViewModel
             //{       
             //    var pol = new SphericalGeom.Polygon(req.Polygon.Select(sp => GeoPoint.ToCartesian(new GeoPoint(sp.Lat, sp.Lon), 1)), new Vector3D(0, 0, 0));
 
+           // polygons.Add(new Polygon("POLYGON ((106.95738018444 -30.609773998998,106.700176507603 -33.064421050007,110.603738797998 -36.72736549789,111.040933447857 -35.3975779951589,106.95738018444 -30.609773998998))"));
+          //  polygons.Add(new Polygon("POLYGON ((133.41867554681 -11.0582796777856,134.79494602739 -16.8112932429141,141.527607361566 -7.43738453881555,133.41867554681 -11.0582796777856))"));
+            polygons.Add(new Polygon("POLYGON ((138.670930231104 -73.0085047795101,143.14991204937 -83.8960681103823,145.941798919954 -75.7762365711183,138.670930231104 -73.0085047795101))"));
+          //  polygons.Add(new Polygon("POLYGON ((126.708643529393 -5.18327756706429,126.739746677109 -5.39253384427269,138.433146631633 -3.22822909968528,137.855654937064 -2.76997099530497,137.340205104196 -2.46307396240683,126.708643529393 -5.18327756706429))"));
+           // polygons.Add(new Polygon("POLYGON ((-143.260352662219 -83.2068449781505,-143.514471593982 -83.4356344480832,-143.576392802203 -90,-133.829165175185 -89.8117100894023,-132.997685724069 -87.9447040949423,-133.509387302723 -84.6908830347334,-143.260352662219 -83.2068449781505))"));
+           // polygons.Add(new Polygon("POLYGON ((68.8371301436284 64.5679742254139,78.1675312294433 65.5242184669642,74.2848812648429 66.6953759634614,68.8371301436284 64.5679742254139))"));
+           // polygons.Add(new Polygon("POLYGON ((-55.8885998929106 -51.0299184009157,-59.6660285951263 -53.3592811563356,-60.998245640736 -57.1388000817364,-47.4972819949729 -59.295121154378,-49.1270533296085 -52.5489538484122,-52.6093146844346 -50.9235872173843,-55.8885998929106 -51.0299184009157))"));
+           // polygons.Add(new Polygon("POLYGON ((56.5653703288219 69.7182063183484,59.1705391644263 67.225426956238,63.7461199642006 66.4286120063546,67.4258940485706 67.5465288182627,69.6882614283301 70.7278221689149,56.5653703288219 69.7182063183484))"));
+           // polygons.Add(new Polygon("POLYGON ((26.8338545786005 78.2610774769097,29.7522575089587 78.4741186461335,28.3276502452736 85.8875266545802,26.8338545786005 78.2610774769097))"));
+           // polygons.Add(new Polygon("POLYGON ((-148.413059539385 60.6528298133914,-144.595795884903 59.4715669443149,-137.99680556921 59.7291907557153,-148.413059539385 60.6528298133914))"));
+           // polygons.Add(new Polygon("POLYGON ((139.414808620807 42.8765727046178,137.127415045697 37.8230626726055,137.531307137287 33.8516656011559,138.848270314871 31.4934729642023,141.593130765639 31.9864673372116,142.559851317366 34.1804613176344,139.414808620807 42.8765727046178))"));
+          //  polygons.Add(new Polygon("POLYGON ((89.3463480833278 75.3563418684926,90.17789290387 73.507015483096,95.5213484607249 72.2117366912906,97.5895423180327 72.5056315730144,98.9744831080816 72.9929570395977,100.617063460934 75.4759080001207,89.3463480833278 75.3563418684926))"));
+          //  polygons.Add(new Polygon("POLYGON ((26.8138989934746 84.5757037848601,25.7066986554876 83.2716031647492,25.460553718472 75.4250840084123,25.6987497258697 74.74736526883,26.8138989934746 84.5757037848601))"));
+          //  polygons.Add(new Polygon("POLYGON ((-143.509603288707 -73.6057989450235,-141.58042591158 -75.247277729637,-138.2208107487 -75.1495515529046,-137.113190686083 -63.6670184451398,-139.657280048046 -62.4161633983284,-143.509603288707 -73.6057989450235))"));
+          //  polygons.Add(new Polygon("POLYGON ((-15.4580806424608 -22.6141475434161,-15.2667895047222 -23.141422739191,-13.577056791552 -25.3600098170744,-9.0829252046855 -26.5270448390978,-6.23468715270856 -25.2042257864628,-4.96856810034895 -23.6315694368746,-15.4580806424608 -22.6141475434161))"));
+
+
+
+            DateTime dt1 = new DateTime(2019, 1, 4);
+            DateTime dt2 = new DateTime(2019, 1, 8);
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+            //            DateTime dt1 = new DateTime(2019, 1, 6, 20, 0, 0);
+            //            DateTime dt2 = new DateTime(2019, 1, 6, 23, 0, 0);
+
+
             int id = 0;
             foreach (var pol in polygons)
             {
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = id;
-                reqparams.timeFrom = new DateTime(2019, 1, 4); // 12.03.2015 по 14.03.2016 
-                reqparams.timeTo = new DateTime(2019, 1, 8);
+                reqparams.timeFrom = dt1; // 12.03.2015 по 14.03.2016 
+                reqparams.timeTo = dt2;
                 reqparams.priority = 1;
                 reqparams.minCoverPerc = 0.4;
                 reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
@@ -784,35 +815,31 @@ namespace ViewModel
                 id++;
             }
 
+            var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerDB, new List<Tuple<DateTime, DateTime>>());
 
-            /*
-          var res = Sessions.getCaptureConfArray(
-              requests,
-              new DateTime(2000, 03, 13, 4, 0, 0),
-              new DateTime(2115, 03, 13, 4, 4, 0));
 
-          var rnd = new Random();
-          var result = res.OrderBy(item => rnd.Next());
-          res = result.ToList<CaptureConf>();
-          DateTime end = DateTime.Now;
-          Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
-            
-          foreach (var conf in res)
-          {
-              captureIntervals.Add(new Polygon(conf.wktPolygon));
-          }
-          Console.WriteLine("res.Count = {0}", res.Count());
-          return res;                            
-           */
+            var rnd = new Random();
+            var result = res.OrderBy(item => rnd.Next());
+            res = result.ToList<CaptureConf>();
+           // DateTime end = DateTime.Now;
+            // Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+
+            foreach (var conf in res)
+            {
+                captureIntervals.Add(new Polygon(conf.wktPolygon));
+            }
+            Console.WriteLine("res.Count = {0}", res.Count());
+
+
+            return res;
+
 
 
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
             List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
-            //DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager();
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
 
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
@@ -822,30 +849,30 @@ namespace ViewModel
             order.intersection_coeff = 0.1;
             order.request = new RequestParams();
             order.request.priority = 1;
-            order.request.timeFrom = new DateTime(2019, 1, 4);
-            order.request.timeTo = new DateTime(2019, 1, 5);
+            order.request.timeFrom = dt1;
+            order.request.timeTo = dt2;
             order.request.wktPolygon = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
             order.request.minCoverPerc = 0.4;
             order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
             List<Order> orders = new List<Order>() { order };
 
-            CaptureConf cc = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
+            CaptureConf cc = new CaptureConf(dt1, dt2, 0.1, orders, 1, null);
             StaticConf sc = cc.DefaultStaticConf();
             RouteParams routeParam = new RouteParams(sc);
             routeParam.id = 0;
-            routeParam.start = new DateTime(2019, 1, 4);
-            routeParam.end = new DateTime(2019, 1, 5);
+            routeParam.start = dt1;
+            routeParam.end = dt2;
             routeParam.File_Size = 1000;
             routeParam.binded_route = new Tuple<int, int>(1, 1);
             // double timedrop = routeParam.getDropTime();
 
-            RouteMPZ routempz = new RouteMPZ(routeParam) { NPZ = 0, Nroute = 0};
+            RouteMPZ routempz = new RouteMPZ(routeParam) { NPZ = 0, Nroute = 0 };
 
             routesToDrop.Add(routempz);
 
 
             //12.03.2015 по 14.03.2015
-            Sessions.getMPZArray(requests, new DateTime(2019, 1, 4), new DateTime(2019, 1, 8)
+            Sessions.getMPZArray(requests, dt1, dt2
                 , silenceRanges
                 , inactivityRanges
                 , routesToDrop
@@ -869,7 +896,7 @@ namespace ViewModel
                     }
                 }
             }
-            
+
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
             return new List<CaptureConf>();
 
