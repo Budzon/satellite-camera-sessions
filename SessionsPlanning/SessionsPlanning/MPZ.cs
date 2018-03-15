@@ -4,15 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Astronomy;
-using System.Windows.Media.Media3D;
-
 namespace SatelliteSessions
 {
     public class MPZ
     {
         private static int NextNumMpz = 101;
-        private OptimalChain.MPZParams parameters = null;
+        private OptimalChain.MPZParams parameters;
 
         public HeaderMPZ Header { get; set; }
         public List<RouteMPZ> Routes { get; set; }
@@ -38,13 +35,6 @@ namespace SatelliteSessions
  
         private void loadRoutes(IList<RouteMPZ> routes)
         {
-            if (parameters == null)
-            {
-                parameters = new OptimalChain.MPZParams(NextNumMpz);
-                foreach (var route in routes)
-                    parameters.AddRoute(route.Parameters);
-            }
-
             Header = new HeaderMPZ();
             Routes = new List<RouteMPZ>();
             Header.NPZ = NextNumMpz;
@@ -54,24 +44,6 @@ namespace SatelliteSessions
             {
                 Routes.Add(routes[i]);
                 Routes[i].NPZ = Header.NPZ;
-                Routes[i].Nroute = i;
-                Routes[i].Ts = i == 0 ? (int)(HeaderMPZ.TON_DELTA.TotalSeconds * 5) : Routes[i - 1].Ts + Routes[i - 1].Troute; 
-                if (parameters.PWR_ON)
-                {
-                    ByteRoutines.SetBitOne(Routes[i].REGta, 10); // suspend_mode
-                }
-            }
-            if (Routes.Count > 0)
-                Header.ton = (uint)((Routes[0].startTime - HeaderMPZ.TON_DELTA - DateTime.MinValue).TotalSeconds * 5); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
-            Header.Ttask = (uint)((parameters.end - parameters.start).TotalSeconds * 5);
-            try
-            {
-                RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
-                Header.Tvideo = (uint)(firstVideo.Ts - 500);
-            }
-            catch
-            {
-                // Нет маршрутов со съемкой
             }
         }
 
@@ -84,26 +56,26 @@ namespace SatelliteSessions
         public static TimeSpan TTASK_MAX = new TimeSpan(0, 23, 20);
 
         public int NPZ { get; set; } // 24 bit
-        public byte Nka { get; set; } // 4 bit
-        public byte CONF_RLCI { get; set; } // 6 bit
+        public int Nka { get; set; } // 4 bit
+        public byte CONF_RLCI { get; set; } // 4 bit
         public int Ntask { get; set; } // 4 bit
-        public byte PWR_ON { get; set; } // 1 bit
-        public byte Session_key_ON { get; set; } // 1 bit
-        public byte Autotune_ON { get; set; } // 1 bit
-        public byte Autotune_R1 { get; set; } // 1 bit, ЦУП
-        public byte Autotune_R2 { get; set; } // 1 bit, ЦУП
-        public int CONF_Test_Off { get; set; } // 11 bit, ЦУП
-        public uint ton { get; set; }
-        public uint Ttask { get; set; }
-        public uint Tvideo { get; set; }
+        public int PWR_ON { get; set; } // 1 bit
+        public int Session_key_ON { get; set; } // 1 bit
+        public int Autotune_ON { get; set; } // 1 bit
+        public int Autotune_R1 { get; set; } // 1 bit
+        public int Autotune_R2 { get; set; } // 1 bit
+        public int CONF_Test_Off { get; set; } // 11 bit
+        public DateTime ton { get; set; }
+        public TimeSpan Ttask { get; set; }
+        public TimeSpan Tvideo { get; set; }
         public byte[] CONF_C { get; set; } // 2 bytes
         public byte[] CONF_B { get; set; } // 2 bytes
-        public byte[] CONF_Z { get; set; } // 4 bytes, ЦУП
-        public byte[] CONF_P { get; set; } // 10 bytes, ЦУП
-        public byte[] CONF_M { get; set; } // 10 bytes, ЦУП
-        public byte[] CONF_F { get; set; } // 14 bytes, ЦУП
-        public byte CodTm { get; set; } // 4 bit
-        public byte RegTM { get; set; } // 2 bit
+        public byte[] CONF_Z { get; set; } // 4 bytes
+        public byte[] CONF_P { get; set; } // 10 bytes
+        public byte[] CONF_M { get; set; } // 10 bytes
+        public byte[] CONF_F { get; set; } // 14 bytes
+        public int CodTm { get; set; } // 4 bit
+        public int RegTM { get; set; } // 2 bit
         public int TypeTm { get; set; } // 2 bit
         public double[] Delta_Pasp { get; set; } // length 6
         public int Delta_Autotune { get; set; } // 2 bytes
@@ -113,7 +85,7 @@ namespace SatelliteSessions
         {
             // NPZ to be filled in MPZ
             Nka = HeaderMPZ.NKA;
-            CONF_RLCI = 0; // ТРАБЛ
+            // CONF_RLCI TO FILL
             // Ntask to be filled in MPZ
             PWR_ON = 0; // default
             Session_key_ON = 0; // default
@@ -121,56 +93,16 @@ namespace SatelliteSessions
             Autotune_R1 = 0; // default
             Autotune_R2 = 0; // default
             CONF_Test_Off = 0;
-            //ton to be filled in MPZ
-            //ttask to be filled in MPZ
-            //tvideo to be filled in MPZ
-            
-            CONF_C = new byte[2]; // ВОПРОСЫ
-            ByteRoutines.SetBitOne(CONF_C, 5);
-            ByteRoutines.SetBitOne(CONF_C, 6);
-            ByteRoutines.SetBitOne(CONF_C, 7);
-            ByteRoutines.SetBitOne(CONF_C, 12);
-            ByteRoutines.SetBitOne(CONF_C, 13);
-            ByteRoutines.SetBitOne(CONF_C, 14);
-            ByteRoutines.SetBitOne(CONF_C, 15);
-
-            CONF_B = new byte[2]; // ВОПРОСЫ
-            ByteRoutines.SetBitOne(CONF_B, 8);
-            ByteRoutines.SetBitOne(CONF_B, 10);
-
+            //TODO: ton = routes[0].
+            //TODO: Ttask
+            Tvideo = new TimeSpan(0, 0, 90); // default TODO
+            CONF_C = new byte[2];
+            CONF_B = new byte[2];
             CONF_Z = new byte[4];
-            ByteRoutines.SetBitOne(CONF_Z, 6);
-            ByteRoutines.SetBitOne(CONF_Z, 7);
-            ByteRoutines.SetBitOne(CONF_Z, 16);
-            ByteRoutines.SetBitOne(CONF_Z, 17);
-            ByteRoutines.SetBitOne(CONF_Z, 18);
-            ByteRoutines.SetBitOne(CONF_Z, 19);
-            ByteRoutines.SetBitOne(CONF_Z, 20);
-            ByteRoutines.SetBitOne(CONF_Z, 21);
-
             CONF_P = new byte[10];
-            ByteRoutines.SetBitOne(CONF_P, 0);
-            ByteRoutines.SetBitOne(CONF_P, 1);
-            ByteRoutines.SetBitOne(CONF_P, 2);
-            ByteRoutines.SetBitOne(CONF_P, 4);
-            ByteRoutines.SetBitOne(CONF_P, 6);
-            ByteRoutines.SetBitOne(CONF_P, 7);
-            CONF_P[8] = 56;
-            CONF_P[9] = 56;
-
             CONF_M = new byte[10];
-            ByteRoutines.SetBitOne(CONF_M, 0);
-            ByteRoutines.SetBitOne(CONF_M, 1);
-            ByteRoutines.SetBitOne(CONF_M, 2);
-            ByteRoutines.SetBitOne(CONF_M, 4);
-            ByteRoutines.SetBitOne(CONF_M, 6);
-            ByteRoutines.SetBitOne(CONF_M, 7);
-            CONF_M[8] = 56;
-            CONF_M[9] = 56;
-
             CONF_F = new byte[14];
-
-            CodTm = 7; // default
+            CodTm = 10; // default
             RegTM = 0; // default
             TypeTm = 0; // default
             Delta_Pasp = new double[6] { 0, 0, 0, 0, 0, 0 };
@@ -181,200 +113,49 @@ namespace SatelliteSessions
 
     public class RouteMPZ
     {
-        public RegimeTypes RegimeType { get; set; }
-        private int zip_pk = 2;
-        private int zip_mk = 2;
-        public DateTime startTime { get; set; }
-
-
         public int NPZ { get; set; } // 24 bit
         public int Nroute { get; set; } // 4 bit
-        public byte REGka { get; set; } // 2 bit
+        public int REGka { get; set; } // 2 bit
         public Coord InitCoord { get; set; }
-        public byte N_PK { get; set; } // 3 bit
+        public int N_PK { get; set; } // 3 bit
         public byte Z { get; set; } // 5 bit
-        public byte N_MK { get; set; } // 8 bit
-        public int Ts { get; set; } // 16bit
-        public int Troute { get; set; } // 16 bit
+        public int N_MK { get; set; } // 8 bit
+        public TimeSpan Ts { get; set; }
+        public TimeSpan Troute { get; set; }
         public byte[] REGta { get; set; } // 16 bit
+        public RegimeTypes RegimeType { get; set; } 
         public byte[] REGta_Param { get; set; } // 16 bit
         public IdFile IDFile { get; set; }
-        public byte Delta_T { get; set; } // 1 byte
-        public byte Hroute { get; set; } // 1 byte
+        public int Delta_T { get; set; } // 1 byte
+        public int Hroute { get; set; } // 1 byte
         public int Target_Rate { get; set; } // 2 byte
-        public byte[] K00 { get; set; } // 16 byte
+        public byte[] Session_key { get; set; } // 16 byte
         public byte[] Tune_Param { get; set; } // 64 byte
-        public double W_D_MpZ { get; set; } // 4 byte
+        public int W_D_MpZ { get; set; } // 4 byte
         public int Coef_tang { get; set; } // 2 byte
         public int Target_RatePK { get; set; } // 2 byte
         public int Target_RateMK { get; set; } // 2 byte
         public int Quant_InitValuePK { get; set; } // 14 bit
         public int Quant_InitValueMK { get; set; } // 14 bit
-        public PolinomCoef Polinomial_Coeff { get; set; }
-        public byte[] K01 { get; set; } // 16 byte
-        public byte[] K10 { get; set; } // 8 byte
-        public byte[] K11 { get; set; } // 8 byte
-        public byte[] R00 { get; set; } // 4 byte
-        public byte[] TaskRes { get; set; } // 38 byte
+        public byte[] TaskRes { get; set; } // 106 byte
+
+        private int zip_pk;
+        private int zip_mk;
 
         private OptimalChain.RouteParams parameters;
-        public OptimalChain.RouteParams Parameters { get { return parameters; } }
+        public OptimalChain.RouteParams Parameters { get {return parameters;} }
 
-        public RouteMPZ(OptimalChain.RouteParams inpParameters, byte N_PK = 0, int fileSize = 300, int MPZ_id_toDump = 101, int route_id_toDump = 1)
-            : this(IntToType(inpParameters.type))
+        public RouteMPZ(OptimalChain.RouteParams inpParameters) : this(new RegimeTypes() )
         {
             parameters = inpParameters;
-            startTime = parameters.start;
-            parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
-
-            switch (inpParameters.type)
-            {
-                case 0:
-                    Troute = 5 * 5;
-                    break;
-                case 1:
-                    Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
-                    break;
-                case 2:
-                    Troute = (int)((fileSize / 1024.0 * 8 + 1) * 5);
-                    break;
-                case 3:
-                    Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
-                    break;
-                default:
-                    throw new Exception(String.Format("Invalid route type {0}", inpParameters.type));
-            }
-
-            if (REGka == 0) // ZI or NP
-            {
-                // Set initial position
-                DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
-                DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
-                Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(inpParameters.start);
-                //Astronomy.TrajectoryPoint KAbegin = inpParameters.positionAtStart;
-                if (KAbegin_ == null)
-                {
-                    throw new Exception("No trajectory data.");
-                }
-                Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-                Vector3D eDirVect = -KAbegin.Position.ToVector(); ;
-                RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(KAbegin.Velocity, AstronomyMath.ToDegrees(inpParameters.ShootingConf.roll)));
-                RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(Vector3D.CrossProduct(KAbegin.Velocity, eDirVect), AstronomyMath.ToDegrees(inpParameters.ShootingConf.pitch)));
-                Vector3D lookAt = rollTransform.Transform(pitchTransform.Transform(eDirVect));
-                Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(SphericalGeom.Routines.SphereVectIntersect(lookAt, KAbegin.Position, Astronomy.Constants.EarthRadius));
-
-                InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
-
-                // Set capture type
-                switch (inpParameters.shooting_type)
-                {
-                    case 0:
-                        ByteRoutines.SetBitOne(REGta, 0);
-                        break;
-                    case 1:
-                        ByteRoutines.SetBitOne(REGta, 1);
-                        break;
-                    case 2:
-                        ByteRoutines.SetBitOne(REGta, 2);
-                        break;
-                    default:
-                        ByteRoutines.SetBitOne(REGta, 0);
-                        break;
-                }
-
-                if (inpParameters.shooting_type == 2) // коридорная
-                {
-                    TrajectoryPoint? p1_ = fetcher.GetPositionSat(inpParameters.start + new TimeSpan(0, 0, 10));
-                    TrajectoryPoint? p2_ = fetcher.GetPositionSat(inpParameters.start + new TimeSpan(0, 0, 20));
-                    TrajectoryPoint? p3_ = fetcher.GetPositionSat(inpParameters.start + new TimeSpan(0, 0, 30));
-
-                    if (p1_ == null || p2_ == null || p3_ == null)
-                    {
-                        throw new Exception("No trajectory data.");
-                    }
-
-
-                    double l1, l2, b1, b2, s1, s2, s3;
-                    SphericalGeom.Routines.GetCoridorParams(KAbegin, p1_.Value, p2_.Value, p3_.Value, out b1, out b2, out l1, out l2, out s1, out s2, out s3);
-                    Polinomial_Coeff = new PolinomCoef
-                    {
-                        L1 = l1,
-                        L2 = l2,
-                        B1 = b1,
-                        B2 = b2,
-                        S1 = s1,
-                        S2 = s2,
-                        S3 = s3,
-                        WD_K = 0 // ПОКА ЧТО ТАК
-                    };
-                }
-            }
-            else // SI or VI
-            {
-                IDFile = new IdFile { TNPZ = MPZ_id_toDump, TNroute = route_id_toDump == -1 ? 15 : route_id_toDump, TNPos = 0 };
-            }
-
-            this.N_PK = N_PK;
-
-            // Если сжатие с потерями, то
-            if (ByteRoutines.GetBit(REGta_Param, 0) == 0
-                && ByteRoutines.GetBit(REGta_Param, 1) == 1
-                && ByteRoutines.GetBit(REGta_Param, 2) == 1)
-            {
-                Target_RatePK = (int)(48 * 48 * 12.0 / zip_pk);
-                Target_RateMK = (int)(24 * 24 * 12.0 / zip_mk);
-                switch (zip_pk)
-                {
-                    case 2:
-                        Quant_InitValuePK = 4000;
-                        break;
-                    case 3:
-                        Quant_InitValuePK = 2000;
-                        break;
-                    case 4:
-                    case 5:
-                        Quant_InitValuePK = 700;
-                        break;
-                    case 6:
-                    case 7:
-                        Quant_InitValuePK = 500;
-                        break;
-                    default:
-                        Quant_InitValuePK = 300;
-                        break;
-                }
-                switch (zip_mk)
-                {
-                    case 2:
-                        Quant_InitValueMK = 4000;
-                        break;
-                    case 3:
-                        Quant_InitValueMK = 2000;
-                        break;
-                    case 4:
-                    case 5:
-                        Quant_InitValueMK = 700;
-                        break;
-                    case 6:
-                    case 7:
-                        Quant_InitValueMK = 500;
-                        break;
-                    default:
-                        Quant_InitValueMK = 300;
-                        break;
-                }
-            }
+            // parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
         }
 
-        /// <summary>
-        /// Sets default values.
-        /// </summary>
-        /// <param name="regimeType"></param>
         public RouteMPZ(RegimeTypes regimeType)
         {
             RegimeType = regimeType;
             NPZ = -1; // to be filled in the MPZ constructor
-            // Nroute to be filled in the MPZ constructor
+            Nroute = -1; // to be filled in the MPZ constructor
 
             switch (regimeType)
             {
@@ -382,7 +163,7 @@ namespace SatelliteSessions
                 case RegimeTypes.ZI:
                 case RegimeTypes.NP_fok_yust:
                 case RegimeTypes.ZI_fok_yust:
-                    // case КАЛИБРОВКА:
+                // case КАЛИБРОВКА:
                     REGka = 0;
                     break;
                 case RegimeTypes.SI:
@@ -404,153 +185,62 @@ namespace SatelliteSessions
             {
                 case 0:
                     //InitCoord = new Coord{Bc, Lc, Hc}
-                    //To be filled separately
                     break;
                 case 1:
                     InitCoord = new Coord { Bc = 0, Lc = 0, Hc = 0 };
                     break;
             }
 
-            N_PK = 0; // ПО РЕКОМЕНДАЦИИ ПЕЛЕНГ
+            N_PK = 0; // default
 
             Z = unchecked((byte)(~7)); // default
 
             N_MK = 0; // default
 
-            // Ts -- to be set in MPZ
-            // Troute -- to be set for each
+            // Ts -- TODO
+            // Troute -- TODO
 
-            #region set REGta
-            REGta = new byte[2];
-            ByteRoutines.SetBitZero(REGta, 0); //
-            ByteRoutines.SetBitZero(REGta, 1); // Штатный ЗИ и НП -- отдельно 
-            ByteRoutines.SetBitZero(REGta, 2); //
-            ByteRoutines.SetBitOne(REGta, 3);
-            ByteRoutines.SetBitZero(REGta, 4);
-            ByteRoutines.SetBitZero(REGta, 5);
-            ByteRoutines.SetBitZero(REGta, 6);
-            ByteRoutines.SetBitOne(REGta, 7);
-            ByteRoutines.SetBitZero(REGta, 8);
-            ByteRoutines.SetBitOne(REGta, 9);
-            // ByteRoutines.SetBitOne(REGta, 10); ?!?!?
-            ByteRoutines.SetBitZero(REGta, 11);
-            int typeRegime = 0;
-            switch (regimeType)
-            {
-                case RegimeTypes.SI:
-                case RegimeTypes.VI:
-                case RegimeTypes.ZI_fok_yust:
-                case RegimeTypes.KPI_unload:
-                case RegimeTypes.BBZU_control:
-                    ByteRoutines.SetBitZero(REGta, 12);
-                    break;
-                default:
-                    ByteRoutines.SetBitOne(REGta, 12);
-                    typeRegime += 1;
-                    break;
-            }
-            switch (regimeType)
-            {
-                case RegimeTypes.VI:
-                case RegimeTypes.NP:
-                case RegimeTypes.ZI_fok_yust:
-                case RegimeTypes.NP_fok_yust:
-                case RegimeTypes.KPI_unload:
-                case RegimeTypes.PUF_control:
-                    ByteRoutines.SetBitOne(REGta, 13);
-                    typeRegime += 2;
-                    break;
-                default:
-                    ByteRoutines.SetBitZero(REGta, 13);
-                    break;
-            }
-            int groupNumber = 0;
+            REGta = new byte[2] { 0, (byte)regimeType }; // 0-11 are 0 by default
+            for (int i = 8; i < 12; ++i) // fill the regime type
+                REGta[1] *= 2;
+
+            REGta_Param = new byte[2];
             switch (regimeType)
             {
                 case RegimeTypes.SI:
                 case RegimeTypes.ZI:
                 case RegimeTypes.VI:
                 case RegimeTypes.NP:
-                    ByteRoutines.SetBitZero(REGta, 14);
-                    ByteRoutines.SetBitZero(REGta, 15);
+                    REGta_Param[0] = 1 + 2 + 16 + 32; // default
+                    REGta_Param[1] = 4 + 16; // default
                     break;
                 case RegimeTypes.ZI_cal:
                 case RegimeTypes.ZI_fok_yust:
                 case RegimeTypes.NP_fok_yust:
-                    ByteRoutines.SetBitOne(REGta, 14);
-                    ByteRoutines.SetBitZero(REGta, 15);
-                    groupNumber = 1;
-                    break;
                 case RegimeTypes.KPI_load:
                 case RegimeTypes.KPI_unload:
                 case RegimeTypes.PUF_control:
-                    ByteRoutines.SetBitZero(REGta, 14);
-                    ByteRoutines.SetBitOne(REGta, 15);
-                    groupNumber = 2;
+                    // заполняет Пеленг
                     break;
-                default:
-                    ByteRoutines.SetBitOne(REGta, 14);
-                    ByteRoutines.SetBitOne(REGta, 15);
-                    groupNumber = 3;
-                    break;
-            }
-            #endregion
-
-            REGta_Param = new byte[2];
-            switch (groupNumber)
-            {
-                case 0:
-                    ByteRoutines.SetBitOne(REGta_Param, 0);  //
-                    ByteRoutines.SetBitOne(REGta_Param, 1);  // default
-                    ByteRoutines.SetBitZero(REGta_Param, 2); //
-                    ByteRoutines.SetBitZero(REGta_Param, 3);
-                    ByteRoutines.SetBitOne(REGta_Param, 4);  //
-                    ByteRoutines.SetBitOne(REGta_Param, 5);  // default
-                    ByteRoutines.SetBitZero(REGta_Param, 6); //
-                    ByteRoutines.SetBitZero(REGta_Param, 7);
-                    REGta_Param[1] = 0; // default
-                    break;
-                default:
+                case RegimeTypes.BBZU_control:
+                case RegimeTypes.Special:
+                    // заполняет ЦУКС, но не заданы значения по умолчанию :(
                     break;
             }
 
-            IDFile = new IdFile { TNPZ = 0, TNroute = 0, TNPos = 0 }; // задается отдельно
+            IDFile = new IdFile { TNPZ = 0, TNroute = 0, TNPos = 0 }; // болванка
             Delta_T = 0; // default
-            Hroute = 200; // БОЛВАНКА -- ТРЕБУЕТ ВНИМАНИЯ!!!
-            K00 = new byte[16]; // ЦУП
-            Tune_Param = new byte[64]; // болванка
-            W_D_MpZ = 0; // default, ЦУП
-            Coef_tang = 0; // default
+            Hroute = 0; // болванка
             Target_Rate = 0; // default
-
+            Session_key = new byte[16]; // болванка
+            Tune_Param = new byte[64]; // болванка
+            W_D_MpZ = 0; // default
+            Coef_tang = 0; // default
             Target_RatePK = 0; // default
             Target_RateMK = 0; // default
             Quant_InitValuePK = 0; // default
             Quant_InitValueMK = 0; // default
-
-            K01 = new byte[16];
-            K10 = new byte[8];
-            K11 = new byte[8];
-            R00 = new byte[4];
-
-            TaskRes = new byte[38];
-        }
-
-        private static RegimeTypes IntToType(int type)
-        {
-            switch (type)
-            {
-                case 0:
-                    return RegimeTypes.SI;
-                case 1:
-                    return RegimeTypes.ZI;
-                case 2:
-                    return RegimeTypes.VI;
-                case 3:
-                    return RegimeTypes.NP;
-                default:
-                    throw new Exception(String.Format("Invalid route type {0}", type));
-            }
+            TaskRes = new byte[106];
         }
 
         /// <summary>
@@ -576,9 +266,8 @@ namespace SatelliteSessions
 
             return OptimalChain.RouteParams.InformationFluxInBits(
                 routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch,
-                Hroute, CodVznCalibr, Nm, zip_mk, Np, zip_pk) * (Troute * 0.2) / (1 << 23);
+                Hroute, CodVznCalibr, Nm, zip_mk, Np, zip_pk) * Troute.TotalSeconds / (1 << 23);
         }
-
     }
 
     public enum RegimeTypes 
@@ -602,19 +291,6 @@ namespace SatelliteSessions
         public int TNPos { get; set; }
     }
 
-    public class PolinomCoef
-    {
-        public double L1 { get; set; }
-        public double L2 { get; set; }
-        public double B1 { get; set; }
-        public double B2 { get; set; }
-        public double WD_K { get; set; }
-        public double S1 { get; set; }
-        public double S2 { get; set; }
-        public double S3 { get; set; }
-    }
-
-
     public static class ByteRoutines
     {
         public static int GetBit(byte[] data, int index)
@@ -629,17 +305,6 @@ namespace SatelliteSessions
                     String.Format("Trying to access the {0}-th bit of a byte.", index));
             return (datum & (1 << index)) != 0 ? 1 : 0;
         }
-
-        public static void SetBitOne(byte[] data, int index)
-        {
-            SetBitOne(ref data[index / 8], index % 8);
-        }
-
-        public static void SetBitZero(byte[] data, int index)
-        {
-            SetBitZero(ref data[index / 8], index % 8);
-        }
-
 
         public static void SetBitOne(ref byte datum, int index)
         {
