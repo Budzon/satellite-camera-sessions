@@ -112,7 +112,7 @@ namespace OptimalChain
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, int st=0, string channel ="pk", int fs = 0)
+        public RouteParams(int t, DateTime d1, DateTime d2, int st=0, string channel ="pk", int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
@@ -123,7 +123,7 @@ namespace OptimalChain
             File_Size = fs;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2,Tuple<int,int>  br, int st = 0, string channel = "pk", int fs = 0)
+        public RouteParams(int t, DateTime d1, DateTime d2,Tuple<int,int>  br, int st = 0, string channel = "pk", int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
@@ -145,7 +145,17 @@ namespace OptimalChain
             shooting_type = c.shooting_type;
         }
 
-
+        public RouteParams(StaticConf c, int fs = 1000)
+        {
+            type = c.type;
+            start = c.dateFrom;
+            end = c.dateTo;
+            binded_route = c.connected_route;
+            ShootingConf = c;
+            shooting_channel = c.shooting_channel;
+            shooting_type = c.shooting_type;
+            File_Size = fs;
+        }
 
         
         /// <summary>
