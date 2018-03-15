@@ -82,7 +82,7 @@ namespace OptimalChain
 
         public double getDropTime()
         {
-            return File_Size / 300 * 8 + 1; // время на сброс этого роута
+            return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
         public RouteParams(int t, DateTime d1, DateTime d2, int st=0, string channel ="pk", int fs = 0)
