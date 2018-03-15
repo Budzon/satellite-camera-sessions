@@ -78,38 +78,43 @@ namespace SatelliteSessions
             possibleConfs = viewLane.getCaptureConfs(request);
             double summ = 0;
 
-            /////// @todo костыль ////////////
+
+            List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
             foreach (var conf in possibleConfs)
             {
                 foreach (var order in conf.orders)
-                {
-                    summ += order.intersection_coeff;
-                }
-            }
-            if (summ > 1)
-                summ = 1;
-
-            coverage = summ;
-            ///////////////////////////
-            /*
-            List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
- 
-            foreach (var conf in possibleConfs)
-            {
-                foreach (var order in conf.Orders)
                 {
                     var notCoveredBefore = new List<SphericalGeom.Polygon>();
                     var toBeCoveredAfter = new List<SphericalGeom.Polygon>();
                     for (int i = 0; i < region.Count; ++i)
                     {
-                        var intAndSub = SphericalGeom.Polygon.IntersectAndSubtract(region[i], order.captured);
-                        notCoveredBefore.AddRange(intAndSub.Item1);
-                        toBeCoveredAfter.AddRange(intAndSub.Item2);
+                        try
+                        {
+                            var intAndSub = SphericalGeom.Polygon.IntersectAndSubtract(region[i], order.captured);
+                            notCoveredBefore.AddRange(intAndSub.Item1);
+                            toBeCoveredAfter.AddRange(intAndSub.Item2);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Часть непокрытого региона -- слишком тонкая. Выкинем ее из рассмотрения.
+                            region.RemoveAt(i);
+                            i--;
+                        }
                     }
                     double areaNotCoveredBefore = 0;
                     for (int j = 0; j < notCoveredBefore.Count; ++j)
                     {
-                        areaNotCoveredBefore += notCoveredBefore[j].Area;
+                        try
+                        {
+                            areaNotCoveredBefore += notCoveredBefore[j].Area;
+                        }
+                        catch (Exception ex)
+                        {
+                            /// Исключение должно тут случаться только из-за того,
+                            /// что очередное покрытие ещё ранее не покрытой части заказа
+                            /// столь тонкое, что почти отрезок.
+                            /// Define площадь "отрезка" 0.
+                        }
                     }
                     summ += order.intersection_coeff * areaNotCoveredBefore / order.captured.Area;
                     notCoveredBefore.Clear();
@@ -117,8 +122,11 @@ namespace SatelliteSessions
                     region = toBeCoveredAfter;
                 }
             }
-            coverage = summ;
-            */
+
+            if (summ > 1)
+                coverage = 1;
+            else
+                coverage = summ;            
         }
 
         private static void getCaptureConfArrayForTrajectory(IList<RequestParams> requests, Trajectory trajectory, List<CaptureConf> captureConfs)
