@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OptimalChain
 {
-    public class Constants
+    public static class Constants
     {
         public const int MPZ_ending_Time = 7000;// 2с -- сохранение, 5с -- отключение СОЭН;
         public const int MPZ_ending_Time_PWRON = 7000;// 2с -- сохранение, 5с -- отключение СОЭН;
@@ -34,5 +34,36 @@ namespace OptimalChain
         public const double routeDeleteTime = 15; // время на удаление маршрута
         public const double smallDeleteInterval = 20;
         public const double bigDeleteInterval = 60;
+
+
+        public static int CountMinPause(int t1, int st1, string channel1, int t2, int st2, string channel2)
+        {
+            int d = Constants.min_Delta_time;
+            if (t1 == 1)
+            {
+                if (channel1 != "pk")
+                {
+                    d += 4;
+                }
+                if (st1 == 2)
+                {
+                    d += 4;
+                }
+            }
+
+            if (t2 == 1)
+            {
+                if (channel2 != "pk")
+                {
+                    d += 4;
+                }
+                if (st2 == 2)
+                {
+                    d += 4;
+                }
+            }
+
+            return d * 1000;
+        }
     }
 }

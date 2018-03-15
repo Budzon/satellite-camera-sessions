@@ -130,43 +130,13 @@ namespace OptimalChain
         }
 
 
-        public int CountMinPause(int t1, int st1, string channel1, int t2, int st2, string channel2)
-        {
-            int d = Constants.min_Delta_time;
-            if(t1==1)
-            {
-                if (channel1 != "pk")
-                {
-                    d += 4;
-                }
-                if(st1==2)
-                {
-                    d += 4;
-                }
-            }
-
-            if (t2 == 1)
-            {
-                if (channel2 != "pk")
-                {
-                    d += 4;
-                }
-                if (st2 == 2)
-                {
-                    d += 4;
-                }
-            }
-            
-            return d*1000;
-        }
-
         public bool CheckPossibility(StaticConf c1, StaticConf c2 )
         {
 
             if (c1 == null || c2 == null) return false;
             
             double ms = c1.reConfigureMilisecinds(c2);
-            double min_pause = CountMinPause(c1.type,c1.shooting_type,c1.shooting_channel, c2.type, c2.shooting_type,c2.shooting_channel);
+            double min_pause = Constants.CountMinPause(c1.type,c1.shooting_type,c1.shooting_channel, c2.type, c2.shooting_type,c2.shooting_channel);
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
             return (ms < dms);
@@ -276,7 +246,7 @@ namespace OptimalChain
                                         if (lastMPZ.N_routes < 12)
                                         {
                                             RouteParams lastRoute = lastMPZ.GetLastRoute();
-                                            int min_t = CountMinPause(lastRoute.type,lastRoute.shooting_type,lastRoute.shooting_channel, v.s.type,v.s.shooting_type, v.s.shooting_channel);
+                                            int min_t = Constants.CountMinPause(lastRoute.type,lastRoute.shooting_type,lastRoute.shooting_channel, v.s.type,v.s.shooting_type, v.s.shooting_channel);
                                             
                                             if (lastRoute.end.AddMilliseconds(min_t) < v.s.dateFrom)
                                                 {
