@@ -220,26 +220,27 @@ namespace SatelliteSessions
         private OptimalChain.RouteParams parameters;
         public OptimalChain.RouteParams Parameters { get { return parameters; } }
 
-        public RouteMPZ(OptimalChain.RouteParams inpParameters, byte N_PK = 0, int fileSize = 300, int MPZ_id_toDump = 101, int route_id_toDump = 1)
+        public RouteMPZ(OptimalChain.RouteParams inpParameters, byte N_PK = 0)
             : this(IntToType(inpParameters.type))
         {
             parameters = inpParameters;
             startTime = parameters.start;
-            parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
 
-            switch (inpParameters.type)
+            switch (IntToType(inpParameters.type))
             {
-                case 0:
+                case RegimeTypes.SI:
                     Troute = 5 * 5;
                     break;
-                case 1:
+                case RegimeTypes.ZI:
                     Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
+                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
                     break;
-                case 2:
-                    Troute = (int)((fileSize / 1024.0 * 8 + 1) * 5);
+                case RegimeTypes.VI:
+                    Troute = (int)((parameters.File_Size / 1024.0 * 8 + 1) * 5);
                     break;
-                case 3:
+                case RegimeTypes.NP:
                     Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
+                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
                     break;
                 default:
                     throw new Exception(String.Format("Invalid route type {0}", inpParameters.type));
@@ -311,7 +312,12 @@ namespace SatelliteSessions
             }
             else // SI or VI
             {
-                IDFile = new IdFile { TNPZ = MPZ_id_toDump, TNroute = route_id_toDump == -1 ? 15 : route_id_toDump, TNPos = 0 };
+                IDFile = new IdFile 
+                { 
+                    TNPZ = parameters.binded_route.Item1,
+                    TNroute = parameters.binded_route.Item2 == -1 ? 15 : parameters.binded_route.Item2,
+                    TNPos = 0 
+                };
             }
 
             this.N_PK = N_PK;
