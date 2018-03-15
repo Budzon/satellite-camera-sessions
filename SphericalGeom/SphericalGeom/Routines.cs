@@ -13,25 +13,44 @@ namespace SphericalGeom
 {
     public static class Routines
     {
-        public static void GetCoridorParams(TrajectoryPoint pos, TrajectoryPoint p1, TrajectoryPoint p2, TrajectoryPoint p3, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3)
+        public static GeoPoint IntersectOpticalAxisAndEarth(TrajectoryPoint p, double roll, double pitch)
         {
-            Common.GeoPoint p = Common.GeoPoint.FromCartesian(pos.Position.X, pos.Position.Y, pos.Position.Z);
-            Vector3D pp = Common.GeoPoint.ToCartesian(p, 1);
-            SphericalGeom.Arc meridian = new SphericalGeom.Arc(pp, new Vector3D(0, 0, p.Latitude > 0 ? -1 : 1));
+            Vector3D eDirVect = -p.Position.ToVector();
+            RotateTransform3D rollTransform = new RotateTransform3D(
+                new AxisAngleRotation3D(
+                    p.Velocity, 
+                    AstronomyMath.ToDegrees(roll)
+                )
+            );
+            RotateTransform3D pitchTransform = new RotateTransform3D(
+                new AxisAngleRotation3D(
+                    Vector3D.CrossProduct(p.Velocity, eDirVect), 
+                    AstronomyMath.ToDegrees(pitch)
+                )
+            );
+            Vector3D lookAt = rollTransform.Transform(pitchTransform.Transform(eDirVect));
+            return Common.GeoPoint.FromCartesian(SphericalGeom.Routines.SphereVectIntersect(lookAt, p.Position, Astronomy.Constants.EarthRadius));
+        }
+
+        public static void GetCoridorParams(TrajectoryPoint pos, TrajectoryPoint p1, TrajectoryPoint p2, TrajectoryPoint p3, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3)
+        {
+            GeoPoint p = GeoPoint.FromCartesian(pos.Position.X, pos.Position.Y, pos.Position.Z);
+            Vector3D pp = GeoPoint.ToCartesian(p, 1);
+            Arc meridian = new Arc(pp, new Vector3D(0, 0, p.Latitude > 0 ? -1 : 1));
             Vector3D v = pos.Velocity;
             v.Normalize();
             double az = Math.Asin(Vector3D.DotProduct(pp, Vector3D.CrossProduct(v, meridian.TangentA)));
 
             getGeodesicLine(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az, 1e3, out B1, out B2, out L1, out L2);
-            getDistanceCoef(pos, p1, p2, p3, out S1, out S2, out S3);
+            getDistanceCoef(pos, p1, p2, p3, roll, pitch, out S1, out S2, out S3);
         }
 
-        public static void getDistanceCoef(TrajectoryPoint p0, TrajectoryPoint p1, TrajectoryPoint p2, TrajectoryPoint p3, out double s1, out double s2, out double s3)
+        public static void getDistanceCoef(TrajectoryPoint p0, TrajectoryPoint p1, TrajectoryPoint p2, TrajectoryPoint p3, double roll, double pitch, out double s1, out double s2, out double s3)
         {
-            Vector3D v0 = p0.Position.ToVector();
-            Vector3D v1 = p1.Position.ToVector();
-            Vector3D v2 = p2.Position.ToVector();
-            Vector3D v3 = p3.Position.ToVector();
+            GeoPoint v0 = IntersectOpticalAxisAndEarth(p0, roll, pitch);
+            GeoPoint v1 = IntersectOpticalAxisAndEarth(p1, roll, pitch);
+            GeoPoint v2 = IntersectOpticalAxisAndEarth(p2, roll, pitch);
+            GeoPoint v3 = IntersectOpticalAxisAndEarth(p3, roll, pitch);
             double d1 = Constants.EarthRadius * 1e3 * GeoPoint.DistanceOverSurface(v0, v1);
             double d2 = Constants.EarthRadius * 1e3 * GeoPoint.DistanceOverSurface(v0, v2);
             double d3 = Constants.EarthRadius * 1e3 * GeoPoint.DistanceOverSurface(v0, v3);
@@ -58,8 +77,8 @@ namespace SphericalGeom
         {
             var arr = Ode.RK547M(0,
                  new Vector(B0, L0, Az),
-                 (t, x) => new Vector(Math.Cos(x[2]) / Constants.EarthRadius, Math.Sin(x[2]) / Constants.EarthRadius,
-                     Math.Sin(x[2]) / Constants.EarthRadius * Math.Tan(x[0])),
+                 (t, x) => new Vector(Math.Cos(x[2]) / Constants.EarthRadius / 1e3, Math.Sin(x[2]) / Constants.EarthRadius / 1e3,
+                     Math.Sin(x[2]) / Constants.EarthRadius / 1e3 * Math.Tan(x[0])),
                  new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, 0.5 * dist).ToArray();
 
             var p0 = arr[0].X;

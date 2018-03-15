@@ -17,6 +17,16 @@ namespace GeometryTest
     public class GeneralTest
     {
         [TestMethod]
+        public void TestCoridorPoly()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+            DateTime dt1 = new DateTime(2019, 1, 1);
+            string wkt2 = SatelliteSessions.Sessions.getSOENViewPolygon(dt1, AstronomyMath.ToRad(20), AstronomyMath.ToRad(10), 5000, manager, true);
+        }
+
+        [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
             List<Polygon> polygons = new List<Polygon>();

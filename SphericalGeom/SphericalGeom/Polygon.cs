@@ -204,6 +204,8 @@ namespace SphericalGeom
         }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
+        public Polygon(IEnumerable<GeoPoint> vertices) : this(vertices.Select(v => GeoPoint.ToCartesian(v, 1))) { }
+
 
         public Polygon(string wtkPolygon)
             : this()
