@@ -170,19 +170,21 @@ namespace DBTables
         public List<SatelliteTrajectory.LanePos> GetViewLane(DateTime from, DateTime to)
         {
             List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
-            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(CoverageTable.Name, CoverageTable.NadirTime, from, to, true))
-                if (chunk.Rows.Length > 0)
-                {
-                    foreach (DataRow row in chunk.Rows)
-                        res.Add(CoverageTable.GetLanePos(row));
-                }
-                else
-                {
-                    // db is empty, generate view lane from sat positions
-                    Trajectory traj = GetTrajectorySat(from, to);
-                    foreach (TrajectoryPoint p in traj.Points)
-                        res.Add(new SatelliteTrajectory.LanePos(p, OptimalChain.Constants.camera_angle, 0, 0));
-                }
+            // Coverage table contains not what we need.
+            //foreach (DataChunk chunk in GetDataBetweenDatesInChunks(CoverageTable.Name, CoverageTable.NadirTime, from, to, true))
+            //    if (chunk.Rows.Length > 0)
+            //    {
+            //        foreach (DataRow row in chunk.Rows)
+            //            res.Add(CoverageTable.GetLanePos(row));
+            //    }
+            //    else
+            //    {
+            //        // db is empty, generate view lane from sat positions
+            //    }
+
+            Trajectory traj = GetTrajectorySat(from, to);
+            foreach (TrajectoryPoint p in traj.Points)
+                res.Add(new SatelliteTrajectory.LanePos(p, 2*OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0, 0));
 
             return res;
         }

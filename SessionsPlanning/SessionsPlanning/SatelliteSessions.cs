@@ -690,6 +690,18 @@ namespace SatelliteSessions
                     }
                 }
 
+                // If no more data on this turn, but we are on streak. Write it down
+                if (streakBegin != -1)
+                {
+                    List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, lane.Count - 1).BreakIntoLobes();
+                    foreach (Polygon piece in pieces)
+                        turnPartsLitAndNot.Add(new wktPolygonLit
+                        {
+                            wktPolygon = piece.ToWtk(),
+                            sun = onLitStreak
+                        });
+                }
+
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
             }
         }
