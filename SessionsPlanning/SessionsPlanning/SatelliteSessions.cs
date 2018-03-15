@@ -503,55 +503,110 @@ namespace SatelliteSessions
         /// <param name="pitchAngle"> Тангаж в радианах double</param>
         /// <param name="duration">Продолжительность съемки в милисекундах</param>
         /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <param name="isCoridor">Флаг коридорной съемки</param>
         /// <returns> полигон в формате WKT</returns>
-        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager managerDB)
+        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager managerDB, bool isCoridor = false)
         {
             string wtk = "";
-            if (duration == 0)
-            {
-                DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-                TrajectoryPoint? point = fetcher.GetPositionSat(dateTime);
+            DataFetcher fetcher = new DataFetcher(managerDB);
 
-                if (point == null)
+            if (!isCoridor)
+            {
+                if (duration == 0)
                 {
-                    return wtk;
+                    TrajectoryPoint? point = fetcher.GetPositionSat(dateTime);
+
+                    if (point == null)
+                    {
+                        return wtk;
+                    }
+                    Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
+                    Polygon viewPol = Routines.getViewPolygon((TrajectoryPoint)point, dirVector, OptimalChain.Constants.camera_angle);
+                    wtk = viewPol.ToWtk();
                 }
-                Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
-                Polygon viewPol = Routines.getViewPolygon((TrajectoryPoint)point, dirVector, OptimalChain.Constants.camera_angle);
-                wtk = viewPol.ToWtk();
+                else
+                {
+                    DateTime timeTo = dateTime.AddMilliseconds(duration);
+                    Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
+                    SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
+
+                    if (viewLane.Sectors.Count > 0)
+                    {
+                        List<Vector3D> leftLanePoints = new List<Vector3D>();
+                        List<Vector3D> rightLanePoints = new List<Vector3D>();
+
+                        for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
+                        {
+                            var sect = viewLane.Sectors[sectId];
+                            int i = 0;
+                            if (sectId > 0)
+                                i = 1;
+                            for (; i < sect.sectorPoints.Count; i++)
+                            {
+                                var pos = sect.sectorPoints[i];
+                                leftLanePoints.Add(pos.LeftCartPoint);
+                                rightLanePoints.Add(pos.RightCartPoint);
+                            }
+                        }
+                        for (int i = rightLanePoints.Count - 1; i >= 0; i--)
+                            leftLanePoints.Add(rightLanePoints[i]);
+
+                        Polygon pol = new Polygon(leftLanePoints);
+                        wtk = pol.ToWtk();
+                    }
+                }
             }
             else
             {
-                DateTime timeTo = dateTime.AddMilliseconds(duration);
-                DataFetcher fetcher = new DataFetcher(managerDB);
-                Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
-                SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
-
-                if (viewLane.Sectors.Count > 0)
+                TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+                TrajectoryPoint? p1_ = fetcher.GetPositionSat(dateTime.AddSeconds(1));
+                TrajectoryPoint? p2_ = fetcher.GetPositionSat(dateTime.AddSeconds(2));
+                TrajectoryPoint? p3_ = fetcher.GetPositionSat(dateTime.AddSeconds(3));
+                if (p0_ == null || p1_ == null || p2_ == null || p3_ == null)
                 {
-                    List<Vector3D> leftLanePoints = new List<Vector3D>();
-                    List<Vector3D> rightLanePoints = new List<Vector3D>();
-
-                    for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
-                    {
-                        var sect = viewLane.Sectors[sectId];
-                        int i = 0;
-                        if (sectId > 0)
-                            i = 1;
-                        for (; i < sect.sectorPoints.Count; i++)
-                        {
-                            var pos = sect.sectorPoints[i];
-                            leftLanePoints.Add(pos.LeftCartPoint);
-                            rightLanePoints.Add(pos.RightCartPoint);
-                        }
-                    }
-                    for (int i = rightLanePoints.Count - 1; i >= 0; i--)
-                        leftLanePoints.Add(rightLanePoints[i]);
-
-                    Polygon pol = new Polygon(leftLanePoints);
-                    wtk = pol.ToWtk();
+                    return wtk;
                 }
+                double l1, l2, b1, b2, s1, s2, s3;
+                SphericalGeom.Routines.GetCoridorParams(
+                    p0_.Value, p1_.Value, p2_.Value, p3_.Value,
+                    rollAngle, pitchAngle,
+                    out b1, out b2, out l1, out l2, out s1, out s2, out s3);
+
+                LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+                
+                double durSec = duration / 1e3;
+                double distMet = s1 * durSec + s2 * durSec * durSec + s3 * durSec * durSec * durSec;
+                distMet = Math.Min(distMet, 97 * 1e3);
+
+                GeoPoint[] leftPoints = new GeoPoint[10];
+                for (int i = 0; i < leftPoints.Length; ++i)
+                {
+                    double d = distMet / leftPoints.Length * (i + 1);
+                    leftPoints[i] = new GeoPoint(
+                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
+                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    );
+                }
+                GeoPoint[] rightPoints = new GeoPoint[10];
+                for (int i = 0; i < rightPoints.Length; ++i)
+                {
+                    double d = distMet / rightPoints.Length * (rightPoints.Length - i);
+                    rightPoints[i] = new GeoPoint(
+                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
+                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    );
+                }
+
+                List<GeoPoint> vertices = new List<GeoPoint>();
+                vertices.Add(lpBegin.LeftGeoPoint);
+                vertices.AddRange(leftPoints);
+                vertices.AddRange(rightPoints);
+                vertices.Add(lpBegin.RightGeoPoint);
+
+                Polygon pol = new Polygon(vertices);
+                wtk = pol.ToWtk();
             }
+
             return wtk;
         }
 

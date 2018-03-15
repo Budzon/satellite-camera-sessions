@@ -282,9 +282,9 @@ namespace SatelliteSessions
 
                 if (inpParameters.shooting_type == 2) // коридорная
                 {
-                    TrajectoryPoint? p1_ = fetcher.GetPositionSat(inpParameters.start + new TimeSpan(0, 0, 0, 100));
-                    TrajectoryPoint? p2_ = fetcher.GetPositionSat(inpParameters.start + new TimeSpan(0, 0, 0, 200));
-                    TrajectoryPoint? p3_ = fetcher.GetPositionSat(inpParameters.start + new TimeSpan(0, 0, 0, 300));
+                    TrajectoryPoint? p1_ = fetcher.GetPositionSat(inpParameters.start.AddSeconds(0.1));
+                    TrajectoryPoint? p2_ = fetcher.GetPositionSat(inpParameters.start.AddSeconds(0.2));
+                    TrajectoryPoint? p3_ = fetcher.GetPositionSat(inpParameters.start.AddSeconds(0.3));
 
                     if (p1_ == null || p2_ == null || p3_ == null)
                     {

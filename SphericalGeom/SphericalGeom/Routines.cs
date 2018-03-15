@@ -77,8 +77,8 @@ namespace SphericalGeom
         {
             var arr = Ode.RK547M(0,
                  new Vector(B0, L0, Az),
-                 (t, x) => new Vector(Math.Cos(x[2]) / Constants.EarthRadius, Math.Sin(x[2]) / Constants.EarthRadius,
-                     Math.Sin(x[2]) / Constants.EarthRadius * Math.Tan(x[0])),
+                 (t, x) => new Vector(Math.Cos(x[2]) / Constants.EarthRadius / 1e3, Math.Sin(x[2]) / Constants.EarthRadius / 1e3,
+                     Math.Sin(x[2]) / Constants.EarthRadius / 1e3 * Math.Tan(x[0])),
                  new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, 0.5 * dist).ToArray();
 
             var p0 = arr[0].X;
