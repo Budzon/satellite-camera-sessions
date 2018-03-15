@@ -7,12 +7,81 @@ using System.Windows.Media.Media3D;
 
 using Common;
 using Astronomy;
-
+using Microsoft.Research.Oslo;
 
 namespace SphericalGeom
 {
     public static class Routines
     {
+        public static void GetCoridorParams(TrajectoryPoint pos, TrajectoryPoint p1, TrajectoryPoint p2, TrajectoryPoint p3, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3)
+        {
+            Common.GeoPoint p = Common.GeoPoint.FromCartesian(pos.Position.X, pos.Position.Y, pos.Position.Z);
+            Vector3D pp = Common.GeoPoint.ToCartesian(p, 1);
+            SphericalGeom.Arc meridian = new SphericalGeom.Arc(pp, new Vector3D(0, 0, p.Latitude > 0 ? -1 : 1));
+            Vector3D v = pos.Velocity;
+            v.Normalize();
+            double az = Math.Asin(Vector3D.DotProduct(pp, Vector3D.CrossProduct(v, meridian.TangentA)));
+
+            getGeodesicLine(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az, 1e3, out B1, out B2, out L1, out L2);
+            getDistanceCoef(pos, p1, p2, p3, out S1, out S2, out S3);
+        }
+
+        public static void getDistanceCoef(TrajectoryPoint p0, TrajectoryPoint p1, TrajectoryPoint p2, TrajectoryPoint p3, out double s1, out double s2, out double s3)
+        {
+            Vector3D v0 = p0.Position.ToVector();
+            Vector3D v1 = p1.Position.ToVector();
+            Vector3D v2 = p2.Position.ToVector();
+            Vector3D v3 = p3.Position.ToVector();
+            double d1 = Constants.EarthRadius * 1e3 * GeoPoint.DistanceOverSurface(v0, v1);
+            double d2 = Constants.EarthRadius * 1e3 * GeoPoint.DistanceOverSurface(v0, v2);
+            double d3 = Constants.EarthRadius * 1e3 * GeoPoint.DistanceOverSurface(v0, v3);
+
+            double t1 = (p1.Time - p0.Time).TotalSeconds;
+            double t2 = (p2.Time - p0.Time).TotalSeconds;
+            double t3 = (p3.Time - p0.Time).TotalSeconds;
+
+            Matrix A = new Matrix(new double[][]
+                {
+                    new double[] {t1, t1*t1, t1*t1*t1},
+                    new double[] {t2, t2*t2, t2*t2*t2},
+                    new double[] {t3, t3*t3, t3*t3*t3},
+                });
+            Vector rhs = new Vector(d1, d2, d3);
+            Vector s = Gauss.Solve(A, rhs);
+            s1 = s[0];
+            s2 = s[1];
+            s3 = s[2];
+        }
+
+        public static void getGeodesicLine(double B0, double L0, double Az, double dist, out double B1,
+            out double B2, out double L1, out double L2)
+        {
+            var arr = Ode.RK547M(0,
+                 new Vector(B0, L0, Az),
+                 (t, x) => new Vector(Math.Cos(x[2]) / Constants.EarthRadius, Math.Sin(x[2]) / Constants.EarthRadius,
+                     Math.Sin(x[2]) / Constants.EarthRadius * Math.Tan(x[0])),
+                 new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, 0.5 * dist).ToArray();
+
+            var p0 = arr[0].X;
+            var s0 = arr[0].T;
+
+            var p1 = arr[1].X;
+            var s1 = arr[1].T;
+
+            var p2 = arr[2].X;
+            var s2 = arr[2].T;
+
+            Vector Bm = new Vector(p1[0] - p0[0], p2[0] - p0[0]);
+            Vector Lm = new Vector(p1[1] - p0[1], p2[1] - p0[1]);
+            Matrix A = new Matrix(new double[][] { new double[] { s1, s1 * s1 }, new double[] { s2, s2 * s2 } });
+            Vector B = Gauss.Solve(A, Bm);
+            B1 = B[0];
+            B2 = B[1];
+            Vector L = Gauss.Solve(A, Lm);
+            L1 = L[0];
+            L2 = L[1];
+        }
+
         public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)
         {
             if (latticeOrigin.X == 0 && latticeOrigin.Y == 0)
