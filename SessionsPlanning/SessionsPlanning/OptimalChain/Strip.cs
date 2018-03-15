@@ -175,8 +175,8 @@ namespace OptimalChain
         {
             try
             {
-                //double pitch = pitchArray[delta];
-                double pitch = pitchArray[0];
+                //double pitch = pitchArray[0];
+                double pitch = -sign * pitchArray[delta];
 
                 var h = 720.330932208252;  // высота траектории, км.
                 var w = 7.2921158533E-05;  // скорость вращения земли в радианах
