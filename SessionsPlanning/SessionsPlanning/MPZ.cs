@@ -226,7 +226,7 @@ namespace SatelliteSessions
             parameters = inpParameters;
             startTime = parameters.start;
 
-            switch (IntToType(inpParameters.type))
+            switch (RegimeType)
             {
                 case RegimeTypes.SI:
                     Troute = 5 * 5;
@@ -270,16 +270,16 @@ namespace SatelliteSessions
                 switch (inpParameters.shooting_type)
                 {
                     case 0:
-                        ByteRoutines.SetBitOne(REGta, 0);
+                        ByteRoutines.SetBitOne(REGta, 0); // кадровая
                         break;
                     case 1:
-                        ByteRoutines.SetBitOne(REGta, 1);
+                        ByteRoutines.SetBitOne(REGta, 1); // стерео
                         break;
                     case 2:
-                        ByteRoutines.SetBitOne(REGta, 2);
+                        ByteRoutines.SetBitOne(REGta, 2); // коридорная
                         break;
                     default:
-                        ByteRoutines.SetBitOne(REGta, 0);
+                        ByteRoutines.SetBitOne(REGta, 0); // кадровая
                         break;
                 }
 
@@ -547,13 +547,17 @@ namespace SatelliteSessions
             switch (type)
             {
                 case 0:
-                    return RegimeTypes.SI;
-                case 1:
                     return RegimeTypes.ZI;
-                case 2:
+                    // return RegimeTypes.SI; так написано в OptimalChain.MPZ, но просят поменять
+                case 1:
                     return RegimeTypes.VI;
+                    // return RegimeTypes.ZI; так написано в OptimalChain.MPZ, но просят поменять
+                case 2:
+                    return RegimeTypes.SI;
+                    // return RegimeTypes.VI; так написано в OptimalChain.MPZ, но просят поменять
                 case 3:
                     return RegimeTypes.NP;
+                    // return RegimeTypes.NP; так написано в OptimalChain.MPZ, но просят поменять
                 default:
                     throw new Exception(String.Format("Invalid route type {0}", type));
             }
