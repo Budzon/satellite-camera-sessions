@@ -27,6 +27,8 @@ namespace OptimalChain
         public const double angle_velocity_max = Math.PI / 60;
         public const double min_degree = Math.PI / 30;
         public const double camera_angle = 0.016616; // ~0.952 градуса - угол обзора камеры
+        public const double max_roll_angle = 0.78540;
+        public const double max_pitch_angle = 0.52360;
         public const double earthRotSpeed = Math.PI / (12 * 60 * 60);
         public const int pitchStep = 1; // угол изменения тангажа в градусах
         public const double orbital_inclination = 1.7104; // угол наклона орбиты в градусах

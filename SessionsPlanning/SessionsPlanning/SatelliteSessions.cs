@@ -72,7 +72,8 @@ namespace SatelliteSessions
             DataFetcher fetcher = new DataFetcher(managerDB);
             Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
-            double viewAngle = request.Max_SOEN_anlge + OptimalChain.Constants.camera_angle;
+            double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, request.Max_SOEN_anlge);
+            double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle; 
             SatLane viewLane = new SatLane(trajectory, 0, 0, viewAngle);
             possibleConfs = viewLane.getCaptureConfs(request);
             double summ = 0;
@@ -132,8 +133,8 @@ namespace SatelliteSessions
                     Max_SOEN_anlge = req.Max_SOEN_anlge;
             }
 
-            double max_roll_angle = Math.Min(Max_SOEN_anlge, AstronomyMath.ToRad(45));
-            double min_roll_angle = Math.Max(-Max_SOEN_anlge, AstronomyMath.ToRad(-45));
+            double max_roll_angle = Math.Min(Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
+            double min_roll_angle = Math.Max(-Max_SOEN_anlge, -OptimalChain.Constants.max_roll_angle);
 
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
             //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
@@ -510,7 +511,7 @@ namespace SatelliteSessions
             {
                 DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
                 TrajectoryPoint? point = fetcher.GetPositionSat(dateTime);
-                // @todo обработать ситуацию, когда point == null (например когда траектории в бд нет)
+
                 if (point == null)
                 {
                     return wtk;
@@ -1023,7 +1024,13 @@ namespace SatelliteSessions
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
+
+
+            double minMaxSoenAngle = conf.orders.Min(order => order.request.Max_SOEN_anlge);
+
             double maxAngle = conf.orders[0].request.Max_SOEN_anlge;
+
+
             foreach (var req in conf.orders)
             {
                 if (req.request.Max_SOEN_anlge < maxAngle)
