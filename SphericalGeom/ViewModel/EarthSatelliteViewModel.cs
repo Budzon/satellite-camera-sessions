@@ -755,7 +755,7 @@ namespace ViewModel
 
             //polygons.Add(new Polygon("POLYGON ((6 2, 6 6, 2 6, 2 2, 6 2))"));
 
-            //   polygons.Add(new Polygon("POLYGON((-29 27,  -23 33 , -21 31, -27 25, -29 27)"));
+           // polygons.Add(new Polygon("POLYGON((-29 27,  -23 33 , -21 31, -27 25, -29 27)"));
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             //      polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
@@ -808,7 +808,7 @@ namespace ViewModel
 
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
-            List<RouteMPZ> routesToReset = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
             //DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager();
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
@@ -817,11 +817,38 @@ namespace ViewModel
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
 
+            Order order = new Order();
+            order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+            order.intersection_coeff = 0.1;
+            order.request = new RequestParams();
+            order.request.priority = 1;
+            order.request.timeFrom = new DateTime(2019, 1, 4);
+            order.request.timeTo = new DateTime(2019, 1, 5);
+            order.request.wktPolygon = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
+            order.request.minCoverPerc = 0.4;
+            order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+            List<Order> orders = new List<Order>() { order };
+
+            CaptureConf cc = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
+            StaticConf sc = cc.DefaultStaticConf();
+            RouteParams routeParam = new RouteParams(sc);
+            routeParam.id = 0;
+            routeParam.start = new DateTime(2019, 1, 4);
+            routeParam.end = new DateTime(2019, 1, 5);
+            routeParam.File_Size = 1000;
+            routeParam.binded_route = new Tuple<int, int>(1, 1);
+            // double timedrop = routeParam.getDropTime();
+
+            RouteMPZ routempz = new RouteMPZ(routeParam) { NPZ = 0, Nroute = 0};
+
+            routesToDrop.Add(routempz);
+
+
             //12.03.2015 по 14.03.2015
             Sessions.getMPZArray(requests, new DateTime(2019, 1, 4), new DateTime(2019, 1, 8)
                 , silenceRanges
                 , inactivityRanges
-                , routesToReset
+                , routesToDrop
                 , routesToDelete
                  , managerDB
                 , out mpzArray

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OptimalChain
 {
-    
+
     public class MPZParams
     {
         public int id { get; set; }
@@ -41,13 +41,13 @@ namespace OptimalChain
         {
             if (N_routes > 11)
                 return false;
-            
+
             routes.Add(r);
             N_routes++;
 
             if (N_routes < 2)
                 start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
-            
+
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);
             return true;
         }
@@ -56,11 +56,11 @@ namespace OptimalChain
         {
             if (routes.Count > 0)
                 return routes.Last();
-            
+
             return null;
         }
 
-        
+
         /// <summary>
         /// Проверка соместимости МПЗ и заданного маршрута
         /// </summary>
@@ -84,15 +84,15 @@ namespace OptimalChain
             double dt_mpz = delta_time - Constants.MPZ_starting_Time - Constants.MPZ_init_Time;
 
             return (dt_mpz > 0);
-            
+
         }
-        
+
     }
 
     public class RouteParams
     {
         public int id { get; set; }
-        public int type { get; set; }//0 -- удаление, 1 -- съемка, 2 -- сброс, 3 -- съемка со сбросом
+        public int type { get; set; }//0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
         public string shooting_channel { get; set; }// pk, mk, cm
 
         public int shooting_type { get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
@@ -103,7 +103,7 @@ namespace OptimalChain
 
         public StaticConf ShootingConf { get; set; }
 
-        public List<RouteParams> binded_routes { get; set; }
+        public Tuple<int, int> binded_route { get; set; }
 
         public int File_Size { get; set; } //объем файла в Мб
 
@@ -112,39 +112,40 @@ namespace OptimalChain
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, int st=0, string channel ="pk", int fs = 1000)
+        public RouteParams(int t, DateTime d1, DateTime d2, int st = 0, string channel = "pk", int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_routes = null;
+            binded_route = null;
             File_Size = fs;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2,Tuple<int,int>  br, int st = 0, string channel = "pk", int fs = 1000)
+        public RouteParams(int t, DateTime d1, DateTime d2, Tuple<int, int> br, int st = 0, string channel = "pk", int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_routes = br;
+            binded_route = br;
             File_Size = fs;
         }
 
-        public RouteParams( StaticConf c)
+        public RouteParams(StaticConf c)
         {
             type = c.type;
             start = c.dateFrom;
             end = c.dateTo;
-            binded_routes = null;
+            binded_route = c.connected_route;
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
-            shooting_type = c.shooting_type;            
+            shooting_type = c.shooting_type;
         }
-    public RouteParams(StaticConf c, int fs = 1000)
+
+        public RouteParams(StaticConf c, int fs = 1000)
         {
             type = c.type;
             start = c.dateFrom;
@@ -156,7 +157,7 @@ namespace OptimalChain
             File_Size = fs;
         }
 
-        
+
         /// <summary>
         /// Проверка совместимоси двух маршрутов
         /// </summary>
@@ -165,7 +166,7 @@ namespace OptimalChain
         public bool isCompatible(RouteParams r)
         {
             StaticConf c1, c2;
-            if(r.start>this.start)
+            if (r.start > this.start)
             {
                 c2 = r.ShootingConf;
                 c1 = this.ShootingConf;
@@ -180,9 +181,11 @@ namespace OptimalChain
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
             return (ms < dms);
-            
+
         }
-        
+
+
+
         /// <summary>
         /// Суммарный поток информации от ПК и МК [бит/с].
         /// </summary>

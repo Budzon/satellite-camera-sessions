@@ -68,8 +68,116 @@ namespace GeometryTest
                 }
                 throw ex;
             }
+            
+        }
+
+
+        
+        [TestMethod]
+        public void Test_getMPZArray()
+        {
+            List<Polygon> polygons = new List<Polygon>();
+            Random rand = new Random((int)DateTime.Now.Ticks);
+            for (int i = 0; i < 2; i++) // у меня памяти не хватает на больший тест
+            {
+                Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
+                polygons.Add(randpol);
+            }
+
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+            DateTime dt1 = new DateTime(2019, 1, 4);
+            DateTime dt2 = new DateTime(2019, 1, 8);
+
+            DataFetcher fetcher = new DataFetcher(manager);
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+            if (trajectory.Count == 0)
+                throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+
+            try
+            {
+                int id = 0;
+                List<RequestParams> requests = new List<RequestParams>();
+                foreach (var pol in polygons)
+                {
+                    RequestParams reqparams = new RequestParams();
+                    reqparams.id = id;
+                    reqparams.timeFrom = dt1;
+                    reqparams.timeTo = dt2;
+                    reqparams.priority = 1;
+                    reqparams.minCoverPerc = 0.4;
+                    reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                    reqparams.wktPolygon = pol.ToWtk();
+                    requests.Add(reqparams);
+                    id++;
+                }
+              //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
+
+                Order order = new Order();
+                order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+                order.intersection_coeff = 0.1;
+                order.request = new RequestParams();
+                order.request.priority = 1;
+                order.request.timeFrom = new DateTime(2019, 1, 4);
+                order.request.timeTo = new DateTime(2019, 1, 5);
+                order.request.wktPolygon = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
+                order.request.minCoverPerc = 0.4;
+                order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                List<Order> orders = new List<Order>() { order };
+
+                CaptureConf cc = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
+                StaticConf sc = cc.DefaultStaticConf();
+                RouteParams routeParam = new RouteParams(sc);
+                routeParam.id = 0;
+                routeParam.start = new DateTime(2019, 1, 4);
+                routeParam.end = new DateTime(2019, 1, 5);
+                routeParam.File_Size = 1000;
+                routeParam.binded_route = new Tuple<int, int>(1, 1);
+                // double timedrop = routeParam.getDropTime();
+
+                RouteMPZ routempz = new RouteMPZ(routeParam) { NPZ = 0, Nroute = 0 };
+
+                List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+                routesToDrop.Add(routempz);
+
+                List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+                List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+                
+                List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+                List<MPZ> mpzArray;
+                List<CommunicationSession> sessions;
+
+                Sessions.getMPZArray(requests, dt1, dt2
+                                                    , silenceRanges
+                                                    , inactivityRanges
+                                                     , routesToDrop
+                                                     , routesToDelete
+                                                      , manager
+                                                     , out mpzArray
+                                                     , out sessions);
+            }
+
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
+                foreach (var pol in polygons)
+                {
+                    Console.WriteLine(pol.ToWtk());
+                }
+                throw ex;
+            }
+
+
 
         }
+
+
+
+                  
+
+
 
         [TestMethod]
         public void TestIsRequestFeasible()

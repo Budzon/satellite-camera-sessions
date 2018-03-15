@@ -42,11 +42,12 @@ namespace GeometryTest
                 order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
                 List<Order> orders = new List<Order>() { order };
 
-                CaptureConf cc = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 0, null);
+                CaptureConf cc = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
                 StaticConf sc = cc.DefaultStaticConf();
                 RouteParams routeParam = new RouteParams(sc);
                 routeParam.id = i;
-                            
+                routeParam.binded_route = new Tuple<int, int>(1, 1);
+      
                 routesParams.Add(routeParam);
             }
 

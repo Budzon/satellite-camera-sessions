@@ -286,7 +286,7 @@ namespace SatelliteSessions
              
             foreach (var mpz_param in mpz_params)
             {
-                List<RouteParams> dropRoutes = mpz_param.routes.Where(route => route.type == 2).ToList();
+                List<RouteParams> dropRoutes = mpz_param.routes.Where(route => route.type == 1).ToList();
                 List<CommunicationSession> sSessions = new List<CommunicationSession>();
                 putRoutesInSessions(dropRoutes, snkpoiSessions, sSessions);
                 List<CommunicationSession> mSessions = new List<CommunicationSession>();
@@ -299,13 +299,22 @@ namespace SatelliteSessions
         public static List<CaptureConf> getConfsToDrop(List<RouteMPZ> routesToDrop, List<Tuple<DateTime, DateTime>> freeRanges)
         {
             List<CaptureConf> res = new List<CaptureConf>();
+            
             double summFreeTime = freeRanges.Sum(range => (range.Item2 - range.Item1).TotalSeconds);
 
             int prevRouteInd = 0;
             foreach (var range in freeRanges)
             {
+                if (routesToDrop.Count == res.Count) // все конифгурации созданы
+                    break;
+
                 double curTime = (range.Item2 - range.Item1).TotalSeconds;
-                int numRoutes = (int)(routesToDrop.Count * curTime / summFreeTime);
+
+                int numRoutes;
+                if (freeRanges.Count > routesToDrop.Count)
+                    numRoutes = 1;
+                else
+                    numRoutes = (int)(routesToDrop.Count * curTime / summFreeTime);
 
                 double sumDropTime = routesToDrop.Sum(route => route.Parameters.getDropTime());
 
@@ -319,14 +328,15 @@ namespace SatelliteSessions
                     double roll = route.Parameters.ShootingConf.roll;
                     var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
                     DateTime dropTimeTo = prevTime.AddSeconds(route.Parameters.getDropTime());
-                    CaptureConf newConf = new CaptureConf(prevTime, dropTimeTo, roll, new List<Order>(route.Parameters.ShootingConf.orders), 2, connectedRoute);
+                    CaptureConf newConf = new CaptureConf(prevTime, dropTimeTo, roll, new List<Order>(route.Parameters.ShootingConf.orders), 1, connectedRoute);
 
                     DateTime dropTimeCentre = prevTime.AddSeconds(route.Parameters.getDropTime() / 2);
                     double timeDelta = Math.Min((dropTimeCentre - range.Item1).TotalSeconds, (range.Item2 - dropTimeCentre).TotalSeconds);
                     newConf.setPitchDependency(new Dictionary<double, double>(), timeDelta);
                     res.Add(newConf);
                 }
-                prevRouteInd = prevRouteInd + numRoutes - 1;
+
+                prevRouteInd = prevRouteInd + numRoutes;
             }
             return res;
         }
@@ -366,8 +376,7 @@ namespace SatelliteSessions
 
             return res;
         }
-         
-        
+                 
         public static List<Tuple<DateTime, DateTime>> getFreeTimeRanges(Tuple<DateTime, DateTime> timeSpan, List<Tuple<DateTime, DateTime>> forbiddenRanges)
         {
             List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = compressTimeRanges(forbiddenRanges);
@@ -1022,9 +1031,10 @@ namespace SatelliteSessions
             }
 
             double maxPitchAngle = Math.Abs(maxAngle) - Math.Abs(rollAngle);
+            double timeDelta;
             if (0 == maxPitchAngle)
             {
-                conf.timeDelta = 0;
+                timeDelta = 0;
             }
             else
             {
@@ -1035,10 +1045,13 @@ namespace SatelliteSessions
                 // расстояние в километрах между точкой c нулевым тангажом и точкой, полученной при максимальном угле тангажа
                 double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
                 // время, за которое спутник преодалевает dist по поверхности земли.
-                conf.timeDelta = dist / pointFrom.Velocity.Length;
+                timeDelta = dist / pointFrom.Velocity.Length;
             }
             int pitchStep = OptimalChain.Constants.pitchStep;
             conf.pitchArray[0] = 0;
+
+            Dictionary<double, double> angleTimeArray = new Dictionary<double, double>();
+            angleTimeArray[0] = 0;
 
             Vector3D dirRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
             for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
@@ -1047,8 +1060,18 @@ namespace SatelliteSessions
                 Vector3D dirPitchPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, pitch);
                 double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
                 double t = distOverSurf / pointFrom.Velocity.Length;
-                conf.pitchArray[pitch] = t;
+                angleTimeArray[pitch] = t;
             }
+
+            LinearInterpolation interpolation = new LinearInterpolation(angleTimeArray.Values.ToArray(), angleTimeArray.Keys.ToArray());
+
+            Dictionary<double, double> timeAngleArray = new Dictionary<double, double>();
+            for (int t = 0; t <= (int)timeDelta; t++)
+            {
+                timeAngleArray[t] = interpolation.GetValue(t);
+            }
+
+            conf.setPitchDependency(timeAngleArray, timeDelta);            
         }
 
     }

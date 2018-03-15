@@ -10,7 +10,7 @@ namespace OptimalChain
     {
         public int id;
 
-        public int type { get; set; }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
+        public int type { get; set; }// 0— съемка, 1 — сброс, 2 — удаление, 3 — съемка со сброосом
 
         public string shooting_channel { get; set; }// pk, mk, cm
 
@@ -84,7 +84,7 @@ namespace OptimalChain
     public class CaptureConf
     {
         public int id { get; set; }
-        public int confType { get { return mConfType; } }// 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
+        public int confType { get { return mConfType; } }// 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
         public string shootingChannel { get { return mShootingChannel; } }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
         public int shootingType { get { return mShootingType; } }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
         public DateTime dateFrom { get { return mDateFrom; } }//время начала для съемки в надир
@@ -94,7 +94,7 @@ namespace OptimalChain
         public string wktPolygon { get { return mWktPolygon; } } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
         public List<Order> orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
         public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
-        
+
         public double timeDelta { get; set; }// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, double> pitchArray { get; set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
 
@@ -106,7 +106,7 @@ namespace OptimalChain
         private int mConfType;
         private Tuple<int, int> mConnectedRoute;
         private DateTime mDateFrom;
-        private DateTime mDateTo; 
+        private DateTime mDateTo;
         private double mRollAngle;
 
         public void setPolygon(SphericalGeom.Polygon pol)
@@ -128,7 +128,7 @@ namespace OptimalChain
         /// <param name="_dateTo">время конца для съемки в надир</param> 
         /// <param name="_rollAngle">крен для съемки c нулевым тангажом</param>  
         /// <param name="_orders">список заказов</param>
-        /// <param name="_confType">тип конфигурации: 0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом</param>        
+        /// <param name="_confType">тип конфигурации: 0-- съемка, 1 -- сброс, 2 -- удаление, 3 — съемка со сброосом</param>        
         /// <param name="_connectedRoute">связанные мрашруты</param>
         public CaptureConf(
             DateTime _dateFrom,
@@ -189,7 +189,7 @@ namespace OptimalChain
 
                 //Разница между двумя позициями спутника
                 double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch;
-                
+
                 double d = Math.Cos(bm) * w / v * b2 * Math.Sin(I);
                 double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
 
@@ -222,7 +222,7 @@ namespace OptimalChain
             orders.AddRange(confs2.orders);
             Tuple<int, int> newConnectedRoute = confs1.connectedRoute;
             CaptureConf newConf = new CaptureConf(dateFrom, dateTo, confs1.rollAngle, orders, confs1.confType, newConnectedRoute);
-            
+
             /*
             for (int i = 0; i < confs1.orders.Count; i++)
             {
