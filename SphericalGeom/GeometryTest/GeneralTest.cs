@@ -192,53 +192,58 @@ namespace GeometryTest
         [TestMethod]
         public void TestIsRequestFeasible()
         {
-            List<Polygon> polygons = new List<Polygon>();
-            Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 30; i++)
+
+            for (int testi = 0; testi < 10; testi++)
             {
-                Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
-                polygons.Add(randpol);
-            }
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
-            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
-
-            DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 8);
-
-            DataFetcher fetcher = new DataFetcher(manager);
-            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
-
-            if (trajectory.Count == 0)
-                throw new Exception("На эти даты нет траектории в БД, тест некорректный");
-            
-            
-            foreach (var pol in polygons)
-            {
-                try
+                List<Polygon> polygons = new List<Polygon>();
+                Random rand = new Random((int)DateTime.Now.Ticks);
+                for (int i = 0; i < 50; i++)
                 {
-                    RequestParams reqparams = new RequestParams();
-                    reqparams.id = 0;
-                    reqparams.timeFrom = dt1;
-                    reqparams.timeTo = dt2;
-                    reqparams.priority = 1;
-                    reqparams.minCoverPerc = 0.4;
-                    reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
-                    reqparams.wktPolygon = pol.ToWtk(); 
-                 
-                    double cover;
-                    List<CaptureConf> output;
-                    Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Ошибка обнаружена на следующем полигоне:");
-
-                    Console.WriteLine(pol.ToWtk());
-
-                    throw ex;
+                    Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
+                    polygons.Add(randpol);
                 }
 
+                string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+                DateTime dt1 = new DateTime(2019, 1, 4);
+                DateTime dt2 = new DateTime(2019, 1, 8);
+
+                DataFetcher fetcher = new DataFetcher(manager);
+                Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+                if (trajectory.Count == 0)
+                    throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+
+
+                foreach (var pol in polygons)
+                {
+                    try
+                    {
+                        RequestParams reqparams = new RequestParams();
+                        reqparams.id = 0;
+                        reqparams.timeFrom = dt1;
+                        reqparams.timeTo = dt2;
+                        reqparams.priority = 1;
+                        reqparams.minCoverPerc = 0.4;
+                        reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                        reqparams.wktPolygon = pol.ToWtk();
+
+                        double cover;
+                        List<CaptureConf> output;
+                        Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Ошибка обнаружена на следующем полигоне:");
+
+                        Console.WriteLine(pol.ToWtk());
+
+                        throw ex;
+                    }
+
+                }
             }
 
         }
