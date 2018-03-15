@@ -59,33 +59,6 @@ namespace OptimalChain
             
             return null;
         }
-
-
-        /// <summary>
-        /// Проверка соместимости МПЗ и заданного маршрута
-        /// </summary>
-        /// <param name="r">Маршрут, который требует проверки на совместимось с данным МПЗ</param>
-        /// <returns>Код проверки: true--маршрут и МПЗ совместимы, false--маршрут и МПЗ несовместимы</returns>
-        public bool isCompatible(RouteParams r)
-        {
-            foreach (RouteParams route in routes)
-            {
-                if (!route.isCompatible(r))
-                    return false;
-            }
-
-            if (N_routes < 12)
-            {
-                return true;
-            }
-
-
-            double delta_time = (r.start - this.end).TotalMilliseconds;
-            double dt_mpz = delta_time - Constants.MPZ_starting_Time - Constants.MPZ_init_Time;
-
-            return (dt_mpz > 0);
-            
-        }
         
     }
 
@@ -103,7 +76,7 @@ namespace OptimalChain
 
         public StaticConf ShootingConf { get; set; }
 
-        public Tuple<int,int> binded_route { get; set; }
+        public List<RouteParams> binded_routes { get; set; }
 
         public int File_Size { get; set; } //объем файла в Мб
 
@@ -119,18 +92,18 @@ namespace OptimalChain
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_route = null;
+            binded_routes = null;
             File_Size = fs;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2,Tuple<int,int>  br, int st = 0, string channel = "pk", int fs = 0)
+        public RouteParams(int t, DateTime d1, DateTime d2, List<RouteParams> br, int st = 0, string channel = "pk", int fs = 0)
         {
             type = t;
             shooting_channel = channel;
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_route = br;
+            binded_routes = br;
             File_Size = fs;
         }
 
@@ -139,42 +112,11 @@ namespace OptimalChain
             type = c.type;
             start = c.dateFrom;
             end = c.dateTo;
-            binded_route = c.connected_route;
+            binded_routes = null;
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
-            shooting_type = c.shooting_type;
+            shooting_type = c.shooting_type;            
         }
-
-
-
-        
-        /// <summary>
-        /// Проверка совместимоси двух маршрутов
-        /// </summary>
-        /// <param name="r">Маршрут, который нужно рассмотреть</param>
-        /// <returns>Код проверки: true--маршруты совместимы, false--маршруты несовместимы</returns>
-        public bool isCompatible(RouteParams r)
-        {
-            StaticConf c1, c2;
-            if(r.start>this.start)
-            {
-                c2 = r.ShootingConf;
-                c1 = this.ShootingConf;
-            }
-            else
-            {
-                c1 = r.ShootingConf;
-                c2 = this.ShootingConf;
-            }
-            double ms = c1.reConfigureMilisecinds(c2);
-            double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
-            double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
-
-            return (ms < dms);
-            
-        }
-
-
 
         /// <summary>
         /// Суммарный поток информации от ПК и МК [бит/с].
