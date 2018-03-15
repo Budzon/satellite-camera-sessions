@@ -62,7 +62,7 @@ namespace SatelliteSessions
                 }
             }
             if (Routes.Count > 0)
-                Header.ton = (uint)((Routes[0].startTime - HeaderMPZ.TON_DELTA - DateTime.MinValue).TotalSeconds * 5); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
+                Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
             Header.Ttask = (uint)((parameters.end - parameters.start).TotalSeconds * 5);
             try
             {
@@ -93,7 +93,7 @@ namespace SatelliteSessions
         public byte Autotune_R1 { get; set; } // 1 bit, ЦУП
         public byte Autotune_R2 { get; set; } // 1 bit, ЦУП
         public int CONF_Test_Off { get; set; } // 11 bit, ЦУП
-        public uint ton { get; set; }
+        public DateTime ton { get; set; }
         public uint Ttask { get; set; }
         public uint Tvideo { get; set; }
         public byte[] CONF_C { get; set; } // 2 bytes
