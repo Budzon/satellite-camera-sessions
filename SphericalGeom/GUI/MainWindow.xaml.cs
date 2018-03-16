@@ -42,7 +42,7 @@ namespace GUI
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
 #if SPHERE
-            Terra = new Ellipse3D(1, 1, 1, 200);
+            Terra = new Ellipse3D(1, 1, 1, 600);
 #else
             Terra = new EllipseRegion3D(1, 1, 1, 20, 250);
 #endif

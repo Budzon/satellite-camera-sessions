@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
+using System.Collections.Concurrent;
 
 using DataParsers;
 using SatelliteTrajectory;
@@ -70,17 +71,34 @@ namespace SatelliteSessions
             // string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";     
             // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно      
             DataFetcher fetcher = new DataFetcher(managerDB);
-            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+
+            List<Tuple<DateTime, DateTime>> shadowPeriods;
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+
+            possibleConfs = getCaptureConfArray(new List<RequestParams>() { request }, timeFrom, timeTo, managerDB, shadowPeriods);
+            //possibleConfs.Sort(delegate(CaptureConf conf1, CaptureConf conf2)
+            //{
+            //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
+            //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
+            //});
 
             double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, request.Max_SOEN_anlge);
-            double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle; 
-            SatLane viewLane = new SatLane(trajectory, 0, 0, viewAngle);
-            possibleConfs = viewLane.getCaptureConfs(request);
+            double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
+            
+            List<Trajectory> possibleTrajParts = getLitTrajectoryParts(timeFrom, timeTo, managerDB, shadowPeriods);
+            List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
+            foreach (var traj in possibleTrajParts)
+            {
+                SatLane viewLane = new SatLane(traj, 0, 0, viewAngle);
+                List<CaptureConf> curConfs = viewLane.getCaptureConfs(request);
+                fictiveBigConfs.AddRange(curConfs);
+            }
+            
             double summ = 0;
-
-
+            
             List<SphericalGeom.Polygon> region = new List<SphericalGeom.Polygon> { new SphericalGeom.Polygon(request.wktPolygon) };
-            foreach (var conf in possibleConfs)
+            foreach (var conf in fictiveBigConfs)
             {
                 foreach (var order in conf.orders)
                 {
@@ -128,7 +146,7 @@ namespace SatelliteSessions
             else
                 coverage = summ;            
         }
-
+        
         private static void getCaptureConfArrayForTrajectory(IList<RequestParams> requests, Trajectory trajectory, List<CaptureConf> captureConfs)
         { 
             double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
@@ -145,10 +163,13 @@ namespace SatelliteSessions
             double min_roll_angle = Math.Max(-Max_SOEN_anlge, -OptimalChain.Constants.max_roll_angle);
 
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
-            //for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
-            Parallel.For(0, num_steps, index =>
-            {
-                double rollAngle = min_roll_angle + index * angleStep;
+                         
+            ConcurrentBag<CaptureConf> concurrentlist = new ConcurrentBag<CaptureConf>(); 
+             
+           // for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
+            Parallel.For(0, num_steps+1, index =>
+            {                
+                double rollAngle = min_roll_angle + index * angleStep;                
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
                 SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
                 foreach (var request in requests)
@@ -156,8 +177,8 @@ namespace SatelliteSessions
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
                         continue;
                     List<CaptureConf> confs = viewLane.getCaptureConfs(request);
-                    CaptureConf.compressCConfArray(ref confs);
-                    CaptureConf.compressTwoCConfArrays(ref laneCaptureConfs, ref confs);
+                    CaptureConf.compressCConfArray(confs);
+                    CaptureConf.compressTwoCConfArrays(laneCaptureConfs, confs);
                     laneCaptureConfs.AddRange(confs);
                 }
 
@@ -171,9 +192,31 @@ namespace SatelliteSessions
                     
                     calculatePitchArrays(conf, rollAngle, pointFrom);
                 }
-                captureConfs.AddRange(laneCaptureConfs);
+                foreach (var conf in laneCaptureConfs)
+                    concurrentlist.Add(conf);                               
             }
-            );              
+            );
+
+            captureConfs.AddRange(concurrentlist.ToList());            
+        }
+
+
+        public static List<Trajectory> getLitTrajectoryParts(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<Tuple<DateTime, DateTime>> shadowPeriods)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            DateTime firstDt = timeFrom;
+            List<Trajectory> posiibleTrajectoryParts = new List<Trajectory>();
+            foreach (var timeSpan in shadowPeriods)
+            {
+                if (firstDt < timeSpan.Item1)
+                    posiibleTrajectoryParts.Add(fetcher.GetTrajectorySat(firstDt, timeSpan.Item1));
+                firstDt = timeSpan.Item2;
+            }
+
+            if (firstDt < timeTo)
+                posiibleTrajectoryParts.Add(fetcher.GetTrajectorySat(firstDt, timeTo));
+
+            return posiibleTrajectoryParts;
         }
 
         public static List<CaptureConf> getCaptureConfArray(
@@ -192,18 +235,7 @@ namespace SatelliteSessions
 
             inactivityRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
 
-            List<Trajectory> trajSpans = new List<Trajectory>();
-
-            DateTime firstDt = timeFrom;
-
-            foreach (var timeSpan in inactivityRanges)
-            {
-                if (firstDt < timeSpan.Item1)                
-                    trajSpans.Add(fetcher.GetTrajectorySat(firstDt, timeSpan.Item1));                
-                firstDt = timeSpan.Item2;
-            }
-
-            trajSpans.Add(fetcher.GetTrajectorySat(firstDt, timeTo));
+            List<Trajectory> trajSpans = getLitTrajectoryParts( timeFrom,  timeTo,  managerDB, inactivityRanges);
 
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
@@ -368,7 +400,7 @@ namespace SatelliteSessions
 
                 double roll = route.Parameters.ShootingConf.roll;
                 var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
-                CaptureConf newConf = new CaptureConf(prevDeleteTime, confTimeTo, roll, new List<Order>(), 2, connectedRoute);
+                CaptureConf newConf = new CaptureConf(prevDeleteTime, confTimeTo, roll, route.Parameters.ShootingConf.orders, 2, connectedRoute);
                 res.Add(newConf);
 
                 if (deleteInd == 12)
@@ -443,7 +475,7 @@ namespace SatelliteSessions
 
         private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
         {
-            foreach (var route in routes)
+            foreach (var route in routes.ToArray()) // не эффективно
             {
                 bool success = false;
                 foreach (var session in finalSessions) // сначала пробуем добавить в уже использующиеся сессии
@@ -466,6 +498,7 @@ namespace SatelliteSessions
                              route.end <= session.Zone7timeTo)
                         {
                             session.routesToDrop.Add(new RouteMPZ(route));
+                            finalSessions.Add(session);
                             nkpoiSessions.Remove(session);
                             routes.Remove(route);
                             break;
@@ -768,6 +801,123 @@ namespace SatelliteSessions
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
             }
         }
+
+
+
+
+        /// <summary>
+        /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
+        /// </summary>
+        /// <param name="DBManager">Параметры подключения к БД</param>
+        /// <param name="timeFrom">Начало временного промежутка</param>
+        /// <param name="timeTo">Конец временного промежутка</param>
+        /// <param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
+        public static void checkIfViewLaneIsLitWithTimeSpans(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot, out List<Tuple<DateTime, DateTime>> shadowPeriods)
+        {
+            DataFetcher fetcher = new DataFetcher(DBManager);
+            var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
+            List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
+            partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
+            shadowPeriods = new List<Tuple<DateTime, DateTime>>();
+
+            int sunPositionsCount = sunPositions.Count();
+            int curSunPositionIndex = 0;
+
+            foreach (var lanePart in laneParts)
+            {
+                var lane = lanePart.Item2;
+                List<wktPolygonLit> turnPartsLitAndNot = new List<wktPolygonLit>();
+
+                bool onLitStreak = false;
+                int streakBegin = -1;
+
+                for (int i = 0; i < lane.Count - 1; ++i)
+                {
+                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
+                        curSunPositionIndex++;
+
+                    // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
+                    Vector3D sun = sunPositions[curSunPositionIndex].Position;
+                    SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
+
+                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
+                    bool allLit = LitAndNot.Item2.Count == 0;
+                    bool allUnlit = LitAndNot.Item1.Count == 0;
+
+                    if (streakBegin != -1)
+                    {
+                        // On streak -- either continue one or make a master-sector.
+                        if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).BreakIntoLobes();
+                            
+                            foreach (Polygon piece in pieces)
+                                turnPartsLitAndNot.Add(new wktPolygonLit
+                                {
+                                    wktPolygon = piece.ToWtk(),
+                                    sun = onLitStreak
+                                });
+                            
+                            if (!onLitStreak) // в тени
+                            {
+                                DateTime dtfrom = lane[streakBegin].Time;
+                                DateTime dtto = lane[i].Time;
+                                shadowPeriods.Add(Tuple.Create(dtfrom, dtto));
+                            }
+
+                            streakBegin = -1;
+                        }
+                    }
+
+                    // Not on streak here -- either start one or just add to output lists.
+                    if (allLit)
+                    {
+                        onLitStreak = true;
+                        streakBegin = i;
+                    }
+                    else if (allUnlit) // totally unlit
+                    {
+                        onLitStreak = false;
+                        streakBegin = i;
+                    }
+                    else
+                    {
+                        foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
+                            foreach (Polygon piece in p.BreakIntoLobes())
+                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
+                        foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
+                            foreach (Polygon piece in p.BreakIntoLobes())
+                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = false });
+                    }
+                }
+
+                // If no more data on this turn, but we are on streak. Write it down
+                if (streakBegin != -1)
+                {
+                    List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, lane.Count - 1).BreakIntoLobes();
+                    foreach (Polygon piece in pieces)
+                        turnPartsLitAndNot.Add(new wktPolygonLit
+                        {
+                            wktPolygon = piece.ToWtk(),
+                            sun = onLitStreak
+                        });
+                    if (!onLitStreak) // в тени
+                    {
+                        DateTime dtfrom = lane[streakBegin].Time;
+                        DateTime dtto = lane[lane.Count - 1].Time;
+                        shadowPeriods.Add(Tuple.Create(dtfrom, dtto));
+                    }
+                }
+
+                partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
+            }
+        }
+
+
 
         /// <summary>
         /// Вычисление зон связи СНКПОИ и МНКПОИ в заданный момент времени.

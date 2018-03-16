@@ -29,7 +29,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 20; testi++)
+            for (int testi = 0; testi < 5; testi++)
             {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
@@ -44,6 +44,10 @@ namespace GeometryTest
 
                 DateTime dt1 = new DateTime(2019, 1, 4);
                 DateTime dt2 = new DateTime(2019, 1, 8);
+
+                var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+                inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
+
 
                 DataFetcher fetcher = new DataFetcher(manager);
                 Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
@@ -68,7 +72,7 @@ namespace GeometryTest
                         requests.Add(reqparams);
                         id++;
                     }
-                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
+                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, inactivityRanges);
                 }
 
                 catch (Exception ex)
@@ -142,25 +146,42 @@ namespace GeometryTest
                 order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
                 List<Order> orders = new List<Order>() { order };
 
-                CaptureConf cc = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
-                StaticConf sc = cc.DefaultStaticConf();
-                RouteParams routeParam = new RouteParams(sc);
-                routeParam.id = 0;
-                routeParam.start = new DateTime(2019, 1, 4);
-                routeParam.end = new DateTime(2019, 1, 5);
-                routeParam.File_Size = 1000;
-                routeParam.binded_route = new Tuple<int, int>(1, 1);
+                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
+                StaticConf sc = ccToDrop.DefaultStaticConf();
+                RouteParams routeParamtoDrop = new RouteParams(sc);
+                routeParamtoDrop.id = 0;
+                routeParamtoDrop.start = new DateTime(2019, 1, 4);
+                routeParamtoDrop.end = new DateTime(2019, 1, 5);
+                routeParamtoDrop.File_Size = 1000;
+                routeParamtoDrop.binded_route = new Tuple<int, int>(1, 1);
                 // double timedrop = routeParam.getDropTime();
 
-                RouteMPZ routempz = new RouteMPZ(routeParam) { NPZ = 0, Nroute = 0 };
+                RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
-                routesToDrop.Add(routempz);
+                routesToDrop.Add(routempzToDrop);
+
+
+                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 2, null);
+                StaticConf scToDelete = ccToDelete.DefaultStaticConf();
+                RouteParams routeParamtoDelete = new RouteParams(scToDelete);
+                routeParamtoDelete.id = 0;
+                routeParamtoDelete.start = new DateTime(2019, 1, 4);
+                routeParamtoDelete.end = new DateTime(2019, 1, 5);
+                routeParamtoDelete.File_Size = 1000;
+                routeParamtoDelete.binded_route = new Tuple<int, int>(1, 1);
+                RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete) { NPZ = 0, Nroute = 0 };
+
+                List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+                routesToDelete.Add(routempzToDelete);
 
                 List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-                List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
-                
-                List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5))); 
+
+                var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+                inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
+
+                 
                 List<MPZ> mpzArray;
                 List<CommunicationSession> sessions;
 
@@ -176,11 +197,14 @@ namespace GeometryTest
 
             catch (Exception ex)
             {
+                List<string> lines = new List<string>();
                 Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
                 foreach (var pol in polygons)
                 {
                     Console.WriteLine(pol.ToWtk());
+                    lines.Add(pol.ToWtk());
                 }
+                System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
                 throw ex;
             }
 
@@ -192,12 +216,12 @@ namespace GeometryTest
         public void TestIsRequestFeasible()
         {
 
-            for (int testi = 0; testi < 100; testi++)
+            for (int testi = 0; testi < 2; testi++)
             {
 
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 50; i++)
+                for (int i = 0; i < 10; i++)
                 {
                     Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
                     polygons.Add(randpol);
@@ -206,8 +230,8 @@ namespace GeometryTest
                 string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
                 DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-                DateTime dt1 = new DateTime(2019, 1, 4);
-                DateTime dt2 = new DateTime(2019, 1, 8);
+                DateTime dt1 = new DateTime(2019, 1, 5);
+                DateTime dt2 = new DateTime(2019, 1, 6);
 
                 DataFetcher fetcher = new DataFetcher(manager);
                 Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
@@ -235,13 +259,14 @@ namespace GeometryTest
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Ошибка обнаружена на следующем полигоне:");
-
+                        List<string> lines = new List<string>();
+                        Console.WriteLine("Ошибка обнаружена на следующем полигонt:");
                         Console.WriteLine(pol.ToWtk());
-
+                        lines.Add(pol.ToWtk());                        
+                        System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
                         throw ex;
                     }
-
+                    
                 }
             }
 

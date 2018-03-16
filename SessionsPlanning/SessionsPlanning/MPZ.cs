@@ -28,7 +28,6 @@ namespace SatelliteSessions
             }
 
             loadRoutes(routes);
-            ///@todo разобраться, реализовать
         }
  
         public MPZ(IList<RouteMPZ> routes)
@@ -419,7 +418,7 @@ namespace SatelliteSessions
 
             N_PK = 0; // ПО РЕКОМЕНДАЦИИ ПЕЛЕНГ
 
-            Z = unchecked((byte)(~7)); // default
+            Z = 31; // default
 
             N_MK = 0; // default
 

@@ -70,6 +70,7 @@
     <Compile Include="SatelliteSessions.cs" />
     <Compile Include="SatelliteTrajectory.cs" />
     <Compile Include="SqlServerTypes\Loader.cs" />
+    <Compile Include="CommunicationSession.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SphericalGeom\SphericalGeom\SphericalGeom.csproj">

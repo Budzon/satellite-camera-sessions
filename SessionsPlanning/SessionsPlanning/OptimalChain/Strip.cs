@@ -255,7 +255,7 @@ namespace OptimalChain
                   || (c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
         }
 
-        public static void compressCConfArray(ref List<CaptureConf> confs)
+        public static void compressCConfArray(List<CaptureConf> confs)
         {
             for (int i = 0; i < confs.Count; i++)
             {
@@ -271,7 +271,7 @@ namespace OptimalChain
             }
         }
 
-        public static void compressTwoCConfArrays(ref List<CaptureConf> confs1, ref List<CaptureConf> confs2)
+        public static void compressTwoCConfArrays(List<CaptureConf> confs1, List<CaptureConf> confs2)
         {
             for (int i = 0; i < confs1.Count; i++)
             {
