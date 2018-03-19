@@ -36,12 +36,12 @@ namespace SphericalGeom
         {
             GeoPoint p = GeoPoint.FromCartesian(pos.Position.X, pos.Position.Y, pos.Position.Z);
             Vector3D pp = GeoPoint.ToCartesian(p, 1);
-            Arc meridian = new Arc(pp, new Vector3D(0, 0, p.Latitude > 0 ? -1 : 1));
+            Arc meridian = new Arc(pp, new Vector3D(0, 0, 1));
             Vector3D v = pos.Velocity;
             v.Normalize();
             double az = Math.Asin(Vector3D.DotProduct(pp, Vector3D.CrossProduct(v, meridian.TangentA)));
 
-            getGeodesicLine(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az, 1e3, out B1, out B2, out L1, out L2);
+            getGeodesicLineAzimuth(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az, 1e3, out B1, out B2, out L1, out L2);
             getDistanceCoef(pos, p1, p2, p3, roll, pitch, out S1, out S2, out S3);
         }
 
@@ -72,7 +72,31 @@ namespace SphericalGeom
             s3 = s[2];
         }
 
-        public static void getGeodesicLine(double B0, double L0, double Az, double dist, out double B1,
+        public static void getGeodesicLineEndPoints(double B0, double L0, double B00, double L00, out double B1, out double B2, out double L1, out double L2)
+        {
+            GeoPoint p0 = new GeoPoint(AstronomyMath.ToDegrees(B0), AstronomyMath.ToDegrees(L0));
+            GeoPoint p00 = new GeoPoint(AstronomyMath.ToDegrees(B00), AstronomyMath.ToDegrees(L00));
+            Vector3D v0 = GeoPoint.ToCartesian(p0, 1);
+            Vector3D v00 = GeoPoint.ToCartesian(p00, 1);
+            Arc geodesic = new Arc(v0, v00);
+            Arc meridian = new Arc(v0, new Vector3D(0, 0, 1));
+            double az = Math.Asin(Vector3D.DotProduct(v0, Vector3D.CrossProduct(geodesic.TangentA, meridian.TangentA)));
+            double dist = geodesic.CentralAngle * Constants.EarthRadius * 1e3;
+            getGeodesicLineAzimuth(B0, L0, az, dist, out B1, out B2, out L1, out L2);
+        }
+
+        /// <summary>
+        /// Возвращает параметры, определяющие геодезическую
+        /// </summary>
+        /// <param name="B0">Начальная широта [рад]</param>
+        /// <param name="L0">Начальная долгота [рад]</param>
+        /// <param name="Az">Начальный азимут [рад]</param>
+        /// <param name="dist">Длина вдоль геодезической [м]</param>
+        /// <param name="B1"></param>
+        /// <param name="B2"></param>
+        /// <param name="L1"></param>
+        /// <param name="L2"></param>
+        public static void getGeodesicLineAzimuth(double B0, double L0, double Az, double dist, out double B1,
             out double B2, out double L1, out double L2)
         {
             var arr = Ode.RK547M(0,
