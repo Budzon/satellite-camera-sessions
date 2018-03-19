@@ -138,16 +138,47 @@ namespace DBTables
 
             Trajectory trajectory = Trajectory.Create(new TrajectoryPoint[2]{first_point, second_point});
 
-            return  trajectory.GetPoint(dtime);;
+            return  trajectory.GetPoint(dtime);
         }
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to)
         {
             List<SpaceTime> preTrajectory = GetPositionSat(from, to);
-            
-            if (preTrajectory.Count < 2)
-                return Trajectory.Create(new TrajectoryPoint[0]);
 
+            if (preTrajectory.Count < 2)
+            {
+                TrajectoryPoint? firstPoint = GetPositionSat(from); 
+                TrajectoryPoint? secondPoint = GetPositionSat(to);
+                TrajectoryPoint[] trajpoints;
+                if (firstPoint == null || secondPoint == null)
+                    trajpoints = new TrajectoryPoint[0];                
+                else                
+                    trajpoints = new TrajectoryPoint[2] { (TrajectoryPoint)firstPoint, (TrajectoryPoint)secondPoint };
+                return Trajectory.Create(trajpoints);
+            }
+
+            if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
+            {
+                TrajectoryPoint? firstPoint = GetPositionSat(from);
+                if (firstPoint != null)
+                {
+                    TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
+                    SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = from };
+                    preTrajectory.Insert(0, spt);
+                }
+            }
+
+            if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
+            {
+                TrajectoryPoint? secondPoint = GetPositionSat(to);
+                if (secondPoint != null)
+                {
+                    TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
+                    SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = to};
+                    preTrajectory.Add(spt);
+                }
+            }
+            
             TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
 
             points[0] = SpaceTime.createTrajectoryPoint(preTrajectory[0], preTrajectory[1]);
