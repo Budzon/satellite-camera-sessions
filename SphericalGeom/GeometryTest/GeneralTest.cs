@@ -178,7 +178,9 @@ namespace GeometryTest
                 routesToDelete.Add(routempzToDelete);
 
                 List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5))); 
+                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5)));
+                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
+                 
 
                 var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
                 inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
