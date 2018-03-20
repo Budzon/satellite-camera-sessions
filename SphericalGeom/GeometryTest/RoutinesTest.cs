@@ -5,6 +5,9 @@ using System.Windows.Media.Media3D;
 using SphericalGeom;
 using Common;
 
+using SatelliteTrajectory;
+using Astronomy;
+
 namespace GeometryTest
 {
     [TestClass]
@@ -16,6 +19,57 @@ namespace GeometryTest
             get { return testContextInstance; }
             set { testContextInstance = value; }
         }
+
+        //[TestMethod]
+        //public void TestCoridor()
+        //{
+        //    GeoPoint p = new GeoPoint(0, 0);
+        //    Vector3D v = GeoPoint.ToCartesian(p, 1);
+        //    GeoPoint p1 = new GeoPoint(-0.5, 0.7);
+        //    double b1, b2, l1, l2;
+        //    double distMet = 97e3;
+
+        //    bool[] flags = new bool[2] { true, false };
+        //    foreach (bool flag in flags)
+        //    {
+        //        Routines.getGeodesicLineEndPoints(p, p1, out b1, out b2, out l1, out l2);
+
+        //        GeoPoint pl = new GeoPoint(0, -5);
+        //        GeoPoint pr = new GeoPoint(0, 5);
+        //        Vector3D vl = GeoPoint.ToCartesian(pl, 1);
+        //        Vector3D vr = GeoPoint.ToCartesian(pr, 1);
+
+        //        LanePos lpBegin = new LanePos(vl, v, vr, DateTime.Now);
+
+        //        GeoPoint[] leftPoints = new GeoPoint[10];
+        //        for (int i = 0; i < leftPoints.Length; ++i)
+        //        {
+        //            double d = distMet / leftPoints.Length * (i + 1);
+        //            leftPoints[i] = new GeoPoint(
+        //                AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
+        //                AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
+        //            );
+        //        }
+        //        GeoPoint[] rightPoints = new GeoPoint[10];
+        //        for (int i = 0; i < rightPoints.Length; ++i)
+        //        {
+        //            double d = distMet / rightPoints.Length * (rightPoints.Length - i);
+        //            rightPoints[i] = new GeoPoint(
+        //                AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
+        //                AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
+        //            );
+        //        }
+
+        //        List<GeoPoint> vertices = new List<GeoPoint>();
+        //        vertices.Add(lpBegin.LeftGeoPoint);
+        //        vertices.AddRange(leftPoints);
+        //        vertices.AddRange(rightPoints);
+        //        vertices.Add(lpBegin.RightGeoPoint);
+
+        //        Polygon pol = new Polygon(vertices);
+        //        string wtk = pol.ToWtk();
+        //    }
+        //}
 
         [TestMethod]
         public void TestSolveSLE2x3_XY()

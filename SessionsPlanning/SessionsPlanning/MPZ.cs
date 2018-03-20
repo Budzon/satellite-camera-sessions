@@ -290,23 +290,23 @@ namespace SatelliteSessions
                         throw new Exception("No trajectory data.");
                     }
 
-
-                    double l1, l2, b1, b2, s1, s2, s3;
-                    SphericalGeom.Routines.GetCoridorParams(
-                        KAbegin, p1_.Value, p2_.Value, p3_.Value, 
-                        parameters.ShootingConf.roll, parameters.ShootingConf.pitch, 
-                        out b1, out b2, out l1, out l2, out s1, out s2, out s3);
-                    Polinomial_Coeff = new PolinomCoef
-                    {
-                        L1 = l1,
-                        L2 = l2,
-                        B1 = b1,
-                        B2 = b2,
-                        S1 = s1,
-                        S2 = s2,
-                        S3 = s3,
-                        WD_K = 0 // ПОКА ЧТО ТАК
-                    };
+                    // изменить согласно новым входным параметрам
+                    //double l1, l2, b1, b2, s1, s2, s3;
+                    //SphericalGeom.Routines.GetCoridorParams(
+                    //    KAbegin, p1_.Value, p2_.Value, p3_.Value, 
+                    //    parameters.ShootingConf.roll, parameters.ShootingConf.pitch, 
+                    //    out b1, out b2, out l1, out l2, out s1, out s2, out s3);
+                    //Polinomial_Coeff = new PolinomCoef
+                    //{
+                    //    L1 = l1,
+                    //    L2 = l2,
+                    //    B1 = b1,
+                    //    B2 = b2,
+                    //    S1 = s1,
+                    //    S2 = s2,
+                    //    S3 = s3,
+                    //    WD_K = 0 // ПОКА ЧТО ТАК
+                    //};
                 }
             }
             else // SI or VI

@@ -117,6 +117,11 @@ namespace SphericalGeom
         public Arc(Vector3D a, Vector3D b) : this(a, b, new Vector3D(0, 0, 0)) { }
         #endregion
 
+        public GeoPoint Middle()
+        {
+            return new GeoPoint(ParametrizedLatitudeRad(CentralAngle / 2), ParametrizedLongitudeRad(CentralAngle / 2));
+        }
+
         public double MaxLatitudeDeg()
         {
             return AstronomyMath.ToDegrees(Routines.FindMax(ParametrizedLatitudeRad, 0, CentralAngle));

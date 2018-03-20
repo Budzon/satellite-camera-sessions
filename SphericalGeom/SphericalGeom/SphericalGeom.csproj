@@ -68,10 +68,6 @@
     <Compile Include="SqlServerTypes\Loader.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Oslo\Oslo.csproj">
-      <Project>{92589c2d-3833-496f-87e8-788fd511b162}</Project>
-      <Name>Oslo</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">
       <Project>{e7852796-4f76-4c51-8974-e4b55254316e}</Project>
       <Name>Astronomy</Name>
