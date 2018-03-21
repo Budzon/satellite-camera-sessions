@@ -44,24 +44,30 @@ namespace OptimalChain
             }
 
             Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
-
-            foreach(Vertex v1 in additional_vertices)
+            int nnn = 1;
+            while(additional_vertices.Count>0)
+            {
+                Console.WriteLine("Iteration " + nnn);
+                nnn++;
+                List<Vertex> TempList = additional_vertices;
+                additional_vertices.Clear();
+                foreach (Vertex v1 in TempList)
                 {
                     A.addEdge(v1, v1.value);
 
 
                     foreach (Vertex v2 in additional_vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
                     {
-                        double w = this.countEdgeWeight(v1, v2, false);
+                        double w = this.countEdgeWeight(v1, v2, true);
 
                         if (w > 0)
                             v1.addEdge(v2, w);
                     }
                     foreach (Vertex v2 in vertices.Where(i => (i.s.id != v1.s.id)))
                     {
-                        if(v2.s.dateFrom > v1.s.dateTo)
+                        if (v2.s.dateFrom > v1.s.dateTo)
                         {
-                            double w = this.countEdgeWeight(v1, v2, false);
+                            double w = this.countEdgeWeight(v1, v2, true);
 
                             if (w > 0)
                                 v1.addEdge(v2, w);
@@ -69,17 +75,18 @@ namespace OptimalChain
 
                         if (v1.s.dateFrom > v2.s.dateTo)
                         {
-                            double w = this.countEdgeWeight(v2, v1, false);
+                            double w = this.countEdgeWeight(v2, v1, true);
 
                             if (w > 0)
                                 v2.addEdge(v1, w);
                         }
-                        
+
                     }
 
                     v1.addEdge(B, 0);
                     vertices.Add(v1);
                 }
+            }
 
 
             vertices.Insert(0, A);
@@ -243,7 +250,7 @@ namespace OptimalChain
                                     MPZParams lastMPZ = e.v1.path.Last();
                                     if (lastMPZ != null)
                                     {
-                                        if (lastMPZ.N_routes < 12)
+                                        if ((lastMPZ.N_routes < 12)&&(((v.s.dateTo - lastMPZ.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON)<Constants.MPZ_max_lasting_time))
                                         {
                                             RouteParams lastRoute = lastMPZ.GetLastRoute();
                                             int min_t = Constants.CountMinPause(lastRoute.type,lastRoute.shooting_type,lastRoute.shooting_channel, v.s.type,v.s.shooting_type, v.s.shooting_channel);

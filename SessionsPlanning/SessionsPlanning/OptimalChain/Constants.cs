@@ -17,12 +17,16 @@ namespace OptimalChain
         public const int MPZ_init_Time = 47000;// минимальное;
         public const int MPZ_init_Time_RESERVE = 70000;// c учетом перехода на резервную конфигурацию;
 
+        public const int MPZ_max_lasting_time = 1400000;
+
         public const int MPZ_delta = 0;//2000;
 
         public const int min_shooting_time = 2000;
         public const int min_Delta_time = 8000;
         public const int minDeltaT = 19000;
 
+
+       
 
         public const double angle_velocity_max = Math.PI / 60;
         public const double min_degree = Math.PI / 30;

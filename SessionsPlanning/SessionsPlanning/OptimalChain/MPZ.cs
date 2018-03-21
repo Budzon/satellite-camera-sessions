@@ -76,7 +76,8 @@ namespace OptimalChain
 
             if (N_routes < 12)
             {
-                return true;
+                double lasting = ((r.end - this.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON);
+                return lasting < Constants.MPZ_max_lasting_time;
             }
 
 
@@ -87,6 +88,65 @@ namespace OptimalChain
 
         }
 
+
+        public List<MPZParams> FillMPZ(List<RouteParams> routes)
+        {
+            List<MPZParams> FTAs = new List<MPZParams>();
+            routes.Sort((x, y) => DateTime.Compare(x.start, y.start));
+            MPZParams currentMPZ = null;
+            int N = 101;
+            foreach(RouteParams r in routes)
+            {
+                if(currentMPZ==null)
+                {
+                    if ((FTAs.Count == 0) || (FTAs.Last().isCompatible(r)))
+                    {
+                        currentMPZ = new MPZParams(N, r);
+                        N++;
+                    }
+                   
+                }
+                else
+                {
+                    if (currentMPZ.N_routes == 12)
+                    {
+                        FTAs.Add(currentMPZ);
+                        if((FTAs.Count==0)||(FTAs.Last().isCompatible(r)))
+                        {
+                            currentMPZ = new MPZParams(N, r);   
+                        }
+                        else
+                        {
+                            currentMPZ = new MPZParams(N);
+                        }
+                        N++;
+                    }
+
+                    else
+                    {
+                        if (currentMPZ.isCompatible(r))
+                        {
+                             currentMPZ.AddRoute(r);
+                        }
+
+                        else
+                        {
+                            if(currentMPZ.GetLastRoute().isCompatible(r))
+                            {
+                                FTAs.Add(currentMPZ);
+                                currentMPZ = new MPZParams(N, r);
+                                N++;
+                            }
+                        }
+
+                    }
+                }
+
+            }
+
+            return FTAs;
+
+        }
     }
 
     public class RouteParams
