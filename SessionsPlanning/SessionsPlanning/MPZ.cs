@@ -30,10 +30,10 @@ namespace SatelliteSessions
             loadRoutes(routes);
         }
  
-        public MPZ(IList<RouteMPZ> routes)
-        {
-            loadRoutes(routes);
-        }
+        //public MPZ(IList<RouteMPZ> routes)
+        //{
+        //    loadRoutes(routes);
+        //}
  
         private void loadRoutes(IList<RouteMPZ> routes)
         {
@@ -44,7 +44,7 @@ namespace SatelliteSessions
                     parameters.AddRoute(route.Parameters);
             }
 
-            Header = new HeaderMPZ();
+            Header = new HeaderMPZ(true, true, true, true, true, true, true, true, true); // PLACEHOLDER
             Routes = new List<RouteMPZ>();
             Header.NPZ = NextNumMpz;
             NextNumMpz += 1;
@@ -73,7 +73,6 @@ namespace SatelliteSessions
                 // Нет маршрутов со съемкой
             }
         }
-
     }
 
     public class HeaderMPZ
@@ -95,12 +94,21 @@ namespace SatelliteSessions
         public DateTime ton { get; set; }
         public uint Ttask { get; set; }
         public uint Tvideo { get; set; }
+
         public byte[] CONF_C { get; set; } // 2 bytes
         public byte[] CONF_B { get; set; } // 2 bytes
         public byte[] CONF_Z { get; set; } // 4 bytes, ЦУП
         public byte[] CONF_P { get; set; } // 10 bytes, ЦУП
         public byte[] CONF_M { get; set; } // 10 bytes, ЦУП
         public byte[] CONF_F { get; set; } // 14 bytes, ЦУП
+
+        public byte[] RCONF_C { get; set; } // 2 bytes
+        public byte[] RCONF_B { get; set; } // 2 bytes
+        public byte[] RCONF_Z { get; set; } // 4 bytes, ЦУП
+        public byte[] RCONF_P { get; set; } // 10 bytes, ЦУП
+        public byte[] RCONF_M { get; set; } // 10 bytes, ЦУП
+        public byte[] RCONF_F { get; set; } // 14 bytes, ЦУП
+
         public byte CodTm { get; set; } // 4 bit
         public byte RegTM { get; set; } // 2 bit
         public int TypeTm { get; set; } // 2 bit
@@ -108,36 +116,160 @@ namespace SatelliteSessions
         public int Delta_Autotune { get; set; } // 2 bytes
         public byte[] TitleRes { get; set; } // 114 bytes
 
-        public HeaderMPZ()
+        /// <summary>
+        /// Заполняет все поля заголовка, кроме: 
+        /// NPZ,
+        /// CONF_RLCI(выбор антенны(D3) и состояние сврл(D5)),
+        /// Ntask,
+        /// PWR_ON,
+        /// Session_key_ON,
+        /// Autotune_ON,
+        /// ton,
+        /// Ttask,
+        /// Tvideo.
+        /// </summary>
+        /// <param name="hasPK">Есть ли съемка ПК</param>
+        /// <param name="hasMK">Есть ли съемка МК</param>
+        /// <param name="mainKeyBVIP">CONF_C, 0, D4</param>
+        /// <param name="mainKeyBBZU">CONF_B, 0, D0</param>
+        /// <param name="mainKeyVIP1">CONF_B, 0, D1</param>
+        /// <param name="useYKZU1_1">CONF_B, 0, D2</param>
+        /// <param name="useYKZU2_1">CONF_B, 0, D4</param>
+        /// <param name="mainKeyYKPD1">CONF_B, 1, D1</param>
+        /// <param name="mainKeyYKPD2">CONF_B, 1, D3</param>
+        public HeaderMPZ(bool hasPK, bool hasMK, 
+            bool mainKeyBVIP, bool mainKeyBBZU, bool mainKeyVIP1, 
+            bool useYKZU1_1, bool useYKZU2_1, bool mainKeyYKPD1, bool mainKeyYKPD2)
         {
-            // NPZ to be filled in MPZ
+            /* ---------- NPZ -----------*/
+            // to be filled in MPZ
+
+            /* ---------- NKA -----------*/
             Nka = HeaderMPZ.NKA;
-            CONF_RLCI = 0; // ТРАБЛ
-            // Ntask to be filled in MPZ
-            PWR_ON = 0; // default
-            Session_key_ON = 0; // default
-            Autotune_ON = 0; // default
-            Autotune_R1 = 0; // default
-            Autotune_R2 = 0; // default
-            CONF_Test_Off = 0;
+
+            /* ---------- CONF_RLCI -----------*/
+            byte tmp = 0;
+            ByteRoutines.SetBitOne(ref tmp, 0); // 1 подканал выбран
+            ByteRoutines.SetBitZero(ref tmp, 1); // 2 подканал не выбран
+            ByteRoutines.SetBitZero(ref tmp, 2); // СНКПОИ
+            // ВЫБОР АНТЕННЫ В КОНСТРУКТОРЕ МПЗ
+            ByteRoutines.SetBitZero(ref tmp, 4); // основной канал ЦИ СОЭН
+            // СОСТОЯНИЕ СВРЛ В КОНСТРУКТОРЕ МПЗ 
+            CONF_RLCI = tmp;
+
+
+            /* ---------- Ntask -----------*/
+            // to be filled in MPZ
+
+            /* ---------- PWR_ON -----------*/
+            PWR_ON = 0; // default, В КОНСТРУКТОРЕ МПЗ
+
+            /* ---------- Session_key_ON -----------*/
+            Session_key_ON = 0; // default, В КОНСТРУКТОРЕ МПЗ
+
+            /* ---------- Autotune_ON -----------*/
+            Autotune_ON = 0; // default, В КОНСТРУКТОРЕ МПЗ
+
+            /* ---------- Autotune_R1 -----------*/
+            Autotune_R1 = 0; // default, ЦУП
+
+            /* ---------- Autotune_R2 -----------*/
+            Autotune_R2 = 0; // default, ЦУП
+
+            /* ---------- CONF_Test_Off -----------*/
+            CONF_Test_Off = 0; // default, ЦУП
+
+            /* ---------- ton -----------*/
             //ton to be filled in MPZ
+
+            /* ---------- Ttask -----------*/
             //ttask to be filled in MPZ
+
+            /* ---------- Tvideo -----------*/
             //tvideo to be filled in MPZ
-            
-            CONF_C = new byte[2]; // ВОПРОСЫ
+
+
+            /* ---------- CONF_C / RCONF_C -----------*/
+            CONF_C = new byte[2] { 0, 0 };
+            RCONF_C = new byte[2] { 0, 0 };
+
+            ByteRoutines.SetBitZero(CONF_C, 0); // разрешить включить ББЗУ
+            ByteRoutines.SetBitZero(RCONF_C, 0); // разрешить включить ББЗУ
+
+            ByteRoutines.SetOneIfTrue(CONF_C, 1, !(hasMK || hasPK));
+            ByteRoutines.SetOneIfTrue(RCONF_C, 1, !(hasMK || hasPK));
+
+            ByteRoutines.SetOneIfTrue(CONF_C, 2, !hasPK);
+            ByteRoutines.SetOneIfTrue(RCONF_C, 2, !hasPK);
+
+            ByteRoutines.SetOneIfTrue(CONF_C, 3, !hasMK);
+            ByteRoutines.SetOneIfTrue(RCONF_C, 3, !hasMK);
+
+            ByteRoutines.SetOneIfTrue(CONF_C, 4, !mainKeyBVIP);
+            ByteRoutines.SetOneIfTrue(RCONF_C, 4, mainKeyBVIP); // != CONF_C
+
             ByteRoutines.SetBitOne(CONF_C, 5);
+            ByteRoutines.SetBitOne(RCONF_C, 5);
             ByteRoutines.SetBitOne(CONF_C, 6);
+            ByteRoutines.SetBitOne(RCONF_C, 6);
             ByteRoutines.SetBitOne(CONF_C, 7);
+            ByteRoutines.SetBitOne(RCONF_C, 7);
+            // 8, 9, 10, 11 - zero by default
             ByteRoutines.SetBitOne(CONF_C, 12);
+            ByteRoutines.SetBitOne(RCONF_C, 12);
             ByteRoutines.SetBitOne(CONF_C, 13);
+            ByteRoutines.SetBitOne(RCONF_C, 13);
             ByteRoutines.SetBitOne(CONF_C, 14);
+            ByteRoutines.SetBitOne(RCONF_C, 14);
             ByteRoutines.SetBitOne(CONF_C, 15);
+            ByteRoutines.SetBitOne(RCONF_C, 15);
 
-            CONF_B = new byte[2]; // ВОПРОСЫ
+            /* ---------- CONF_B / RCONF_B -----------*/
+            CONF_B = new byte[2] { 0, 0 };
+            RCONF_B = new byte[2] { 0, 0 };
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 0, !mainKeyBBZU);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 0, mainKeyBBZU); // != CONF_B
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 1, !mainKeyVIP1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 1, mainKeyVIP1); // != CONF_B
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 2, useYKZU1_1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 2, useYKZU1_1);
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 3, useYKZU1_1); // == D2
+            ByteRoutines.SetOneIfTrue(RCONF_B, 3, useYKZU1_1); // == D2
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 4, useYKZU2_1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 4, useYKZU2_1);
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 5, useYKZU2_1 && useYKZU1_1); // == D2 & D4
+            ByteRoutines.SetOneIfTrue(RCONF_B, 5, useYKZU2_1 && useYKZU1_1); // == D2 & D4
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 6, useYKZU2_1); // == D4
+            ByteRoutines.SetOneIfTrue(RCONF_B, 6, useYKZU2_1); // == D4
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 7, useYKZU2_1 && useYKZU1_1); // == D5
+            ByteRoutines.SetOneIfTrue(RCONF_B, 7, useYKZU2_1 && useYKZU1_1); // == D5
+
             ByteRoutines.SetBitOne(CONF_B, 8);
-            ByteRoutines.SetBitOne(CONF_B, 10);
+            ByteRoutines.SetBitOne(RCONF_B, 8);
 
-            CONF_Z = new byte[4];
+            ByteRoutines.SetOneIfTrue(CONF_B, 9, !mainKeyYKPD1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 9, mainKeyYKPD1); // != CONF_B
+
+            ByteRoutines.SetBitOne(CONF_B, 10);
+            ByteRoutines.SetBitOne(RCONF_B, 10);
+
+            ByteRoutines.SetOneIfTrue(CONF_B, 11, !mainKeyYKPD2);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 11, mainKeyYKPD2); // != CONF_B
+
+            // 12, 13, 14, 15 -- zero by default
+
+            /* ---------- CONF_Z / RCONF_Z -----------*/
+            CONF_Z = new byte[4] { 0, 0, 0, 0 };
+            RCONF_Z = new byte[4] { 0, 0, 0, 0 };
+            // ПО ДЕФОЛТУ, СТАВИТ ЦУП
             ByteRoutines.SetBitOne(CONF_Z, 6);
             ByteRoutines.SetBitOne(CONF_Z, 7);
             ByteRoutines.SetBitOne(CONF_Z, 16);
@@ -146,8 +278,19 @@ namespace SatelliteSessions
             ByteRoutines.SetBitOne(CONF_Z, 19);
             ByteRoutines.SetBitOne(CONF_Z, 20);
             ByteRoutines.SetBitOne(CONF_Z, 21);
+            ByteRoutines.SetBitOne(RCONF_Z, 6);
+            ByteRoutines.SetBitOne(RCONF_Z, 7);
+            ByteRoutines.SetBitOne(RCONF_Z, 16);
+            ByteRoutines.SetBitOne(RCONF_Z, 17);
+            ByteRoutines.SetBitOne(RCONF_Z, 18);
+            ByteRoutines.SetBitOne(RCONF_Z, 19);
+            ByteRoutines.SetBitOne(RCONF_Z, 20);
+            ByteRoutines.SetBitOne(RCONF_Z, 21);
 
-            CONF_P = new byte[10];
+            /* ---------- CONF_P / RCONF_P -----------*/
+            CONF_P = new byte[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            RCONF_P = new byte[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            // ПО ДЕФОЛТУ, СТАВИТ ЦУП
             ByteRoutines.SetBitOne(CONF_P, 0);
             ByteRoutines.SetBitOne(CONF_P, 1);
             ByteRoutines.SetBitOne(CONF_P, 2);
@@ -156,8 +299,18 @@ namespace SatelliteSessions
             ByteRoutines.SetBitOne(CONF_P, 7);
             CONF_P[8] = 56;
             CONF_P[9] = 56;
+            ByteRoutines.SetBitOne(RCONF_P, 0);
+            ByteRoutines.SetBitOne(RCONF_P, 1);
+            ByteRoutines.SetBitOne(RCONF_P, 2);
+            ByteRoutines.SetBitOne(RCONF_P, 4);
+            ByteRoutines.SetBitOne(RCONF_P, 6);
+            ByteRoutines.SetBitOne(RCONF_P, 7);
+            RCONF_P[8] = 56;
+            RCONF_P[9] = 56;
 
-            CONF_M = new byte[10];
+            /* ---------- CONF_M / RCONF_M -----------*/
+            CONF_M = new byte[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            RCONF_M = new byte[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             ByteRoutines.SetBitOne(CONF_M, 0);
             ByteRoutines.SetBitOne(CONF_M, 1);
             ByteRoutines.SetBitOne(CONF_M, 2);
@@ -166,15 +319,38 @@ namespace SatelliteSessions
             ByteRoutines.SetBitOne(CONF_M, 7);
             CONF_M[8] = 56;
             CONF_M[9] = 56;
+            ByteRoutines.SetBitOne(RCONF_M, 0);
+            ByteRoutines.SetBitOne(RCONF_M, 1);
+            ByteRoutines.SetBitOne(RCONF_M, 2);
+            ByteRoutines.SetBitOne(RCONF_M, 4);
+            ByteRoutines.SetBitOne(RCONF_M, 6);
+            ByteRoutines.SetBitOne(RCONF_M, 7);
+            RCONF_M[8] = 56;
+            RCONF_M[9] = 56;
 
-            CONF_F = new byte[14];
+            /* ---------- CONF_F / RCONF_F -----------*/
+            CONF_F = new byte[14] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            RCONF_F = new byte[14] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-            CodTm = 7; // default
-            RegTM = 0; // default
-            TypeTm = 0; // default
-            Delta_Pasp = new double[6] { 0, 0, 0, 0, 0, 0 };
-            Delta_Autotune = 0; //default
+            /* ---------- CodTm -----------*/
+            CodTm = 7; // default, ЦУП
+
+            /* ---------- RegTM -----------*/
+            RegTM = 0; // default, ЦУП
+
+            /* ---------- TypeTm -----------*/
+            TypeTm = 0; // default, ЦУП
+
+            /* ---------- Delta_Pasp -----------*/
+            Delta_Pasp = new double[6] { 0, 0, 0, 0, 0, 0 }; // default, ЦУП
+
+            /* ---------- Delta_Autotune -----------*/
+            Delta_Autotune = 0; //default, ЦУП
+
+            /* ---------- TitleRes -----------*/
             TitleRes = new byte[114];
+            for (int i = 0; i < TitleRes.Length; ++i)
+                TitleRes[i] = 0;
         }
     }
 
@@ -713,6 +889,14 @@ namespace SatelliteSessions
                 throw new IndexOutOfRangeException(
                     String.Format("Trying to access the {0}-th bit of a byte.", index));
             return (datum & (1 << index)) != 0 ? 1 : 0;
+        }
+
+        public static void SetOneIfTrue(byte[] data, int index, bool flag)
+        {
+            if (flag)
+                SetBitOne(data, index);
+            else
+                SetBitZero(data, index);
         }
 
         public static void SetBitOne(byte[] data, int index)
