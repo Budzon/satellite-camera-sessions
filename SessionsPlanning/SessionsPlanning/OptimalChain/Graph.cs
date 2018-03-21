@@ -230,6 +230,7 @@ namespace OptimalChain
         public List<MPZParams> findOptimalChain()
         {
             List<Vertex> sorted = this.deepGo(vertices[0]);
+          
             sorted.Reverse();
             
             sorted[0].mark = 0;
@@ -240,6 +241,15 @@ namespace OptimalChain
                     foreach(Edge e in v.in_edges)
                     {
                         double mark_new = e.weight + e.v1.mark;
+                        List<int> ids = new List<int>();
+                        foreach (MPZParams m in e.v1.path)
+                        {
+                            foreach (RouteParams r in m.routes)
+                            {
+                                ids.Add(r.ShootingConf.id);
+                            }
+                        }
+
                         if(mark_new>v.mark)
                         {
                             if (v.s == null) 
@@ -249,38 +259,45 @@ namespace OptimalChain
                             }
                             else
                             {
-                                if (e.v1.path.Count > 0)
+                                if(!ids.Contains(v.s.id))
                                 {
-                                    MPZParams lastMPZ = e.v1.path.Last();
-                                    if (lastMPZ != null)
-                                    {
-                                        RouteParams newRoute = new RouteParams(v.s);
-                                        if ((lastMPZ.N_routes < 12)&&(lastMPZ.isCompatible(newRoute)))
+                                    if ((e.v1.path.Count > 0))
                                         {
-                                                    v.mark = mark_new;
-                                                    v.path = e.v1.path.ToList();
-                                                    v.path.Last().AddRoute(new RouteParams(v.s));
-
-                                        }
-                                        else
-                                        {
-                                            if (lastMPZ.isCompatible(newRoute))
+                                            MPZParams lastMPZ = e.v1.path.Last();
+                                            if (lastMPZ != null)
                                             {
-                                                v.mark = mark_new;
-                                                v.path = e.v1.path.ToList();
-                                                int N = v.path.Count;
-                                                v.path.Add(new MPZParams(N, new RouteParams(v.s)));
+                                                RouteParams newRoute = new RouteParams(v.s);
+                                                if ((lastMPZ.N_routes < 12)&&(lastMPZ.isCompatible(newRoute)))
+                                                {
+                                                            v.mark = mark_new;
+                                                            v.path = e.v1.path.ToList();
+                                                            v.path.Last().AddRoute(new RouteParams(v.s));
+                                                            ids.Add(v.s.id);
+
+                                                }
+                                                else
+                                                {
+                                                    if (lastMPZ.isCompatible(newRoute))
+                                                    {
+                                                        v.mark = mark_new;
+                                                        v.path = e.v1.path.ToList();
+                                                        int N = v.path.Count;
+                                                        v.path.Add(new MPZParams(N, new RouteParams(v.s)));
+                                                        ids.Add(v.s.id);
+                                                    }
+                                                }
+                                        
                                             }
                                         }
-                                        
-                                    }
-                                }
 
-                                else
-                                {
-                                    v.mark = mark_new;
-                                    v.path.Add(new MPZParams(0, new RouteParams(v.s)));
+                                        else
+                                        {
+                                            v.mark = mark_new;
+                                            v.path.Add(new MPZParams(0, new RouteParams(v.s)));
+                                            ids.Add(v.s.id);
+                                        }
                                 }
+                               
                             }
                         }
                     }
@@ -288,6 +305,17 @@ namespace OptimalChain
 
             }
            // Console.WriteLine(vertices.Last().path.Count);
+            foreach (MPZParams m in vertices.Last().path)
+            {
+                Console.WriteLine("**************************");
+                foreach (RouteParams r in m.routes)
+                            {
+
+                                Console.WriteLine("-------------------------");
+                                Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
+                            }
+            }
+            
            // Console.WriteLine(vertices.Last().path.Last().routes.Count);
             return vertices.Last().path;
         }
