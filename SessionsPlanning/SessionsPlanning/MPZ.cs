@@ -357,6 +357,7 @@ namespace SatelliteSessions
     public class RouteMPZ
     {
         public RegimeTypes RegimeType { get; set; }
+        private int groupNumber;
         private int zip_pk = 2;
         private int zip_mk = 2;
         public DateTime startTime { get; set; }
@@ -395,12 +396,73 @@ namespace SatelliteSessions
         private OptimalChain.RouteParams parameters;
         public OptimalChain.RouteParams Parameters { get { return parameters; } }
 
-        public RouteMPZ(OptimalChain.RouteParams inpParameters, byte N_PK = 0)
+        public RouteMPZ(OptimalChain.RouteParams inpParameters)
             : this(IntToType(inpParameters.type))
         {
             parameters = inpParameters;
             startTime = parameters.start;
 
+            DIOS.Common.SqlManager DBmanager;
+            DBTables.DataFetcher fetcher;
+
+            /* ---------- InitCoord -----------*/
+            if (REGka == 0)
+            {
+                DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
+                fetcher = new DBTables.DataFetcher(DBmanager);
+                Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(inpParameters.start);
+                if (KAbegin_ == null)
+                {
+                    throw new Exception("No trajectory data.");
+                }
+                Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
+                Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
+                    KAbegin, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
+
+                InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
+
+            /* ---------- Polinomial_coeff -----------*/
+                if (inpParameters.shooting_type == 2) // коридорная
+                {
+                    double l1, l2, b1, b2, s1, s2, s3, duration;
+                    SatelliteTrajectory.TrajectoryRoutines.GetCoridorParams(fetcher,
+                        inpParameters.start, inpParameters.coridorAzimuth, inpParameters.coridorLength,
+                        parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
+                        out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
+                    Polinomial_Coeff = new PolinomCoef
+                    {
+                        L1 = l1,
+                        L2 = l2,
+                        B1 = b1,
+                        B2 = b2,
+                        S1 = s1,
+                        S2 = s2,
+                        S3 = s3,
+                        WD_K = 0 // ПОКА ЧТО ТАК
+                    };
+                }
+                else
+                    Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };
+            }
+
+            /* ---------- N_PK -----------*/
+            N_PK = GetNpk(RegimeType, parameters.sunHeight, parameters.albedo, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
+
+            /* ---------- Z -----------*/
+            switch(parameters.shooting_channel)
+            {
+                case "pk":
+                    Z = 16;
+                    break;
+                case "mk":
+                    Z = 15;
+                    break;
+                default:
+                    Z = 31;
+                    break;
+            }
+
+            /* ---------- Troute -----------*/
             switch (RegimeType)
             {
                 case RegimeTypes.SI:
@@ -418,27 +480,13 @@ namespace SatelliteSessions
                     parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
                     break;
                 default:
-                    throw new Exception(String.Format("Invalid route type {0}", inpParameters.type));
+                    break;
+                    //throw new Exception(String.Format("Invalid route type {0}", inpParameters.type));
             }
 
-            if (REGka == 0) // ZI or NP
+            /* ---------- REGta -----------*/
+            if (REGka == 0)
             {
-                // Set initial position
-                DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
-                DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
-                Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(inpParameters.start);
-                //Astronomy.TrajectoryPoint KAbegin = inpParameters.positionAtStart;
-                if (KAbegin_ == null)
-                {
-                    throw new Exception("No trajectory data.");
-                }
-                Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-                Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
-                    KAbegin, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
-
-                InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
-
-                // Set capture type
                 switch (inpParameters.shooting_type)
                 {
                     case 0:
@@ -454,96 +502,169 @@ namespace SatelliteSessions
                         ByteRoutines.SetBitOne(REGta, 0); // кадровая
                         break;
                 }
-
-                if (inpParameters.shooting_type == 2) // коридорная
-                {
-                    TrajectoryPoint? p1_ = fetcher.GetPositionSat(inpParameters.start.AddSeconds(0.1));
-                    TrajectoryPoint? p2_ = fetcher.GetPositionSat(inpParameters.start.AddSeconds(0.2));
-                    TrajectoryPoint? p3_ = fetcher.GetPositionSat(inpParameters.start.AddSeconds(0.3));
-
-                    if (p1_ == null || p2_ == null || p3_ == null)
-                    {
-                        throw new Exception("No trajectory data.");
-                    }
-
-                    // изменить согласно новым входным параметрам
-                    //double l1, l2, b1, b2, s1, s2, s3;
-                    //SphericalGeom.Routines.GetCoridorParams(
-                    //    KAbegin, p1_.Value, p2_.Value, p3_.Value, 
-                    //    parameters.ShootingConf.roll, parameters.ShootingConf.pitch, 
-                    //    out b1, out b2, out l1, out l2, out s1, out s2, out s3);
-                    //Polinomial_Coeff = new PolinomCoef
-                    //{
-                    //    L1 = l1,
-                    //    L2 = l2,
-                    //    B1 = b1,
-                    //    B2 = b2,
-                    //    S1 = s1,
-                    //    S2 = s2,
-                    //    S3 = s3,
-                    //    WD_K = 0 // ПОКА ЧТО ТАК
-                    //};
-                }
             }
-            else // SI or VI
+
+            /* ---------- REGta_Param -----------*/
+            switch (groupNumber)
             {
-                IDFile = new IdFile 
-                { 
+                case 0:
+                    switch (parameters.zipPK)
+                    {
+                        case 0: // без потерь
+                            ByteRoutines.SetBitZero(REGta_Param, 0);
+                            ByteRoutines.SetBitOne(REGta_Param, 1);
+                            ByteRoutines.SetBitZero(REGta_Param, 2);
+                            break;
+                        case 1: // без сжатия
+                            ByteRoutines.SetBitOne(REGta_Param, 0);
+                            ByteRoutines.SetBitOne(REGta_Param, 1);
+                            ByteRoutines.SetBitZero(REGta_Param, 2);
+                            break;
+                        default: // сжатие с потерями
+                            ByteRoutines.SetBitZero(REGta_Param, 0);
+                            ByteRoutines.SetBitOne(REGta_Param, 1);
+                            ByteRoutines.SetBitOne(REGta_Param, 2);
+                            break;
+                    }
+                    ByteRoutines.SetBitZero(REGta_Param, 3);
+                    switch (parameters.zipMK)
+                    {
+                        case 0: // без потерь
+                            ByteRoutines.SetBitZero(REGta_Param, 4);
+                            ByteRoutines.SetBitOne(REGta_Param, 5);
+                            ByteRoutines.SetBitZero(REGta_Param, 6);
+                            break;
+                        case 1: // без сжатия
+                            ByteRoutines.SetBitOne(REGta_Param, 4);
+                            ByteRoutines.SetBitOne(REGta_Param, 5);
+                            ByteRoutines.SetBitZero(REGta_Param, 6);
+                            break;
+                        default: // сжатие с потерями
+                            ByteRoutines.SetBitZero(REGta_Param, 4);
+                            ByteRoutines.SetBitOne(REGta_Param, 5);
+                            ByteRoutines.SetBitOne(REGta_Param, 6);
+                            break;
+                    }
+                    // 7-9 -- нули по умолчанию
+                    switch (parameters.memoryCellMZU1)
+                    {
+                        case 0:
+                            ByteRoutines.SetBitZero(REGta_Param, 10);
+                            ByteRoutines.SetBitZero(REGta_Param, 11);
+                            break;
+                        case 1:
+                            ByteRoutines.SetBitOne(REGta_Param, 10);
+                            ByteRoutines.SetBitZero(REGta_Param, 11);
+                            break;
+                        case 2:
+                            ByteRoutines.SetBitZero(REGta_Param, 10);
+                            ByteRoutines.SetBitOne(REGta_Param, 11);
+                            break;
+                        case 3:
+                            ByteRoutines.SetBitOne(REGta_Param, 10);
+                            ByteRoutines.SetBitOne(REGta_Param, 11);
+                            break;
+                    }
+                    switch (parameters.memoryCellMZU2)
+                    {
+                        case 0:
+                            ByteRoutines.SetBitZero(REGta_Param, 12);
+                            ByteRoutines.SetBitZero(REGta_Param, 13);
+                            break;
+                        case 1:
+                            ByteRoutines.SetBitOne(REGta_Param, 12);
+                            ByteRoutines.SetBitZero(REGta_Param, 13);
+                            break;
+                        case 2:
+                            ByteRoutines.SetBitZero(REGta_Param, 12);
+                            ByteRoutines.SetBitOne(REGta_Param, 13);
+                            break;
+                        case 3:
+                            ByteRoutines.SetBitOne(REGta_Param, 12);
+                            ByteRoutines.SetBitOne(REGta_Param, 13);
+                            break;
+                    }
+                    // 14-15 -- нули по умолчанию
+                    break;
+                default:
+                    break;
+            }
+
+            /* ---------- IDFile -----------*/
+            if (REGka == 1)
+            {
+                IDFile = new IdFile
+                {
                     TNPZ = parameters.binded_route.Item1,
                     TNroute = parameters.binded_route.Item2 == -1 ? 15 : parameters.binded_route.Item2,
-                    TNPos = 0 
+                    TNPos = 0
                 };
             }
 
-            this.N_PK = N_PK;
-
-            // Если сжатие с потерями, то
-            if (ByteRoutines.GetBit(REGta_Param, 0) == 0
-                && ByteRoutines.GetBit(REGta_Param, 1) == 1
-                && ByteRoutines.GetBit(REGta_Param, 2) == 1)
+            /* ---------- Target_RatePK -----------*/
+            if (parameters.zipPK >= 2)
             {
-                Target_RatePK = (int)(48 * 48 * 12.0 / zip_pk);
-                Target_RateMK = (int)(24 * 24 * 12.0 / zip_mk);
-                switch (zip_pk)
-                {
-                    case 2:
-                        Quant_InitValuePK = 4000;
-                        break;
-                    case 3:
-                        Quant_InitValuePK = 2000;
-                        break;
-                    case 4:
-                    case 5:
-                        Quant_InitValuePK = 700;
-                        break;
-                    case 6:
-                    case 7:
-                        Quant_InitValuePK = 500;
-                        break;
-                    default:
-                        Quant_InitValuePK = 300;
-                        break;
-                }
-                switch (zip_mk)
-                {
-                    case 2:
-                        Quant_InitValueMK = 4000;
-                        break;
-                    case 3:
-                        Quant_InitValueMK = 2000;
-                        break;
-                    case 4:
-                    case 5:
-                        Quant_InitValueMK = 700;
-                        break;
-                    case 6:
-                    case 7:
-                        Quant_InitValueMK = 500;
-                        break;
-                    default:
-                        Quant_InitValueMK = 300;
-                        break;
-                }
+                Target_RatePK = (int)(48 * 48 * 12.0 / parameters.zipPK);
+            }
+
+            /* ---------- Target_RateMK -----------*/
+            if (parameters.zipMK >= 2)
+            {
+                Target_RateMK = (int)(24 * 24 * 12.0 / parameters.zipMK);
+            }
+
+            /* ---------- Quant_InitValuePK -----------*/
+            switch (parameters.zipPK)
+            {
+                case 2:
+                    Quant_InitValuePK = 4000;
+                    break;
+                case 3:
+                    Quant_InitValuePK = 2000;
+                    break;
+                case 4:
+                case 5:
+                    Quant_InitValuePK = 700;
+                    break;
+                case 6:
+                case 7:
+                    Quant_InitValuePK = 500;
+                    break;
+                case 8:
+                case 9:
+                case 10:
+                    Quant_InitValuePK = 300;
+                    break;
+                default:
+                    Quant_InitValuePK = 0;
+                    break;
+            }
+
+            /* ---------- Quant_InitValueMK -----------*/
+            switch (parameters.zipMK)
+            {
+                case 2:
+                    Quant_InitValueMK = 4000;
+                    break;
+                case 3:
+                    Quant_InitValueMK = 2000;
+                    break;
+                case 4:
+                case 5:
+                    Quant_InitValueMK = 700;
+                    break;
+                case 6:
+                case 7:
+                    Quant_InitValueMK = 500;
+                    break;
+                case 8:
+                case 9:
+                case 10:
+                    Quant_InitValueMK = 300;
+                    break;
+                default:
+                    Quant_InitValueMK = 0;
+                    break;
             }
         }
 
@@ -554,9 +675,14 @@ namespace SatelliteSessions
         public RouteMPZ(RegimeTypes regimeType)
         {
             RegimeType = regimeType;
-            NPZ = -1; // to be filled in the MPZ constructor
-            // Nroute to be filled in the MPZ constructor
 
+            /* ---------- NPZ -----------*/
+            NPZ = -1; // to be filled in the MPZ constructor
+
+            /* ---------- Nroute -----------*/
+            // to be filled in the MPZ constructor
+
+            /* ---------- REGka -----------*/
             switch (regimeType)
             {
                 case RegimeTypes.NP:
@@ -581,6 +707,7 @@ namespace SatelliteSessions
                 //    break;
             }
 
+            /* ---------- InitCoord -----------*/
             switch (REGka)
             {
                 case 0:
@@ -592,17 +719,24 @@ namespace SatelliteSessions
                     break;
             }
 
-            N_PK = 0; // ПО РЕКОМЕНДАЦИИ ПЕЛЕНГ
+            /* ---------- N_PK -----------*/
+            // отдельно
 
-            Z = 31; // default
+            /* ---------- Z -----------*/
+            Z = 31;
 
-            N_MK = 0; // default
+            /* ---------- N_MK -----------*/
+            N_MK = 0; // поле не используется, всегда 0
 
-            // Ts -- to be set in MPZ
-            // Troute -- to be set for each
+            /* ---------- TS -----------*/
+            // в МПЗ
 
+            /* ---------- Troute -----------*/
+            // в МПЗ
+
+            /* ---------- REGta -----------*/
             #region set REGta
-            REGta = new byte[2];
+            REGta = new byte[2] { 0, 0 };
             ByteRoutines.SetBitZero(REGta, 0); //
             ByteRoutines.SetBitZero(REGta, 1); // Штатный ЗИ и НП -- отдельно 
             ByteRoutines.SetBitZero(REGta, 2); //
@@ -613,7 +747,7 @@ namespace SatelliteSessions
             ByteRoutines.SetBitOne(REGta, 7);
             ByteRoutines.SetBitZero(REGta, 8);
             ByteRoutines.SetBitOne(REGta, 9);
-            // ByteRoutines.SetBitOne(REGta, 10); ?!?!?
+            // ByteRoutines.SetBitOne(REGta, 10); задается отдельно в МПЗ, SUSPEND_MODE
             ByteRoutines.SetBitZero(REGta, 11);
             int typeRegime = 0;
             switch (regimeType)
@@ -645,7 +779,7 @@ namespace SatelliteSessions
                     ByteRoutines.SetBitZero(REGta, 13);
                     break;
             }
-            int groupNumber = 0;
+            
             switch (regimeType)
             {
                 case RegimeTypes.SI:
@@ -677,44 +811,68 @@ namespace SatelliteSessions
             }
             #endregion
 
-            REGta_Param = new byte[2];
-            switch (groupNumber)
-            {
-                case 0:
-                    ByteRoutines.SetBitOne(REGta_Param, 0);  //
-                    ByteRoutines.SetBitOne(REGta_Param, 1);  // default
-                    ByteRoutines.SetBitZero(REGta_Param, 2); //
-                    ByteRoutines.SetBitZero(REGta_Param, 3);
-                    ByteRoutines.SetBitOne(REGta_Param, 4);  //
-                    ByteRoutines.SetBitOne(REGta_Param, 5);  // default
-                    ByteRoutines.SetBitZero(REGta_Param, 6); //
-                    ByteRoutines.SetBitZero(REGta_Param, 7);
-                    REGta_Param[1] = 0; // default
-                    break;
-                default:
-                    break;
-            }
-
+            /* ---------- REGta_Param -----------*/
+            REGta_Param = new byte[2] { 0, 0 };
+            
+            /* ---------- IDFile -----------*/
             IDFile = new IdFile { TNPZ = 0, TNroute = 0, TNPos = 0 }; // задается отдельно
+
+            /* ---------- Delta_T -----------*/
             Delta_T = 0; // default
+
+            /* ---------- Hroute -----------*/
             Hroute = 200; // БОЛВАНКА -- ТРЕБУЕТ ВНИМАНИЯ!!!
-            K00 = new byte[16]; // ЦУП
-            Tune_Param = new byte[64]; // болванка
-            W_D_MpZ = 0; // default, ЦУП
-            Coef_tang = 0; // default
+
+            /* ---------- Target_Rate -----------*/
             Target_Rate = 0; // default
 
+            /* ---------- K00 -----------*/
+            K00 = new byte[16]; // ЦУП
+            for (int i = 0; i < K00.Length; ++i)
+                K00[i] = 0;
+
+            /* ---------- Tune_Param -----------*/
+            Tune_Param = new byte[64]; // болванка
+            for (int i = 0; i < Tune_Param.Length; ++i)
+                Tune_Param[i] = 0;
+
+            /* ---------- W/D_MPZ -----------*/
+            W_D_MpZ = 0; // default, ЦУП
+
+            /* ---------- Coef_tang -----------*/
+            Coef_tang = 0; // default
+
+            /* ---------- Target_RatePK -----------*/
             Target_RatePK = 0; // default
+
+            /* ---------- Target_RateMK -----------*/
             Target_RateMK = 0; // default
+
+            /* ---------- Quant_InitValuePK -----------*/
             Quant_InitValuePK = 0; // default
+
+            /* ---------- Quant_InitValueMK -----------*/
             Quant_InitValueMK = 0; // default
 
-            K01 = new byte[16];
-            K10 = new byte[8];
-            K11 = new byte[8];
-            R00 = new byte[4];
+            /* ---------- Polinomial_coeff -----------*/
+            // отдельно
 
+            /* ---------- K01 -----------*/
+            K01 = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+            /* ---------- K10 -----------*/
+            K10 = new byte[8] { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+            /* ---------- K11 -----------*/
+            K11 = new byte[8] { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+            /* ---------- R00 -----------*/
+            R00 = new byte[4] { 0, 0, 0, 0 };
+
+            /* ---------- TaskRes -----------*/
             TaskRes = new byte[38];
+            for (int i = 0; i < TaskRes.Length; ++i)
+                TaskRes[i] = 0;
         }
 
         private static RegimeTypes IntToType(int type)
@@ -773,7 +931,7 @@ namespace SatelliteSessions
         /// <param name="roll">Крен в радианах</param>
         /// <param name="pitch">Тангаж в радианах</param>
         /// <returns></returns>
-        private int GetNpk(RegimeTypes type, double sunHeight, double albedo, double roll = 0, double pitch = 0)
+        private byte GetNpk(RegimeTypes type, double sunHeight, double albedo, double roll = 0, double pitch = 0)
         {
             if (type == RegimeTypes.SI || type == RegimeTypes.VI)
             { 

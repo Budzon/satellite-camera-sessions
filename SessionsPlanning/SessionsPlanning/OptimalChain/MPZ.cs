@@ -167,6 +167,45 @@ namespace OptimalChain
 
         public int File_Size { get; set; } //объем файла в Мб
 
+        /// <summary>
+        /// Длина коридора съемки [м]
+        /// </summary>
+        public double coridorLength { get; set; }
+
+        /// <summary>
+        /// Азимут коридора съемки [рад]
+        /// </summary>
+        public double coridorAzimuth { get; set; }
+
+        /// <summary>
+        /// Параметр сжатия ПК:
+        /// 0 -- без потерь
+        /// 1 -- без сжатия
+        /// 2-10 -- сжатие с потерями
+        /// </summary>
+        public int zipPK { get; set; }
+
+        /// <summary>
+        /// Параметр сжатия МК:
+        /// 0 -- без потерь
+        /// 1 -- без сжатия
+        /// 2-10 -- сжатие с потерями
+        /// </summary>
+        public int zipMK { get; set; }
+
+        /// <summary>
+        /// Высота Солнца [рад]
+        /// </summary>
+        public double sunHeight { get; set; }
+
+        /// <summary>
+        /// Альбедо
+        /// </summary>
+        public double albedo { get; set; }
+
+        public int memoryCellMZU1 { get; set; }
+        public int memoryCellMZU2 { get; set; }
+
         public double getDropTime()
         {
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
