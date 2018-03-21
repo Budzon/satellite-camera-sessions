@@ -28,9 +28,9 @@ namespace OptimalChain
                 count++;
                 A.addEdge(v1, v1.value);
 
-                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
+                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
                 {
-                    double w = this.countEdgeWeight(v1, v2);
+                    double w = this.countEdgeWeight(v1, v2,false);
 
                     if (w > 0)
                     {
@@ -43,50 +43,50 @@ namespace OptimalChain
 
             }
 
-            Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
-            int nnn = 1;
-            while(additional_vertices.Count>0)
-            {
-                Console.WriteLine("Iteration " + nnn);
-                nnn++;
-                List<Vertex> TempList = additional_vertices;
-                additional_vertices.Clear();
-                foreach (Vertex v1 in TempList)
-                {
-                    A.addEdge(v1, v1.value);
+            //Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
+            //int nnn = 1;
+            //while(additional_vertices.Count>0)
+            //{
+            //    Console.WriteLine("Iteration " + nnn);
+            //    nnn++;
+            //    List<Vertex> TempList = additional_vertices;
+            //    additional_vertices.Clear();
+            //    foreach (Vertex v1 in TempList)
+            //    {
+            //        A.addEdge(v1, v1.value);
 
 
-                    foreach (Vertex v2 in additional_vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
-                    {
-                        double w = this.countEdgeWeight(v1, v2, true);
+            //        foreach (Vertex v2 in TempList.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
+            //        {
+            //            double w = this.countEdgeWeight(v1, v2);
 
-                        if (w > 0)
-                            v1.addEdge(v2, w);
-                    }
-                    foreach (Vertex v2 in vertices.Where(i => (i.s.id != v1.s.id)))
-                    {
-                        if (v2.s.dateFrom > v1.s.dateTo)
-                        {
-                            double w = this.countEdgeWeight(v1, v2, true);
+            //            if (w > 0)
+            //                v1.addEdge(v2, w);
+            //        }
+            //        foreach (Vertex v2 in vertices.Where(i => (i.s.id != v1.s.id)))
+            //        {
+            //            if (v2.cs.dateFrom.AddSeconds(v2.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v1.cs.timeDelta))
+            //            {
+            //                double w = this.countEdgeWeight(v1, v2);
 
-                            if (w > 0)
-                                v1.addEdge(v2, w);
-                        }
+            //                if (w > 0)
+            //                    v1.addEdge(v2, w);
+            //            }
 
-                        if (v1.s.dateFrom > v2.s.dateTo)
-                        {
-                            double w = this.countEdgeWeight(v2, v1, true);
+            //            if (v1.cs.dateFrom.AddSeconds(v1.cs.timeDelta) > v2.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v2.cs.timeDelta))
+            //            {
+            //                double w = this.countEdgeWeight(v2, v1);
 
-                            if (w > 0)
-                                v2.addEdge(v1, w);
-                        }
+            //                if (w > 0)
+            //                    v2.addEdge(v1, w);
+            //            }
 
-                    }
+            //        }
 
-                    v1.addEdge(B, 0);
-                    vertices.Add(v1);
-                }
-            }
+            //        v1.addEdge(B, 0);
+            //        vertices.Add(v1);
+            //    }
+            //}
 
 
             vertices.Insert(0, A);
@@ -96,14 +96,20 @@ namespace OptimalChain
         {
             vertices = new List<Vertex>();
             additional_vertices = new List<Vertex>();
-
+            
 
             foreach(CaptureConf s in strips)
             {
+            //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
                 vertices.Add(new Vertex(s.DefaultStaticConf(), s));
+                for(int i=0;i<s.timeDelta;i++)
+                {
+                    vertices.Add(new Vertex(s.CreateStaticConf(i,1), s));
+                    vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
+                }
                                     
             }
-
+            Console.WriteLine("Number of Verices = " + vertices.Count);
             CreateEdges();
 
         }
@@ -236,10 +242,8 @@ namespace OptimalChain
                         double mark_new = e.weight + e.v1.mark;
                         if(mark_new>v.mark)
                         {
-                          //  Console.WriteLine("Bingo!");
                             if (v.s == null) 
                             {
-                               //; Console.WriteLine("V.s == null!");
                                 v.mark = mark_new;
                                 v.path = e.v1.path.ToList();
                             }
@@ -250,26 +254,18 @@ namespace OptimalChain
                                     MPZParams lastMPZ = e.v1.path.Last();
                                     if (lastMPZ != null)
                                     {
-                                        if ((lastMPZ.N_routes < 12)&&(((v.s.dateTo - lastMPZ.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON)<Constants.MPZ_max_lasting_time))
+                                        RouteParams newRoute = new RouteParams(v.s);
+                                        if ((lastMPZ.N_routes < 12)&&(lastMPZ.isCompatible(newRoute)))
                                         {
-                                            RouteParams lastRoute = lastMPZ.GetLastRoute();
-                                            int min_t = Constants.CountMinPause(lastRoute.type,lastRoute.shooting_type,lastRoute.shooting_channel, v.s.type,v.s.shooting_type, v.s.shooting_channel);
-                                            
-                                            if (lastRoute.end.AddMilliseconds(min_t) < v.s.dateFrom)
-                                                {
-                                                   // Console.WriteLine("New route");
                                                     v.mark = mark_new;
                                                     v.path = e.v1.path.ToList();
                                                     v.path.Last().AddRoute(new RouteParams(v.s));
 
-                                                }
-
                                         }
                                         else
                                         {
-                                            if (lastMPZ.end.AddMilliseconds(Constants.MPZ_delta) < v.s.dateFrom)
+                                            if (lastMPZ.isCompatible(newRoute))
                                             {
-                                              //  Console.WriteLine("New MPZ");
                                                 v.mark = mark_new;
                                                 v.path = e.v1.path.ToList();
                                                 int N = v.path.Count;
@@ -282,21 +278,17 @@ namespace OptimalChain
 
                                 else
                                 {
-                                   // Console.WriteLine("START");
                                     v.mark = mark_new;
                                     v.path.Add(new MPZParams(0, new RouteParams(v.s)));
                                 }
                             }
-                           
-                            
-                            
-
                         }
                     }
                 }
 
             }
-            Console.WriteLine(vertices.Last().path.Count);
+           // Console.WriteLine(vertices.Last().path.Count);
+           // Console.WriteLine(vertices.Last().path.Last().routes.Count);
             return vertices.Last().path;
         }
     }
