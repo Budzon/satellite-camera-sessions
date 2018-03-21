@@ -108,7 +108,7 @@ namespace GeometryTest
             inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 23), new DateTime(2000, 01, 25))); 
             inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 23), new DateTime(2000, 01, 25)));
 
-            List<Tuple<DateTime, DateTime>> res = Sessions.compressTimeRanges(inputSpan);
+            List<Tuple<DateTime, DateTime>> res = Sessions.compressTimePeriods(inputSpan);
 
             Assert.IsTrue(res.Count == 2);
              
