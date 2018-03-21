@@ -893,12 +893,9 @@ namespace ViewModel
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
             
-
-
             //DateTime dt1 = new DateTime(2019, 1, 4);
             //DateTime dt2 = new DateTime(2019, 1, 8);
-
-            
+                      
 
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;

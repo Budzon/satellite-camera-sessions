@@ -84,7 +84,7 @@ namespace OptimalChain
     public class CaptureConf
     {
         public int id { get; set; }
-        public int confType { get { return mConfType; } }// 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
+        public int confType { get; set; } // 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
         public string shootingChannel { get { return mShootingChannel; } }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
         public int shootingType { get { return mShootingType; } }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
         public DateTime dateFrom { get { return mDateFrom; } }//время начала для съемки в надир
@@ -101,8 +101,7 @@ namespace OptimalChain
         private double mSquare;
         private string mWktPolygon;
         private string mShootingChannel;
-        private int mShootingType;
-        private int mConfType;
+        private int mShootingType; 
         private Tuple<int, int> mConnectedRoute;
         private DateTime mDateFrom;
         private DateTime mDateTo;
@@ -159,11 +158,11 @@ namespace OptimalChain
             }
 
             id = -1;
+            confType = _confType;
             mOrders = _orders;
             mDateFrom = _dateFrom;
             mDateTo = _dateTo;
-            mRollAngle = _rollAngle;
-            mConfType = _confType;
+            mRollAngle = _rollAngle;            
             mConnectedRoute = _connectedRoute;
             mPitchArray = new Dictionary<double, double>();
             mTimeDelta = 0;
@@ -182,7 +181,7 @@ namespace OptimalChain
                 //double pitch = pitchArray[0];
                 double pitch = -sign * pitchArray[delta];
 
-                var h = 720.330932208252;  // высота траектории, км.
+                var h = 720.330932208252;  /// @todo получать из констант или из координат // высота траектории, км. 
                 var w = 7.2921158533E-05;  // скорость вращения земли в радианах
                 var b = 0.00225708715578222;  // широта подспутниковой точки в радианах
                 var v = 0.0010139813837136; // скорость подспутниковой точки в радианах
@@ -302,6 +301,7 @@ namespace OptimalChain
         public string wktPolygon { get; set; }
         public string requestChannel { get; set; }
         public int shootingType { get; set; }
+        public int compression { get; set; }
 
         /// <summary>
         /// Конструктор параметров заказа
@@ -315,7 +315,8 @@ namespace OptimalChain
         /// <param name="max_s_a">Максимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="min_s_a">Минимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="polygon">Полигон заказа в формае WKT</param>
-        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon)
+        /// /// <param name="comp">коэффициент сжатия заказа</param>
+        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, int comp)
         {
             id = i;
             priority = p;
@@ -326,6 +327,7 @@ namespace OptimalChain
             Max_sun_angle = max_s_a;
             Min_sun_angle = min_s_a;
             wktPolygon = polygon;
+            compression = comp;
         }
 
         public RequestParams() { }
