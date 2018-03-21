@@ -586,19 +586,23 @@ namespace SatelliteSessions
         /// <returns> набор МПЗ, созданный из маршутов</returns>
         public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
         {
-            List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
+            //List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
 
             List<MPZ> res = new List<MPZ>();
-            List<RouteMPZ> routesTemp = new List<RouteMPZ>();
-            for (int i = 0; i < routes.Count; i++)
-            {
-                routesTemp.Add(routes[i]);
-                if (routesTemp.Count == 12 || i == routes.Count - 1)
-                {
-                    res.Add(new MPZ(routesTemp));
-                    routesTemp = new List<RouteMPZ>();
-                }
-            }
+            //List<RouteMPZ> routesTemp = new List<RouteMPZ>();
+            //for (int i = 0; i < routes.Count; i++)
+            //{
+            //    routesTemp.Add(routes[i]);
+            //    if (routesTemp.Count == 12 || i == routes.Count - 1)
+            //    {
+            //        res.Add(new MPZ(routesTemp));
+            //        routesTemp = new List<RouteMPZ>();
+            //    }
+            //}
+
+            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams);
+            for (int i = 0; i < mpzParams.Count; ++i)
+                res.Add(new MPZ(mpzParams[i]));
 
             return res;
         }
@@ -1174,19 +1178,19 @@ namespace SatelliteSessions
             eIncorrectNumber     // Слишком много/мало маршрутов (если 0 или если больше 12)
         }
 
-
-        /// <summary>
-        /// Создание МПЗ по заданным маршрутам и доп.параметрам
-        /// </summary>
-        /// <param name="routes">Набор маршрутов </param>
-        /// <param name="PWR_ON">признак PWR_ON</param>
-        /// <param name="mpz">параметры МПЗ</param>
-        /// <param name="error">ошибка создания</param>
-        public static void createMPZ(List<RouteMPZ> routes, int PWR_ON, out MPZ mpz, out createMPZStatus error)
-        {
-            mpz = new MPZ(routes);
-            error = createMPZStatus.eSuccses;
-        }
+        // НИГДЕ НЕ ИСПОЛЬЗУЕТСЯ, НО ЮЗАЕТ УСТАРЕВШИЙ КОНСТРУКТОР МПЗ -- ЗАКОММЕНТИЛ ПОКА ЧТО
+        ///// <summary>
+        ///// Создание МПЗ по заданным маршрутам и доп.параметрам
+        ///// </summary>
+        ///// <param name="routes">Набор маршрутов </param>
+        ///// <param name="PWR_ON">признак PWR_ON</param>
+        ///// <param name="mpz">параметры МПЗ</param>
+        ///// <param name="error">ошибка создания</param>
+        //public static void createMPZ(List<RouteMPZ> routes, int PWR_ON, out MPZ mpz, out createMPZStatus error)
+        //{
+        //    mpz = new MPZ(routes);
+        //    error = createMPZStatus.eSuccses;
+        //}
 
         private static DateTime getIntersectionTime(TrajectoryPoint first_point, TrajectoryPoint second_point, Vector3D centre, double zoneR)
         {

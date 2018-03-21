@@ -89,7 +89,7 @@ namespace OptimalChain
         }
 
 
-        public List<MPZParams> FillMPZ(List<RouteParams> routes)
+        public static List<MPZParams> FillMPZ(List<RouteParams> routes)
         {
             List<MPZParams> FTAs = new List<MPZParams>();
             routes.Sort((x, y) => DateTime.Compare(x.start, y.start));
