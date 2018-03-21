@@ -196,7 +196,7 @@ namespace OptimalChain
                 double d = Math.Cos(bm) * w / v * b2 * Math.Sin(I);
                 double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
 
-                double r = Math.Asin(sinRoll); ;
+                double r = Math.Asin(sinRoll); 
 
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
