@@ -300,7 +300,18 @@ namespace SatelliteSessions
             // временные периоды, во время которых можно проводить съемку со сбросом
             List<Tuple<DateTime, DateTime>> freeSessionPeriodsForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentRanges);
 
-            List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, inactivityRanges, freeSessionPeriodsForDrop);
+            List<Tuple<DateTime, DateTime>> shadowPeriods;
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot; 
+            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+
+            // учёт освещённости
+            List<Tuple<DateTime, DateTime>> shadowAndInactivityPeriods = new List<Tuple<DateTime, DateTime>>();
+            shadowAndInactivityPeriods.AddRange(inactivityRanges);
+            shadowAndInactivityPeriods.AddRange(shadowPeriods);
+            shadowAndInactivityPeriods = compressTimePeriods(shadowAndInactivityPeriods);
+
+            // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
+            List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
             
             //List<CaptureConf> allConfs = new List<CaptureConf>();
             
@@ -314,7 +325,7 @@ namespace SatelliteSessions
             List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>();
             silentAndCaptureRanges.AddRange(silentRanges);
             silentAndCaptureRanges.AddRange(capturePeriods);
-            silentAndCaptureRanges = compressTimeRanges(silentAndCaptureRanges);
+            silentAndCaptureRanges = compressTimePeriods(silentAndCaptureRanges);
 
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
 
@@ -326,7 +337,7 @@ namespace SatelliteSessions
             silentAndCaptureAndDropRanges.AddRange(silentRanges);
             silentAndCaptureAndDropRanges.AddRange(capturePeriods);
             silentAndCaptureAndDropRanges.AddRange(dropPeriods);
-            silentAndCaptureAndDropRanges = compressTimeRanges(silentAndCaptureAndDropRanges);
+            silentAndCaptureAndDropRanges = compressTimePeriods(silentAndCaptureAndDropRanges);
 
             List<Tuple<DateTime, DateTime>> freeRangesForDelete = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureAndDropRanges);
             
@@ -367,7 +378,7 @@ namespace SatelliteSessions
         public static List<Tuple<DateTime, DateTime>> getFreeTimePeriodsOfSessions(List<CommunicationSession> sessions, List<Tuple<DateTime, DateTime>> occupiedPeriods)
         {
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = new List<Tuple<DateTime, DateTime>>();
-            var compressedOccupiedPeriods = compressTimeRanges(occupiedPeriods);
+            var compressedOccupiedPeriods = compressTimePeriods(occupiedPeriods);
             foreach (var session in sessions)
             {
                 var timeSpan = new Tuple<DateTime, DateTime>(session.Zone5timeFrom, session.Zone5timeTo);
@@ -376,7 +387,7 @@ namespace SatelliteSessions
 
                 freeRangesForDrop.AddRange(freeRangesForSession);
             }
-            freeRangesForDrop = compressTimeRanges(freeRangesForDrop);
+            freeRangesForDrop = compressTimePeriods(freeRangesForDrop);
             freeRangesForDrop = freeRangesForDrop.OrderByDescending(range => (range.Item2 - range.Item1).TotalSeconds).ToList();
             return freeRangesForDrop;
         }
@@ -396,9 +407,18 @@ namespace SatelliteSessions
         public static List<RouteParams> getRoutesParamsToDrop(List<RouteMPZ> routesToDrop, List<Tuple<DateTime, DateTime>> freeCompressedRanges)
         {
             List<RouteParams> res = new List<RouteParams>();
-            // отсортируем свободные промежутки по продолжительности в порядке убывания
-            freeCompressedRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return (span2.Item2 - span2.Item1).CompareTo(span1.Item2 - span1.Item1); });
-            
+
+            // отсортируем свободные промежутки по продолжительности в порядке убывания 
+            freeCompressedRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) 
+                                     {return (span2.Item2 - span2.Item1).CompareTo(span1.Item2 - span1.Item1); });
+
+            int prevRouteInd = 0;
+            foreach (var period in freeCompressedRanges)
+            {
+                DateTime from = period.Item1; // момент времени, с которого начинаем упаковку
+
+            }
+ 
 
             return res;
         }
@@ -489,7 +509,7 @@ namespace SatelliteSessions
        //     return invertTimeSpans(compressedSilentAndCaptureRanges, timeSpan.Item1, timeSpan.Item2);  
        // }
 
-        public static List<Tuple<DateTime, DateTime>> compressTimeRanges(List<Tuple<DateTime, DateTime>> timePeriods)
+        public static List<Tuple<DateTime, DateTime>> compressTimePeriods(List<Tuple<DateTime, DateTime>> timePeriods)
         {
             // соеденим пересекающиеся диапазоны
             List<Tuple<DateTime, DateTime>> compressedSilentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>(timePeriods);
