@@ -37,6 +37,7 @@ namespace OptimalChain
         public const double smallDeleteInterval = 20;
         public const double bigDeleteInterval = 60;
 
+        public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
 
         public static int CountMinPause(int t1, int st1, string channel1, int t2, int st2, string channel2)
         {

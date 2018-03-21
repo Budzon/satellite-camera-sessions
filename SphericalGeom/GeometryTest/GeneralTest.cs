@@ -72,7 +72,7 @@ namespace GeometryTest
                         requests.Add(reqparams);
                         id++;
                     }
-                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, inactivityRanges);
+                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, inactivityRanges, new List<Tuple<DateTime,DateTime>>());
                 }
 
                 catch (Exception ex)
@@ -126,6 +126,7 @@ namespace GeometryTest
                     reqparams.timeFrom = dt1;
                     reqparams.timeTo = dt2;
                     reqparams.priority = 1;
+                    reqparams.compression = 10;
                     reqparams.minCoverPerc = 0.4;
                     reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
                     reqparams.wktPolygon = pol.ToWtk();
@@ -176,8 +177,8 @@ namespace GeometryTest
                 routesToDelete.Add(routempzToDelete);
 
                 List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5)));
-                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
+                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
+                //silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
                  
 
                 var inactivityRanges = new List<Tuple<DateTime, DateTime>>();

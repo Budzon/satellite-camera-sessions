@@ -194,8 +194,9 @@ namespace SatelliteTrajectory
                     double subsquare = int_pol.Area;
                     order.intersection_coeff = subsquare / square;
                     var orders = new List<Order>() { order };
-                    CaptureConf newcc = new CaptureConf(tmin, tmax, rollAngle, orders, 0, null);                    
-                    
+                    int type = 0;
+                    CaptureConf newcc = new CaptureConf(tmin, tmax, rollAngle, orders, type, null);
+
                     res.Add(newcc);
                 }
             }
@@ -215,9 +216,7 @@ namespace SatelliteTrajectory
 
             if (Sectors[0].sectorPoints[0].Time > begTime || lastPoint.Time < endTime)
                 throw new System.ArgumentException("Incorrect time interval.");
-
-
-
+            
             List<Vector3D> polygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();
 
