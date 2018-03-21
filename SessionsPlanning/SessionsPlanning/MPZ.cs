@@ -18,7 +18,8 @@ namespace SatelliteSessions
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
 
-        public MPZ(OptimalChain.MPZParams inpParameters)
+        public MPZ(OptimalChain.MPZParams inpParameters, 
+            bool mainKeyBVIP, bool mainKeyBBZU, bool mainKeyVIP1, bool mainKeyYKPD1, bool mainKeyYKPD2)
         {
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
@@ -27,7 +28,49 @@ namespace SatelliteSessions
                 routes.Add(new RouteMPZ(rout_params));
             }
 
+            bool hasPK = parameters.routes.Any(route => route.shooting_channel == "pk" || route.shooting_channel == "cm");
+            bool hasMK = parameters.routes.Any(route => route.shooting_channel == "mk" || route.shooting_channel == "cm");
+
+            bool useYKZU1 = parameters.routes.Any(route => route.memoryCellMZU1 == 1); // пишет ли кто в 1ю ЯП
+            bool useYKZU2 = parameters.routes.Any(route => route.memoryCellMZU1 == 2); // пишет ли кто в 2ю ЯП
+            // НУЖНО ЕЩЕ УЧЕСТЬ КОГДА ЯП НЕ ВЫБРАНА!!! (+ мзу1 и мзу2 симметричны всё-таки или нет?)
+
+            Header = new HeaderMPZ(hasPK, hasMK, mainKeyBVIP, mainKeyBBZU, mainKeyVIP1, useYKZU1, useYKZU2, mainKeyYKPD1, mainKeyYKPD2);
+
+            /* ---------- NPZ -----------*/
+            Header.NPZ = parameters.id;
+            //Header.NPZ = NextNumMpz;
+            //NextNumMpz += 1;
+
+            /* ---------- Ntask -----------*/
+            Header.Ntask = parameters.N_routes;
+
+            /* ---------- PWR_ON -----------*/
+            Header.PWR_ON = (byte)(parameters.PWR_ON ? 1 : 0);
+
             loadRoutes(routes);
+
+            /* ---------- CONF_RLCI -----------*/
+            DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
+            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
+            if (nkpoiOnTheLeft(fetcher))
+                Header.CONF_RLCI += 8; // ВЫБОР АНТЕННЫ АРМ2
+            else
+                Header.CONF_RLCI += 0; // ВЫБОР АНТЕННЫ АРМ1
+            bool dumpsData = Routes.Any(route => route.RegimeType == RegimeTypes.VI || route.RegimeType == RegimeTypes.NP);
+            if (dumpsData)
+                Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
+            else
+                Header.CONF_RLCI += 0; // ВЫКЛЮЧИТЬ СВРЛ
+
+            /* ---------- Session_key_On -----------*/
+            if (dumpsData)
+                Header.Session_key_ON = 1; // использовать ключ при сбросе (УТОЧНИТЬ!)
+
+            /* ---------- Autotune_On -----------*/
+            bool filmData = Routes.Any(route => route.RegimeType == RegimeTypes.ZI || route.RegimeType == RegimeTypes.NP);
+            if (filmData)
+                Header.Autotune_ON = 1; // автоюстировка при съемке
         }
  
         //public MPZ(IList<RouteMPZ> routes)
@@ -35,29 +78,19 @@ namespace SatelliteSessions
         //    loadRoutes(routes);
         //}
  
-        private void loadRoutes(IList<RouteMPZ> routes)
+        private void loadRoutes(List<RouteMPZ> routes)
         {
-            if (parameters == null)
-            {
-                parameters = new OptimalChain.MPZParams(NextNumMpz);
-                foreach (var route in routes)
-                    parameters.AddRoute(route.Parameters);
-            }
-
-            Header = new HeaderMPZ(true, true, true, true, true, true, true, true, true); // PLACEHOLDER
-            Routes = new List<RouteMPZ>();
-            Header.NPZ = NextNumMpz;
-            NextNumMpz += 1;
-            Header.Ntask = routes.Count;
+            Routes = routes;
+            
             for (int i = 0; i < routes.Count; ++i)
             {
-                Routes.Add(routes[i]);
                 Routes[i].NPZ = Header.NPZ;
                 Routes[i].Nroute = i;
                 Routes[i].Ts = i == 0 ? (int)(HeaderMPZ.TON_DELTA.TotalSeconds * 5) : Routes[i - 1].Ts + Routes[i - 1].Troute; 
-                if (parameters.PWR_ON)
+                if (i + 1 < routes.Count - 1)
                 {
-                    ByteRoutines.SetBitOne(Routes[i].REGta, 10); // suspend_mode
+                    if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
+                        ByteRoutines.SetBitOne(Routes[i].REGta, 10); // suspend_mode
                 }
             }
             if (Routes.Count > 0)
@@ -71,7 +104,19 @@ namespace SatelliteSessions
             catch
             {
                 // Нет маршрутов со съемкой
+                Header.Tvideo = (uint)(23 * 60 + 20) * 5;
             }
+        }
+
+        private bool nkpoiOnTheLeft(DBTables.DataFetcher fetcher)
+        {
+            Vector3D snkpoi = fetcher.GetPositionSNKPOI();
+            TrajectoryPoint ka = fetcher.GetPositionSat(parameters.start).Value;
+            Vector3D kapos = ka.Position.ToVector();
+            Vector3D planeNormal = Vector3D.CrossProduct(kapos, ka.Velocity);
+            planeNormal.Normalize();
+
+            return Vector3D.DotProduct(snkpoi - kapos, planeNormal) > 0;
         }
     }
 
@@ -429,17 +474,7 @@ namespace SatelliteSessions
                         inpParameters.start, inpParameters.coridorAzimuth, inpParameters.coridorLength,
                         parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
                         out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
-                    Polinomial_Coeff = new PolinomCoef
-                    {
-                        L1 = l1,
-                        L2 = l2,
-                        B1 = b1,
-                        B2 = b2,
-                        S1 = s1,
-                        S2 = s2,
-                        S3 = s3,
-                        WD_K = 0 // ПОКА ЧТО ТАК
-                    };
+                    Polinomial_Coeff = new PolinomCoef { L1 = l1, L2 = l2, B1 = b1, B2 = b2, S1 = s1, S2 = s2, S3 = s3, WD_K = 0 };
                 }
                 else
                     Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };
@@ -470,14 +505,14 @@ namespace SatelliteSessions
                     break;
                 case RegimeTypes.ZI:
                     Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
-                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
+                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
                     Troute = (int)((parameters.File_Size / 1024.0 * 8 + 1) * 5);
                     break;
                 case RegimeTypes.NP:
                     Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
-                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize(parameters));
+                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 default:
                     break;
@@ -597,9 +632,12 @@ namespace SatelliteSessions
                 {
                     TNPZ = parameters.binded_route.Item1,
                     TNroute = parameters.binded_route.Item2 == -1 ? 15 : parameters.binded_route.Item2,
-                    TNPos = 0
+                    TNPos = parameters.TNPos == null ? 0 : parameters.TNPos
                 };
             }
+
+            /* ---------- Delta_T -----------*/
+            Delta_T = (byte)(parameters.Delta_T == null ? 0 : parameters.Delta_T);
 
             /* ---------- Target_RatePK -----------*/
             if (parameters.zipPK >= 2)
@@ -732,7 +770,7 @@ namespace SatelliteSessions
             // в МПЗ
 
             /* ---------- Troute -----------*/
-            // в МПЗ
+            // отдельно
 
             /* ---------- REGta -----------*/
             #region set REGta
@@ -901,7 +939,7 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="routeParams"></param>
         /// <returns></returns>
-        private double ComputeFileSize(OptimalChain.RouteParams routeParams)
+        private double ComputeFileSize()
         {
             int Nm = 0;
             for (int i = 3; i < 7; ++i)
@@ -917,9 +955,12 @@ namespace SatelliteSessions
             else
                 CodVznCalibr = 1;
 
+            // Чтобы не делить на 0.
+            int zipmk = parameters.zipMK > 0 ? parameters.zipMK : 1;
+            int zippk = parameters.zipPK > 0 ? parameters.zipPK : 1;
             return OptimalChain.RouteParams.InformationFluxInBits(
-                routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch,
-                Hroute, CodVznCalibr, Nm, zip_mk, Np, zip_pk) * (Troute * 0.2) / (1 << 23);
+                parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
+                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute * 0.2) / (1 << 23);
         }
 
         /// <summary>

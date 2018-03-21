@@ -168,6 +168,16 @@ namespace OptimalChain
         public int File_Size { get; set; } //объем файла в Мб
 
         /// <summary>
+        /// Смещение от начала файла при сбросе инфо (от 0 до 99).
+        /// </summary>
+        public int TNPos { get; set; }
+
+        /// <summary>
+        /// Поправка времени включения блоков СОЭН в suspend mode (от -15 до 15)
+        /// </summary>
+        public int Delta_T { get; set; }
+
+        /// <summary>
         /// Длина коридора съемки [м]
         /// </summary>
         public double coridorLength { get; set; }
