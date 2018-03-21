@@ -22,8 +22,10 @@ namespace GeometryTest
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-            DateTime dt1 = new DateTime(2019, 1, 1);
-            string wkt2 = SatelliteSessions.Sessions.getSOENViewPolygon(dt1, AstronomyMath.ToRad(20), AstronomyMath.ToRad(10), 5000, manager, true);
+            DateTime dt1 = new DateTime(2019, 2, 3);
+            string wkt;
+            double dur;
+            SatelliteSessions.Sessions.getCoridorPoly(dt1, AstronomyMath.ToRad(0), AstronomyMath.ToRad(0), 70e3, AstronomyMath.ToRad(-20), manager, out wkt, out dur);
         }
 
         [TestMethod]

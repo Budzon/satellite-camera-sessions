@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Media.Media3D;
 
 using SphericalGeom;
@@ -8,6 +9,7 @@ using SatelliteSessions;
 using Common;
 using Astronomy;
 using OptimalChain;
+using Microsoft.Research.Oslo;
 
 namespace SatelliteTrajectory
 {   
@@ -679,7 +681,7 @@ namespace SatelliteTrajectory
                         res.Add(new PolygonLit { Polygon = p, Lit = true });
                     foreach (Polygon p in LitAndNot.Item2)
                         res.Add(new PolygonLit { Polygon = p, Lit = false });
-                }                
+                }
             }
 
             return res;
@@ -706,6 +708,162 @@ namespace SatelliteTrajectory
             apexes.Add(new Vector3D(0, 0, 0));
 
             return new Polygon(vertices, apexes);
+        }
+
+        public static void GetCoridorParams(DBTables.DataFetcher fetcher, DateTime start, double az, double dist, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration)
+        {
+            dist = Math.Min(dist, 97e3);
+            Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
+            GeoPoint startPoint = Routines.IntersectOpticalAxisAndEarth(traj[0], roll, pitch);
+
+            getGeodesicLine(startPoint, az, dist, out B1, out B2, out L1, out L2);
+            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
+        private static void getDistanceCoef(Trajectory traj, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
+        {
+            double WD = OptimalChain.RouteParams.WD(roll, pitch);
+            List<double> dists = new List<double> { 0 };
+            double dt = 1e-1;
+
+            TrajectoryPoint curTP = traj[0];
+            GeoPoint curP = Routines.IntersectOpticalAxisAndEarth(curTP, roll, pitch);
+            double startLat = AstronomyMath.ToRad(curP.Latitude);
+            double startLon = AstronomyMath.ToRad(curP.Longitude);
+
+            while (dists[dists.Count - 1] < dist)
+            {
+                double s = dists[dists.Count - 1];
+                double D = 1e3*(curTP.Position - GeoPoint.ToCartesian(curP, Astronomy.Constants.EarthRadius)).ToVector().Length;
+                double W = WD * D;
+                s += W * dt;
+                dists.Add(s);
+
+                double B = startLat + b1 * s + b2 * s * s;
+                double L = startLon + l1 * s + l2 * s * s;
+                curP = new GeoPoint(AstronomyMath.ToDegrees(B), AstronomyMath.ToDegrees(L));
+                curTP = traj.GetPoint(curTP.Time.AddSeconds(dt));
+            }
+
+            int i1 = 1, i2 = dists.Count / 2, i3 = dists.Count - 1;
+            double t1 = dt * i1;
+            double t2 = dt * i2;
+            double t3 = dt * i3;
+
+            Matrix A = new Matrix(new double[][]
+                {
+                    new double[] {t1, t1*t1, t1*t1*t1},
+                    new double[] {t2, t2*t2, t2*t2*t2},
+                    new double[] {t3, t3*t3, t3*t3*t3},
+                });
+            Vector rhs = new Vector(dists[i1], dists[i2], dists[i3]);
+            Vector S = Gauss.Solve(A, rhs);
+            s1 = S[0];
+            s2 = S[1];
+            s3 = S[2];
+            duration = t3;
+        }
+
+        /// <summary>
+        /// Возвращает параметры, определяющие геодезическую, по её концам
+        /// </summary>
+        /// <param name="p">Начальная точка</param>
+        /// <param name="pEnd">Конечная точка</param>
+        /// <param name="B1"></param>
+        /// <param name="B2"></param>
+        /// <param name="L1"></param>
+        /// <param name="L2"></param>
+        public static void getGeodesicLineEndPoints(GeoPoint p, GeoPoint pEnd, 
+                                                    out double B1, out double B2, out double L1, out double L2)
+        {
+            //Vector3D v0 = GeoPoint.ToCartesian(p, 1);
+            //Vector3D v00 = GeoPoint.ToCartesian(pEnd, 1);
+            //Arc geodesic = new Arc(v0, v00);
+            //Arc meridian = new Arc(v0, new Vector3D(0, 0, 1));
+            //double az = Math.Asin(Vector3D.DotProduct(v0, Vector3D.CrossProduct(meridian.TangentA, geodesic.TangentA)));
+            //double dist = geodesic.CentralAngle * Constants.EarthRadius * 1e3;
+
+            double dB = AstronomyMath.ToRad(pEnd.Latitude - p.Latitude);
+            double dL = AstronomyMath.ToRad(pEnd.Longitude - p.Longitude);
+            double midB = AstronomyMath.ToRad(pEnd.Latitude + p.Latitude) / 2;
+            double mSin = Math.Sin(midB), mCos = Math.Cos(midB);
+
+            double P = dB * (1 - dL * dL / 12 - (dL * mSin) * (dL * mSin) / 24);
+            double Q = dL * mCos * (1 + dB * dB / 12 - (dL * mSin) * (dL * mSin) / 24);
+            double dist = Math.Sqrt(P * P + Q * Q) * Astronomy.Constants.EarthRadius * 1e3;
+            double mA = Math.Atan2(P, Q);
+            double dA = dL * mSin * (1 + (dB * dB + dL * dL) / 12 - (dL * mSin) * (dL * mSin) / 24);
+            double az = mA - dA / 2;
+
+            getGeodesicLine(p, az, dist, out B1, out B2, out L1, out L2);
+        }
+
+        /// <summary>
+        /// Возвращает параметры, определяющие геодезическую, по начальной точке и азимуту
+        /// </summary>
+        /// <param name="p">Начальная точка геодезической</param>
+        /// <param name="az">Начальный азимут [рад]</param>
+        /// <param name="dist">Длина вдоль геодезической [м]</param>
+        /// <param name="B1"></param>
+        /// <param name="B2"></param>
+        /// <param name="L1"></param>
+        /// <param name="L2"></param>
+        public static void getGeodesicLine(GeoPoint p, double az, double dist,
+                                           out double B1, out double B2, out double L1, out double L2
+            /*bool sphericalEarth = true*/)
+        {
+            Vector Bm, Lm;
+
+            //if (sphericalEarth)
+            //{
+            //    Vector3D v = GeoPoint.ToCartesian(p, 1);
+            //    Arc meridian = new Arc(v, new Vector3D(0, 0, 1));
+
+            //    RotateTransform3D azimuthTransform = new RotateTransform3D(new AxisAngleRotation3D(v, AstronomyMath.ToDegrees(-az)));
+            //    Vector3D tangent = azimuthTransform.Transform(meridian.TangentA);
+
+            //    Vector3D geodesicAxis = Vector3D.CrossProduct(v, tangent);
+            //    double geodesicAngle = dist / (Constants.EarthRadius * 1e3);
+
+            //    RotateTransform3D geodesicTransform = new RotateTransform3D(new AxisAngleRotation3D(geodesicAxis, AstronomyMath.ToDegrees(geodesicAngle)));
+            //    Vector3D vEnd = geodesicTransform.Transform(v);
+            //    GeoPoint pEnd = GeoPoint.FromCartesian(vEnd);
+
+            //    Arc geodesic = new Arc(v, vEnd);
+            //    GeoPoint pMid = geodesic.Middle();
+
+            //    Bm = new Vector(AstronomyMath.ToRad(pMid.Latitude - p.Latitude), AstronomyMath.ToRad(pEnd.Latitude - p.Latitude));
+            //    Lm = new Vector(AstronomyMath.ToRad(pMid.Longitude - p.Longitude), AstronomyMath.ToRad(pEnd.Longitude - p.Longitude));
+            //}
+            //else
+            //{
+            var arr = Ode.RK547M(0,
+             new Vector(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az),
+             (t, x) => new Vector(
+                 Math.Cos(x[2]) / Astronomy.Constants.EarthRadius / 1e3,
+                 Math.Sin(x[2]) / Math.Cos(x[0]) / Astronomy.Constants.EarthRadius / 1e3,
+                 Math.Sin(x[2]) / Astronomy.Constants.EarthRadius / 1e3 * Math.Tan(x[0])),
+             new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, 0.5 * dist).ToArray();
+
+            var p0 = arr[0].X;
+            var s0 = arr[0].T;
+
+            var p1 = arr[1].X;
+            var s1 = arr[1].T;
+
+            var p2 = arr[2].X;
+            var s2 = arr[2].T;
+
+            Bm = new Vector(p1[0] - p0[0], p2[0] - p0[0]);
+            Lm = new Vector(p1[1] - p0[1], p2[1] - p0[1]);
+
+            Matrix A = new Matrix(new double[][] { new double[] { 0.5 * dist, 0.25 * dist * dist }, new double[] { dist, dist * dist } });
+            Vector B = Gauss.Solve(A, Bm);
+            B1 = B[0];
+            B2 = B[1];
+            Vector L = Gauss.Solve(A, Lm);
+            L1 = L[0];
+            L2 = L[1];
         }
     }
 

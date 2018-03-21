@@ -604,6 +604,63 @@ namespace SatelliteSessions
         }
 
 
+        /// <summary>
+        /// Рассчитать коридор съемки/видимости для заданной конфигурации СОЭНc
+        /// </summary>
+        /// <param name="dateTime">Момент времени</param>
+        /// <param name="rollAngle">Крен [рад]</param>
+        /// <param name="pitchAngle">Тангаж [рад]</param>
+        /// <param name="dist">Длина коридора [м] (не более 97000)</param>
+        /// <param name="az">Азимут коридора [рад] </param>
+        /// <param name="managerDB">Параметры подключения к БД</param>
+        /// <param name="wktPoly">Коридор в формате WKT</param>
+        /// <param name="duration">Длительность съемки коридора [с]</param>
+        /// <returns> полигон в формате WKT</returns>
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration)
+        {
+            if (dist > 97e3)
+                throw new ArgumentException("Длина коридора не превосходит 97км.");
+
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3;
+            TrajectoryRoutines.GetCoridorParams(
+                fetcher, dateTime, az, dist,
+                rollAngle, pitchAngle,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
+
+            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+
+            GeoPoint[] leftPoints = new GeoPoint[10];
+            for (int i = 0; i < leftPoints.Length; ++i)
+            {
+                double d = dist / leftPoints.Length * (i + 1);
+                leftPoints[i] = new GeoPoint(
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                );
+            }
+            GeoPoint[] rightPoints = new GeoPoint[10];
+            for (int i = 0; i < rightPoints.Length; ++i)
+            {
+                double d = dist / rightPoints.Length * (rightPoints.Length - i);
+                rightPoints[i] = new GeoPoint(
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                );
+            }
+
+            List<GeoPoint> vertices = new List<GeoPoint>();
+            vertices.Add(lpBegin.LeftGeoPoint);
+            vertices.AddRange(leftPoints);
+            vertices.AddRange(rightPoints);
+            vertices.Add(lpBegin.RightGeoPoint);
+
+            Polygon pol = new Polygon(vertices);
+            wktPoly = pol.ToWtk();
+        }
 
         /// <summary>
         /// Рассчитать полигон съемки/видимости для заданной конфигурации СОЭН
@@ -676,11 +733,11 @@ namespace SatelliteSessions
                 {
                     return wtk;
                 }
-                double l1, l2, b1, b2, s1, s2, s3;
-                SphericalGeom.Routines.GetCoridorParams(
-                    p0_.Value, p1_.Value, p2_.Value, p3_.Value,
+                double l1, l2, b1, b2, s1, s2, s3, dur;
+                TrajectoryRoutines.GetCoridorParams(
+                    fetcher, dateTime, Math.PI/6, 97e3,
                     rollAngle, pitchAngle,
-                    out b1, out b2, out l1, out l2, out s1, out s2, out s3);
+                    out b1, out b2, out l1, out l2, out s1, out s2, out s3, out dur);
 
                 LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
                 

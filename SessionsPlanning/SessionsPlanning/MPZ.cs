@@ -290,23 +290,23 @@ namespace SatelliteSessions
                         throw new Exception("No trajectory data.");
                     }
 
-
-                    double l1, l2, b1, b2, s1, s2, s3;
-                    SphericalGeom.Routines.GetCoridorParams(
-                        KAbegin, p1_.Value, p2_.Value, p3_.Value, 
-                        parameters.ShootingConf.roll, parameters.ShootingConf.pitch, 
-                        out b1, out b2, out l1, out l2, out s1, out s2, out s3);
-                    Polinomial_Coeff = new PolinomCoef
-                    {
-                        L1 = l1,
-                        L2 = l2,
-                        B1 = b1,
-                        B2 = b2,
-                        S1 = s1,
-                        S2 = s2,
-                        S3 = s3,
-                        WD_K = 0 // ПОКА ЧТО ТАК
-                    };
+                    // изменить согласно новым входным параметрам
+                    //double l1, l2, b1, b2, s1, s2, s3;
+                    //SphericalGeom.Routines.GetCoridorParams(
+                    //    KAbegin, p1_.Value, p2_.Value, p3_.Value, 
+                    //    parameters.ShootingConf.roll, parameters.ShootingConf.pitch, 
+                    //    out b1, out b2, out l1, out l2, out s1, out s2, out s3);
+                    //Polinomial_Coeff = new PolinomCoef
+                    //{
+                    //    L1 = l1,
+                    //    L2 = l2,
+                    //    B1 = b1,
+                    //    B2 = b2,
+                    //    S1 = s1,
+                    //    S2 = s2,
+                    //    S3 = s3,
+                    //    WD_K = 0 // ПОКА ЧТО ТАК
+                    //};
                 }
             }
             else // SI or VI
@@ -586,6 +586,82 @@ namespace SatelliteSessions
             return OptimalChain.RouteParams.InformationFluxInBits(
                 routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch,
                 Hroute, CodVznCalibr, Nm, zip_mk, Np, zip_pk) * (Troute * 0.2) / (1 << 23);
+        }
+
+        /// <summary>
+        /// Вычисляет параметр N_PK (число шагов ВЗН).
+        /// </summary>
+        /// <param name="type">Режим съемки</param>
+        /// <param name="sunHeight">Высота Солнца в радианах</param>
+        /// <param name="albedo">Альбедо</param>
+        /// <param name="roll">Крен в радианах</param>
+        /// <param name="pitch">Тангаж в радианах</param>
+        /// <returns></returns>
+        private int GetNpk(RegimeTypes type, double sunHeight, double albedo, double roll = 0, double pitch = 0)
+        {
+            if (type == RegimeTypes.SI || type == RegimeTypes.VI)
+            { 
+                // Согласно таблиц
+                double sunDeg = AstronomyMath.ToDegrees(sunHeight);
+
+                if (albedo < 0.2)
+                {
+                    return 4;
+                }
+                else if (albedo < 0.4)
+                {
+                    if (sunDeg < 40)
+                        return 4;
+                    else
+                        return 3;
+                }
+                else if (albedo < 0.6)
+                {
+                    if (sunDeg < 30)
+                        return 4;
+                    else if (sunDeg < 50)
+                        return 3;
+                    else
+                        return 2;
+                }
+                else if (albedo < 0.8)
+                {
+                    if (sunDeg < 20)
+                        return 4;
+                    else if (sunDeg < 40)
+                        return 3;
+                    else
+                        return 2;
+                }
+                else if (albedo <= 1.0)
+                {
+                    if (sunDeg < 20)
+                        return 4;
+                    else if (sunDeg < 30)
+                        return 3;
+                    else if (sunDeg < 70)
+                        return 2;
+                    else
+                        return 1;
+                }
+                else
+                    throw new ArgumentException(String.Format("Bad parameters sunHeight = {0}, albedo = {1}", sunHeight, albedo));
+            } 
+            else
+            {
+                // По формулам из ИД.
+                double vu = Math.Sin(sunHeight) * albedo / OptimalChain.RouteParams.WD(roll, pitch);
+                if (vu <= 22)
+                    return 4;
+                else if (vu < 45)
+                    return 3;
+                else if (vu <= 87)
+                    return 2;
+                else if (vu < 178)
+                    return 1;
+                else
+                    return 0;
+            }
         }
 
     }
