@@ -389,16 +389,16 @@ namespace SphericalGeom
                 Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
                 verts.Add(crossPoint);
             }
-             
-          for (int j = 0; j <= pointsNum; j++)
-          {
-              Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
-              double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-              RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
-              Vector3D crossVector = horizTransfrom.Transform(leftVector);
-              Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-              verts.Add(crossPoint);
-          }
+
+            for (int j = 0; j <= pointsNum; j++)
+            {
+                Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
+                double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
+                RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
+                Vector3D crossVector = horizTransfrom.Transform(leftVector);
+                Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+                verts.Add(crossPoint);
+            }
           
             return new Polygon(verts);
         }

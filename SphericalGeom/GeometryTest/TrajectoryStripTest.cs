@@ -41,8 +41,8 @@ namespace TrajectoryTest
             LanePos lanePos1 = new LanePos(lp1, cp1, rp1, dt1);
             LanePos lanePos2 = new LanePos(lp2, cp2, rp2, dt2);
 
-            double dist = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(lanePos1.MiddleGeoPoint, lanePos2.MiddleGeoPoint));
-            double dist2 = AstronomyMath.ToDegrees(lanePos1.getDistToPoint(lanePos2.MiddleGeoPoint));
+            double dist = AstronomyMath.ToDegrees(GeoPoint.DistanceOverSurface(lanePos1.GeoKAPoint, lanePos2.GeoKAPoint));
+            double dist2 = AstronomyMath.ToDegrees(lanePos1.getDistToPoint(lanePos2.GeoKAPoint));
 
             Assert.IsTrue(Math.Abs(dist - dist2) < 0.000000000001); 
 
@@ -101,7 +101,11 @@ namespace TrajectoryTest
                 SatLane lane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
 
                 // вспомогательная полоса, отсюда нужны только правые точки
-                var controlLane = new SatLane(trajectory, rollAngle + viewAngle, 0,  viewAngle, polygonStep: 1); 
+                var controlLane = new SatLane(trajectory, rollAngle + viewAngle, 0,  viewAngle, polygonStep: 1);
+
+                var clpssd = controlLane.Sectors[0].sectorPoints[0].TopLeftViewPoint;
+
+                var clpssd2 = controlLane.Sectors[0].sectorPoints[0].TopLeftViewPoint;
 
                 foreach (var control_sector in controlLane.Sectors)
                 {
