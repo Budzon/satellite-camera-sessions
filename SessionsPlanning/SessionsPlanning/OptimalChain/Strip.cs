@@ -309,7 +309,7 @@ namespace OptimalChain
         public string wktPolygon { get; set; }
         public string requestChannel { get; set; }
         public int shootingType { get; set; }
-        public int compression { get; set; } // коэффициент сжатия видеоинформации от 2 до 10 (2 – сжатие без потерь; 6 – сжатие с потерями; 3 - без сжатия)
+        public int compression { get; set; } // 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями
         public double albedo { get; set; } //  характеристика отражательной способности поверхности. 
 
         /// <summary>
@@ -326,7 +326,7 @@ namespace OptimalChain
         /// <param name="polygon">Полигон заказа в формае WKT</param>
         /// <param name="alb">  характеристика отражательной способности поверхности. </param>
         /// <param name="comp">коэффициент сжатия заказа от 2 до 10 (2 – сжатие без потерь; 6 – сжатие с потерями; 3 - без сжатия)</param>
-        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, double alb = 0.36 , int comp = 2)
+        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, double alb = 0.36 , int comp = 0)
         {
             id = i;
             priority = p;
