@@ -96,6 +96,9 @@ namespace OptimalChain
         public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         public double timeDelta { get { return mTimeDelta; } }// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, double> pitchArray { get { return mPitchArray; } } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
+        public int MinCompression { get { return minCompression; } }
+        public double AverAlbedo { get { return averAlbedo; } }
+
 
         private List<Order> mOrders;
         private double mSquare;
@@ -108,6 +111,9 @@ namespace OptimalChain
         private double mRollAngle;
         private double mTimeDelta;
         private Dictionary<double, double> mPitchArray;
+        private int minCompression;
+        private double averAlbedo;
+
 
         public void setPolygon(SphericalGeom.Polygon pol)
         {
@@ -166,6 +172,8 @@ namespace OptimalChain
             mConnectedRoute = _connectedRoute;
             mPitchArray = new Dictionary<double, double>();
             mTimeDelta = 0;
+            minCompression = orders.Min(order => order.request.compression);
+            averAlbedo = orders.Average(order => order.request.albedo);
         }
 
 
@@ -196,7 +204,7 @@ namespace OptimalChain
                 double d = Math.Cos(bm) * w / v * b2 * Math.Sin(I);
                 double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
 
-                double r = Math.Asin(sinRoll); 
+                double r = Math.Asin(sinRoll); ;
 
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
@@ -301,7 +309,8 @@ namespace OptimalChain
         public string wktPolygon { get; set; }
         public string requestChannel { get; set; }
         public int shootingType { get; set; }
-        public int compression { get; set; }
+        public int compression { get; set; } // коэффициент сжатия видеоинформации от 2 до 10 (2 – сжатие без потерь; 6 – сжатие с потерями; 3 - без сжатия)
+        public double albedo { get; set; } //  характеристика отражательной способности поверхности. 
 
         /// <summary>
         /// Конструктор параметров заказа
@@ -315,8 +324,9 @@ namespace OptimalChain
         /// <param name="max_s_a">Максимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="min_s_a">Минимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="polygon">Полигон заказа в формае WKT</param>
-        /// /// <param name="comp">коэффициент сжатия заказа</param>
-        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, int comp)
+        /// <param name="alb">  характеристика отражательной способности поверхности. </param>
+        /// <param name="comp">коэффициент сжатия заказа от 2 до 10 (2 – сжатие без потерь; 6 – сжатие с потерями; 3 - без сжатия)</param>
+        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, double alb = 0.36 , int comp = 2)
         {
             id = i;
             priority = p;
@@ -328,6 +338,7 @@ namespace OptimalChain
             Min_sun_angle = min_s_a;
             wktPolygon = polygon;
             compression = comp;
+            albedo = alb;
         }
 
         public RequestParams() { }
