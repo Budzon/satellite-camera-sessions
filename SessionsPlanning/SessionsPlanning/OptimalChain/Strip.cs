@@ -187,7 +187,7 @@ namespace OptimalChain
             return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
         }
 
-        public StaticConf CreateStaticConf(int delta, int sign)
+        public StaticConf CreateStaticConf(double delta, int sign)
         {
             try
             {
