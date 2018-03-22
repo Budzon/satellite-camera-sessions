@@ -64,8 +64,9 @@ namespace SatelliteSessions
                 Header.CONF_RLCI += 0; // ВЫКЛЮЧИТЬ СВРЛ
 
             /* ---------- Session_key_On -----------*/
-            if (dumpsData)
-                Header.Session_key_ON = 1; // использовать ключ при сбросе (УТОЧНИТЬ!)
+            //if (dumpsData)
+            //    Header.Session_key_ON = 1; // использовать ключ при сбросе (УТОЧНИТЬ!)
+            Header.Session_key_ON = 1; // ВСЕГДА ПОКА ЧТО
 
             /* ---------- Autotune_On -----------*/
             bool filmData = Routes.Any(route => route.RegimeType == RegimeTypes.ZI || route.RegimeType == RegimeTypes.NP);
@@ -447,23 +448,21 @@ namespace SatelliteSessions
             parameters = inpParameters;
             startTime = parameters.start;
 
-            DIOS.Common.SqlManager DBmanager;
-            DBTables.DataFetcher fetcher;
+            DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
+            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
+
+            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(inpParameters.start);
+            if (KAbegin_ == null)
+            {
+                throw new Exception("No trajectory data.");
+            }
+            Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
+            Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
+                KAbegin, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
 
             /* ---------- InitCoord -----------*/
             if (REGka == 0)
             {
-                DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
-                fetcher = new DBTables.DataFetcher(DBmanager);
-                Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(inpParameters.start);
-                if (KAbegin_ == null)
-                {
-                    throw new Exception("No trajectory data.");
-                }
-                Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-                Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
-                    KAbegin, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
-
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
             /* ---------- Polinomial_coeff -----------*/
@@ -481,7 +480,8 @@ namespace SatelliteSessions
             }
 
             /* ---------- N_PK -----------*/
-            N_PK = GetNpk(RegimeType, parameters.sunHeight, parameters.albedo, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
+            double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
+            N_PK = GetNpk(RegimeType, sunHeight, parameters.albedo, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
 
             /* ---------- Z -----------*/
             switch(parameters.shooting_channel)
@@ -632,12 +632,12 @@ namespace SatelliteSessions
                 {
                     TNPZ = parameters.binded_route.Item1,
                     TNroute = parameters.binded_route.Item2 == -1 ? 15 : parameters.binded_route.Item2,
-                    TNPos = parameters.TNPos == null ? 0 : parameters.TNPos
+                    TNPos = 0 //parameters.TNPos == null ? 0 : parameters.TNPos
                 };
             }
 
             /* ---------- Delta_T -----------*/
-            Delta_T = (byte)(parameters.Delta_T == null ? 0 : parameters.Delta_T);
+            Delta_T = 0; //(byte)(parameters.Delta_T == null ? 0 : parameters.Delta_T);
 
             /* ---------- Target_RatePK -----------*/
             if (parameters.zipPK >= 2)
