@@ -232,7 +232,7 @@ namespace OptimalChain
             File_Size = fs;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, Tuple<int, int> br, int st = 0, string channel = "pk", int fs = 1000)
+        public RouteParams(int t, DateTime d1, DateTime d2, Tuple<int, int> br, int st = 0, string channel = "pk", int fs = 1000, double alb = 0.36, int comp=10)
         {
             type = t;
             shooting_channel = channel;
@@ -241,6 +241,8 @@ namespace OptimalChain
             end = d2;
             binded_route = br;
             File_Size = fs;
+            albedo = alb;
+            zipMK = comp;
         }
 
         public RouteParams(StaticConf c)
@@ -252,6 +254,9 @@ namespace OptimalChain
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
             shooting_type = c.shooting_type;
+            albedo = c.AverAlbedo;
+            zipMK = c.MinCompression;
+            
         }
 
         public RouteParams(StaticConf c, int fs = 1000)
@@ -264,6 +269,8 @@ namespace OptimalChain
             shooting_channel = c.shooting_channel;
             shooting_type = c.shooting_type;
             File_Size = fs;
+            albedo = c.AverAlbedo;
+            zipMK = c.MinCompression;
         }
 
 

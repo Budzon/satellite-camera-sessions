@@ -31,6 +31,9 @@ namespace OptimalChain
         public double square { get; set; }//площадь полосы
         public List<Order> orders { get; set; }
 
+        public int MinCompression { get; set; }
+        public double AverAlbedo { get; set; }
+
         public Tuple<int, int> connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         public string wktPolygon { get; set; }
@@ -45,7 +48,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int T = 1, string channel = "pk", int stype = 0, Tuple<int, int> CR = null)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb,  int T = 1, string channel = "pk", int stype = 0, Tuple<int, int> CR = null)
         {
             id = i;
             dateFrom = d1;
@@ -60,6 +63,8 @@ namespace OptimalChain
             type = T;
             shooting_type = stype;
             shooting_channel = channel;
+            AverAlbedo = alb;
+            MinCompression = comp;
         }
 
         public double reConfigureMilisecinds(StaticConf s2)
@@ -179,7 +184,7 @@ namespace OptimalChain
 
         public StaticConf DefaultStaticConf()
         {
-            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
+            return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
         }
 
         public StaticConf CreateStaticConf(int delta, int sign)
@@ -209,7 +214,7 @@ namespace OptimalChain
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, confType, shootingChannel, shootingType, connectedRoute);
+                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
             }
             catch
             {
