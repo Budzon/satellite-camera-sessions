@@ -187,34 +187,22 @@ namespace OptimalChain
             return new StaticConf(id, dateFrom, dateTo, 0, rollAngle, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
         }
 
-        public StaticConf CreateStaticConf(int delta, int sign)
+        public StaticConf CreateStaticConf(double delta, int sign)
         {
             try
             {
-                //double pitch = pitchArray[0];
-                double pitch = 2;/// -sign * pitchArray[delta];
+                
+                double p =  pitchArray[delta].Item1;
+                double r =  pitchArray[delta].Item2;
 
-                var h = 720.330932208252;  /// @todo получать из констант или из координат // высота траектории, км. 
-                var w = 7.2921158533E-05;  // скорость вращения земли в радианах
-                var b = 0.00225708715578222;  // широта подспутниковой точки в радианах
-                var v = 0.0010139813837136; // скорость подспутниковой точки в радианах
-
-                double I = 1.7104; // наклонение орбиты в радианах. OptimalChain.Constants.orbital_inclination;
-                double R = 6371.3; // радиус в км.  Astronomy.Constants.EarthRadius;
-                double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch);
-
-                //Разница между двумя позициями спутника
-                double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + h) / R * Math.Sin(pitch), 2))) - pitch;
-
-                double d = Math.Cos(bm) * w / v * b2 * Math.Sin(I);
-                double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + h, 2) - 2 * R * (R + h) * Math.Cos(d));
-
-                double r = Math.Asin(sinRoll); ;
-
+                if((confType==0)&&(shootingType!=1))
+                {
+                    p = p*sign;
+                }
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
-                return new StaticConf(id, d1, d2, pitch, r, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
+                return new StaticConf(id, d1, d2,p, r, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
             }
             catch
             {

@@ -28,15 +28,36 @@ namespace OptimalChain
                 count++;
                 A.addEdge(v1, v1.value);
 
-                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
+                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
                 {
-                    double w = this.countEdgeWeight(v1, v2,false);
-
-                    if (w > 0)
+                    if((v1.s.shooting_type==1)&&(v1.s.pitch>=-0.0872665))
                     {
-                       // Console.WriteLine("OOOOO");
-                        v1.addEdge(v2, w);
+                        if((v2.s.id == v1.s.id))
+                        {
+                            double w = this.countEdgeWeight(v1, v2, false);
+
+                            if (w > 0)
+                            {
+                                // Console.WriteLine("OOOOO");
+                                v1.addEdge(v2, w);
+                            }
+                        }
                     }
+                    else
+                    {
+                        if((v2.s.id != v1.s.id))
+                        {
+                            double w = this.countEdgeWeight(v1, v2,false);
+
+                             if (w > 0)
+                             {
+                                // Console.WriteLine("OOOOO");
+                                 v1.addEdge(v2, w);
+                             }
+                        }
+                    }
+                    
+                    
                 }
 
                 v1.addEdge(B, 0);
@@ -101,12 +122,23 @@ namespace OptimalChain
             foreach(CaptureConf s in strips)
             {
             //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
-                vertices.Add(new Vertex(s.DefaultStaticConf(), s));
-                for(int i=0;i<s.timeDelta;i++)
+                if(s.shootingType!=1)
                 {
-                    vertices.Add(new Vertex(s.CreateStaticConf(i,1), s));
-                    vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
+                    vertices.Add(new Vertex(s.DefaultStaticConf(), s));
+                    for(int i=0;i<s.timeDelta;i++)
+                    {
+                        vertices.Add(new Vertex(s.CreateStaticConf(i,1), s));
+                        vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
+                    }
                 }
+                if (s.shootingType == 1)
+                {
+                  foreach (KeyValuePair<double, Tuple<double,double>> p in s.pitchArray)
+                  {
+                      vertices.Add(new Vertex(s.CreateStaticConf(p.Key, 1), s));
+                  }
+                }
+              
                                     
             }
             Console.WriteLine("Number of Verices = " + vertices.Count);
@@ -259,7 +291,7 @@ namespace OptimalChain
                             }
                             else
                             {
-                                if(!ids.Contains(v.s.id))
+                                if((!ids.Contains(v.s.id))||v.s.shooting_type==1)
                                 {
                                     if ((e.v1.path.Count > 0))
                                         {
@@ -304,10 +336,11 @@ namespace OptimalChain
                 }
 
             }
-           // Console.WriteLine(vertices.Last().path.Count);
+            Console.WriteLine("MPZ num = " + vertices.Last().path.Count);
             foreach (MPZParams m in vertices.Last().path)
             {
                 Console.WriteLine("**************************");
+                Console.WriteLine("Routes num = "+m.routes.Count);
                 foreach (RouteParams r in m.routes)
                             {
 
@@ -315,8 +348,8 @@ namespace OptimalChain
                                 Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
                             }
             }
-            
-           // Console.WriteLine(vertices.Last().path.Last().routes.Count);
+
+            Console.WriteLine("Graph did his very best ");
             return vertices.Last().path;
         }
     }

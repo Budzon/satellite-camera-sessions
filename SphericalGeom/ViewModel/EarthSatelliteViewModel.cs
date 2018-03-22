@@ -846,7 +846,7 @@ namespace ViewModel
 
             // с 01.02.2019  16:40 по 01.02.2019 17:00
             DateTime dt1 = new DateTime(2019, 2, 1, 0, 40, 00);
-            DateTime dt2 = new DateTime(2019, 2, 7, 23, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 1, 23, 00, 00);
             
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);

@@ -133,6 +133,7 @@ namespace OptimalChain
             RouteParams r0 = routes[0];
             if ((dmpz - Constants.MPZ_delta - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel) > 0))
             {
+                r.start = start.AddMilliseconds(Constants.MPZ_init_Time - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel));
                 start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
                 routes.Insert(0, r);
                 return true;
@@ -393,6 +394,7 @@ namespace OptimalChain
                 c2 = this.ShootingConf;
             }
             double ms = c1.reConfigureMilisecinds(c2);
+            if (r.type != 0 || this.type != 0) ms = 0;
             double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
