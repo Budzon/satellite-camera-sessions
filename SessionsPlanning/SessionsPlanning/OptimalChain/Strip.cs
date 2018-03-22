@@ -100,7 +100,7 @@ namespace OptimalChain
         public List<Order> orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
         public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         public double timeDelta { get { return mTimeDelta; } }// возможный модуль отклонения по времени от съемки в надир. 
-        public Dictionary<double, double> pitchArray { get { return mPitchArray; } } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
+        public Dictionary<double, Tuple<double, double>> pitchArray { get { return mPitchArray; } } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
         public int MinCompression { get { return minCompression; } }
         public double AverAlbedo { get { return averAlbedo; } }
 
@@ -115,7 +115,7 @@ namespace OptimalChain
         private DateTime mDateTo;
         private double mRollAngle;
         private double mTimeDelta;
-        private Dictionary<double, double> mPitchArray;
+        private Dictionary<double, Tuple<double, double>> mPitchArray;
         private int minCompression;
         private double averAlbedo;
 
@@ -126,7 +126,7 @@ namespace OptimalChain
             mWktPolygon = pol.ToWtk();
         }
 
-        public void setPitchDependency(Dictionary<double, double> _pitchArray, double _timeDelta)
+        public void setPitchDependency(Dictionary<double, Tuple<double, double>> _pitchArray, double _timeDelta)
         {
             mPitchArray = _pitchArray;
             mTimeDelta = _timeDelta;
@@ -175,7 +175,7 @@ namespace OptimalChain
             mDateTo = _dateTo;
             mRollAngle = _rollAngle;            
             mConnectedRoute = _connectedRoute;
-            mPitchArray = new Dictionary<double, double>();
+            mPitchArray = new Dictionary<double, Tuple<double, double>>();
             mTimeDelta = 0;
             minCompression = orders.Min(order => order.request.compression);
             averAlbedo = orders.Average(order => order.request.albedo);
@@ -192,7 +192,7 @@ namespace OptimalChain
             try
             {
                 //double pitch = pitchArray[0];
-                double pitch = -sign * pitchArray[delta];
+                double pitch = 2;/// -sign * pitchArray[delta];
 
                 var h = 720.330932208252;  /// @todo получать из констант или из координат // высота траектории, км. 
                 var w = 7.2921158533E-05;  // скорость вращения земли в радианах
