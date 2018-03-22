@@ -351,7 +351,7 @@ namespace SatelliteTrajectory
 
             double distToFirst = Math.Abs(sectorPoints[first].getDistToPoint(geoPoint));
             double distToSecond = Math.Abs(sectorPoints[second].getDistToPoint(geoPoint));
-            double fullDist = distToFirst + distToSecond; // Math.Abs(sectorPoints[first].getDistToPoint(sectorPoints[second].LeftGeoPoint));   //  Math.Abs(GeoPoint.DistanceOverSurface(sectorPoints[first].MiddleGeoPoint, sectorPoints[second].MiddleGeoPoint));
+            double fullDist = distToFirst + distToSecond; // Math.Abs(sectorPoints[first].getDistToPoint(sectorPoints[second].LeftGeoPoint));   //  Math.Abs(GeoPoint.DistanceOverSurface(sectorPoints[first].KAGeoPoint, sectorPoints[second].KAGeoPoint));
             double fullTime = Math.Abs((sectorPoints[first].Time - sectorPoints[second].Time).TotalMilliseconds);
             double diffMiliSecs = fullTime * distToFirst / fullDist;
 
@@ -360,7 +360,7 @@ namespace SatelliteTrajectory
 
             return sectorPoints[first].Time.AddMilliseconds(sign * diffMiliSecs);
             /*
-            double fullDist = Math.Abs(sectorPoints[first].getDistToPoint(sectorPoints[second].LeftGeoPoint));   //  Math.Abs(GeoPoint.DistanceOverSurface(sectorPoints[first].MiddleGeoPoint, sectorPoints[second].MiddleGeoPoint));
+            double fullDist = Math.Abs(sectorPoints[first].getDistToPoint(sectorPoints[second].LeftGeoPoint));   //  Math.Abs(GeoPoint.DistanceOverSurface(sectorPoints[first].KAGeoPoint, sectorPoints[second].KAGeoPoint));
             double fullTime = Math.Abs((sectorPoints[first].time - sectorPoints[second].time).TotalMilliseconds);
             double distPoint = Math.Abs(sectorPoints[first].getDistToPoint(geoPoint));
             double diffMiliSecs = fullTime * distPoint / fullDist;
@@ -385,31 +385,40 @@ namespace SatelliteTrajectory
 
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
-        private Vector3D middleCartPoint;
+        private Vector3D cartKAPoint;
         private Vector3D leftControlPoint;
         private Vector3D rightControlPoint;
         private bool knowLeftConrol;
         private bool knowRightConrol;
+        private bool knowViewPolygon;
 
         private GeoPoint leftGeoPoint;
         private GeoPoint rightGeoPoint;
-        private GeoPoint middleGeoPoint;
+        private GeoPoint geoKAPoint;
         private TrajectoryPoint trajPoint;
+        private double rollAngle;
+        private double pitchAngle;
 
         private double width;
         private DateTime time;
 
-        private RollOrientation roll;
+        private RollOrientation rollOrient;
 
-        public LanePos(Vector3D _leftPoint, Vector3D _middlePoint, Vector3D _rightPoint, DateTime _time)
+        private Vector3D topLeftViewPoint;
+        private Vector3D botLeftViewPoint;
+        private Vector3D topRightViewPoint;
+        private Vector3D botRightViewPoint;
+
+        public LanePos(Vector3D _leftPoint, Vector3D _kaPoint, Vector3D _rightPoint, DateTime _time)
         {
             knowLeftConrol = false;
             knowRightConrol = false;
+            knowViewPolygon = false;  
 
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
-            middleCartPoint = _middlePoint;
-            middleGeoPoint = GeoPoint.FromCartesian(_middlePoint);
+            cartKAPoint = _kaPoint;
+            geoKAPoint = GeoPoint.FromCartesian(_kaPoint);
 
             time = _time;
             //TrajPoint = new TrajectoryPoint(,,_time);
@@ -419,8 +428,11 @@ namespace SatelliteTrajectory
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
         }
 
-        public LanePos(TrajectoryPoint pointKA, double viewAngle, double rollAngle, double pitchAngle)
+        public LanePos(TrajectoryPoint pointKA, double viewAngle, double _rollAngle, double _pitchAngle)
         {
+            rollAngle = _rollAngle;
+            pitchAngle = _pitchAngle;
+
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
 
@@ -440,7 +452,7 @@ namespace SatelliteTrajectory
 
             Vector3D leftCrossPoint = Routines.SphereVectIntersect(leftVector, pointKA.Position, Astronomy.Constants.EarthRadius);
             Vector3D rightCrossPoint = Routines.SphereVectIntersect(rightVector, pointKA.Position, Astronomy.Constants.EarthRadius);
-            Vector3D middlePoint = pointKA.Position.ToVector();
+            Vector3D KAPoint = pointKA.Position.ToVector();
 
             //var tanHalfVa = Math.Tan(viewAngle / 2);
             //var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
@@ -467,29 +479,30 @@ namespace SatelliteTrajectory
 
             leftCrossPoint.Normalize();
             rightCrossPoint.Normalize();
-            middlePoint.Normalize();
+            KAPoint.Normalize();
 
             //LanePos(leftCrossPoint, rightCrossPoint, pointKA);            
 
             trajPoint = pointKA;
             leftCartPoint = leftCrossPoint;
             rightCartPoint = rightCrossPoint;
-            middleCartPoint = pointKA.Position.ToVector();
-            middleCartPoint.Normalize();
-            middleGeoPoint = GeoPoint.FromCartesian(middleCartPoint);
+            cartKAPoint = pointKA.Position.ToVector();
+            CartKAPoint.Normalize();
+            geoKAPoint = GeoPoint.FromCartesian(CartKAPoint);
 
             leftGeoPoint = GeoPoint.FromCartesian(leftCartPoint);
             rightGeoPoint = GeoPoint.FromCartesian(rightCartPoint);
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
 
             time = pointKA.Time;
-            // leftControlPoint = leftCartPoint - middleCartPoint;
-            // rightControlPoint = rightCartPoint - middleCartPoint;
+            // leftControlPoint = leftCartPoint - KACartPoint;
+            // rightControlPoint = rightCartPoint - KACartPoint;
 
-            //leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
-            //rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
-            knowLeftConrol = false;
-            knowRightConrol = false;
+            //leftControlPoint = getControlPoint(KACartPoint, leftCartPoint);
+            //rightControlPoint = getControlPoint(KACartPoint, rightCartPoint);
+            knowLeftConrol = false; 
+            knowRightConrol = false; 
+            knowViewPolygon = false;  
         }
          
         public static Vector3D applyPitchlRotation(TrajectoryPoint point, Vector3D dirVect, double pitchAngle)
@@ -537,11 +550,11 @@ namespace SatelliteTrajectory
         }
 
       
-        private Vector3D getControlPoint(Vector3D middlePoint, Vector3D sidePoint)
+        private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
         {
-            Vector3D rotAx = Vector3D.CrossProduct(middlePoint, sidePoint);
+            Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
             RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAx, 90));
-            Vector3D controlPoint = leftTransform.Transform(middlePoint);
+            Vector3D controlPoint = leftTransform.Transform(KAPoint);
             double lenth = Vector3D.DotProduct(sidePoint, controlPoint) / controlPoint.Length;
             controlPoint.Normalize();
             controlPoint = controlPoint * lenth;
@@ -552,14 +565,12 @@ namespace SatelliteTrajectory
         {
             get
             {
-                if (knowLeftConrol)
-                    return leftControlPoint;
-                else
+                if (!knowLeftConrol) 
                 {                   
-                    leftControlPoint = getControlPoint(middleCartPoint, leftCartPoint);
-                    knowLeftConrol = true;
-                    return leftControlPoint;
+                    leftControlPoint = getControlPoint(CartKAPoint, leftCartPoint);
+                    knowLeftConrol = true;                    
                 }
+                return leftControlPoint;
             }
         }
 
@@ -567,15 +578,40 @@ namespace SatelliteTrajectory
         {
             get
             {
-                if (knowRightConrol)
-                    return rightControlPoint;
-                else
+                if (!knowRightConrol) 
                 {                    
-                    rightControlPoint = getControlPoint(middleCartPoint, rightCartPoint);
-                    knowRightConrol = true;
-                    return rightControlPoint;
+                    rightControlPoint = getControlPoint(CartKAPoint, rightCartPoint);
+                    knowRightConrol = true;                    
                 }
+                return rightControlPoint;
             }
+        }
+
+        /// <summary>
+        /// получить переднюю (по направлению скорости) левую точку полигона видимости
+        /// </summary>
+        public Vector3D TopLeftViewPoint
+        {
+            get
+            { 
+                if (!knowViewPolygon)
+                {
+                    calculateViewPoints();                    
+                    knowViewPolygon = true;
+                }
+                return topLeftViewPoint;
+            }
+        }
+
+        private void calculateViewPoints()
+        {
+            Vector3D dirVector = LanePos.getDirectionVector(trajPoint, rollAngle, pitchAngle);
+            Polygon viewPol = Routines.getViewPolygon(trajPoint, dirVector, OptimalChain.Constants.camera_angle, pointsNum: 1);
+
+            topLeftViewPoint = viewPol.Vertices[0];
+            topRightViewPoint = viewPol.Vertices[1];
+            topRightViewPoint = viewPol.Vertices[2];
+            botLeftViewPoint = viewPol.Vertices[3];
         }
 
         public TrajectoryPoint TrajPoint{ get{ return trajPoint; } }
@@ -586,13 +622,13 @@ namespace SatelliteTrajectory
 
         public Vector3D RightCartPoint{ get{ return rightCartPoint; } }
 
-        public Vector3D MiddleCartPoint{ get{ return middleCartPoint; } }
+        public Vector3D CartKAPoint{ get{ return cartKAPoint; } }
 
         public GeoPoint LeftGeoPoint{ get{ return leftGeoPoint; } }
 
         public GeoPoint RightGeoPoint{ get{ return rightGeoPoint; } }
 
-        public GeoPoint MiddleGeoPoint{ get{  return middleGeoPoint; } }
+        public GeoPoint GeoKAPoint{ get{  return geoKAPoint; } }
 
         /// <summary>
         /// Return distance from gpoint to line [leftGeoPoint - rightGeoPoint] in radians
@@ -601,7 +637,7 @@ namespace SatelliteTrajectory
         /// <returns> distance in  in radians</returns>
         public double getDistToPoint(GeoPoint gpoint)
         {
-            if (gpoint == leftGeoPoint || gpoint == rightGeoPoint || gpoint == middleGeoPoint)
+            if (gpoint == leftGeoPoint || gpoint == rightGeoPoint || gpoint == GeoKAPoint)
             {
                 return 0;
 

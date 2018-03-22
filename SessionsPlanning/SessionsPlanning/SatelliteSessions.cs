@@ -150,7 +150,8 @@ namespace SatelliteSessions
         private static void getCaptureConfArrayForTrajectory(
             IList<RequestParams> requests,
             Trajectory trajectory, List<CaptureConf> captureConfs,
-            List<Tuple<DateTime, DateTime>> freeSessionPeriodsForDrop)
+            List<Tuple<DateTime, DateTime>> freeSessionPeriodsForDrop,
+            List<Tuple<DateTime, DateTime>> capturePeriods)
         { 
             double viewAngle = OptimalChain.Constants.camera_angle; // угол обзора камеры
             double angleStep = viewAngle; // шаг равен углу обзора
@@ -184,11 +185,25 @@ namespace SatelliteSessions
                     if (confs.Count == 0)
                         continue;
 
+                    // если сжатие заказа == 10, то для всех конифгураций, помещающихся в зону дейтвия НКПОИ мы выставляем режим "съемка со сбросом"
                     if (request.compression == OptimalChain.Constants.compressionDropCapture)
                     {                        
-                        var confsToFropCapt = confs.Where(cc => isConfInPeriods(cc, freeSessionPeriodsForDrop)).ToList();
-                        foreach (var conf in confsToFropCapt)                                                    
+                        var confsToFropCapt = confs.Where(cc => isPeriodInPeriods(Tuple.Create(cc.dateFrom, cc.dateTo), freeSessionPeriodsForDrop)).ToList();
+                        foreach (var conf in confsToFropCapt)
                             conf.confType = 3; 
+                    }
+
+                    // если заказ - стерео, то пробуем его снять в стерео.
+                    if (1 == request.shootingType)
+                    {                        
+                        for (int i = 0; i < confs.Count; i++)
+                        {
+                            var conf = confs[i];
+                            TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
+                            CaptureConf stereoConf = getStereoTriplet(conf, pointFrom, capturePeriods);
+                            if (null != stereoConf)
+                                conf = stereoConf;                            
+                        }
                     }
 
                     CaptureConf.compressCConfArray(confs);
@@ -204,7 +219,7 @@ namespace SatelliteSessions
 
                     conf.setPolygon(pol);
                     
-                    calculatePitchArrays(conf, rollAngle, pointFrom);
+                    calculatePitchArrays(conf, pointFrom);
                 }
                 foreach (var conf in laneCaptureConfs)
                     concurrentlist.Add(conf);                               
@@ -254,8 +269,11 @@ namespace SatelliteSessions
 
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
+            // периоды, во время которых можно проводить съемку.
+            List<Tuple<DateTime, DateTime>> capturePeriods = getFreePeriods(inactivityRanges, timeFrom, timeTo);            
+
             foreach (var trajectory in  trajSpans)
-                getCaptureConfArrayForTrajectory(requests, trajectory, captureConfs, freeSessionPeriodsForDrop);
+                getCaptureConfArrayForTrajectory(requests, trajectory, captureConfs, freeSessionPeriodsForDrop, capturePeriods);
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
                 captureConfs[ci].id = ci;
@@ -288,7 +306,10 @@ namespace SatelliteSessions
             , DIOS.Common.SqlManager managerDB
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
-        {           
+        {
+            List<RouteMPZ> routesToDropCopy = new List<RouteMPZ>(routesToDrop); // локальная копия, не будем портить входной массив
+            List<RouteMPZ> routesToDeleteCopy = new List<RouteMPZ>(routesToDelete); // локальная копия, не будем портить входной массив
+
             List<CommunicationSession> snkpoiSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> mnkpoiSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
 
@@ -311,26 +332,22 @@ namespace SatelliteSessions
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
-            
-            //List<CaptureConf> allConfs = new List<CaptureConf>();
-            
-            //allConfs.AddRange(confsToDrop);
-            //allConfs.AddRange(confsToCapture);
-
+      
+            // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
             List<OptimalChain.MPZParams> cptureMPZParams = captureGraph.findOptimalChain();
             
+            // Найдём все возможные промежутки времени для сброса 
             List<Tuple<DateTime, DateTime>> capturePeriods = cptureMPZParams.Select(mpz => new Tuple<DateTime, DateTime>(mpz.start, mpz.end)).ToList();
             List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>();
             silentAndCaptureRanges.AddRange(silentRanges);
             silentAndCaptureRanges.AddRange(capturePeriods);
             silentAndCaptureRanges = compressTimePeriods(silentAndCaptureRanges);
-
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
-
+            
             List<CaptureConf> confsToDrop = getConfsToDrop(routesToDrop, freeRangesForDrop);
             getRoutesParamsToDrop(routesToDrop, freeRangesForDrop);
-
+            
             List<Tuple<DateTime, DateTime>> dropPeriods = confsToDrop.Select(conf => new Tuple<DateTime, DateTime>(conf.dateFrom, conf.dateTo)).ToList();
             List<Tuple<DateTime, DateTime>> silentAndCaptureAndDropRanges = new List<Tuple<DateTime, DateTime>>();
             silentAndCaptureAndDropRanges.AddRange(silentRanges);
@@ -391,12 +408,18 @@ namespace SatelliteSessions
             return freeRangesForDrop;
         }
 
-        public static bool isConfInPeriods(CaptureConf conf, List<Tuple<DateTime, DateTime>> periods)
+        /// <summary>
+        /// является ли период времнеи checkPeriod полностью принадлежащим одному из periods
+        /// </summary>
+        /// <param name="checkPeriod"></param>
+        /// <param name="periods"></param>
+        /// <returns></returns>
+        public static bool isPeriodInPeriods(Tuple<DateTime, DateTime> checkPeriod, List<Tuple<DateTime, DateTime>> periods)
         {
             foreach (var period in periods)
             {
-                if (period.Item1 <= conf.dateFrom && conf.dateFrom <= period.Item2
-                    && period.Item1 <= conf.dateTo && conf.dateTo <= period.Item2)
+                if (period.Item1 <= checkPeriod.Item1 && checkPeriod.Item1 <= period.Item2
+                    && period.Item1 <= checkPeriod.Item2 && checkPeriod.Item2 <= period.Item2)
                     return true;
             }
             return false;
@@ -420,6 +443,7 @@ namespace SatelliteSessions
                 int i = prevRouteInd;
                 for (; i < routesCount; i++)
                 {
+
 
                 }
                 prevRouteInd = i;
@@ -1384,59 +1408,87 @@ namespace SatelliteSessions
         }
 
         /// @todo перенести в мат библиотеку
-        private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
+        private static void calculatePitchArrays(CaptureConf conf, TrajectoryPoint pointFrom)
         {
             double pitchAngleLimit = conf.orders.Min(order => order.request.Max_SOEN_anlge);
 
             if (pitchAngleLimit > OptimalChain.Constants.max_pitch_angle) 
                 pitchAngleLimit = OptimalChain.Constants.max_pitch_angle;
 
-            double maxPitchAngle = Math.Abs(pitchAngleLimit) - Math.Abs(rollAngle);
+            double maxPitchAngle = Math.Abs(pitchAngleLimit) - Math.Abs(conf.rollAngle);
 
             if (maxPitchAngle < 0) // такое возможно, если rollAngle больше (по модулю) 30 градусов (максимальны тангаж) 
                 maxPitchAngle = 0;
 
             double timeDelta;
-            if (0 == maxPitchAngle)
-            {
-                timeDelta = 0;
-            }
-            else
-            {
-                Vector3D rollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
-                Vector3D PitchRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, maxPitchAngle);
-                rollPoint.Normalize();
-                PitchRollPoint.Normalize();
-                // расстояние в километрах между точкой c нулевым тангажом и точкой, полученной при максимальном угле тангажа
-                double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
-                // время, за которое спутник преодалевает dist по поверхности земли.
-                timeDelta = dist / pointFrom.Velocity.Length;
-            }            
+            if (0 == maxPitchAngle)            
+                timeDelta = 0;            
+            else            
+                timeDelta = getTimeDeltaFromPitch(pointFrom, conf.rollAngle, maxPitchAngle);
+                        
             conf.pitchArray[0] = 0;
 
             Dictionary<double, double> angleTimeArray = new Dictionary<double, double>();
             angleTimeArray[0] = 0;
 
-            Vector3D dirRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
+            Vector3D dirRollPoint = LanePos.getSurfacePoint(pointFrom, conf.rollAngle, 0);
             int pitchStep = 1; // угол изменения тангажа в градусах.  
             for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
             {
                 double pitch = AstronomyMath.ToRad(pitch_degr);
-                Vector3D dirPitchPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, pitch);
+                Vector3D dirPitchPoint = LanePos.getSurfacePoint(pointFrom, conf.rollAngle, pitch);
                 double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
                 double t = distOverSurf / pointFrom.Velocity.Length;
                 angleTimeArray[pitch] = t;
             }
 
-            LinearInterpolation interpolation = new LinearInterpolation(angleTimeArray.Values.ToArray(), angleTimeArray.Keys.ToArray());
+            LinearInterpolation pitchInterpolation = new LinearInterpolation(angleTimeArray.Values.ToArray(), angleTimeArray.Keys.ToArray());
 
             Dictionary<double, double> timeAngleArray = new Dictionary<double, double>();
             for (int t = 0; t <= (int)timeDelta; t++)
             {
-                timeAngleArray[t] = interpolation.GetValue(t);
+                timeAngleArray[t] = pitchInterpolation.GetValue(t);
             }
 
             conf.setPitchDependency(timeAngleArray, timeDelta);            
+        }
+
+
+        private static CaptureConf getStereoTriplet(CaptureConf conf, TrajectoryPoint pointFrom, List<Tuple<DateTime, DateTime>> availableRanges)
+        {            
+            double pitchAngle = AstronomyMath.ToRad(30);
+            double timeDelta = getTimeDeltaFromPitch(pointFrom, conf.rollAngle, pitchAngle);
+            DateTime dtFrom = conf.dateFrom.AddSeconds(-timeDelta);
+            DateTime dtTo = conf.dateTo.AddSeconds(timeDelta);
+
+            if ((conf.dateTo - conf.dateFrom).TotalSeconds > timeDelta)
+                return null; // полоса слишком длинная. Мы не успеваем отснять с углом -30 до того, как начнём снимать с углом 0
+
+            if (!isPeriodInPeriods(Tuple.Create(dtFrom, dtTo), availableRanges))
+                return null;
+            
+            Dictionary<double, double> timeAngleArray = new Dictionary<double, double>();
+            timeAngleArray[-timeDelta] = -pitchAngle;
+            timeAngleArray[0] = 0;
+            timeAngleArray[timeDelta] = pitchAngle;
+
+            CaptureConf stereoConf = new CaptureConf(dtFrom, dtTo, conf.rollAngle, conf.orders, conf.confType, conf.connectedRoute);
+            stereoConf.setPitchDependency(timeAngleArray, timeDelta);
+
+            return stereoConf;                            
+        }
+
+
+        private static double getTimeDeltaFromPitch(TrajectoryPoint pointFrom, double rollAngle, double pitchAngle)
+        {
+            Vector3D rollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
+            Vector3D PitchRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, pitchAngle);
+            rollPoint.Normalize();
+            PitchRollPoint.Normalize();
+            // расстояние в километрах между точкой c нулевым тангажом и точкой, полученной при максимальном угле тангажа
+            double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
+            // время, за которое спутник преодалевает dist по поверхности земли.
+            return  Math.Abs(dist / pointFrom.Velocity.Length); 
         }
 
     }
