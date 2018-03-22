@@ -331,7 +331,7 @@ namespace OptimalChain
         /// <param name="polygon">Полигон заказа в формае WKT</param>
         /// <param name="alb">  характеристика отражательной способности поверхности. </param>
         /// <param name="comp"> коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями</param>
-        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, double alb = 0.36 , int comp = 0)
+        public RequestParams(int i, int p, DateTime d1, DateTime d2, int max_a, double min_p, int max_s_a, int min_s_a, string polygon, double alb = 0.36 , int comp = 0, int sT = 0)
         {
             id = i;
             priority = p;
@@ -344,6 +344,7 @@ namespace OptimalChain
             wktPolygon = polygon;
             compression = comp;
             albedo = alb;
+            shootingType = sT;
         }
 
         public RequestParams() { }
