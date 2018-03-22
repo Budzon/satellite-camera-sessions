@@ -370,7 +370,7 @@ namespace OptimalChain
             File_Size = fs;
             albedo = c.AverAlbedo;
             zipMK = c.MinCompression;
-            zipMK = c.MinCompression;
+            zipPK = c.MinCompression;
         }
 
 
