@@ -443,20 +443,7 @@ namespace SatelliteSessions
                     }
                 }
             }
-
-
-           
-
-            foreach (var mpz_param in captureMPZParams)
-            {
-                List<RouteParams> dropRoutes = mpz_param.routes.Where(route => route.type == 1).ToList();
-                List<CommunicationSession> sSessions = new List<CommunicationSession>();
-                putRoutesInSessions(dropRoutes, snkpoiSessions, sSessions);
-                List<CommunicationSession> mSessions = new List<CommunicationSession>();
-                putRoutesInSessions(dropRoutes, mnkpoiSessions, mSessions);
-                sessions.AddRange(sSessions);
-                sessions.AddRange(mSessions);
-            }
+ 
         }
 
         /// <summary>
