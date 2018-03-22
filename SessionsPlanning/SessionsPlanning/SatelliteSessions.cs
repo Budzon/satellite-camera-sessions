@@ -185,8 +185,7 @@ namespace SatelliteSessions
                         continue;
 
                     if (request.compression == OptimalChain.Constants.compressionDropCapture)
-                    {
-                        
+                    {                        
                         var confsToFropCapt = confs.Where(cc => isConfInPeriods(cc, freeSessionPeriodsForDrop)).ToList();
                         foreach (var conf in confsToFropCapt)                                                    
                             conf.confType = 3; 
@@ -345,7 +344,7 @@ namespace SatelliteSessions
             mpzArray = new List<MPZ>();
             foreach (var mpz_param in cptureMPZParams)
             {
-                mpzArray.Add(new MPZ(mpz_param));
+                mpzArray.Add(new MPZ(mpz_param, true, true, true, true, true));
             }
 
             List<RouteParams> routesParamsToDrop = new List<RouteParams>();
@@ -408,18 +407,25 @@ namespace SatelliteSessions
         {
             List<RouteParams> res = new List<RouteParams>();
 
-            // отсортируем свободные промежутки по продолжительности в порядке убывания 
+            // отсортируем свободные промежутки по продолжительности в порядке возрастания 
             freeCompressedRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) 
-                                     {return (span2.Item2 - span2.Item1).CompareTo(span1.Item2 - span1.Item1); });
-
+                                     {return (span1.Item2 - span1.Item1).CompareTo(span2.Item2 - span2.Item1); });
+            
+            int routesCount = routesToDrop.Count;
             int prevRouteInd = 0;
             foreach (var period in freeCompressedRanges)
             {
                 DateTime from = period.Item1; // момент времени, с которого начинаем упаковку
 
+                int i = prevRouteInd;
+                for (; i < routesCount; i++)
+                {
+
+                }
+                prevRouteInd = i;
+               // RouteParams newpar = new RouteParams();
             }
  
-
             return res;
         }
 
@@ -504,11 +510,6 @@ namespace SatelliteSessions
             return res;
         }
                  
-       // public static List<Tuple<DateTime, DateTime>> getFreeTimeRanges(Tuple<DateTime, DateTime> timeSpan, List<Tuple<DateTime, DateTime>> forbiddenRanges)
-       // { 
-       //     return invertTimeSpans(compressedSilentAndCaptureRanges, timeSpan.Item1, timeSpan.Item2);  
-       // }
-
         public static List<Tuple<DateTime, DateTime>> compressTimePeriods(List<Tuple<DateTime, DateTime>> timePeriods)
         {
             // соеденим пересекающиеся диапазоны
@@ -606,24 +607,10 @@ namespace SatelliteSessions
         /// <returns> набор МПЗ, созданный из маршутов</returns>
         public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
         {
-            //List<RouteMPZ> routes = routesParams.Select(rparams => new RouteMPZ(rparams)).ToList();
-
-            List<MPZ> res = new List<MPZ>();
-            //List<RouteMPZ> routesTemp = new List<RouteMPZ>();
-            //for (int i = 0; i < routes.Count; i++)
-            //{
-            //    routesTemp.Add(routes[i]);
-            //    if (routesTemp.Count == 12 || i == routes.Count - 1)
-            //    {
-            //        res.Add(new MPZ(routesTemp));
-            //        routesTemp = new List<RouteMPZ>();
-            //    }
-            //}
-
+            List<MPZ> res = new List<MPZ>();         
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams);
-            for (int i = 0; i < mpzParams.Count; ++i)
-                res.Add(new MPZ(mpzParams[i]));
-
+            foreach (var param in mpzParams)            
+                res.Add(new MPZ(param, true, true, true, true, true));            
             return res;
         }
 
@@ -1399,12 +1386,16 @@ namespace SatelliteSessions
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, double rollAngle, TrajectoryPoint pointFrom)
         {
-            double minMaxSoenAngle = conf.orders.Min(order => order.request.Max_SOEN_anlge);
+            double pitchAngleLimit = conf.orders.Min(order => order.request.Max_SOEN_anlge);
 
-            if (minMaxSoenAngle > OptimalChain.Constants.max_pitch_angle) 
-                minMaxSoenAngle = OptimalChain.Constants.max_pitch_angle;
+            if (pitchAngleLimit > OptimalChain.Constants.max_pitch_angle) 
+                pitchAngleLimit = OptimalChain.Constants.max_pitch_angle;
 
-            double maxPitchAngle = Math.Abs(minMaxSoenAngle) - Math.Abs(rollAngle);
+            double maxPitchAngle = Math.Abs(pitchAngleLimit) - Math.Abs(rollAngle);
+
+            if (maxPitchAngle < 0) // такое возможно, если rollAngle больше (по модулю) 30 градусов (максимальны тангаж) 
+                maxPitchAngle = 0;
+
             double timeDelta;
             if (0 == maxPitchAngle)
             {
@@ -1420,14 +1411,14 @@ namespace SatelliteSessions
                 double dist = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(rollPoint), GeoPoint.FromCartesian(PitchRollPoint)) * Astronomy.Constants.EarthRadius;
                 // время, за которое спутник преодалевает dist по поверхности земли.
                 timeDelta = dist / pointFrom.Velocity.Length;
-            }
-            int pitchStep = OptimalChain.Constants.pitchStep;
+            }            
             conf.pitchArray[0] = 0;
 
             Dictionary<double, double> angleTimeArray = new Dictionary<double, double>();
             angleTimeArray[0] = 0;
 
             Vector3D dirRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
+            int pitchStep = 1; // угол изменения тангажа в градусах.  
             for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
             {
                 double pitch = AstronomyMath.ToRad(pitch_degr);
