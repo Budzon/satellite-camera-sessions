@@ -31,8 +31,9 @@ namespace SatelliteSessions
             bool hasPK = parameters.routes.Any(route => route.shooting_channel == "pk" || route.shooting_channel == "cm");
             bool hasMK = parameters.routes.Any(route => route.shooting_channel == "mk" || route.shooting_channel == "cm");
 
-            bool useYKZU1 = parameters.routes.Any(route => route.memoryCellMZU1 == 1); // пишет ли кто в 1ю ЯП
-            bool useYKZU2 = parameters.routes.Any(route => route.memoryCellMZU1 == 2); // пишет ли кто в 2ю ЯП
+            // ВКЛЮЧАЕМ ПЕРВУЮ ЯП
+            bool useYKZU1 = true; //parameters.routes.Any(route => route.memoryCellMZU1 == 1); // пишет ли кто в 1ю ЯП
+            bool useYKZU2 = false; //parameters.routes.Any(route => route.memoryCellMZU1 == 2); // пишет ли кто в 2ю ЯП
             // НУЖНО ЕЩЕ УЧЕСТЬ КОГДА ЯП НЕ ВЫБРАНА!!! (+ мзу1 и мзу2 симметричны всё-таки или нет?)
 
             Header = new HeaderMPZ(hasPK, hasMK, mainKeyBVIP, mainKeyBBZU, mainKeyVIP1, useYKZU1, useYKZU2, mainKeyYKPD1, mainKeyYKPD2);
@@ -72,6 +73,29 @@ namespace SatelliteSessions
             bool filmData = Routes.Any(route => route.RegimeType == RegimeTypes.ZI || route.RegimeType == RegimeTypes.NP);
             if (filmData)
                 Header.Autotune_ON = 1; // автоюстировка при съемке
+
+
+            /* ---------- REGta_Param -----------*/
+            for (int i = 0; i < Routes.Count; ++i)
+            {
+                if (useYKZU1)
+                {
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 10);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 12);
+                }
+                else if (useYKZU2)
+                {
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 11);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 13);
+                }
+                else
+                {
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 10);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 12);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 11);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 13);
+                }
+            }
         }
  
         //public MPZ(IList<RouteMPZ> routes)
@@ -289,14 +313,14 @@ namespace SatelliteSessions
             ByteRoutines.SetOneIfTrue(CONF_B, 4, useYKZU2_1);
             ByteRoutines.SetOneIfTrue(RCONF_B, 4, useYKZU2_1);
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 5, useYKZU2_1 && useYKZU1_1); // == D2 & D4
-            ByteRoutines.SetOneIfTrue(RCONF_B, 5, useYKZU2_1 && useYKZU1_1); // == D2 & D4
+            ByteRoutines.SetOneIfTrue(CONF_B, 5, !useYKZU1_1); // != D2
+            ByteRoutines.SetOneIfTrue(RCONF_B, 5, !useYKZU1_1); // != D2
 
             ByteRoutines.SetOneIfTrue(CONF_B, 6, useYKZU2_1); // == D4
             ByteRoutines.SetOneIfTrue(RCONF_B, 6, useYKZU2_1); // == D4
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 7, useYKZU2_1 && useYKZU1_1); // == D5
-            ByteRoutines.SetOneIfTrue(RCONF_B, 7, useYKZU2_1 && useYKZU1_1); // == D5
+            ByteRoutines.SetOneIfTrue(CONF_B, 7, !useYKZU1_1); // == D5
+            ByteRoutines.SetOneIfTrue(RCONF_B, 7, !useYKZU1_1); // == D5
 
             ByteRoutines.SetBitOne(CONF_B, 8);
             ByteRoutines.SetBitOne(RCONF_B, 8);
@@ -404,8 +428,6 @@ namespace SatelliteSessions
     {
         public RegimeTypes RegimeType { get; set; }
         private int groupNumber;
-        private int zip_pk = 2;
-        private int zip_mk = 2;
         public DateTime startTime { get; set; }
 
 
@@ -528,7 +550,8 @@ namespace SatelliteSessions
                         ByteRoutines.SetBitOne(REGta, 0); // кадровая
                         break;
                     case 1:
-                        ByteRoutines.SetBitOne(REGta, 1); // стерео
+                        ByteRoutines.SetBitOne(REGta, 1); // стереотриплет
+                        ByteRoutines.SetBitOne(REGta, 2);
                         break;
                     case 2:
                         ByteRoutines.SetBitOne(REGta, 2); // коридорная
@@ -581,44 +604,48 @@ namespace SatelliteSessions
                             break;
                     }
                     // 7-9 -- нули по умолчанию
-                    switch (parameters.memoryCellMZU1)
-                    {
-                        case 0:
-                            ByteRoutines.SetBitZero(REGta_Param, 10);
-                            ByteRoutines.SetBitZero(REGta_Param, 11);
-                            break;
-                        case 1:
-                            ByteRoutines.SetBitOne(REGta_Param, 10);
-                            ByteRoutines.SetBitZero(REGta_Param, 11);
-                            break;
-                        case 2:
-                            ByteRoutines.SetBitZero(REGta_Param, 10);
-                            ByteRoutines.SetBitOne(REGta_Param, 11);
-                            break;
-                        case 3:
-                            ByteRoutines.SetBitOne(REGta_Param, 10);
-                            ByteRoutines.SetBitOne(REGta_Param, 11);
-                            break;
-                    }
-                    switch (parameters.memoryCellMZU2)
-                    {
-                        case 0:
-                            ByteRoutines.SetBitZero(REGta_Param, 12);
-                            ByteRoutines.SetBitZero(REGta_Param, 13);
-                            break;
-                        case 1:
-                            ByteRoutines.SetBitOne(REGta_Param, 12);
-                            ByteRoutines.SetBitZero(REGta_Param, 13);
-                            break;
-                        case 2:
-                            ByteRoutines.SetBitZero(REGta_Param, 12);
-                            ByteRoutines.SetBitOne(REGta_Param, 13);
-                            break;
-                        case 3:
-                            ByteRoutines.SetBitOne(REGta_Param, 12);
-                            ByteRoutines.SetBitOne(REGta_Param, 13);
-                            break;
-                    }
+
+
+                    //switch (parameters.memoryCellMZU1)
+                    //{
+                    //    case 0:
+                    //        ByteRoutines.SetBitZero(REGta_Param, 10);
+                    //        ByteRoutines.SetBitZero(REGta_Param, 11);
+                    //        break;
+                    //    case 1:
+                    //        ByteRoutines.SetBitOne(REGta_Param, 10);
+                    //        ByteRoutines.SetBitZero(REGta_Param, 11);
+                    //        break;
+                    //    case 2:
+                    //        ByteRoutines.SetBitZero(REGta_Param, 10);
+                    //        ByteRoutines.SetBitOne(REGta_Param, 11);
+                    //        break;
+                    //    case 3:
+                    //        ByteRoutines.SetBitOne(REGta_Param, 10);
+                    //        ByteRoutines.SetBitOne(REGta_Param, 11);
+                    //        break;
+                    //}
+                    //switch (parameters.memoryCellMZU2)
+                    //{
+                    //    case 0:
+                    //        ByteRoutines.SetBitZero(REGta_Param, 12);
+                    //        ByteRoutines.SetBitZero(REGta_Param, 13);
+                    //        break;
+                    //    case 1:
+                    //        ByteRoutines.SetBitOne(REGta_Param, 12);
+                    //        ByteRoutines.SetBitZero(REGta_Param, 13);
+                    //        break;
+                    //    case 2:
+                    //        ByteRoutines.SetBitZero(REGta_Param, 12);
+                    //        ByteRoutines.SetBitOne(REGta_Param, 13);
+                    //        break;
+                    //    case 3:
+                    //        ByteRoutines.SetBitOne(REGta_Param, 12);
+                    //        ByteRoutines.SetBitOne(REGta_Param, 13);
+                    //        break;
+                    //}
+
+                    // 10-13 -- БУДУТ ЗАПОЛНЕНЫ В МПЗ НА ОСНОВЕ CONF_B
                     // 14-15 -- нули по умолчанию
                     break;
                 default:

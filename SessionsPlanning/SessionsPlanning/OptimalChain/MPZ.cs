@@ -307,8 +307,9 @@ namespace OptimalChain
         /// </summary>
         public double albedo { get; set; }
 
-        public int memoryCellMZU1 { get; set; }
-        public int memoryCellMZU2 { get; set; }
+        // Ставятся на основе CONF_B
+        //public int memoryCellMZU1 { get; set; }
+        //public int memoryCellMZU2 { get; set; }
 
         public double getDropTime()
         {
