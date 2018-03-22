@@ -270,7 +270,7 @@ namespace SatelliteSessions
             List<CaptureConf> captureConfs = new List<CaptureConf>();
 
             // периоды, во время которых можно проводить съемку.
-            List<Tuple<DateTime, DateTime>> capturePeriods = getFreePeriods(inactivityRanges, timeFrom, timeTo);            
+            List<Tuple<DateTime, DateTime>> capturePeriods = getFreeIntervals(inactivityRanges, timeFrom, timeTo);            
 
             foreach (var trajectory in  trajSpans)
                 getCaptureConfArrayForTrajectory(requests, trajectory, captureConfs, freeSessionPeriodsForDrop, capturePeriods);
@@ -337,45 +337,117 @@ namespace SatelliteSessions
       
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
-            List<OptimalChain.MPZParams> cptureMPZParams = captureGraph.findOptimalChain();
-            
-            // Найдём все возможные промежутки времени для сброса 
-            List<Tuple<DateTime, DateTime>> capturePeriods = cptureMPZParams.Select(mpz => new Tuple<DateTime, DateTime>(mpz.start, mpz.end)).ToList();
+            List<MPZParams> captureMPZParams = captureGraph.findOptimalChain();
+
+            // Найдём все возможные промежутки времени для сброса (из диапазона [timeFrom - timeTo] вычитаются все inactivityRanges и диапазоны съемки)
+            List<Tuple<DateTime, DateTime>> capturePeriods = captureMPZParams.Select(mpz => new Tuple<DateTime, DateTime>(mpz.start, mpz.end)).ToList();
             List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>();
             silentAndCaptureRanges.AddRange(silentRanges);
             silentAndCaptureRanges.AddRange(capturePeriods);
             silentAndCaptureRanges = compressTimePeriods(silentAndCaptureRanges);
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
             
-            List<CaptureConf> confsToDrop = getConfsToDrop(routesToDrop, freeRangesForDrop);
-            getRoutesParamsToDrop(routesToDrop, freeRangesForDrop);
-            
-            List<Tuple<DateTime, DateTime>> dropPeriods = confsToDrop.Select(conf => new Tuple<DateTime, DateTime>(conf.dateFrom, conf.dateTo)).ToList();
-            List<Tuple<DateTime, DateTime>> silentAndCaptureAndDropRanges = new List<Tuple<DateTime, DateTime>>();
-            silentAndCaptureAndDropRanges.AddRange(silentRanges);
-            silentAndCaptureAndDropRanges.AddRange(capturePeriods);
-            silentAndCaptureAndDropRanges.AddRange(dropPeriods);
-            silentAndCaptureAndDropRanges = compressTimePeriods(silentAndCaptureAndDropRanges);
+            //List<CaptureConf> confsToDrop = getConfsToDrop(routesToDrop, freeRangesForDrop);
+            Dictionary<Tuple<DateTime,DateTime>, List<RouteParams>> dropRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDrop, freeRangesForDrop, workType: 1); 
 
-            List<Tuple<DateTime, DateTime>> freeRangesForDelete = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureAndDropRanges);
-            
-            //List<CaptureConf> confsToDelete = getConfsToDrop(routesToDrop, freeRangesForDrop);            
+            foreach (var intervalRoutes in dropRoutesParamsByIntervals)
+            {
+                List<RouteParams> routparamsList = intervalRoutes.Value;
+                Tuple<DateTime,DateTime> interval = intervalRoutes.Key;
+
+                // попробуем вместить созданные маршрты на сброс в уже созданные маршруты на съемку
+                foreach (var routparams in routparamsList.ToArray())
+                {
+                    foreach (var capPrms in captureMPZParams)
+                    {
+                        if (capPrms.InsertRoute(routparams, interval.Item1, interval.Item2, null, null))
+                        {
+                            routparamsList.Remove(routparams); // удаляем из списка маршрутов те, которые поместились в МПЗ
+                        }
+                    }
+                }
+            }
+
+            // теперь создаем новые мпз сброса из оставшихся маршрутов
+            List<MPZParams> dropMpzParams = new List<MPZParams>();
+            foreach (var intervalRoutes in dropRoutesParamsByIntervals)
+            {
+                List<RouteParams> routparamsList = intervalRoutes.Value;
+                // Tuple<DateTime, DateTime> interval = intervalRoutes.Key;
+                if (routparamsList.Count > 0)
+                {
+                    List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList);
+                    dropMpzParams.AddRange(curMPZ);
+                }
+            }
+                 
+            List<Tuple<DateTime, DateTime>> captureIntervals = captureMPZParams.Select(mpzparams => new Tuple<DateTime, DateTime>(mpzparams.start, mpzparams.end)).ToList();
+            List<Tuple<DateTime, DateTime>> dropIntervals = dropMpzParams.Select(mpzparams => new Tuple<DateTime, DateTime>(mpzparams.start, mpzparams.end)).ToList();
+            List<Tuple<DateTime, DateTime>> inactivityDropCaptureIntervals = new List<Tuple<DateTime, DateTime>>();
+            inactivityDropCaptureIntervals.AddRange(captureIntervals);
+            inactivityDropCaptureIntervals.AddRange(dropIntervals);
+            inactivityDropCaptureIntervals.AddRange(inactivityRanges);
+            inactivityDropCaptureIntervals = compressTimePeriods(inactivityDropCaptureIntervals);
+            List<Tuple<DateTime, DateTime>> freeRangesForDelete = getFreeIntervals(inactivityDropCaptureIntervals, timeFrom, timeTo);
+
+            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> deleteRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2);
+
+            // создаем новые мпз удаления из маршрутов на удаление
+            List<MPZParams> deleteMpzParams = new List<MPZParams>();
+            foreach (var intervalRoutes in deleteRoutesParamsByIntervals)
+            {
+                List<RouteParams> routparamsList = intervalRoutes.Value;
+                //Tuple<DateTime, DateTime> interval = intervalRoutes.Key;
+                List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList);
+                deleteMpzParams.AddRange(curMPZ);
+            }
+
+
+            List<MPZParams> allMPZParams = new List<MPZParams>();
+            allMPZParams.AddRange(captureMPZParams);
+            allMPZParams.AddRange(dropMpzParams);
+            allMPZParams.AddRange(deleteMpzParams);
+
             mpzArray = new List<MPZ>();
-            foreach (var mpz_param in cptureMPZParams)
+            foreach (var mpz_param in allMPZParams)
             {
                 mpzArray.Add(new MPZ(mpz_param, true, true, true, true, true));
             }
 
-            List<RouteParams> routesParamsToDrop = new List<RouteParams>();
-            foreach (var dropConf in confsToDrop)
-            {
-                routesParamsToDrop.Add(new RouteParams(dropConf.DefaultStaticConf()));
-            }
-            List<MPZ> mpzToDrop = createPNbOfRoutes(routesParamsToDrop, 0); // @todo Nmax
+            // составим массив использованных сессий
 
             sessions = new List<CommunicationSession>();
-             
-            foreach (var mpz_param in cptureMPZParams)
+
+            List<Tuple<DateTime, DateTime>> allDropIntervals = new List<Tuple<DateTime, DateTime>>(); // все использованные интервалы связи (на сброс и на *съемку и сброс*)
+            allDropIntervals.AddRange(dropMpzParams.Select(mpz => Tuple.Create(mpz.start, mpz.end) ) );
+            
+            var allRoutesLists = captureMPZParams.Select( mpz => mpz.routes).ToList();
+            List<RouteParams> allRoutes = new List<RouteParams>();
+            foreach (var r in allRoutesLists)
+                allRoutes.AddRange(r);
+
+            var droproutes = allRoutes.Where(rout => (rout.type == 1 || rout.type == 3) );
+            
+            allDropIntervals.AddRange( droproutes.Select(rout => Tuple.Create(rout.start, rout.end) ) );
+
+            foreach (var interval in allDropIntervals.ToArray())
+            {
+                foreach (var sess in nkpoiSessions)
+                {
+                    if (isPeriodInPeriod(interval, Tuple.Create(sess.Zone5timeFrom, sess.Zone5timeTo) ) ) // если этот интервал полностью в сессии, значит добавляем эту сессию в использованные
+                    {
+                        if (!sessions.Contains(sess)) // добавляем только если еще не добавили
+                            sessions.Add(sess);
+                        allDropIntervals.Remove(interval);
+                        continue;
+                    }
+                }
+            }
+
+
+           
+
+            foreach (var mpz_param in captureMPZParams)
             {
                 List<RouteParams> dropRoutes = mpz_param.routes.Where(route => route.type == 1).ToList();
                 List<CommunicationSession> sSessions = new List<CommunicationSession>();
@@ -401,7 +473,7 @@ namespace SatelliteSessions
             {
                 var timeSpan = new Tuple<DateTime, DateTime>(session.Zone5timeFrom, session.Zone5timeTo);
                 //List<Tuple<DateTime, DateTime>> freeRangesForSession = getFreeTimeRanges(timeSpan, occupiedPeriods);
-                List<Tuple<DateTime, DateTime>> freeRangesForSession = getFreePeriods(compressedOccupiedPeriods, timeSpan.Item1, timeSpan.Item2);
+                List<Tuple<DateTime, DateTime>> freeRangesForSession = getFreeIntervals(compressedOccupiedPeriods, timeSpan.Item1, timeSpan.Item2);
 
                 freeRangesForDrop.AddRange(freeRangesForSession);
             }
@@ -420,36 +492,70 @@ namespace SatelliteSessions
         {
             foreach (var period in periods)
             {
-                if (period.Item1 <= checkPeriod.Item1 && checkPeriod.Item1 <= period.Item2
-                    && period.Item1 <= checkPeriod.Item2 && checkPeriod.Item2 <= period.Item2)
+                if (isPeriodInPeriod(checkPeriod, period))
                     return true;
             }
             return false;
         }
 
-
-        public static List<RouteParams> getRoutesParamsToDrop(List<RouteMPZ> routesToDrop, List<Tuple<DateTime, DateTime>> freeCompressedRanges)
+        public static bool isPeriodInPeriod(Tuple<DateTime, DateTime> checkPeriod,  Tuple<DateTime, DateTime> period)
         {
-            List<RouteParams> res = new List<RouteParams>();
+            if (period.Item1 <= checkPeriod.Item1 && checkPeriod.Item1 <= period.Item2
+                    && period.Item1 <= checkPeriod.Item2 && checkPeriod.Item2 <= period.Item2)
+                return true;
+            else
+                return false;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="routesToDrop"></param>
+        /// <param name="freeCompressedRanges"></param>
+        /// <returns> возвращает словарь <временной интервал, маршруты, помещенные в этот интервал>  </returns>
+        public static Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> routes, List<Tuple<DateTime, DateTime>> freeCompressedRanges, int workType)
+        {
+            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> res = new Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>>();
 
             // отсортируем свободные промежутки по продолжительности в порядке возрастания 
             freeCompressedRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) 
                                      {return (span1.Item2 - span1.Item1).CompareTo(span2.Item2 - span2.Item1); });
             
-            int routesCount = routesToDrop.Count;
+            int routesCount = routes.Count;
             int prevRouteInd = 0;
             foreach (var period in freeCompressedRanges)
             {
+                List<RouteParams> curPeriodRoutes = new List<RouteParams>();
                 DateTime from = period.Item1; // момент времени, с которого начинаем упаковку
 
                 int i = prevRouteInd;
+                DateTime prevDt = period.Item1;
                 for (; i < routesCount; i++)
                 {
+                    RouteMPZ rmpz = routes[i];
+                    double actionTime = 0;
+                    if (workType == 1)
+                        actionTime = rmpz.Parameters.getDropTime();
+                    else if (workType == 2)
+                        actionTime = OptimalChain.Constants.routeDeleteTime;
 
+                    DateTime nextDt = prevDt.AddSeconds(actionTime);
+                    if (nextDt > period.Item2)
+                        break;
+                    nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
+                     
+                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, Tuple.Create(rmpz.NPZ, rmpz.Nroute));
+                    curPeriodRoutes.Add(curParam);
 
+                    prevDt = nextDt;
                 }
-                prevRouteInd = i;
-               // RouteParams newpar = new RouteParams();
+
+                if (curPeriodRoutes.Count != 0)
+                {
+                    res[period] = curPeriodRoutes;
+                    prevRouteInd = i + 1;
+                }
             }
  
             return res;
@@ -491,7 +597,7 @@ namespace SatelliteSessions
 
                     DateTime dropTimeCentre = prevTime.AddSeconds(route.Parameters.getDropTime() / 2);
                     double timeDelta = Math.Min((dropTimeCentre - range.Item1).TotalSeconds, (range.Item2 - dropTimeCentre).TotalSeconds);
-                    newConf.setPitchDependency(new Dictionary<double, double>(), timeDelta);
+                    newConf.setPitchDependency(new Dictionary<double, Tuple<double, double>>(), timeDelta);
                     res.Add(newConf);
                 }
 
@@ -499,42 +605,7 @@ namespace SatelliteSessions
             }
             return res;
         }
-
-        public static List<CaptureConf> getConfsToDelete(List<RouteMPZ> routesToDelete, DateTime timeFrom, DateTime timeTo)
-        {
-            List<CaptureConf> res = new List<CaptureConf>();
-
-            DateTime prevDeleteTime = timeFrom;
-            List<CaptureConf> confsToDelete = new List<CaptureConf>();
-            int deleteInd = 1;
-            foreach (RouteMPZ route in routesToDelete)
-            {
-                DateTime confTimeTo = prevDeleteTime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
-
-                //if (confTimeTo > confsDateFrom) // началась съемка.
-                //{
-                    // вроде ничего от этого не меняется? @todo
-                //}
-
-                double roll = route.Parameters.ShootingConf.roll;
-                var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
-                CaptureConf newConf = new CaptureConf(prevDeleteTime, confTimeTo, roll, route.Parameters.ShootingConf.orders, 2, connectedRoute);
-                res.Add(newConf);
-
-                if (deleteInd == 12)
-                {
-                    prevDeleteTime = confTimeTo.AddSeconds(OptimalChain.Constants.bigDeleteInterval);
-                    deleteInd = 1;
-                }
-                else
-                {
-                    prevDeleteTime = confTimeTo.AddSeconds(OptimalChain.Constants.smallDeleteInterval);
-                    deleteInd++;
-                }
-            } 
-
-            return res;
-        }
+         
                  
         public static List<Tuple<DateTime, DateTime>> compressTimePeriods(List<Tuple<DateTime, DateTime>> timePeriods)
         {
@@ -564,7 +635,7 @@ namespace SatelliteSessions
             return res;
         }
 
-        public static List<Tuple<DateTime, DateTime>> getFreePeriods(List<Tuple<DateTime, DateTime>> compressedOccupiedPeriods, DateTime timeFrom, DateTime timeTo)
+        public static List<Tuple<DateTime, DateTime>> getFreeIntervals(List<Tuple<DateTime, DateTime>> compressedOccupiedPeriods, DateTime timeFrom, DateTime timeTo)
         { 
             compressedOccupiedPeriods.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) { return span1.Item1.CompareTo(span2.Item1); });
 
@@ -1429,7 +1500,7 @@ namespace SatelliteSessions
             else            
                 timeDelta = getTimeDeltaFromPitch(pointFrom, conf.rollAngle, maxPitchAngle);
                         
-            conf.pitchArray[0] = 0;
+            conf.pitchArray[0] = Tuple.Create(0.0, 0.0);
 
             Dictionary<double, double> angleTimeArray = new Dictionary<double, double>();
             angleTimeArray[0] = 0;
@@ -1447,10 +1518,14 @@ namespace SatelliteSessions
 
             LinearInterpolation pitchInterpolation = new LinearInterpolation(angleTimeArray.Values.ToArray(), angleTimeArray.Keys.ToArray());
 
-            Dictionary<double, double> timeAngleArray = new Dictionary<double, double>();
+            Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
             for (int t = 0; t <= (int)timeDelta; t++)
             {
-                timeAngleArray[t] = pitchInterpolation.GetValue(t);
+                double pitch = pitchInterpolation.GetValue(t);
+                double height = pointFrom.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
+                GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pointFrom.Position.ToVector());
+                var rollCorrection = getRollCorrection(height, pointFrom.Velocity.Length, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
+                timeAngleArray[t] = Tuple.Create(pitch, rollCorrection);
             }
 
             conf.setPitchDependency(timeAngleArray, timeDelta);            
@@ -1458,8 +1533,8 @@ namespace SatelliteSessions
 
 
         private static CaptureConf getStereoTriplet(CaptureConf conf, TrajectoryPoint pointFrom, List<Tuple<DateTime, DateTime>> availableRanges)
-        {            
-            double pitchAngle = AstronomyMath.ToRad(30);
+        {
+            double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double timeDelta = getTimeDeltaFromPitch(pointFrom, conf.rollAngle, pitchAngle);
             DateTime dtFrom = conf.dateFrom.AddSeconds(-timeDelta);
             DateTime dtTo = conf.dateTo.AddSeconds(timeDelta);
@@ -1469,11 +1544,11 @@ namespace SatelliteSessions
 
             if (!isPeriodInPeriods(Tuple.Create(dtFrom, dtTo), availableRanges))
                 return null;
-            
-            Dictionary<double, double> timeAngleArray = new Dictionary<double, double>();
-            timeAngleArray[-timeDelta] = -pitchAngle;
-            timeAngleArray[0] = 0;
-            timeAngleArray[timeDelta] = pitchAngle;
+
+            Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
+            timeAngleArray[-timeDelta] = Tuple.Create(-pitchAngle, 0.0);
+            timeAngleArray[0] = Tuple.Create(0.0, 0.0);
+            timeAngleArray[timeDelta] = Tuple.Create(pitchAngle, 0.0);
 
             CaptureConf stereoConf = new CaptureConf(dtFrom, dtTo, conf.rollAngle, conf.orders, conf.confType, conf.connectedRoute);
             stereoConf.setPitchDependency(timeAngleArray, timeDelta);
@@ -1493,6 +1568,23 @@ namespace SatelliteSessions
             // время, за которое спутник преодалевает dist по поверхности земли.
             return  Math.Abs(dist / pointFrom.Velocity.Length); 
         }
+
+
+        public static double getRollCorrection(double height, double velo, double bKa, double pitchAngle)
+        {
+            double wEarth = OptimalChain.Constants.earthRotSpeed;
+            double I = OptimalChain.Constants.orbital_inclination;
+            double R = Astronomy.Constants.EarthRadius;
+            //double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - (R + h) * (R + h) / R / R * Math.Sin(pitch) * Math.Sin(pitch))) - pitch);
+            //double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I);
+            //double sinRoll = R * Math.Sin(d) / Math.Sqrt(R * R + (R + h) * (R + h) - 2 * R * (R + h) * Math.Cos(d));
+            //return Math.Asin(sinRoll); 
+            double bm = bKa + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitchAngle), 2))) - pitchAngle);
+            double d = Math.Cos(bm) * wEarth / velo * pitchAngle * Math.Sin(I);
+            double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + height, 2) - 2 * R * (R + height) * Math.Cos(d));
+            return Math.Asin(sinRoll);
+        }
+
 
     }
 

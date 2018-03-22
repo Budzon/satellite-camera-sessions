@@ -196,6 +196,7 @@ namespace GeometryTest
                                                      , routesToDrop
                                                      , routesToDelete
                                                       , manager
+                                                      ,0
                                                      , out mpzArray
                                                      , out sessions);
             }

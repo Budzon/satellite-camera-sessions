@@ -51,7 +51,7 @@ namespace GeometryTest
                 routesParams.Add(routeParam);
             }
 
-            List<MPZ> res = Sessions.createPNbOfRoutes(routesParams);
+            List<MPZ> res = Sessions.createPNbOfRoutes(routesParams, 0);
 
             Assert.IsTrue(res.Count == 3);
 

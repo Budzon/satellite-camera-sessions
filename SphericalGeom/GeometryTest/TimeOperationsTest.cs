@@ -35,7 +35,7 @@ namespace GeometryTest
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 6), new DateTime(2000, 01, 7)));
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 10), new DateTime(2000, 01, 12)));
 
-                List<Tuple<DateTime, DateTime>> res = Sessions.getFreePeriods(inputSpan, timeFrom, timeTo);
+                List<Tuple<DateTime, DateTime>> res = Sessions.getFreeIntervals(inputSpan, timeFrom, timeTo);
 
                 Assert.IsTrue(res.Count == 2);
 
@@ -52,7 +52,7 @@ namespace GeometryTest
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 01), new DateTime(2000, 01, 02)));
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 9), new DateTime(2000, 01, 15)));
 
-                List<Tuple<DateTime, DateTime>> res = Sessions.getFreePeriods(inputSpan, timeFrom, timeTo);
+                List<Tuple<DateTime, DateTime>> res = Sessions.getFreeIntervals(inputSpan, timeFrom, timeTo);
 
                 Assert.IsTrue(res.Count == 1);
 
@@ -68,7 +68,7 @@ namespace GeometryTest
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 01), new DateTime(2000, 01, 06)));
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 9), new DateTime(2000, 01, 15)));
 
-                List<Tuple<DateTime, DateTime>> res = Sessions.getFreePeriods(inputSpan, timeFrom, timeTo);
+                List<Tuple<DateTime, DateTime>> res = Sessions.getFreeIntervals(inputSpan, timeFrom, timeTo);
 
                 Assert.IsTrue(res.Count == 0);
             }
@@ -82,7 +82,7 @@ namespace GeometryTest
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 01), new DateTime(2000, 01, 05)));
                 inputSpan.Add(new Tuple<DateTime, DateTime>(new DateTime(2000, 01, 5), new DateTime(2000, 01, 15)));
 
-                List<Tuple<DateTime, DateTime>> res = Sessions.getFreePeriods(inputSpan, timeFrom, timeTo);
+                List<Tuple<DateTime, DateTime>> res = Sessions.getFreeIntervals(inputSpan, timeFrom, timeTo);
 
                 Assert.IsTrue(res.Count == 0);
             }
