@@ -901,6 +901,17 @@ namespace SatelliteTrajectory
             L1 = L[0];
             L2 = L[1];
         }
+
+
+        public static double getSunHeight(DBTables.DataFetcher fetcher, GeoPoint p, DateTime time)
+        {
+            Vector3D sun = DBTables.SunTable.GetPositionUnitEarth(fetcher.GetDataBeforeEqualDate(DBTables.SunTable.Name, DBTables.SunTable.Time, time, 1)[0]);
+            Vector3D v = GeoPoint.ToCartesian(p, 1);
+            Vector3D pToSun = sun - v;
+            pToSun.Normalize();
+
+            return AstronomyMath.ToRad(Vector3D.AngleBetween(pToSun, -v) - 90);
+        }
     }
 
     public struct PolygonLit

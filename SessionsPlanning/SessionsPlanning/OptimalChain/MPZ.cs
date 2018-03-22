@@ -303,17 +303,13 @@ namespace OptimalChain
         public int zipMK { get; set; }
 
         /// <summary>
-        /// Высота Солнца [рад]
-        /// </summary>
-        public double sunHeight { get; set; }
-
-        /// <summary>
         /// Альбедо
         /// </summary>
         public double albedo { get; set; }
 
-        public int memoryCellMZU1 { get; set; }
-        public int memoryCellMZU2 { get; set; }
+        // Ставятся на основе CONF_B
+        //public int memoryCellMZU1 { get; set; }
+        //public int memoryCellMZU2 { get; set; }
 
         public double getDropTime()
         {
@@ -343,6 +339,7 @@ namespace OptimalChain
             File_Size = fs;
             albedo = alb;
             zipMK = comp;
+            zipPK = comp;
             duration = (end - start).TotalMilliseconds;
         }
 
@@ -357,6 +354,7 @@ namespace OptimalChain
             shooting_type = c.shooting_type;
             albedo = c.AverAlbedo;
             zipMK = c.MinCompression;
+            zipPK = c.MinCompression;
             duration = (end - start).TotalMilliseconds;
         }
 
@@ -372,6 +370,7 @@ namespace OptimalChain
             File_Size = fs;
             albedo = c.AverAlbedo;
             zipMK = c.MinCompression;
+            zipPK = c.MinCompression;
         }
 
 
