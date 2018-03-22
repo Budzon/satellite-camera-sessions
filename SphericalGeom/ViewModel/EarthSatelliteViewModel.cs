@@ -942,7 +942,8 @@ namespace ViewModel
                 , inactivityRanges
                 , routesToDrop
                 , routesToDelete
-                 , managerDB
+                , managerDB
+                , 0
                 , out mpzArray
                 , out sessions);
 

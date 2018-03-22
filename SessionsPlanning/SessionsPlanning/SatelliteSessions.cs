@@ -293,6 +293,7 @@ namespace SatelliteSessions
         /// <param name="routesToDrop">Перечень маршрутов на сброс</param>
         /// <param name="routesToDelete">Перечень маршрутов на удаление</param>
         /// <param name="managerDB">параметры взаимодействия с БД</param>
+        /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
         /// <param name="mpzArray">Набор МПЗ</param>
         /// <param name="sessions">Сеансы связи</param>
         public static void getMPZArray(
@@ -304,6 +305,7 @@ namespace SatelliteSessions
             , List<RouteMPZ> routesToDrop
             , List<RouteMPZ> routesToDelete
             , DIOS.Common.SqlManager managerDB
+            , int Nmax
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
         {
@@ -369,7 +371,7 @@ namespace SatelliteSessions
             {
                 routesParamsToDrop.Add(new RouteParams(dropConf.DefaultStaticConf()));
             }
-            List<MPZ> mpzToDrop = createPNbOfRoutes(routesParamsToDrop);
+            List<MPZ> mpzToDrop = createPNbOfRoutes(routesParamsToDrop, 0); // @todo Nmax
 
             sessions = new List<CommunicationSession>();
              
@@ -629,7 +631,8 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="routesParams"> Набор маршрутов RouteParams</param>
         /// <returns> набор МПЗ, созданный из маршутов</returns>
-        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams)
+        /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax)
         {
             List<MPZ> res = new List<MPZ>();         
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams);
