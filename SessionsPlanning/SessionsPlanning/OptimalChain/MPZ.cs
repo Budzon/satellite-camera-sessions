@@ -88,6 +88,104 @@ namespace OptimalChain
 
         }
 
+        public static MPZParams createMPZbetween(MPZParams m1, MPZParams m2, List<RouteParams> r)
+        {
+
+            if(r==null)
+            {
+                if((m2.start- m1.end).TotalMilliseconds > Constants.MPZ_ending_Time_PWRON + Constants.MPZ_starting_Time + 2 * Constants.MPZ_delta)
+                {
+                    MPZParams m = new MPZParams(0);
+                    m.start = m1.end.AddMilliseconds(Constants.MPZ_starting_Time + Constants.MPZ_delta);
+                    m.end = m.start;
+                    return m;
+                }
+            }
+
+            else
+            {
+                double Tmpz = (r.Last().end - r[0].start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON + Constants.MPZ_starting_Time + 2 * Constants.MPZ_delta;
+                if ((m2.start - m1.end).TotalMilliseconds < Tmpz)
+                    return null;
+
+                MPZParams m = new MPZParams(0,r[0]);
+                foreach(RouteParams i in r)
+                {
+                    m.AddRoute(i);
+                }
+                return m;
+            }
+            return null;
+        }
+
+        public bool InsertRoute(RouteParams r, DateTime insert_start, DateTime insert_end, MPZParams m_previous=null, MPZParams m_next = null)
+        {
+            
+
+            if (this.N_routes > 11) return false;
+
+            double dmpz = Double.MaxValue;
+            if(m_previous!=null)
+            {
+                dmpz = (start - m_previous.end).TotalMilliseconds;
+            }
+
+            RouteParams r0 = routes[0];
+            if ((dmpz - Constants.MPZ_delta - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel) > 0))
+            {
+                start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
+                routes.Insert(0, r);
+                return true;
+            }
+
+
+            double lasting = ((r.end - this.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON);
+            if(lasting < Constants.MPZ_max_lasting_time) return false;
+            
+            
+            for(int i=0;i<N_routes;i++)
+            {
+                RouteParams r1 = routes[i];
+
+                if(i == (N_routes -1))
+                {
+                    if (!r.isCompatible(r)) return false;
+
+                    double dt = Constants.CountMinPause(r1.type,r1.shooting_type,r1.shooting_channel, r.type, r.shooting_type, r.shooting_channel);
+
+                    if(m_next!=null)
+                    {
+                        if (m_next.start < end.AddMilliseconds(dt + r.duration + Constants.MPZ_delta))
+                            return false;
+                    }
+
+                    if (end.AddMilliseconds(dt + r.duration) > insert_end)
+                        return false;
+
+                    return this.AddRoute(r);
+                }
+
+                RouteParams r2 = routes[i + 1];
+                double dt1 = Constants.CountMinPause(r1.type, r1.shooting_type, r1.shooting_channel, r.type, r.shooting_type, r.shooting_channel);
+
+                if (r1.end.AddMilliseconds(r.duration + dt1) > insert_end) return false;
+
+                double dt2 = Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r2.type, r2.shooting_type, r2.shooting_channel);
+                double dt_r1_r2 = (r2.start - r1.end).TotalMilliseconds;
+
+                if(dt_r1_r2> (dt1 + dt2 + r.duration))
+                {
+                   
+                    r.start = r1.end.AddMilliseconds(dt1);
+                    r.end = r.start.AddMilliseconds(r.duration);
+                    routes.Insert(i + 1, r);
+                    return true;
+                }
+            }
+
+            return false;
+
+        }
 
         public static List<MPZParams> FillMPZ(List<RouteParams> routes)
         {
@@ -166,6 +264,7 @@ namespace OptimalChain
         public Tuple<int, int> binded_route { get; set; }
 
         public int File_Size { get; set; } //объем файла в Мб
+        public double duration { get; set; }//длительность в милисекундах. Задается явно для маршрутов сброса и удаления, когда их время исполнения еще не определено
 
         /// <summary>
         /// Смещение от начала файла при сбросе инфо (от 0 до 99).
@@ -230,6 +329,7 @@ namespace OptimalChain
             end = d2;
             binded_route = null;
             File_Size = fs;
+            duration = (d2 - d1).TotalMilliseconds;
         }
 
         public RouteParams(int t, DateTime d1, DateTime d2, Tuple<int, int> br, int st = 0, string channel = "pk", int fs = 1000, double alb = 0.36, int comp=10)
@@ -243,6 +343,7 @@ namespace OptimalChain
             File_Size = fs;
             albedo = alb;
             zipMK = comp;
+            duration = (end - start).TotalMilliseconds;
         }
 
         public RouteParams(StaticConf c)
@@ -256,7 +357,7 @@ namespace OptimalChain
             shooting_type = c.shooting_type;
             albedo = c.AverAlbedo;
             zipMK = c.MinCompression;
-            
+            duration = (end - start).TotalMilliseconds;
         }
 
         public RouteParams(StaticConf c, int fs = 1000)
