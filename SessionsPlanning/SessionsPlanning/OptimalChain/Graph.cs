@@ -133,7 +133,7 @@ namespace OptimalChain
                 }
                 if (s.shootingType == 1)
                 {
-                  foreach (KeyValuePair<double, double> p in s.pitchArray)
+                  foreach (KeyValuePair<double, Tuple<double,double>> p in s.pitchArray)
                   {
                       vertices.Add(new Vertex(s.CreateStaticConf(p.Key, 1), s));
                   }
@@ -336,10 +336,11 @@ namespace OptimalChain
                 }
 
             }
-           // Console.WriteLine(vertices.Last().path.Count);
+            Console.WriteLine("MPZ num = " + vertices.Last().path.Count);
             foreach (MPZParams m in vertices.Last().path)
             {
                 Console.WriteLine("**************************");
+                Console.WriteLine("Routes num = "+m.routes.Count);
                 foreach (RouteParams r in m.routes)
                             {
 
@@ -347,8 +348,8 @@ namespace OptimalChain
                                 Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
                             }
             }
-            
-           // Console.WriteLine(vertices.Last().path.Last().routes.Count);
+
+            Console.WriteLine("Graph did his very best ");
             return vertices.Last().path;
         }
     }
