@@ -203,6 +203,12 @@ namespace OptimalChain
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
 
+                if(shootingType==1)
+                {
+                    d1 = dateFrom.AddSeconds(delta);
+                    d2 = dateTo.AddSeconds(delta);
+                }
+
                 return new StaticConf(id, d1, d2,p, r, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
             }
             catch
