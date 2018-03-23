@@ -767,7 +767,7 @@ namespace ViewModel
         {
 
             DateTime dt1 = new DateTime(2019, 2, 2, 0, 00, 00);
-            DateTime dt2 = new DateTime(2019, 2, 4, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 3, 0, 00, 00);
 
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -971,9 +971,11 @@ namespace ViewModel
 
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
             routesToDelete.Add(routempzToDelete);
-            
+
+            string s = "POLYGON((140.32099063205413 -29.648976050564166, 140.13664547871844 -30.155460196739938, 140.6044551481039 -30.325728991698156, 140.7888003014396 -29.819244845522377, 140.32099063205413 -29.648976050564166))";
+            RequestParams rp = new RequestParams(301,3,dt1,dt2,55*Math.PI/180,50,10,90,s,0.36,10,0);
             //12.03.2015 по 14.03.2015
-            Sessions.getMPZArray(requests, dt1, dt2
+            Sessions.getMPZArray(new List<RequestParams> {rp}, dt1, dt2
                 , silenceRanges
                 , inactivityRanges
                 , routesToDrop
