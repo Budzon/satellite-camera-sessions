@@ -93,7 +93,10 @@ namespace Astronomy
             double leftY = this.y[leftInd];
             double rightY = this.y[rightInd];
 
-            return Interpolate(xVal, leftInd, rightInd, leftY, rightY);
+            double leftX = this.x[leftInd];
+            double rightX = this.x[rightInd];
+
+            return Interpolate(xVal, leftX, rightX, leftY, rightY);
         }
 
         private static double Interpolate(double value, double x0, double x1, double y0, double y1)
