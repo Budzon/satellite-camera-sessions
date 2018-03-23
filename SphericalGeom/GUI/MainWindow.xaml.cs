@@ -42,7 +42,7 @@ namespace GUI
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
 #if SPHERE
-            Terra = new Ellipse3D(1, 1, 1, 600);
+            Terra = new Ellipse3D(1, 1, 1, 500);
 #else
             Terra = new EllipseRegion3D(1, 1, 1, 20, 250);
 #endif
@@ -122,6 +122,8 @@ namespace GUI
                 }
                 else if (vm.PointInPolygon(p.X, p.Y, p.Z))
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
+                else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 else if (vm.PointInLane(p.X, p.Y, p.Z))
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
                 else

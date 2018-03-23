@@ -98,7 +98,7 @@ namespace TrajectoryTest
                         rollAngle += viewAngle)
             {
                 //  основная (тестируемая) полоса 
-                SatLane lane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
+                SatLane lane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
 
                 // вспомогательная полоса, отсюда нужны только правые точки
                 var controlLane = new SatLane(trajectory, rollAngle + viewAngle, 0,  viewAngle, polygonStep: 1);

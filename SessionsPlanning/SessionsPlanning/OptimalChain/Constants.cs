@@ -38,6 +38,7 @@ namespace OptimalChain
         public const double orbit_height = 720; // км (или 650?)
         public const double routeDeleteTime = 15; // время на удаление маршрута
         public const double stereoPitchAngle = 0.52360;
+        public const int stripPolygonStep = 1; // шаг по колву точек. Значение 1, если используем все точки, без оптимизации
 
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
 

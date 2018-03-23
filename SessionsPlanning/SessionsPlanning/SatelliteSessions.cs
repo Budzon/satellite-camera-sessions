@@ -170,12 +170,12 @@ namespace SatelliteSessions
                          
             ConcurrentBag<CaptureConf> concurrentlist = new ConcurrentBag<CaptureConf>(); 
              
-           // for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
+          //  for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
             Parallel.For(0, num_steps+1, index =>
             {                
                 double rollAngle = min_roll_angle + index * angleStep;                
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-                SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: 15);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -184,7 +184,7 @@ namespace SatelliteSessions
 
                     if (confs.Count == 0)
                         continue;
-
+                    
                     // если сжатие заказа == 10, то для всех конифгураций, помещающихся в зону дейтвия НКПОИ мы выставляем режим "съемка со сбросом"
                     if (request.compression == OptimalChain.Constants.compressionDropCapture)
                     {                        
@@ -216,17 +216,18 @@ namespace SatelliteSessions
                     var pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
                     TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
                     TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
-
-                    conf.setPolygon(pol);
                     
+                    conf.setPolygon(pol);                    
                     calculatePitchArrays(conf, pointFrom);
+
+                  
                 }
                 foreach (var conf in laneCaptureConfs)
                     concurrentlist.Add(conf);                               
             }
             );
 
-            captureConfs.AddRange(concurrentlist.ToList());            
+            captureConfs.AddRange(concurrentlist.ToList());
         }
 
 
@@ -334,7 +335,18 @@ namespace SatelliteSessions
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
-      
+
+       
+            //////////////////// 
+            /*
+            Console.WriteLine("полигон: {0}", requests[0].wktPolygon);
+            foreach (var conf in confsToCapture)
+            {
+                Console.WriteLine("conf: {0}", conf.wktPolygon);
+            }
+            */
+            ///////////////////
+
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
             List<MPZParams> captureMPZParams = captureGraph.findOptimalChain();

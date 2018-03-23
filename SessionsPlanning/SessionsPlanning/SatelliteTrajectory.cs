@@ -29,7 +29,7 @@ namespace SatelliteTrajectory
         private double viewAngle;
         private double pitchAngle;
 
-        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _pitchAngle, double _viewAngle, int polygonStep = 15)
+        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _pitchAngle, double _viewAngle, int polygonStep = OptimalChain.Constants.stripPolygonStep)
         {
             trajectory = _trajectory;
             rollAngle = _rollAngle;
@@ -540,7 +540,6 @@ namespace SatelliteTrajectory
             Vector3D eDirVect = -point.Position.ToVector();
             Vector3D rollDir = applyRollRotation(point, eDirVect, rollAngle);
             return applyPitchlRotation(point, rollDir, pitchAngle);
-
         }
 
         public static Vector3D getSurfacePoint(TrajectoryPoint point, double rollAngle, double pitchAngle)
@@ -548,7 +547,6 @@ namespace SatelliteTrajectory
             Vector3D dirVector = getDirectionVector(point, rollAngle, pitchAngle);
             return Routines.SphereVectIntersect(dirVector, point.Position, Astronomy.Constants.EarthRadius);
         }
-
       
         private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
         {
@@ -568,7 +566,7 @@ namespace SatelliteTrajectory
                 if (!knowLeftConrol) 
                 {                   
                     leftControlPoint = getControlPoint(CartKAPoint, leftCartPoint);
-                    knowLeftConrol = true;                    
+                    knowLeftConrol = true;
                 }
                 return leftControlPoint;
             }
