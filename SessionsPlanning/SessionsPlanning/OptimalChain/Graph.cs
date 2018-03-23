@@ -28,7 +28,7 @@ namespace OptimalChain
                 count++;
                 A.addEdge(v1, v1.value);
 
-                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
+                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) >= v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
                 {
                     if((v1.s.shooting_type==1)&&(v1.s.pitch>=-0.0872665))
                     {

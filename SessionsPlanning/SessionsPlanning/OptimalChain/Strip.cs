@@ -197,7 +197,7 @@ namespace OptimalChain
 
                 if((confType==0)&&(shootingType!=1))
                 {
-                    p = p*sign;
+                    p = -p*sign;
                  //   r = r * sign;
                 }
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
