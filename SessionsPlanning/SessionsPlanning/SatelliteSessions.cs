@@ -198,11 +198,8 @@ namespace SatelliteSessions
                     {                        
                         for (int i = 0; i < confs.Count; i++)
                         {
-                            var conf = confs[i];
-                            TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
-                            CaptureConf stereoConf = getStereoTriplet(conf, pointFrom, capturePeriods);
-                            if (null != stereoConf)
-                                confs[i] = stereoConf;                            
+                            TrajectoryPoint pointFrom = trajectory.GetPoint(confs[i].dateFrom);
+                            confs[i].converToStereoTriplet(pointFrom, capturePeriods);                           
                         }
                     }
 
@@ -218,10 +215,8 @@ namespace SatelliteSessions
                     TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
                     
                     conf.setPolygon(pol);
-                    if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)-
-                        calculatePitchArrays(conf, pointFrom);
-
-                  
+                    if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)
+                        calculatePitchArrays(conf, pointFrom);                  
                 }
                 foreach (var conf in laneCaptureConfs)
                     concurrentlist.Add(conf);                               
@@ -1533,32 +1528,9 @@ namespace SatelliteSessions
         }
 
 
-        private static CaptureConf getStereoTriplet(CaptureConf conf, TrajectoryPoint pointFrom, List<Tuple<DateTime, DateTime>> availableRanges)
-        {
-            double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
-            double timeDelta = getTimeDeltaFromPitch(pointFrom, conf.rollAngle, pitchAngle);
-            DateTime dtFrom = conf.dateFrom.AddSeconds(-timeDelta);
-            DateTime dtTo = conf.dateTo.AddSeconds(timeDelta);
-
-            if ((conf.dateTo - conf.dateFrom).TotalSeconds > timeDelta)
-                return null; // полоса слишком длинная. Мы не успеваем отснять с углом -30 до того, как начнём снимать с углом 0
-
-            if (!isPeriodInPeriods(Tuple.Create(dtFrom, dtTo), availableRanges))
-                return null;
-
-            Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
-            timeAngleArray[-timeDelta] = Tuple.Create(-pitchAngle, 0.0);
-            timeAngleArray[0] = Tuple.Create(0.0, 0.0);
-            timeAngleArray[timeDelta] = Tuple.Create(pitchAngle, 0.0);
-
-            CaptureConf stereoConf = new CaptureConf(dtFrom, dtTo, conf.rollAngle, conf.orders, conf.confType, conf.connectedRoute);
-            stereoConf.setPitchDependency(timeAngleArray, timeDelta);
-
-            return stereoConf;                            
-        }
 
 
-        private static double getTimeDeltaFromPitch(TrajectoryPoint pointFrom, double rollAngle, double pitchAngle)
+        public static double getTimeDeltaFromPitch(TrajectoryPoint pointFrom, double rollAngle, double pitchAngle)
         {
             Vector3D rollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
             Vector3D PitchRollPoint = LanePos.getSurfacePoint(pointFrom, rollAngle, pitchAngle);

@@ -288,6 +288,31 @@ namespace OptimalChain
             }
         }
 
+
+        public bool converToStereoTriplet(Astronomy.TrajectoryPoint pointFrom, List<Tuple<DateTime, DateTime>> availableRanges)
+        {
+            double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
+            double timeDelta = SatelliteSessions.Sessions.getTimeDeltaFromPitch(pointFrom, this.rollAngle, pitchAngle);
+            DateTime dtFrom = this.dateFrom.AddSeconds(-timeDelta);
+            DateTime dtTo = this.dateTo.AddSeconds(timeDelta);
+
+            if ((this.dateTo - this.dateFrom).TotalSeconds > timeDelta)
+                return false; // полоса слишком длинная. Мы не успеваем отснять с углом -30 до того, как начнём снимать с углом 0
+
+            if (!SatelliteSessions.Sessions.isPeriodInPeriods(Tuple.Create(dtFrom, dtTo), availableRanges))
+                return false;  // мы не попадаем в разрешенные промеждутки времени
+
+            Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
+            timeAngleArray[-timeDelta] = Tuple.Create(-pitchAngle, 0.0);
+            timeAngleArray[0] = Tuple.Create(0.0, 0.0);
+            timeAngleArray[timeDelta] = Tuple.Create(pitchAngle, 0.0);
+
+            this.setPitchDependency(timeAngleArray, timeDelta);
+
+            return true;
+        }
+
+
     }
 
     public class RequestParams
