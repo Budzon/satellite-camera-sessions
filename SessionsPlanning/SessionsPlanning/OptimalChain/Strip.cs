@@ -294,7 +294,12 @@ namespace OptimalChain
             }
         }
 
-
+        /// <summary>
+        /// Создать стереотриплет из текущей конфигурации
+        /// </summary>
+        /// <param name="pointFrom">положение КА в момент съемки</param>
+        /// <param name="availableRanges">доступные для съемки интервалы времени</param>
+        /// <returns>false, если создание не удалось </returns>
         public bool converToStereoTriplet(Astronomy.TrajectoryPoint pointFrom, List<Tuple<DateTime, DateTime>> availableRanges)
         {
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
@@ -306,12 +311,12 @@ namespace OptimalChain
                 return false; // полоса слишком длинная. Мы не успеваем отснять с углом -30 до того, как начнём снимать с углом 0
 
             if (!SatelliteSessions.Sessions.isPeriodInPeriods(Tuple.Create(dtFrom, dtTo), availableRanges))
-                return false;  // мы не попадаем в разрешенные промеждутки времени
+                return false;  // мы не попадаем в разрешенные промежутки времени
 
             Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
-            timeAngleArray[-timeDelta] = Tuple.Create(-pitchAngle, 0.0);
-            timeAngleArray[0] = Tuple.Create(0.0, 0.0);
-            timeAngleArray[timeDelta] = Tuple.Create(pitchAngle, 0.0);
+            timeAngleArray[timeDelta] = Tuple.Create(-pitchAngle, 0.0);
+            timeAngleArray[0] = Tuple.Create(0.0, 0.0);            
+            timeAngleArray[-timeDelta] = Tuple.Create(pitchAngle, 0.0);            
 
             this.setPitchDependency(timeAngleArray, timeDelta);
 
