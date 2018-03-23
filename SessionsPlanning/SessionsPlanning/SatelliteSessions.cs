@@ -202,7 +202,7 @@ namespace SatelliteSessions
                             TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
                             CaptureConf stereoConf = getStereoTriplet(conf, pointFrom, capturePeriods);
                             if (null != stereoConf)
-                                conf = stereoConf;                            
+                                confs[i] = stereoConf;                            
                         }
                     }
 
@@ -217,8 +217,9 @@ namespace SatelliteSessions
                     TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
                     TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
                     
-                    conf.setPolygon(pol);                    
-                    calculatePitchArrays(conf, pointFrom);
+                    conf.setPolygon(pol);
+                    if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)-
+                        calculatePitchArrays(conf, pointFrom);
 
                   
                 }
