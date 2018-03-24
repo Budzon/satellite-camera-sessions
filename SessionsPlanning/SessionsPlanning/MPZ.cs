@@ -496,6 +496,8 @@ namespace SatelliteSessions
                         parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
                         out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
                     Polinomial_Coeff = new PolinomCoef { L1 = l1, L2 = l2, B1 = b1, B2 = b2, S1 = s1, S2 = s2, S3 = s3, WD_K = 0 };
+                    inpParameters.duration = duration * 1e3;
+                    inpParameters.end = inpParameters.start.AddMilliseconds(inpParameters.duration);
                 }
                 else
                     Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };

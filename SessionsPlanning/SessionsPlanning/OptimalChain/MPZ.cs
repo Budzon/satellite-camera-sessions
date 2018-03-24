@@ -264,7 +264,13 @@ namespace OptimalChain
 
         public Tuple<int, int> binded_route { get; set; }
 
+        /// <summary>
+        /// объем файла в Мб
+        /// </summary>
         public int File_Size { get; set; } //объем файла в Мб
+        /// <summary>
+        /// Длительность в милисекундах
+        /// </summary>
         public double duration { get; set; }//длительность в милисекундах. Задается явно для маршрутов сброса и удаления, когда их время исполнения еще не определено
 
         /// <summary>
