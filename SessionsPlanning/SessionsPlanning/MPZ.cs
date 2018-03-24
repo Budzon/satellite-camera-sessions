@@ -525,14 +525,18 @@ namespace SatelliteSessions
             switch (RegimeType)
             {
                 case RegimeTypes.SI:
-                    Troute = 5 * 5;
+                    int seconds = 5;
+                    Troute = seconds * 5;
+                    parameters.end = parameters.start.AddSeconds(seconds);
                     break;
                 case RegimeTypes.ZI:
                     Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
                     parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
-                    Troute = (int)((parameters.File_Size / 1024.0 * 8 + 1) * 5);
+                    seconds = (int)(parameters.File_Size / 1024.0 * 8 + 1);
+                    Troute =  seconds * 5;
+                    parameters.end = parameters.start.AddSeconds(seconds);
                     break;
                 case RegimeTypes.NP:
                     Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
