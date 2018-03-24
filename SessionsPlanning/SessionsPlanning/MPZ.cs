@@ -473,7 +473,7 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
 
-            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(inpParameters.start);
+            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(parameters.start);
             if (KAbegin_ == null)
             {
                 throw new Exception("No trajectory data.");
@@ -488,16 +488,16 @@ namespace SatelliteSessions
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
             /* ---------- Polinomial_coeff -----------*/
-                if (inpParameters.shooting_type == 2) // коридорная
+                if (parameters.shooting_type == 2) // коридорная
                 {
                     double l1, l2, b1, b2, s1, s2, s3, duration;
                     SatelliteTrajectory.TrajectoryRoutines.GetCoridorParams(fetcher,
-                        inpParameters.start, inpParameters.coridorAzimuth, inpParameters.coridorLength,
+                        parameters.start, parameters.coridorAzimuth, parameters.coridorLength,
                         parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
                         out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
                     Polinomial_Coeff = new PolinomCoef { L1 = l1, L2 = l2, B1 = b1, B2 = b2, S1 = s1, S2 = s2, S3 = s3, WD_K = 0 };
-                    inpParameters.duration = duration * 1e3;
-                    inpParameters.end = inpParameters.start.AddMilliseconds(inpParameters.duration);
+                    parameters.duration = duration * 1e3;
+                    parameters.end = parameters.start.AddMilliseconds(parameters.duration);
                 }
                 else
                     Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };
@@ -528,18 +528,20 @@ namespace SatelliteSessions
                     int seconds = 5;
                     Troute = seconds * 5;
                     parameters.end = parameters.start.AddSeconds(seconds);
+                    parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.ZI:
-                    Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
+                    Troute = (int)((parameters.end - parameters.start).TotalSeconds * 5);
                     parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
                     seconds = (int)(parameters.File_Size / 1024.0 * 8 + 1);
                     Troute =  seconds * 5;
                     parameters.end = parameters.start.AddSeconds(seconds);
+                    parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.NP:
-                    Troute = (int)((inpParameters.end - inpParameters.start).TotalSeconds * 5);
+                    Troute = (int)((parameters.end - parameters.start).TotalSeconds * 5);
                     parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 default:
@@ -550,7 +552,7 @@ namespace SatelliteSessions
             /* ---------- REGta -----------*/
             if (REGka == 0)
             {
-                switch (inpParameters.shooting_type)
+                switch (parameters.shooting_type)
                 {
                     case 0:
                         ByteRoutines.SetBitOne(REGta, 0); // кадровая
