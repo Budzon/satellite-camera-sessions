@@ -306,8 +306,8 @@ namespace SatelliteSessions
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions)
         {
-            List<RouteMPZ> routesToDropCopy = new List<RouteMPZ>(routesToDrop); // локальная копия, не будем портить входной массив
-            List<RouteMPZ> routesToDeleteCopy = new List<RouteMPZ>(routesToDelete); // локальная копия, не будем портить входной массив
+            //List<RouteMPZ> routesToDropCopy = new List<RouteMPZ>(routesToDrop); // локальная копия, не будем портить входной массив
+            //List<RouteMPZ> routesToDeleteCopy = new List<RouteMPZ>(routesToDelete); // локальная копия, не будем портить входной массив
 
             List<CommunicationSession> snkpoiSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> mnkpoiSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
@@ -348,16 +348,17 @@ namespace SatelliteSessions
             List<MPZParams> captureMPZParams = captureGraph.findOptimalChain();
 
             // Найдём все возможные промежутки времени для сброса (из диапазона [timeFrom - timeTo] вычитаются все inactivityRanges и диапазоны съемки)
-            List<Tuple<DateTime, DateTime>> capturePeriods = captureMPZParams.Select(mpz => new Tuple<DateTime, DateTime>(mpz.start, mpz.end)).ToList();
+            List<Tuple<DateTime, DateTime>> captureIntervals = captureMPZParams.Select(mpz => new Tuple<DateTime, DateTime>(mpz.start, mpz.end)).ToList();
             List<Tuple<DateTime, DateTime>> silentAndCaptureRanges = new List<Tuple<DateTime, DateTime>>();
             silentAndCaptureRanges.AddRange(silentRanges);
-            silentAndCaptureRanges.AddRange(capturePeriods);
+            silentAndCaptureRanges.AddRange(captureIntervals);
             silentAndCaptureRanges = compressTimePeriods(silentAndCaptureRanges);
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
             
             //List<CaptureConf> confsToDrop = getConfsToDrop(routesToDrop, freeRangesForDrop);
             Dictionary<Tuple<DateTime,DateTime>, List<RouteParams>> dropRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDrop, freeRangesForDrop, workType: 1); 
 
+            
             foreach (var intervalRoutes in dropRoutesParamsByIntervals)
             {
                 List<RouteParams> routparamsList = intervalRoutes.Value;
@@ -375,6 +376,7 @@ namespace SatelliteSessions
                     }
                 }
             }
+            
 
             // теперь создаем новые мпз сброса из оставшихся маршрутов
             List<MPZParams> dropMpzParams = new List<MPZParams>();
@@ -388,8 +390,7 @@ namespace SatelliteSessions
                     dropMpzParams.AddRange(curMPZ);
                 }
             }
-                 
-            List<Tuple<DateTime, DateTime>> captureIntervals = captureMPZParams.Select(mpzparams => new Tuple<DateTime, DateTime>(mpzparams.start, mpzparams.end)).ToList();
+                             
             List<Tuple<DateTime, DateTime>> dropIntervals = dropMpzParams.Select(mpzparams => new Tuple<DateTime, DateTime>(mpzparams.start, mpzparams.end)).ToList();
             List<Tuple<DateTime, DateTime>> inactivityDropCaptureIntervals = new List<Tuple<DateTime, DateTime>>();
             inactivityDropCaptureIntervals.AddRange(captureIntervals);
@@ -427,14 +428,14 @@ namespace SatelliteSessions
             sessions = new List<CommunicationSession>();
 
             List<Tuple<DateTime, DateTime>> allDropIntervals = new List<Tuple<DateTime, DateTime>>(); // все использованные интервалы связи (на сброс и на *съемку и сброс*)
-            allDropIntervals.AddRange(dropMpzParams.Select(mpz => Tuple.Create(mpz.start, mpz.end) ) );
+            allDropIntervals.AddRange(dropMpzParams.SelectMany(mpz => mpz.routes).Select(route => Tuple.Create(route.start, route.end)));
             
             var allRoutesLists = captureMPZParams.Select( mpz => mpz.routes).ToList();
             List<RouteParams> allRoutes = new List<RouteParams>();
             foreach (var r in allRoutesLists)
                 allRoutes.AddRange(r);
 
-            var droproutes = allRoutes.Where(rout => (rout.type == 1 || rout.type == 3) );
+            var droproutes = allRoutes.Where(rout => (rout.type == 1 || rout.type == 3) ).ToList();
             
             allDropIntervals.AddRange( droproutes.Select(rout => Tuple.Create(rout.start, rout.end) ) );
 
@@ -508,7 +509,7 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="routesToDrop"></param>
         /// <param name="freeCompressedRanges"></param>
-        /// <returns> возвращает словарь <временной интервал, маршруты, помещенные в этот интервал>  </returns>
+        /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
         public static Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> routes, List<Tuple<DateTime, DateTime>> freeCompressedRanges, int workType)
         {
             Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> res = new Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>>();
@@ -1315,7 +1316,6 @@ namespace SatelliteSessions
             bool prevIn5zone = false;
             bool prevIn7zone = false;
             CommunicationSession tempSession = new CommunicationSession();
-
             int count = trajectory.Count;
             var points = trajectory.Points;
             for (int i = 0; i < count; i++)
@@ -1349,15 +1349,14 @@ namespace SatelliteSessions
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
                     tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
-                    tempSession.routesToDrop = new List<RouteMPZ>();
-                    //tempSession.antennaId = zone.IdNumber;
+                    tempSession.routesToDrop = new List<RouteMPZ>();                   
                     sessions.Add(tempSession);
                     tempSession = new CommunicationSession();
                 }
 
                 prevIn5zone = in5zone;
                 prevIn7zone = in7zone;
-            }
+            } 
         }
 
 
