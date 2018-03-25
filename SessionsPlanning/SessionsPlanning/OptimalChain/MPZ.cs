@@ -133,10 +133,16 @@ namespace OptimalChain
             RouteParams r0 = routes[0];
             if ((dmpz - Constants.MPZ_delta - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel) > 0))
             {
-                r.start = start.AddMilliseconds(Constants.MPZ_init_Time - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel));
-                start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
-                routes.Insert(0, r);
-                return true;
+                DateTime s_new = start.AddMilliseconds(Constants.MPZ_init_Time - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel));
+                if (s_new > insert_start && s_new.AddMilliseconds(r.duration) < insert_end)
+                {
+                    r.start = s_new;
+                    r.end = r.start.AddMilliseconds(r.duration);
+                    start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
+                    routes.Insert(0, r);
+                    return true;
+                }
+                
             }
 
 
@@ -163,7 +169,14 @@ namespace OptimalChain
                     if (end.AddMilliseconds(dt + r.duration) > insert_end)
                         return false;
 
-                    return this.AddRoute(r);
+                    DateTime s_new = r1.start.AddMilliseconds(dt);
+                    if (s_new > insert_start && s_new.AddMilliseconds(r.duration) < insert_end)
+                    {
+                        r.start = s_new;
+                        r.end = r.start.AddMilliseconds(r.duration);
+                        return this.AddRoute(r);
+                    }
+                   
                 }
 
                 RouteParams r2 = routes[i + 1];
@@ -176,11 +189,15 @@ namespace OptimalChain
 
                 if(dt_r1_r2> (dt1 + dt2 + r.duration))
                 {
+                    DateTime s_new = r1.end.AddMilliseconds(dt1);
+                    if (s_new > insert_start && s_new.AddMilliseconds(r.duration) < insert_end)
+                    {
+                        r.start = r1.end.AddMilliseconds(dt1);
+                        r.end = r.start.AddMilliseconds(r.duration);
+                        routes.Insert(i + 1, r);
+                        return true;
+                    }
                    
-                    r.start = r1.end.AddMilliseconds(dt1);
-                    r.end = r.start.AddMilliseconds(r.duration);
-                    routes.Insert(i + 1, r);
-                    return true;
                 }
             }
 
