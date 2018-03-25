@@ -744,6 +744,23 @@ namespace SatelliteTrajectory
             return new Polygon(vertices, apexes);
         }
 
+        /// <summary>
+        /// Подсчёт коэффициентов полиномов для коридоров.
+        /// </summary>
+        /// <param name="fetcher"></param>
+        /// <param name="start"></param>
+        /// <param name="az">Азимут [рад]</param>
+        /// <param name="dist">Длина [мъ</param>
+        /// <param name="roll">Крен [рад]</param>
+        /// <param name="pitch">Тангаж [рад]</param>
+        /// <param name="B1"></param>
+        /// <param name="B2"></param>
+        /// <param name="L1"></param>
+        /// <param name="L2"></param>
+        /// <param name="S1"></param>
+        /// <param name="S2"></param>
+        /// <param name="S3"></param>
+        /// <param name="duration">Длительность [с]</param>
         public static void GetCoridorParams(DBTables.DataFetcher fetcher, DateTime start, double az, double dist, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration)
         {
             dist = Math.Min(dist, 97e3);
