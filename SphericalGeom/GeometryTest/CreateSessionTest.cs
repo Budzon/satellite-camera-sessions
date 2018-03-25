@@ -36,8 +36,8 @@ namespace GeometryTest
 
             CommunicationSession testSession = sessions[0];
 
-            DateTime dtFrom = testSession.Zone5timeFrom;
-            DateTime dtTo = testSession.Zone5timeTo;
+            DateTime dtFrom = testSession.DropInterval.Item1;
+            DateTime dtTo = testSession.DropInterval.Item2;
 
             for (int i = 0; i < 10; i++)
             {

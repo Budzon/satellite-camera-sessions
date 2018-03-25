@@ -53,6 +53,8 @@ namespace SatelliteSessions
         /// Список маршрутов на сброс, участвующих в этом сеансе 
         /// </summary>
         public List<RouteMPZ> routesToDrop { get; set; }
+
+        public Tuple<DateTime, DateTime> DropInterval { get { return Tuple.Create(Zone7timeFrom, Zone7timeTo); } }
     }
 
     public class Sessions
@@ -443,7 +445,7 @@ namespace SatelliteSessions
             {
                 foreach (var sess in nkpoiSessions)
                 {
-                    if (isPeriodInPeriod(interval, Tuple.Create(sess.Zone5timeFrom, sess.Zone5timeTo) ) ) // если этот интервал полностью в сессии, значит добавляем эту сессию в использованные
+                    if (isPeriodInPeriod(interval, sess.DropInterval)) // если этот интервал полностью в сессии, значит добавляем эту сессию в использованные
                     {
                         if (!sessions.Contains(sess)) // добавляем только если еще не добавили
                             sessions.Add(sess);
@@ -467,7 +469,7 @@ namespace SatelliteSessions
             var compressedOccupiedPeriods = compressTimePeriods(occupiedPeriods);
             foreach (var session in sessions)
             {
-                var timeSpan = new Tuple<DateTime, DateTime>(session.Zone5timeFrom, session.Zone5timeTo);
+                var timeSpan = session.DropInterval;
                 //List<Tuple<DateTime, DateTime>> freeRangesForSession = getFreeTimeRanges(timeSpan, occupiedPeriods);
                 List<Tuple<DateTime, DateTime>> freeRangesForSession = getFreeIntervals(compressedOccupiedPeriods, timeSpan.Item1, timeSpan.Item2);
 
@@ -726,7 +728,7 @@ namespace SatelliteSessions
             out string wktPoly, out double duration)
         {
             if (dist > 97e3)
-                throw new ArgumentException("Coridor length cannot exceed 97km.");
+                throw new ArgumentException("Длина коридора не превосходит 97км.");
 
             DataFetcher fetcher = new DataFetcher(managerDB);
             TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
@@ -1315,6 +1317,7 @@ namespace SatelliteSessions
 
             bool prevIn5zone = false;
             bool prevIn7zone = false;
+            bool is7zoneSet = false;
             CommunicationSession tempSession = new CommunicationSession();
             int count = trajectory.Count;
             var points = trajectory.Points;
@@ -1330,7 +1333,7 @@ namespace SatelliteSessions
                     if (i == 0)
                         tempSession.Zone5timeFrom = point.Time;
                     else
-                        tempSession.Zone5timeFrom = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
+                        tempSession.Zone5timeFrom = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);                    
                 }
 
                 if (in7zone && !prevIn7zone) // текущая точка в 7ти гр. зоне, причем предыдущая не в 7ти гр. зоне )
@@ -1339,6 +1342,7 @@ namespace SatelliteSessions
                         tempSession.Zone7timeFrom = point.Time;
                     else
                         tempSession.Zone7timeFrom = getIntersectionTime(points[i - 1], point, centre, zone.Radius7);
+                    is7zoneSet = true;
                 }
 
                 if (!in7zone && prevIn7zone) // вышли из семиградусной зоны (текущая точка не в семиградусной зоне, а предыдущая в семиградусной)
@@ -1349,9 +1353,11 @@ namespace SatelliteSessions
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
                     tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
-                    tempSession.routesToDrop = new List<RouteMPZ>();                   
-                    sessions.Add(tempSession);
+                    tempSession.routesToDrop = new List<RouteMPZ>();
+                    if (is7zoneSet)                    
+                        sessions.Add(tempSession); // добавляем только если удалось установить и 7 зону тоже                    
                     tempSession = new CommunicationSession();
+                    is7zoneSet = false;
                 }
 
                 prevIn5zone = in5zone;
