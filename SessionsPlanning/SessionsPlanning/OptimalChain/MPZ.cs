@@ -210,6 +210,7 @@ namespace OptimalChain
                     if (currentMPZ.N_routes == 12)
                     {
                         FTAs.Add(currentMPZ);
+                        currentMPZ = null;
                         if((FTAs.Count==0)||(FTAs.Last().isCompatible(r)))
                         {
                             currentMPZ = new MPZParams(N, r);   
@@ -233,7 +234,8 @@ namespace OptimalChain
                             if(currentMPZ.GetLastRoute().isCompatible(r))
                             {
                                 FTAs.Add(currentMPZ);
-                                currentMPZ = new MPZParams(N, r);
+                                currentMPZ = null;
+                                //currentMPZ = new MPZParams(N, r);
                                 N++;
                             }
                         }
@@ -243,6 +245,7 @@ namespace OptimalChain
 
             }
 
+            FTAs.Add(currentMPZ); 
             return FTAs;
 
         }

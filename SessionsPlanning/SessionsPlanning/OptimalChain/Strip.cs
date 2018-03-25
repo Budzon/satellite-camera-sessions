@@ -308,9 +308,10 @@ namespace OptimalChain
                 return false;  // мы не попадаем в разрешенные промежутки времени
 
             Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
-            timeAngleArray[timeDelta] = Tuple.Create(-pitchAngle, 0.0);
+
+            timeAngleArray[-timeDelta] = Tuple.Create(pitchAngle, 0.0);
             timeAngleArray[0] = Tuple.Create(0.0, 0.0);            
-            timeAngleArray[-timeDelta] = Tuple.Create(pitchAngle, 0.0);            
+            timeAngleArray[timeDelta] = Tuple.Create(-pitchAngle, 0.0);
 
             this.setPitchDependency(timeAngleArray, timeDelta);
 
