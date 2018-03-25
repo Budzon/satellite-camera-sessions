@@ -28,7 +28,7 @@ namespace OptimalChain
                 count++;
                 A.addEdge(v1, v1.value);
 
-                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
+                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) >= v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
                 {
                     if((v1.s.shooting_type==1)&&(v1.s.pitch>=-0.0872665))
                     {
@@ -66,11 +66,11 @@ namespace OptimalChain
 
             //Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
             //int nnn = 1;
-            //while(additional_vertices.Count>0)
+            //while (additional_vertices.Count > 0)
             //{
             //    Console.WriteLine("Iteration " + nnn);
             //    nnn++;
-            //    List<Vertex> TempList = additional_vertices;
+            //    List<Vertex> TempList = new List<Vertex>(additional_vertices);
             //    additional_vertices.Clear();
             //    foreach (Vertex v1 in TempList)
             //    {
@@ -88,7 +88,7 @@ namespace OptimalChain
             //        {
             //            if (v2.cs.dateFrom.AddSeconds(v2.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v1.cs.timeDelta))
             //            {
-            //                double w = this.countEdgeWeight(v1, v2);
+            //                double w = this.countEdgeWeight(v1, v2,false);
 
             //                if (w > 0)
             //                    v1.addEdge(v2, w);
@@ -96,7 +96,7 @@ namespace OptimalChain
 
             //            if (v1.cs.dateFrom.AddSeconds(v1.cs.timeDelta) > v2.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v2.cs.timeDelta))
             //            {
-            //                double w = this.countEdgeWeight(v2, v1);
+            //                double w = this.countEdgeWeight(v2, v1,false);
 
             //                if (w > 0)
             //                    v2.addEdge(v1, w);
@@ -107,6 +107,8 @@ namespace OptimalChain
             //        v1.addEdge(B, 0);
             //        vertices.Add(v1);
             //    }
+
+            //    Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
             //}
 
 
@@ -125,9 +127,9 @@ namespace OptimalChain
                 if(s.shootingType!=1)
                 {
                     vertices.Add(new Vertex(s.DefaultStaticConf(), s));
-                    for(int i=0;i<s.timeDelta;i++)
+                    for (int i = 0; i < s.timeDelta; i++)
                     {
-                        vertices.Add(new Vertex(s.CreateStaticConf(i,1), s));
+                        vertices.Add(new Vertex(s.CreateStaticConf(i, 1), s));
                         vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
                     }
                 }
@@ -198,8 +200,13 @@ namespace OptimalChain
             if(!change_strips)
                return -1;
 
-            Vertex v3 = GenerateNewConf(v1.cs, v2.s, false);
-            Vertex v4 = GenerateNewConf(v2.cs, v1.s, true);
+            Vertex v3 = null;
+            if(v1.s.shooting_type!=1)
+                    v3= GenerateNewConf(v1.cs, v2.s, false);
+
+            Vertex v4 = null;
+            if (v2.s.shooting_type != 1) 
+                v4=GenerateNewConf(v2.cs, v1.s, true);
             
             if (v3 != null)
                additional_vertices.Add(v3);
@@ -309,7 +316,7 @@ namespace OptimalChain
                                                 }
                                                 else
                                                 {
-                                                    if (lastMPZ.isCompatible(newRoute))
+                                                    if (lastMPZ.GetLastRoute().isCompatible(newRoute))
                                                     {
                                                         v.mark = mark_new;
                                                         v.path = e.v1.path.ToList();

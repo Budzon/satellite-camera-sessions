@@ -197,11 +197,16 @@ namespace OptimalChain
 
                 if((confType==0)&&(shootingType!=1))
                 {
-                    p = p*sign;
-                 //   r = r * sign;
+                    p = -p*sign;
                 }
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
+
+                if(shootingType==1)
+                {
+                    d1 = dateFrom.AddSeconds(delta);
+                    d2 = dateTo.AddSeconds(delta);
+                }
 
                 return new StaticConf(id, d1, d2,p, r, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
             }

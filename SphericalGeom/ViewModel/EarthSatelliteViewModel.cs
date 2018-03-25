@@ -972,8 +972,8 @@ namespace ViewModel
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
             routesToDelete.Add(routempzToDelete);
 
-            string s = "POLYGON((140.32099063205413 -29.648976050564166, 140.13664547871844 -30.155460196739938, 140.6044551481039 -30.325728991698156, 140.7888003014396 -29.819244845522377, 140.32099063205413 -29.648976050564166))";
-            RequestParams rp = new RequestParams(301,3,dt1,dt2,55*Math.PI/180,50,10,90,s,0.36,10,0);
+            string s = "POLYGON((140.19458712743474 -30.874562523640463, 140.17922503132345 -30.916769535821786, 140.22841600435285 -30.934673585799075, 140.24377810046414 -30.892466573617774, 140.19458712743474 -30.874562523640463))";
+            RequestParams rp = new RequestParams(301,3,dt1,dt2,55*Math.PI/180,50,10,90,s,0.36,10,1);
             //12.03.2015 по 14.03.2015
             Sessions.getMPZArray(new List<RequestParams> {rp}, dt1, dt2
                 , silenceRanges
