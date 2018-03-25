@@ -18,13 +18,13 @@ namespace SphericalGeom
             RotateTransform3D rollTransform = new RotateTransform3D(
                 new AxisAngleRotation3D(
                     p.Velocity, 
-                    AstronomyMath.ToDegrees(roll)
+                    AstronomyMath.ToDegrees(-roll)
                 )
             );
             RotateTransform3D pitchTransform = new RotateTransform3D(
                 new AxisAngleRotation3D(
                     Vector3D.CrossProduct(p.Velocity, eDirVect), 
-                    AstronomyMath.ToDegrees(pitch)
+                    AstronomyMath.ToDegrees(-pitch)
                 )
             );
             Vector3D lookAt = rollTransform.Transform(pitchTransform.Transform(eDirVect));
