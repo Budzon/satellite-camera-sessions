@@ -19,7 +19,8 @@ namespace SatelliteSessions
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
 
         public MPZ(OptimalChain.MPZParams inpParameters, 
-            bool mainKeyBVIP, bool mainKeyBBZU, bool mainKeyVIP1, bool mainKeyYKPD1, bool mainKeyYKPD2)
+            bool mainKeyBVIP, bool mainKeyBBZU, bool mainKeyVIP1, bool mainKeyYKPD1, bool mainKeyYKPD2,
+            bool useYKZU1 = true, bool useYKZU2 = false, bool sessionKeyOn = true)
         {
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
@@ -30,11 +31,6 @@ namespace SatelliteSessions
 
             bool hasPK = parameters.routes.Any(route => route.shooting_channel == "pk" || route.shooting_channel == "cm");
             bool hasMK = parameters.routes.Any(route => route.shooting_channel == "mk" || route.shooting_channel == "cm");
-
-            // ВКЛЮЧАЕМ ПЕРВУЮ ЯП
-            bool useYKZU1 = true; //parameters.routes.Any(route => route.memoryCellMZU1 == 1); // пишет ли кто в 1ю ЯП
-            bool useYKZU2 = false; //parameters.routes.Any(route => route.memoryCellMZU1 == 2); // пишет ли кто в 2ю ЯП
-            // НУЖНО ЕЩЕ УЧЕСТЬ КОГДА ЯП НЕ ВЫБРАНА!!! (+ мзу1 и мзу2 симметричны всё-таки или нет?)
 
             Header = new HeaderMPZ(hasPK, hasMK, mainKeyBVIP, mainKeyBBZU, mainKeyVIP1, useYKZU1, useYKZU2, mainKeyYKPD1, mainKeyYKPD2);
 
@@ -65,9 +61,7 @@ namespace SatelliteSessions
                 Header.CONF_RLCI += 0; // ВЫКЛЮЧИТЬ СВРЛ
 
             /* ---------- Session_key_On -----------*/
-            //if (dumpsData)
-            //    Header.Session_key_ON = 1; // использовать ключ при сбросе (УТОЧНИТЬ!)
-            Header.Session_key_ON = 1; // ВСЕГДА ПОКА ЧТО
+            Header.Session_key_ON = (byte)(sessionKeyOn ? 1 : 0);
 
             /* ---------- Autotune_On -----------*/
             bool filmData = Routes.Any(route => route.RegimeType == RegimeTypes.ZI || route.RegimeType == RegimeTypes.NP);
