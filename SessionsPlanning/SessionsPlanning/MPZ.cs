@@ -454,27 +454,26 @@ namespace SatelliteSessions
         public byte[] K11 { get; set; } // 8 byte
         public byte[] R00 { get; set; } // 4 byte
         public byte[] TaskRes { get; set; } // 38 byte
-
-        private OptimalChain.RouteParams parameters;
-        public OptimalChain.RouteParams Parameters { get { return parameters; } }
+         
+        public OptimalChain.RouteParams Parameters { get; private set; }
 
         public RouteMPZ(OptimalChain.RouteParams inpParameters)
             : this(IntToType(inpParameters.type))
         {
-            parameters = inpParameters;
-            startTime = parameters.start;
+            Parameters = inpParameters;
+            startTime = Parameters.start;
 
             DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
 
-            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(parameters.start);
+            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(Parameters.start);
             if (KAbegin_ == null)
             {
                 throw new Exception("No trajectory data.");
             }
             Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
             Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
-                KAbegin, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
+                KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
 
             /* ---------- InitCoord -----------*/
             if (REGka == 0)
@@ -482,16 +481,16 @@ namespace SatelliteSessions
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
             /* ---------- Polinomial_coeff -----------*/
-                if (parameters.shooting_type == 2) // коридорная
+                if (Parameters.shooting_type == 2) // коридорная
                 {
                     double l1, l2, b1, b2, s1, s2, s3, duration;
                     SatelliteTrajectory.TrajectoryRoutines.GetCoridorParams(fetcher,
-                        parameters.start, parameters.coridorAzimuth, parameters.coridorLength,
-                        parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
+                        Parameters.start, Parameters.coridorAzimuth, Parameters.coridorLength,
+                        Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
                         out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
                     Polinomial_Coeff = new PolinomCoef { L1 = l1, L2 = l2, B1 = b1, B2 = b2, S1 = s1, S2 = s2, S3 = s3, WD_K = 0 };
-                    parameters.duration = duration * 1e3;
-                    parameters.end = parameters.start.AddMilliseconds(parameters.duration);
+                    Parameters.duration = duration * 1e3;
+                    Parameters.end = Parameters.start.AddMilliseconds(Parameters.duration);
                 }
                 else
                     Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };
@@ -499,10 +498,10 @@ namespace SatelliteSessions
 
             /* ---------- N_PK -----------*/
             double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
-            N_PK = GetNpk(RegimeType, sunHeight, parameters.albedo, parameters.ShootingConf.roll, parameters.ShootingConf.pitch);
+            N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
 
             /* ---------- Z -----------*/
-            switch(parameters.shooting_channel)
+            switch(Parameters.shooting_channel)
             {
                 case "pk":
                     Z = 16;
@@ -521,22 +520,22 @@ namespace SatelliteSessions
                 case RegimeTypes.SI:
                     int seconds = 5;
                     Troute = seconds * 5;
-                    parameters.end = parameters.start.AddSeconds(seconds);
-                    parameters.duration = seconds * 1e3;
+                    Parameters.end = Parameters.start.AddSeconds(seconds);
+                    Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.ZI:
-                    Troute = (int)((parameters.end - parameters.start).TotalSeconds * 5);
-                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
+                    Troute = (int)((Parameters.end - Parameters.start).TotalSeconds * 5);
+                    Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
-                    seconds = (int)(parameters.File_Size / 1024.0 * 8 + 1);
+                    seconds = (int)(Parameters.File_Size / 1024.0 * 8 + 1);
                     Troute =  seconds * 5;
-                    parameters.end = parameters.start.AddSeconds(seconds);
-                    parameters.duration = seconds * 1e3;
+                    Parameters.end = Parameters.start.AddSeconds(seconds);
+                    Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.NP:
-                    Troute = (int)((parameters.end - parameters.start).TotalSeconds * 5);
-                    parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
+                    Troute = (int)((Parameters.end - Parameters.start).TotalSeconds * 5);
+                    Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 default:
                     break;
@@ -546,7 +545,7 @@ namespace SatelliteSessions
             /* ---------- REGta -----------*/
             if (REGka == 0)
             {
-                switch (parameters.shooting_type)
+                switch (Parameters.shooting_type)
                 {
                     case 0:
                         ByteRoutines.SetBitOne(REGta, 0); // кадровая
@@ -568,7 +567,7 @@ namespace SatelliteSessions
             switch (groupNumber)
             {
                 case 0:
-                    switch (parameters.zipPK)
+                    switch (Parameters.zipPK)
                     {
                         case 0: // без потерь
                             ByteRoutines.SetBitZero(REGta_Param, 0);
@@ -587,7 +586,7 @@ namespace SatelliteSessions
                             break;
                     }
                     ByteRoutines.SetBitZero(REGta_Param, 3);
-                    switch (parameters.zipMK)
+                    switch (Parameters.zipMK)
                     {
                         case 0: // без потерь
                             ByteRoutines.SetBitZero(REGta_Param, 4);
@@ -659,8 +658,8 @@ namespace SatelliteSessions
             {
                 IDFile = new IdFile
                 {
-                    TNPZ = parameters.binded_route.Item1,
-                    TNroute = parameters.binded_route.Item2 == -1 ? 15 : parameters.binded_route.Item2,
+                    TNPZ = Parameters.binded_route.Item1,
+                    TNroute = Parameters.binded_route.Item2 == -1 ? 15 : Parameters.binded_route.Item2,
                     TNPos = 0 //parameters.TNPos == null ? 0 : parameters.TNPos
                 };
             }
@@ -669,19 +668,19 @@ namespace SatelliteSessions
             Delta_T = 0; //(byte)(parameters.Delta_T == null ? 0 : parameters.Delta_T);
 
             /* ---------- Target_RatePK -----------*/
-            if (parameters.zipPK >= 2)
+            if (Parameters.zipPK >= 2)
             {
-                Target_RatePK = (int)(48 * 48 * 12.0 / parameters.zipPK);
+                Target_RatePK = (int)(48 * 48 * 12.0 / Parameters.zipPK);
             }
 
             /* ---------- Target_RateMK -----------*/
-            if (parameters.zipMK >= 2)
+            if (Parameters.zipMK >= 2)
             {
-                Target_RateMK = (int)(24 * 24 * 12.0 / parameters.zipMK);
+                Target_RateMK = (int)(24 * 24 * 12.0 / Parameters.zipMK);
             }
 
             /* ---------- Quant_InitValuePK -----------*/
-            switch (parameters.zipPK)
+            switch (Parameters.zipPK)
             {
                 case 2:
                     Quant_InitValuePK = 4000;
@@ -708,7 +707,7 @@ namespace SatelliteSessions
             }
 
             /* ---------- Quant_InitValueMK -----------*/
-            switch (parameters.zipMK)
+            switch (Parameters.zipMK)
             {
                 case 2:
                     Quant_InitValueMK = 4000;
@@ -985,10 +984,10 @@ namespace SatelliteSessions
                 CodVznCalibr = 1;
 
             // Чтобы не делить на 0.
-            int zipmk = parameters.zipMK > 0 ? parameters.zipMK : 1;
-            int zippk = parameters.zipPK > 0 ? parameters.zipPK : 1;
+            int zipmk = Parameters.zipMK > 0 ? Parameters.zipMK : 1;
+            int zippk = Parameters.zipPK > 0 ? Parameters.zipPK : 1;
             return OptimalChain.RouteParams.InformationFluxInBits(
-                parameters.ShootingConf.roll, parameters.ShootingConf.pitch,
+                Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
                 Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute * 0.2) / (1 << 23);
         }
 

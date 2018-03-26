@@ -766,8 +766,8 @@ namespace ViewModel
         public IList<CaptureConf> test_getCaptureConfArray()
         {
 
-            DateTime dt1 = new DateTime(2019, 2, 2, 0, 00, 00);
-            DateTime dt2 = new DateTime(2019, 2, 3, 0, 00, 00);
+            DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 0, 00, 00);
 
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -971,9 +971,9 @@ namespace ViewModel
 
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
             routesToDelete.Add(routempzToDelete);
-
-            string s = "POLYGON((140.19458712743474 -30.874562523640463, 140.17922503132345 -30.916769535821786, 140.22841600435285 -30.934673585799075, 140.24377810046414 -30.892466573617774, 140.19458712743474 -30.874562523640463))";
-            RequestParams rp = new RequestParams(301,3,dt1,dt2,55*Math.PI/180,50,10,90,s,0.36,10,1);
+            
+            string s = "POLYGON((126.62833380556265 -14.265775772684364, 126.61297170945132 -14.307982784865686, 126.6565272839827 -14.323835717531452, 126.671889380094 -14.281628705350116, 126.62833380556265 -14.265775772684364))";
+            RequestParams rp = new RequestParams(i : 301, p: 3, d1: dt1, d2: dt2, max_a: 55 * Math.PI / 180, min_p: 50, max_s_a: 10, min_s_a: 90, polygon: s, alb : 0.36, comp : 10, sT : 1);
             //12.03.2015 по 14.03.2015
             Sessions.getMPZArray(new List<RequestParams> {rp}, dt1, dt2
                 , silenceRanges

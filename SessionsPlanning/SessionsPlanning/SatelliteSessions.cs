@@ -356,11 +356,17 @@ namespace SatelliteSessions
             silentAndCaptureRanges.AddRange(captureIntervals);
             silentAndCaptureRanges = compressTimePeriods(silentAndCaptureRanges);
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
-            
-            //List<CaptureConf> confsToDrop = getConfsToDrop(routesToDrop, freeRangesForDrop);
-            Dictionary<Tuple<DateTime,DateTime>, List<RouteParams>> dropRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDrop, freeRangesForDrop, workType: 1); 
+             
+            List<MPZ> captureMpz = new List<MPZ>();
+            foreach (var mpz_param in captureMPZParams)            
+                captureMpz.Add(new MPZ(mpz_param, true, true, true, true, true));
+             
+            List<RouteMPZ> allRoutesToDrop = new List<RouteMPZ>();
+            allRoutesToDrop.AddRange(routesToDrop);
+            allRoutesToDrop.AddRange(captureMpz.SelectMany(mpz => mpz.Routes).Where(route => route.Parameters.type == 0).ToList()); // добавим к сбросу только что отснятые маршруты
 
-            
+            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> dropRoutesParamsByIntervals = getRoutesParamsInIntervals(allRoutesToDrop, freeRangesForDrop, workType: 1); 
+                        
             foreach (var intervalRoutes in dropRoutesParamsByIntervals)
             {
                 List<RouteParams> routparamsList = intervalRoutes.Value;
@@ -415,15 +421,16 @@ namespace SatelliteSessions
 
 
             List<MPZParams> allMPZParams = new List<MPZParams>();
-            allMPZParams.AddRange(captureMPZParams);
+//            allMPZParams.AddRange(captureMPZParams);
             allMPZParams.AddRange(dropMpzParams);
             allMPZParams.AddRange(deleteMpzParams);
 
             mpzArray = new List<MPZ>();
-            foreach (var mpz_param in allMPZParams)
-            {
+            foreach (var mpz_param in allMPZParams)            
                 mpzArray.Add(new MPZ(mpz_param, true, true, true, true, true));
-            }
+            
+
+            mpzArray.AddRange(captureMpz);
 
             // составим массив использованных сессий
 
@@ -510,28 +517,35 @@ namespace SatelliteSessions
         /// 
         /// </summary>
         /// <param name="routesToDrop"></param>
-        /// <param name="freeCompressedRanges"></param>
+        /// <param name="freeCompressedIntervals"></param>
         /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
-        public static Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> routes, List<Tuple<DateTime, DateTime>> freeCompressedRanges, int workType)
+        public static Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<Tuple<DateTime, DateTime>> freeCompressedIntervals, int workType)
         {
             Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> res = new Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>>();
+            List<RouteMPZ> routes = new List<RouteMPZ>(inpRoutes);
 
-            // отсортируем свободные промежутки по продолжительности в порядке возрастания 
-            freeCompressedRanges.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2) 
+            // отсортируем свободные промежутки по продолжительности в порядке возрастания по прищнаку продолжительности
+            freeCompressedIntervals.Sort(delegate(Tuple<DateTime, DateTime> span1, Tuple<DateTime, DateTime> span2)
                                      {return (span1.Item2 - span1.Item1).CompareTo(span2.Item2 - span2.Item1); });
-            
-            int routesCount = routes.Count;
-            int prevRouteInd = 0;
-            foreach (var period in freeCompressedRanges)
+ 
+            foreach (var interval in freeCompressedIntervals)
             {
-                List<RouteParams> curPeriodRoutes = new List<RouteParams>();
-                DateTime from = period.Item1; // момент времени, с которого начинаем упаковку
+                // получим все маршруты, которые могут быть сброшены/удалены в этом промежутке
+                List<RouteMPZ> curRoutes = routes.Where(rout => rout.Parameters.end < interval.Item2).ToList();
 
-                int i = prevRouteInd;
-                DateTime prevDt = period.Item1;
-                for (; i < routesCount; i++)
+                if (curRoutes.Count == 0)
+                    continue;
+
+                curRoutes.Sort(delegate(RouteMPZ rout1, RouteMPZ rout2) { return rout1.Parameters.end.CompareTo(rout2.Parameters.end); });
+
+                List<RouteParams> curPeriodRoutes = new List<RouteParams>();
+
+                DateTime prevDt = curRoutes[0].Parameters.end > interval.Item1 ? curRoutes[0].Parameters.end : interval.Item1;
+                foreach (var rmpz in curRoutes.ToArray())
                 {
-                    RouteMPZ rmpz = routes[i];
+                    if (prevDt < rmpz.Parameters.end)
+                        prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
+
                     double actionTime = 0;
                     if (workType == 1)
                         actionTime = rmpz.Parameters.getDropTime();
@@ -539,24 +553,26 @@ namespace SatelliteSessions
                         actionTime = OptimalChain.Constants.routeDeleteTime;
 
                     DateTime nextDt = prevDt.AddSeconds(actionTime);
-                    if (nextDt > period.Item2)
-                        break;
+                    if (nextDt > interval.Item2)
+                        break; // если вышли за пределы текущего интервала, переходим к следующему интервалу
+                    
                     nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
-                     
+
                     RouteParams curParam = new RouteParams(workType, prevDt, nextDt, Tuple.Create(rmpz.NPZ, rmpz.Nroute));
                     curParam.ShootingConf = rmpz.Parameters.ShootingConf;
                     curPeriodRoutes.Add(curParam);
+                    routes.Remove(rmpz);
 
                     prevDt = nextDt;
                 }
 
                 if (curPeriodRoutes.Count != 0)
                 {
-                    res[period] = curPeriodRoutes;
-                    prevRouteInd = i + 1;
+                    res[interval] = curPeriodRoutes; 
                 }
+
             }
- 
+            
             return res;
         }
 
