@@ -728,7 +728,7 @@ namespace SatelliteSessions
             out string wktPoly, out double duration)
         {
             if (dist > 97e3)
-                throw new ArgumentException("Длина коридора не превосходит 97км.");
+                throw new ArgumentException("Coridor length cannot exceed 97km.");
 
             DataFetcher fetcher = new DataFetcher(managerDB);
             TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
