@@ -90,46 +90,30 @@ namespace OptimalChain
     {
         public int id { get; set; }
         public int confType { get; set; } // 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
-        public string shootingChannel { get { return mShootingChannel; } }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
-        public int shootingType { get { return mShootingType; } }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
-        public DateTime dateFrom { get { return mDateFrom; } }//время начала для съемки в надир
-        public DateTime dateTo { get { return mDateTo; } }//время окончания для съемки в надир       
-        public double rollAngle { get { return mRollAngle; } }//крен для съемки c нулевым тангажом
-        public double square { get { return mSquare; } }//площадь полосы
-        public string wktPolygon { get { return mWktPolygon; } } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
-        public List<Order> orders { get { return mOrders; } }//cвязанные заказы. Список пуст только для маршрута на удаление
-        public Tuple<int, int> connectedRoute { get { return mConnectedRoute; } }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
-        public double timeDelta { get { return mTimeDelta; } }// возможный модуль отклонения по времени от съемки в надир. 
-        public Dictionary<double, Tuple<double, double>> pitchArray { get { return mPitchArray; } } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
-        public int MinCompression { get { return minCompression; } }
-        public double AverAlbedo { get { return averAlbedo; } }
-
-
-        private List<Order> mOrders;
-        private double mSquare;
-        private string mWktPolygon;
-        private string mShootingChannel;
-        private int mShootingType; 
-        private Tuple<int, int> mConnectedRoute;
-        private DateTime mDateFrom;
-        private DateTime mDateTo;
-        private double mRollAngle;
-        private double mTimeDelta;
-        private Dictionary<double, Tuple<double, double>> mPitchArray;
-        private int minCompression;
-        private double averAlbedo;
-
-
+        public string shootingChannel {  get; private set; }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
+        public int shootingType {  get; private set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+        public DateTime dateFrom {  get; private set; } //время начала для съемки в надир
+        public DateTime dateTo {  get; private set; } //время окончания для съемки в надир       
+        public double rollAngle {  get; private set; }//крен для съемки c нулевым тангажом
+        public double square { get; private set; }//площадь полосы
+        public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
+        public List<Order> orders { get; private set; }//cвязанные заказы. Список пуст только для маршрута на удаление
+        public Tuple<int, int> connectedRoute {  get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public double timeDelta { get; private set;}// возможный модуль отклонения по времени от съемки в надир. 
+        public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
+        public int MinCompression {  get; private set; }
+        public double AverAlbedo {  get; private set;}
+ 
         public void setPolygon(SphericalGeom.Polygon pol)
         {
-            mSquare = pol.Area;
-            mWktPolygon = pol.ToWtk();
+            square = pol.Area;
+            wktPolygon = pol.ToWtk();
         }
 
         public void setPitchDependency(Dictionary<double, Tuple<double, double>> _pitchArray, double _timeDelta)
         {
-            mPitchArray = _pitchArray;
-            mTimeDelta = _timeDelta;
+            pitchArray = _pitchArray;
+            timeDelta = _timeDelta;
         }
 
         /// <summary>
@@ -158,8 +142,8 @@ namespace OptimalChain
             if (_orders.Count == 0)
                 throw new ArgumentException("Orders array can not be empty");
 
-            mShootingChannel = _orders[0].request.requestChannel;
-            mShootingType = _orders[0].request.shootingType;
+            shootingChannel = _orders[0].request.requestChannel;
+            shootingType = _orders[0].request.shootingType;
 
             foreach (var order in _orders)
             {
@@ -170,15 +154,15 @@ namespace OptimalChain
 
             id = -1;
             confType = _confType;
-            mOrders = _orders;
-            mDateFrom = _dateFrom;
-            mDateTo = _dateTo;
-            mRollAngle = _rollAngle;            
-            mConnectedRoute = _connectedRoute;
-            mPitchArray = new Dictionary<double, Tuple<double, double>>();
-            mTimeDelta = 0;
-            minCompression = orders.Min(order => order.request.compression);
-            averAlbedo = orders.Average(order => order.request.albedo);
+            orders = _orders;
+            dateFrom = _dateFrom;
+            dateTo = _dateTo;
+            rollAngle = _rollAngle;            
+            connectedRoute = _connectedRoute;
+            pitchArray = new Dictionary<double, Tuple<double, double>>();
+            timeDelta = 0;
+            MinCompression = orders.Min(order => order.request.compression);
+            AverAlbedo = orders.Average(order => order.request.albedo);
         }
 
 
@@ -197,16 +181,11 @@ namespace OptimalChain
 
                 if((confType==0)&&(shootingType!=1))
                 {
-                    p = -p*sign;
+                    p = p*sign;
+                 //   r = r * sign;
                 }
                 DateTime d1 = dateFrom.AddSeconds(delta * sign);
                 DateTime d2 = dateTo.AddSeconds(delta * sign);
-
-                if(shootingType==1)
-                {
-                    d1 = dateFrom.AddSeconds(delta);
-                    d2 = dateTo.AddSeconds(delta);
-                }
 
                 return new StaticConf(id, d1, d2,p, r, square, orders, wktPolygon, MinCompression, AverAlbedo, confType, shootingChannel, shootingType, connectedRoute);
             }
