@@ -360,8 +360,8 @@ namespace SatelliteSessions
             List<Tuple<DateTime, DateTime>> freeRangesForDrop = getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
              
             List<MPZ> captureMpz = new List<MPZ>();
-            foreach (var mpz_param in captureMPZParams)            
-                captureMpz.Add(new MPZ(mpz_param, true, true, true, true, true));
+            foreach (var mpz_param in captureMPZParams)
+                captureMpz.Add(new MPZ(mpz_param, managerDB, flags ?? new FlagsMPZ()));
              
             List<RouteMPZ> allRoutesToDrop = new List<RouteMPZ>();
             allRoutesToDrop.AddRange(routesToDrop);

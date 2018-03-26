@@ -955,7 +955,7 @@ namespace ViewModel
             routeParam.binded_route = new Tuple<int, int>(1, 1);
             // double timedrop = routeParam.getDropTime();
 
-            RouteMPZ routempz = new RouteMPZ(routeParam) { NPZ = 0, Nroute = 0 };
+            RouteMPZ routempz = new RouteMPZ(routeParam, managerDB) { NPZ = 0, Nroute = 0 };
             List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
             routesToDrop.Add(routempz);
 
@@ -967,7 +967,7 @@ namespace ViewModel
             routeParamtoDelete.end = new DateTime(2019, 1, 5);
             routeParamtoDelete.File_Size = 1000;
             routeParamtoDelete.binded_route = new Tuple<int, int>(1, 1);
-            RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete) { NPZ = 0, Nroute = 0 };
+            RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerDB) { NPZ = 0, Nroute = 0 };
 
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
             routesToDelete.Add(routempzToDelete);
