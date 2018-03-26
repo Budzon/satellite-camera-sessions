@@ -295,6 +295,7 @@ namespace SatelliteSessions
         /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
         /// <param name="mpzArray">Набор МПЗ</param>
         /// <param name="sessions">Сеансы связи</param>
+        /// <param name="flags">Флаги для настройки МПЗ</param>
         public static void getMPZArray(
               List<RequestParams> requests
             , DateTime timeFrom
@@ -306,14 +307,15 @@ namespace SatelliteSessions
             , DIOS.Common.SqlManager managerDB
             , int Nmax
             , out List<MPZ> mpzArray
-            , out List<CommunicationSession> sessions)
+            , out List<CommunicationSession> sessions
+            , FlagsMPZ flags = null)
         {
             //List<RouteMPZ> routesToDropCopy = new List<RouteMPZ>(routesToDrop); // локальная копия, не будем портить входной массив
             //List<RouteMPZ> routesToDeleteCopy = new List<RouteMPZ>(routesToDelete); // локальная копия, не будем портить входной массив
 
             List<CommunicationSession> snkpoiSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> mnkpoiSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
-
+            
             List<CommunicationSession> nkpoiSessions = new List<CommunicationSession>();
             nkpoiSessions.AddRange(snkpoiSessions);
             nkpoiSessions.AddRange(mnkpoiSessions);
@@ -426,12 +428,13 @@ namespace SatelliteSessions
             allMPZParams.AddRange(deleteMpzParams);
 
             mpzArray = new List<MPZ>();
+
             foreach (var mpz_param in allMPZParams)            
-                mpzArray.Add(new MPZ(mpz_param, true, true, true, true, true));
+                mpzArray.Add(new MPZ(mpz_param, managerDB, flags ?? new FlagsMPZ()));
             
 
             mpzArray.AddRange(captureMpz);
-
+ 
             // составим массив использованных сессий
 
             sessions = new List<CommunicationSession>();
@@ -675,42 +678,6 @@ namespace SatelliteSessions
             return res;
         }
 
-        private static void putRoutesInSessions(List<RouteParams> routes, List<CommunicationSession> nkpoiSessions, List<CommunicationSession> finalSessions)
-        {
-            foreach (var route in routes.ToArray()) // не эффективно
-            {
-                bool success = false;
-                foreach (var session in finalSessions) // сначала пробуем добавить в уже использующиеся сессии
-                {
-                    if (session.Zone7timeFrom <= route.start &&
-                         route.end <= session.Zone7timeTo)
-                    {
-                        session.routesToDrop.Add(new RouteMPZ(route));
-                        routes.Remove(route);
-                        success = true;
-                        break;
-                    }
-                }
-                if (!success) // берём новую сессию из nkpoiSessions
-                {
-                    foreach (var session in nkpoiSessions)
-                    {
-                        // тут пробуем впихнуть
-                        if (session.Zone7timeFrom <= route.start &&
-                             route.end <= session.Zone7timeTo)
-                        {
-                            session.routesToDrop.Add(new RouteMPZ(route));
-                            finalSessions.Add(session);
-                            nkpoiSessions.Remove(session);
-                            routes.Remove(route);
-                            break;
-                        }
-                    }
-                }
-
-            }
-        }
-
 
         /// <summary>
         /// Создание ПНб по набору маршрутов
@@ -718,12 +685,14 @@ namespace SatelliteSessions
         /// <param name="routesParams"> Набор маршрутов RouteParams</param>
         /// <returns> набор МПЗ, созданный из маршутов</returns>
         /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
-        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax)
+        /// <param name="managerDB">параметры взаимодействия с БД</param>
+        /// <param name="flags">Флаги для настройки МПЗ</param>
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax, DIOS.Common.SqlManager managerDB, FlagsMPZ flags = null)
         {
             List<MPZ> res = new List<MPZ>();         
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams);
             foreach (var param in mpzParams)            
-                res.Add(new MPZ(param, true, true, true, true, true));            
+                res.Add(new MPZ(param, managerDB, flags ?? new FlagsMPZ()));            
             return res;
         }
 

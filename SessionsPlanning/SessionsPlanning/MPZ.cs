@@ -18,21 +18,19 @@ namespace SatelliteSessions
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
 
-        public MPZ(OptimalChain.MPZParams inpParameters, 
-            bool mainKeyBVIP, bool mainKeyBBZU, bool mainKeyVIP1, bool mainKeyYKPD1, bool mainKeyYKPD2,
-            bool useYKZU1 = true, bool useYKZU2 = false, bool sessionKeyOn = true)
+        public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, FlagsMPZ flags)
         {
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
             foreach (var rout_params in inpParameters.routes)
             {
-                routes.Add(new RouteMPZ(rout_params));
+                routes.Add(new RouteMPZ(rout_params, DBmanager));
             }
 
             bool hasPK = parameters.routes.Any(route => route.shooting_channel == "pk" || route.shooting_channel == "cm");
             bool hasMK = parameters.routes.Any(route => route.shooting_channel == "mk" || route.shooting_channel == "cm");
 
-            Header = new HeaderMPZ(hasPK, hasMK, mainKeyBVIP, mainKeyBBZU, mainKeyVIP1, useYKZU1, useYKZU2, mainKeyYKPD1, mainKeyYKPD2);
+            Header = new HeaderMPZ(hasPK, hasMK, flags);
 
             /* ---------- NPZ -----------*/
             Header.NPZ = parameters.id;
@@ -48,7 +46,6 @@ namespace SatelliteSessions
             loadRoutes(routes);
 
             /* ---------- CONF_RLCI -----------*/
-            DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
             if (nkpoiOnTheLeft(fetcher))
                 Header.CONF_RLCI += 8; // ВЫБОР АНТЕННЫ АРМ2
@@ -61,7 +58,7 @@ namespace SatelliteSessions
                 Header.CONF_RLCI += 0; // ВЫКЛЮЧИТЬ СВРЛ
 
             /* ---------- Session_key_On -----------*/
-            Header.Session_key_ON = (byte)(sessionKeyOn ? 1 : 0);
+            Header.Session_key_ON = (byte)(flags.sessionKeyOn ? 1 : 0);
 
             /* ---------- Autotune_On -----------*/
             bool filmData = Routes.Any(route => route.RegimeType == RegimeTypes.ZI || route.RegimeType == RegimeTypes.NP);
@@ -72,12 +69,12 @@ namespace SatelliteSessions
             /* ---------- REGta_Param -----------*/
             for (int i = 0; i < Routes.Count; ++i)
             {
-                if (useYKZU1)
+                if (flags.useYKZU1)
                 {
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param, 10);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param, 12);
                 }
-                else if (useYKZU2)
+                else if (flags.useYKZU2)
                 {
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param, 11);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param, 13);
@@ -201,9 +198,7 @@ namespace SatelliteSessions
         /// <param name="useYKZU2_1">CONF_B, 0, D4</param>
         /// <param name="mainKeyYKPD1">CONF_B, 1, D1</param>
         /// <param name="mainKeyYKPD2">CONF_B, 1, D3</param>
-        public HeaderMPZ(bool hasPK, bool hasMK, 
-            bool mainKeyBVIP, bool mainKeyBBZU, bool mainKeyVIP1, 
-            bool useYKZU1_1, bool useYKZU2_1, bool mainKeyYKPD1, bool mainKeyYKPD2)
+        public HeaderMPZ(bool hasPK, bool hasMK, FlagsMPZ flags)
         {
             /* ---------- NPZ -----------*/
             // to be filled in MPZ
@@ -269,8 +264,8 @@ namespace SatelliteSessions
             ByteRoutines.SetOneIfTrue(CONF_C, 3, !hasMK);
             ByteRoutines.SetOneIfTrue(RCONF_C, 3, !hasMK);
 
-            ByteRoutines.SetOneIfTrue(CONF_C, 4, !mainKeyBVIP);
-            ByteRoutines.SetOneIfTrue(RCONF_C, 4, mainKeyBVIP); // != CONF_C
+            ByteRoutines.SetOneIfTrue(CONF_C, 4, !flags.mainKeyBVIP);
+            ByteRoutines.SetOneIfTrue(RCONF_C, 4, flags.mainKeyBVIP); // != CONF_C
 
             ByteRoutines.SetBitOne(CONF_C, 5);
             ByteRoutines.SetBitOne(RCONF_C, 5);
@@ -292,41 +287,41 @@ namespace SatelliteSessions
             CONF_B = new byte[2] { 0, 0 };
             RCONF_B = new byte[2] { 0, 0 };
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 0, !mainKeyBBZU);
-            ByteRoutines.SetOneIfTrue(RCONF_B, 0, mainKeyBBZU); // != CONF_B
+            ByteRoutines.SetOneIfTrue(CONF_B, 0, !flags.mainKeyBBZU);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 0, flags.mainKeyBBZU); // != CONF_B
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 1, !mainKeyVIP1);
-            ByteRoutines.SetOneIfTrue(RCONF_B, 1, mainKeyVIP1); // != CONF_B
+            ByteRoutines.SetOneIfTrue(CONF_B, 1, !flags.mainKeyVIP1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 1, flags.mainKeyVIP1); // != CONF_B
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 2, useYKZU1_1);
-            ByteRoutines.SetOneIfTrue(RCONF_B, 2, useYKZU1_1);
+            ByteRoutines.SetOneIfTrue(CONF_B, 2, flags.useYKZU1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 2, flags.useYKZU1);
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 3, useYKZU1_1); // == D2
-            ByteRoutines.SetOneIfTrue(RCONF_B, 3, useYKZU1_1); // == D2
+            ByteRoutines.SetOneIfTrue(CONF_B, 3, flags.useYKZU1); // == D2
+            ByteRoutines.SetOneIfTrue(RCONF_B, 3, flags.useYKZU1); // == D2
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 4, useYKZU2_1);
-            ByteRoutines.SetOneIfTrue(RCONF_B, 4, useYKZU2_1);
+            ByteRoutines.SetOneIfTrue(CONF_B, 4, flags.useYKZU2);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 4, flags.useYKZU2);
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 5, !useYKZU1_1); // != D2
-            ByteRoutines.SetOneIfTrue(RCONF_B, 5, !useYKZU1_1); // != D2
+            ByteRoutines.SetOneIfTrue(CONF_B, 5, !flags.useYKZU1); // != D2
+            ByteRoutines.SetOneIfTrue(RCONF_B, 5, !flags.useYKZU1); // != D2
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 6, useYKZU2_1); // == D4
-            ByteRoutines.SetOneIfTrue(RCONF_B, 6, useYKZU2_1); // == D4
+            ByteRoutines.SetOneIfTrue(CONF_B, 6, flags.useYKZU2); // == D4
+            ByteRoutines.SetOneIfTrue(RCONF_B, 6, flags.useYKZU2); // == D4
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 7, !useYKZU1_1); // == D5
-            ByteRoutines.SetOneIfTrue(RCONF_B, 7, !useYKZU1_1); // == D5
+            ByteRoutines.SetOneIfTrue(CONF_B, 7, !flags.useYKZU1); // == D5
+            ByteRoutines.SetOneIfTrue(RCONF_B, 7, !flags.useYKZU1); // == D5
 
             ByteRoutines.SetBitOne(CONF_B, 8);
             ByteRoutines.SetBitOne(RCONF_B, 8);
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 9, !mainKeyYKPD1);
-            ByteRoutines.SetOneIfTrue(RCONF_B, 9, mainKeyYKPD1); // != CONF_B
+            ByteRoutines.SetOneIfTrue(CONF_B, 9, !flags.mainKeyYKPD1);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 9, flags.mainKeyYKPD1); // != CONF_B
 
             ByteRoutines.SetBitOne(CONF_B, 10);
             ByteRoutines.SetBitOne(RCONF_B, 10);
 
-            ByteRoutines.SetOneIfTrue(CONF_B, 11, !mainKeyYKPD2);
-            ByteRoutines.SetOneIfTrue(RCONF_B, 11, mainKeyYKPD2); // != CONF_B
+            ByteRoutines.SetOneIfTrue(CONF_B, 11, !flags.mainKeyYKPD2);
+            ByteRoutines.SetOneIfTrue(RCONF_B, 11, flags.mainKeyYKPD2); // != CONF_B
 
             // 12, 13, 14, 15 -- zero by default
 
@@ -457,13 +452,12 @@ namespace SatelliteSessions
          
         public OptimalChain.RouteParams Parameters { get; private set; }
 
-        public RouteMPZ(OptimalChain.RouteParams inpParameters)
+        public RouteMPZ(OptimalChain.RouteParams inpParameters, DIOS.Common.SqlManager DBmanager)
             : this(IntToType(inpParameters.type))
         {
             Parameters = inpParameters;
             startTime = Parameters.start;
 
-            DIOS.Common.SqlManager DBmanager = new DIOS.Common.SqlManager("Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER");
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
 
             Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(Parameters.start);
@@ -1067,6 +1061,30 @@ namespace SatelliteSessions
             }
         }
 
+    }
+
+    public class FlagsMPZ
+    {
+        public bool mainKeyBVIP { get; set; }
+        public bool mainKeyBBZU { get; set; }
+        public bool mainKeyVIP1 { get; set; }
+        public bool mainKeyYKPD1 { get; set; }
+        public bool mainKeyYKPD2 { get; set; }
+        public bool useYKZU1 { get; set; }
+        public bool useYKZU2 { get; set; }
+        public bool sessionKeyOn { get; set; }
+
+        public FlagsMPZ()
+        {
+            mainKeyBVIP = true;
+            mainKeyBBZU = true;
+            mainKeyVIP1 = true;
+            mainKeyYKPD1 = true;
+            mainKeyYKPD2 = true;
+            useYKZU1 = true;
+            useYKZU2 = false;
+            sessionKeyOn = true;
+        }
     }
 
     public enum RegimeTypes 
