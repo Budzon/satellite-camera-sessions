@@ -271,7 +271,6 @@ namespace OptimalChain
             List<Vertex> sorted = this.deepGo(vertices[0]);
           
             sorted.Reverse();
-            
             sorted[0].mark = 0;
             foreach(Vertex v in sorted)
             {
@@ -316,14 +315,18 @@ namespace OptimalChain
                                                 }
                                                 else
                                                 {
-                                                    if (lastMPZ.GetLastRoute().isCompatible(newRoute))
+                                                    if (lastMPZ.GetLastRoute()!=null)
                                                     {
-                                                        v.mark = mark_new;
-                                                        v.path = e.v1.path.ToList();
-                                                        int N = v.path.Count;
-                                                        v.path.Add(new MPZParams(N, new RouteParams(v.s)));
-                                                        ids.Add(v.s.id);
+                                                     if (lastMPZ.GetLastRoute().isCompatible(newRoute))
+                                                        {
+                                                            v.mark = mark_new;
+                                                            v.path = e.v1.path.ToList();
+                                                            int N = lastMPZ.id+1;
+                                                            v.path.Add(new MPZParams(N, new RouteParams(v.s)));
+                                                            ids.Add(v.s.id);
+                                                        }
                                                     }
+                                                    
                                                 }
                                         
                                             }
@@ -332,7 +335,7 @@ namespace OptimalChain
                                         else
                                         {
                                             v.mark = mark_new;
-                                            v.path.Add(new MPZParams(0, new RouteParams(v.s)));
+                                            v.path.Add(new MPZParams(maxMpzNum+1, new RouteParams(v.s)));
                                             ids.Add(v.s.id);
                                         }
                                 }
