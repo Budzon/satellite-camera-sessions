@@ -317,7 +317,7 @@ namespace OptimalChain
         public int Min_sun_angle { get; set; }
         public string wktPolygon { get; set; }
         public string requestChannel { get; set; }
-        public int shootingType { get; set; }
+        public int shootingType { get; set; } //0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
         public int compression { get; set; } // коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями
         public double albedo { get; set; } //  характеристика отражательной способности поверхности. 
 
