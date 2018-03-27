@@ -920,7 +920,10 @@ namespace SatelliteTrajectory
 
         public static double getSunHeight(DBTables.DataFetcher fetcher, GeoPoint p, DateTime time)
         {
-            Vector3D sun = DBTables.SunTable.GetPositionUnitEarth(fetcher.GetDataBeforeEqualDate(DBTables.SunTable.Name, DBTables.SunTable.Time, time, 1)[0]);
+            var sundata = fetcher.GetDataBeforeEqualDate(DBTables.SunTable.Name, DBTables.SunTable.Time, time, 1);
+            if (sundata.Length == 0)
+                throw new ArgumentException(String.Format("No sun data for time {0}", time));
+            Vector3D sun = DBTables.SunTable.GetPositionUnitEarth(sundata[0]);
             Vector3D v = GeoPoint.ToCartesian(p, 1);
             Vector3D pToSun = sun - v;
             pToSun.Normalize();

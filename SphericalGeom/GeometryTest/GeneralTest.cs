@@ -17,6 +17,49 @@ namespace GeometryTest
     public class GeneralTest
     {
         [TestMethod]
+        public void TestMPZ()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+            List<RouteParams> param = new List<RouteParams>();
+            OptimalChain.StaticConf conf;
+
+            string[] chan = new string[3] { "pk", "mk", "cm" };
+            int[] regime = new int[4] { 0, 1, 2, 3 }; // Zi, Vi, Si, Np
+            int[] shooting = new int[3] { 0, 1, 2 }; // прост, стерео, коридор
+            int[] compression = new int[5] { 0, 1, 2, 7, 10 };
+            DateTime from = new DateTime(2019, 1, 5);
+            DateTime to = from.AddSeconds(5);
+            
+            int k = 0;
+            foreach(string ch in chan)
+                foreach(int r in regime)
+                    foreach(int s in shooting)
+                        foreach (int c in compression)
+                        {
+                            conf = new StaticConf(k, from, to, 0, 0, 0, null, "", c, 0.3, r, ch, s);
+                            RouteParams p = new RouteParams(conf);
+                            p.albedo = 0.3;
+                            p.coridorAzimuth = 0.5;
+                            p.coridorLength = 40000;
+                            p.Delta_T = 0;
+                            p.duration = 10;
+                            p.TNPos = 0;
+                            p.binded_route = Tuple.Create(101, 1);
+                            param.Add(p);
+                            from = to.AddSeconds(70);
+                            to = from.AddSeconds(5);
+                            k++;
+                        }
+            var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
+            FlagsMPZ flags = new FlagsMPZ();
+            var mpzs = mpzParams.Select(p => new MPZ(p, manager, flags));
+            string mpz_string = mpzs.Aggregate("", (s, mpz) => s + mpz.ToString() + "\n");
+            System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
+        }
+
+        [TestMethod]
         public void TestCoridorPoly()
         {
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
@@ -93,7 +136,6 @@ namespace GeometryTest
         }
 
 
-        
         [TestMethod]
         public void Test_getMPZArray()
         {

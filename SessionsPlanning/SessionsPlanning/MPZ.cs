@@ -93,7 +93,13 @@ namespace SatelliteSessions
         //{
         //    loadRoutes(routes);
         //}
- 
+
+        public override string ToString()
+        {
+            string s = "HEADER:\n" + Header.ToString() + "\n\nROUTES:\n";
+            return Routes.Aggregate(s, (pre_s, route) => pre_s + route.ToString() + "\n\n") + "\n\n";
+        }
+
         private void loadRoutes(List<RouteMPZ> routes)
         {
             Routes = routes;
@@ -410,6 +416,22 @@ namespace SatelliteSessions
             TitleRes = new byte[114];
             for (int i = 0; i < TitleRes.Length; ++i)
                 TitleRes[i] = 0;
+        }
+
+        public override string ToString()
+        {
+            string s = "";
+            s += "NPZ=" + NPZ;
+            s += "\nCONF_RLCI" + CONF_RLCI;
+            s += "\nNtask=" + Ntask;
+            s += "\nAutotune_ON=" + Autotune_ON;
+            s += "\nTtask=" + Ttask;
+            s += "\nTvideo=" + Tvideo;
+            s += "\nCONF_C=" + ByteRoutines.ToLong(CONF_C);
+            s += "\nRCONF_C=" + ByteRoutines.ToLong(RCONF_C);
+            s += "\nCONF_B=" + ByteRoutines.ToLong(CONF_B);
+            s += "\nRCONF_B=" + ByteRoutines.ToLong(RCONF_B);
+            return s;
         }
     }
 
@@ -935,6 +957,27 @@ namespace SatelliteSessions
                 TaskRes[i] = 0;
         }
 
+        public override string ToString()
+        {
+            string s = "";
+            s += "NPZ=" + NPZ;
+            s += "\nNroute=" + Nroute;
+            s += "\nREGka=" + REGka;
+            s += "\nN_PK=" + N_PK;
+            s += "\nZ=" + Z;
+            s += "\nN_MK=" + N_MK;
+            s += "\nTs=" + Ts;
+            s += "\nTroute=" + Troute;
+            s += "\nREGta=" + ByteRoutines.ToLong(REGta);
+            s += "\nREGta_Param=" + ByteRoutines.ToLong(REGta_Param);
+            s += "\nTarget_RatePK=" + Target_RatePK;
+            s += "\nTarget_RateMK=" + Target_RateMK;
+            s += "\nQuant_InitValuePK=" + Quant_InitValuePK;
+            s += "\nQuant_InitValueMK=" + Quant_InitValueMK;
+
+            return s;
+        }
+
         private static RegimeTypes IntToType(int type)
         {
             switch (type)
@@ -1123,6 +1166,14 @@ namespace SatelliteSessions
 
     public static class ByteRoutines
     {
+        public static long ToLong(byte[] data)
+        {
+            long res = 0;
+            for (int i = 0; i < data.Length; ++i)
+                res = 256 * res + data[data.Length - 1 - i];
+            return res;
+        }
+
         public static int GetBit(byte[] data, int index)
         {
             return GetBit(data[index / 8], index % 8);

@@ -62,6 +62,49 @@ namespace SatelliteSessions
     public class Sessions
     {
         /// <summary>
+        /// Генерирует 15 МПЗ по 12 роутов в каждом с всевозможными комбинациями параметров
+        /// режима, сжатия, канала, типа съемки.
+        /// </summary>
+        /// <param name="managerDB">параметры БД</param>
+        /// <param name="mpzs">список из 15 МПЗ</param>
+        public static void testMpzFormation(DIOS.Common.SqlManager managerDB, out List<MPZ> mpzs)
+        {
+            List<RouteParams> param = new List<RouteParams>();
+            OptimalChain.StaticConf conf;
+
+            string[] chan = new string[3] { "pk", "mk", "cm" };
+            int[] regime = new int[4] { 0, 1, 2, 3 }; // Zi, Vi, Si, Np
+            int[] shooting = new int[3] { 0, 1, 2 }; // прост, стерео, коридор
+            int[] compression = new int[5] { 0, 1, 2, 7, 10 };
+            DateTime from = new DateTime(2019, 1, 5);
+            DateTime to = from.AddSeconds(5);
+
+            int k = 0;
+            foreach (string ch in chan)
+                foreach (int r in regime)
+                    foreach (int s in shooting)
+                        foreach (int c in compression)
+                        {
+                            conf = new StaticConf(k, from, to, 0, 0, 0, null, "", c, 0.3, r, ch, s);
+                            RouteParams p = new RouteParams(conf);
+                            p.albedo = 0.3;
+                            p.coridorAzimuth = 0.5;
+                            p.coridorLength = 40000;
+                            p.Delta_T = 0;
+                            p.duration = 10;
+                            p.TNPos = 0;
+                            p.binded_route = Tuple.Create(101, 1);
+                            param.Add(p);
+                            from = to.AddSeconds(70);
+                            to = from.AddSeconds(5);
+                            k++;
+                        }
+            var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
+            FlagsMPZ flags = new FlagsMPZ();
+            mpzs = mpzParams.Select(p => new MPZ(p, managerDB, flags)).ToList();
+        }
+
+        /// <summary>
         /// возвращает реализуемость заказа
         /// </summary>
         /// <param name="request">Заказ</param>
