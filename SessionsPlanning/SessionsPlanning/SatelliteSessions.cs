@@ -78,7 +78,14 @@ namespace SatelliteSessions
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
             checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
 
-            possibleConfs = getCaptureConfArray(new List<RequestParams>() { request }, timeFrom, timeTo, managerDB, shadowPeriods, new List<Tuple<DateTime,DateTime>>());
+            possibleConfs = getCaptureConfArray(
+                new List<RequestParams>() { request }, 
+                timeFrom,
+                timeTo,
+                managerDB,
+                shadowPeriods,
+                new List<Tuple<DateTime,DateTime>>()
+                );
             //possibleConfs.Sort(delegate(CaptureConf conf1, CaptureConf conf2)
             //{
             //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
