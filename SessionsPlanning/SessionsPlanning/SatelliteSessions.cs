@@ -825,53 +825,8 @@ namespace SatelliteSessions
             }
             else
             {
-                TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-                TrajectoryPoint? p1_ = fetcher.GetPositionSat(dateTime.AddSeconds(1));
-                TrajectoryPoint? p2_ = fetcher.GetPositionSat(dateTime.AddSeconds(2));
-                TrajectoryPoint? p3_ = fetcher.GetPositionSat(dateTime.AddSeconds(3));
-                if (p0_ == null || p1_ == null || p2_ == null || p3_ == null)
-                {
-                    return wtk;
-                }
-                double l1, l2, b1, b2, s1, s2, s3, dur;
-                TrajectoryRoutines.GetCoridorParams(
-                    fetcher, dateTime, Math.PI/6, 97e3,
-                    rollAngle, pitchAngle,
-                    out b1, out b2, out l1, out l2, out s1, out s2, out s3, out dur);
-
-                LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
-                
-                double durSec = duration / 1e3;
-                double distMet = s1 * durSec + s2 * durSec * durSec + s3 * durSec * durSec * durSec;
-                distMet = Math.Min(distMet, 97 * 1e3);
-
-                GeoPoint[] leftPoints = new GeoPoint[10];
-                for (int i = 0; i < leftPoints.Length; ++i)
-                {
-                    double d = distMet / leftPoints.Length * (i + 1);
-                    leftPoints[i] = new GeoPoint(
-                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
-                    );
-                }
-                GeoPoint[] rightPoints = new GeoPoint[10];
-                for (int i = 0; i < rightPoints.Length; ++i)
-                {
-                    double d = distMet / rightPoints.Length * (rightPoints.Length - i);
-                    rightPoints[i] = new GeoPoint(
-                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                        AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
-                    );
-                }
-
-                List<GeoPoint> vertices = new List<GeoPoint>();
-                vertices.Add(lpBegin.LeftGeoPoint);
-                vertices.AddRange(leftPoints);
-                vertices.AddRange(rightPoints);
-                vertices.Add(lpBegin.RightGeoPoint);
-
-                Polygon pol = new Polygon(vertices);
-                wtk = pol.ToWtk();
+                double dur;
+                getCoridorPoly(dateTime, rollAngle, pitchAngle, 96e3, Math.PI / 6, managerDB, out wtk, out dur);
             }
 
             return wtk;
