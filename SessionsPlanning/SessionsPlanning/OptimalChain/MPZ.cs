@@ -249,7 +249,7 @@ namespace OptimalChain
                             {
                                 FTAs.Add(currentMPZ);
                                 currentMPZ = null;
-                                //currentMPZ = new MPZParams(N, r);
+                                currentMPZ = new MPZParams(N, r);
                                 N++;
                             }
                         }
