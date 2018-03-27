@@ -117,7 +117,7 @@ namespace SatelliteSessions
             }
             if (Routes.Count > 0)
                 Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
-            Header.Ttask = (uint)((parameters.end - parameters.start).TotalSeconds * 5);
+            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
             try
             {
                 RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
