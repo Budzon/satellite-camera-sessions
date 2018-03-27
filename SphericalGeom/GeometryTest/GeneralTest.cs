@@ -17,6 +17,49 @@ namespace GeometryTest
     public class GeneralTest
     {
         [TestMethod]
+        public void TestMPZ()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+            List<RouteParams> param = new List<RouteParams>();
+            OptimalChain.StaticConf conf;
+
+            string[] chan = new string[3] { "pk", "mk", "cm" };
+            int[] regime = new int[4] { 0, 1, 2, 3 }; // Zi, Vi, Si, Np
+            int[] shooting = new int[3] { 0, 1, 2 }; // прост, стерео, коридор
+            int[] compression = new int[5] { 0, 1, 2, 7, 10 };
+            DateTime from = new DateTime(2019, 1, 5);
+            DateTime to = from.AddSeconds(5);
+            
+            int k = 0;
+            foreach(string ch in chan)
+                foreach(int r in regime)
+                    foreach(int s in shooting)
+                        foreach (int c in compression)
+                        {
+                            conf = new StaticConf(k, from, to, 0, 0, 0, null, "", c, 0.3, r, ch, s);
+                            RouteParams p = new RouteParams(conf);
+                            p.albedo = 0.3;
+                            p.coridorAzimuth = 0.5;
+                            p.coridorLength = 40000;
+                            p.Delta_T = 0;
+                            p.duration = 10;
+                            p.TNPos = 0;
+                            p.binded_route = Tuple.Create(101, 1);
+                            param.Add(p);
+                            from = to.AddSeconds(70);
+                            to = from.AddSeconds(5);
+                            k++;
+                        }
+            var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
+            FlagsMPZ flags = new FlagsMPZ();
+            var mpzs = mpzParams.Select(p => new MPZ(p, manager, flags));
+            string mpz_string = mpzs.Aggregate("", (s, mpz) => s + mpz.ToString() + "\n");
+            System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
+        }
+
+        [TestMethod]
         public void TestCoridorPoly()
         {
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
@@ -94,127 +137,127 @@ namespace GeometryTest
 
 
         
-        [TestMethod]
-        public void Test_getMPZArray()
-        {
-            List<Polygon> polygons = new List<Polygon>();
-            Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 2; i++) // у меня памяти не хватает на больший тест
-            {
-                Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
-                polygons.Add(randpol);
-            }
+        //[TestMethod]
+        //public void Test_getMPZArray()
+        //{
+        //    List<Polygon> polygons = new List<Polygon>();
+        //    Random rand = new Random((int)DateTime.Now.Ticks);
+        //    for (int i = 0; i < 2; i++) // у меня памяти не хватает на больший тест
+        //    {
+        //        Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
+        //        polygons.Add(randpol);
+        //    }
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
-            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+        //    string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+        //    DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-            DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 8);
+        //    DateTime dt1 = new DateTime(2019, 1, 4);
+        //    DateTime dt2 = new DateTime(2019, 1, 8);
 
-            DataFetcher fetcher = new DataFetcher(manager);
-            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+        //    DataFetcher fetcher = new DataFetcher(manager);
+        //    Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
 
-            if (trajectory.Count == 0)
-                throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+        //    if (trajectory.Count == 0)
+        //        throw new Exception("На эти даты нет траектории в БД, тест некорректный");
 
-            try
-            {
-                int id = 0;
-                List<RequestParams> requests = new List<RequestParams>();
-                foreach (var pol in polygons)
-                {
-                    RequestParams reqparams = new RequestParams();
-                    reqparams.id = id;
-                    reqparams.timeFrom = dt1;
-                    reqparams.timeTo = dt2;
-                    reqparams.priority = 1;
-                    reqparams.compression = 10;
-                    reqparams.minCoverPerc = 0.4;
-                    reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
-                    reqparams.wktPolygon = pol.ToWtk();
-                    requests.Add(reqparams);
-                    id++;
-                }
-              //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
+        //    try
+        //    {
+        //        int id = 0;
+        //        List<RequestParams> requests = new List<RequestParams>();
+        //        foreach (var pol in polygons)
+        //        {
+        //            RequestParams reqparams = new RequestParams();
+        //            reqparams.id = id;
+        //            reqparams.timeFrom = dt1;
+        //            reqparams.timeTo = dt2;
+        //            reqparams.priority = 1;
+        //            reqparams.compression = 10;
+        //            reqparams.minCoverPerc = 0.4;
+        //            reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+        //            reqparams.wktPolygon = pol.ToWtk();
+        //            requests.Add(reqparams);
+        //            id++;
+        //        }
+        //      //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
 
-                Order order = new Order();
-                order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
-                order.intersection_coeff = 0.1;
-                order.request = new RequestParams();
-                order.request.priority = 1;
-                order.request.timeFrom = new DateTime(2019, 1, 4);
-                order.request.timeTo = new DateTime(2019, 1, 5);
-                order.request.wktPolygon = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
-                order.request.minCoverPerc = 0.4;
-                order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
-                List<Order> orders = new List<Order>() { order };
+        //        Order order = new Order();
+        //        order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+        //        order.intersection_coeff = 0.1;
+        //        order.request = new RequestParams();
+        //        order.request.priority = 1;
+        //        order.request.timeFrom = new DateTime(2019, 1, 4);
+        //        order.request.timeTo = new DateTime(2019, 1, 5);
+        //        order.request.wktPolygon = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
+        //        order.request.minCoverPerc = 0.4;
+        //        order.request.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+        //        List<Order> orders = new List<Order>() { order };
 
-                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
-                StaticConf sc = ccToDrop.DefaultStaticConf();
-                RouteParams routeParamtoDrop = new RouteParams(sc);
-                routeParamtoDrop.id = 0;
-                routeParamtoDrop.start = new DateTime(2019, 1, 4);
-                routeParamtoDrop.end = new DateTime(2019, 1, 5);
-                routeParamtoDrop.File_Size = 1000;
-                routeParamtoDrop.binded_route = new Tuple<int, int>(1, 1);
-                // double timedrop = routeParam.getDropTime();
+        //        CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
+        //        StaticConf sc = ccToDrop.DefaultStaticConf();
+        //        RouteParams routeParamtoDrop = new RouteParams(sc);
+        //        routeParamtoDrop.id = 0;
+        //        routeParamtoDrop.start = new DateTime(2019, 1, 4);
+        //        routeParamtoDrop.end = new DateTime(2019, 1, 5);
+        //        routeParamtoDrop.File_Size = 1000;
+        //        routeParamtoDrop.binded_route = new Tuple<int, int>(1, 1);
+        //        // double timedrop = routeParam.getDropTime();
 
-                RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop) { NPZ = 0, Nroute = 0 };
+        //        RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop) { NPZ = 0, Nroute = 0 };
 
-                List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
-                routesToDrop.Add(routempzToDrop);
+        //        List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+        //        routesToDrop.Add(routempzToDrop);
 
 
-                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 2, null);
-                StaticConf scToDelete = ccToDelete.DefaultStaticConf();
-                RouteParams routeParamtoDelete = new RouteParams(scToDelete);
-                routeParamtoDelete.id = 0;
-                routeParamtoDelete.start = new DateTime(2019, 1, 4);
-                routeParamtoDelete.end = new DateTime(2019, 1, 5);
-                routeParamtoDelete.File_Size = 1000;
-                routeParamtoDelete.binded_route = new Tuple<int, int>(1, 1);
-                RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete) { NPZ = 0, Nroute = 0 };
+        //        CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 2, null);
+        //        StaticConf scToDelete = ccToDelete.DefaultStaticConf();
+        //        RouteParams routeParamtoDelete = new RouteParams(scToDelete);
+        //        routeParamtoDelete.id = 0;
+        //        routeParamtoDelete.start = new DateTime(2019, 1, 4);
+        //        routeParamtoDelete.end = new DateTime(2019, 1, 5);
+        //        routeParamtoDelete.File_Size = 1000;
+        //        routeParamtoDelete.binded_route = new Tuple<int, int>(1, 1);
+        //        RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete) { NPZ = 0, Nroute = 0 };
 
-                List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
-                routesToDelete.Add(routempzToDelete);
+        //        List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+        //        routesToDelete.Add(routempzToDelete);
 
-                List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
-                //silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
+        //        List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+        //        silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
+        //        //silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
                  
 
-                var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
-                inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
+        //        var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+        //        inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
 
                  
-                List<MPZ> mpzArray;
-                List<CommunicationSession> sessions;
+        //        List<MPZ> mpzArray;
+        //        List<CommunicationSession> sessions;
 
-                Sessions.getMPZArray(requests, dt1, dt2
-                                                    , silenceRanges
-                                                    , inactivityRanges
-                                                     , routesToDrop
-                                                     , routesToDelete
-                                                      , manager
-                                                      ,0
-                                                     , out mpzArray
-                                                     , out sessions);
-            }
+        //        Sessions.getMPZArray(requests, dt1, dt2
+        //                                            , silenceRanges
+        //                                            , inactivityRanges
+        //                                             , routesToDrop
+        //                                             , routesToDelete
+        //                                              , manager
+        //                                              ,0
+        //                                             , out mpzArray
+        //                                             , out sessions);
+        //    }
 
-            catch (Exception ex)
-            {
-                List<string> lines = new List<string>();
-                Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
-                foreach (var pol in polygons)
-                {
-                    Console.WriteLine(pol.ToWtk());
-                    lines.Add(pol.ToWtk());
-                }
-                System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
-                throw ex;
-            }
+        //    catch (Exception ex)
+        //    {
+        //        List<string> lines = new List<string>();
+        //        Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
+        //        foreach (var pol in polygons)
+        //        {
+        //            Console.WriteLine(pol.ToWtk());
+        //            lines.Add(pol.ToWtk());
+        //        }
+        //        System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
+        //        throw ex;
+        //    }
 
-        }
+        //}
          
 
 
