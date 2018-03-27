@@ -765,7 +765,6 @@ namespace ViewModel
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
-
             DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
             DateTime dt2 = new DateTime(2019, 2, 2, 0, 00, 00);
 
@@ -883,29 +882,124 @@ namespace ViewModel
            //  polygons.Add(new Polygon("POLYGON ((-38.9763453298122 30.0080564431448,-38.6761961185558 29.8972269350411,-35.9101429589335 32.9187079087084,-37.1682845064806 34.0511201603333,-38.9763453298122 30.0080564431448))"));
             // polygons.Add(new Polygon("POLYGON ((68.295061612353 33.8432044928854,70.6685350162804 30.4622223756182,72.4730436946195 30.319934864894,75.21705428202 34.526308734133,68.295061612353 33.8432044928854))"));
 
-            polygons.Add(new Polygon("POLYGON((140.67658615905074 -30.35266808565639, 140.49224100571504 -30.85915223183219, 140.96342848938676 -31.030650450647485, 141.14777364272246 -30.524166304471677, 140.67658615905074 -30.35266808565639))"));
+           // polygons.Add(new Polygon("POLYGON((140.67658615905074 -30.35266808565639, 140.49224100571504 -30.85915223183219, 140.96342848938676 -31.030650450647485, 141.14777364272246 -30.524166304471677, 140.67658615905074 -30.35266808565639))"));
 
          //   polygons.Add(new Polygon("POLYGON((78.58566289767623 17.130947926520477, 78.74633794650434 17.252957595077618, 78.8424683175981 17.44302666622589, 78.70376592501998 17.59363047055203, 78.52249151095748 17.639441559013832, 78.32611089572309 17.61195630153543, 78.29589849337934 17.602793618503057, 78.27941900119185 17.304098970796602, 78.58566289767623 17.130947926520477))"));
 
             // с 01.02.2019  16:40 по 01.02.2019 17:00
-           
+ 
 
-            int id = 0;
+            /*
+            int id = 310;
             foreach (var pol in polygons)
             {
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = id;
-                reqparams.timeFrom = dt1; // 12.03.2015 по 14.03.2016 
-                reqparams.timeTo = dt2;
-                reqparams.priority = 1;
-                reqparams.shootingType = 1;
-                reqparams.minCoverPerc = 0.4;
-                reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
+                //reqparams.timeFrom = new DateTime(2019, 1, 31, 0, 00, 00); //  2019-01-31T00:00:00
+                //reqparams.timeTo = new DateTime(2019, 2, 2, 0, 00, 00);                
+                reqparams.shootingType = 0;
+                reqparams.minCoverPerc = 70;
+                //reqparams.Max_SOEN_anlge = 0.9599310885968813;//AstronomyMath.ToRad(45);
                 reqparams.wktPolygon = pol.ToWtk();
-                requests.Add(reqparams);
+                reqparams.albedo = 0;
+                reqparams.compression = 0;
+                requests.Add(reqparams);                
                 id++;
             }
+            requests[0].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[0].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+            requests[0].priority = 3;
+            requests[0].Max_SOEN_anlge = 0.9599310885968813;
 
+            requests[1].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[1].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+            requests[1].priority = 2;
+            requests[1].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[2].timeFrom = DateTime.Parse("2019-02-01T00:00:00");
+            requests[2].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+            requests[2].priority = 1;
+            requests[2].Max_SOEN_anlge = 0.9599310885968813;
+
+
+            requests[3].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[3].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+            requests[3].priority = 2;
+            requests[3].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[4].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[4].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+            requests[4].priority = 3;
+            requests[4].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[5].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[5].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+            requests[5].priority = 2;
+            requests[5].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[6].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[6].timeTo = DateTime.Parse("2019-02-05T00:00:00");
+            requests[6].priority = 3;
+            requests[6].shootingType = 1;
+            requests[6].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[7].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[7].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+            requests[7].priority = 1;
+            requests[7].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[8].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[8].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+            requests[8].priority = 1;
+            requests[8].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[9].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[9].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+            requests[9].priority = 2;
+            requests[9].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[10].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[10].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+            requests[10].priority = 2;
+            requests[10].Max_SOEN_anlge = 0.7853981633974483;
+
+            requests[11].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[11].timeTo = DateTime.Parse("2019-02-04T00:00:00");
+            requests[11].priority = 3;
+            requests[11].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[12].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+            requests[12].timeTo = DateTime.Parse("2019-02-05T00:00:00");
+            requests[12].priority = 3;
+            requests[12].Max_SOEN_anlge = 0.9599310885968813;
+
+            requests[13].timeFrom = DateTime.Parse("2018-03-01T13:27:00");
+            requests[13].timeTo = DateTime.Parse("2018-03-03T13:27:00");
+            requests[13].priority = 2;
+            requests[13].Max_SOEN_anlge = 0.8726646259971648;
+
+            requests[14].timeFrom = DateTime.Parse("2018-02-26T19:22:00");
+            requests[14].timeTo = DateTime.Parse("2018-03-13T19:22:00");
+            requests[14].priority = 3;
+            requests[14].Max_SOEN_anlge = 0.5235987755982988;
+            */
+
+
+            requests.Add(new RequestParams(i: 310, p: 3, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 70.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((126.35281885204118 -15.644335352003495, 126.32209465981855 -15.728749376366125, 126.40978114795878 -15.760664647996506, 126.44050534018143 -15.676250623633877, 126.35281885204118 -15.644335352003495))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 311, p: 2, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 80.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((121.83117292297347 -33.45740031865339, 121.64682776963774 -33.96388446482916, 122.13442233635772 -34.141354373505145, 122.31876748969344 -33.63487022732936, 121.83117292297347 -33.45740031865339))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 313, p: 1, d1: DateTime.Parse("2019-02-01T00:00:00"), d2: DateTime.Parse("2019-02-03T00:00:00"), max_a: 0.95993108859688125, min_p: 60.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((109.48626654494377 19.5594462504705, 109.36336977605328 19.22179015301998, 109.45285099845553 19.18922165153981, 109.57574776734603 19.52687774899033, 109.48626654494377 19.5594462504705))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 314, p: 2, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 75.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((104.68623366692623 -2.84175930698035, 104.62478528248099 -3.0105873557055958, 104.79383841043744 -3.0721176622913617, 104.85528679488269 -2.903289613566102, 104.68623366692623 -2.84175930698035))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 315, p: 3, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-03T00:00:00"), max_a: 0.95993108859688125, min_p: 80.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((85.28167344568055 27.77346555952296, 85.25094925345793 27.689051535160345, 85.34630207406599 27.65434594670569, 85.37702626628858 27.738759971068305, 85.28167344568055 27.77346555952296))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 316, p: 2, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 60.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((85.62309186053487 20.819531710129908, 85.43874670719914 20.313047563954115, 85.87129312860758 20.155613541623083, 86.05563828194332 20.66209768779889, 85.62309186053487 20.819531710129908))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 317, p: 3, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-05T00:00:00"), max_a: 0.95993108859688125, min_p: 70.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((80.52680145298038 6.062894530438157, 80.48993242231323 5.961597701203004, 80.59178604790101 5.924526013236985, 80.62865507856816 6.02582284247211, 80.52680145298038 6.062894530438157))", sT: 1, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 318, p: 1, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 50.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((28.150485999492147 -14.948406577516423, 27.90469246171119 -15.623718772417476, 28.07973905691767 -15.687430522682277, 28.325532594698632 -15.012118327781238, 28.150485999492147 -14.948406577516423))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 319, p: 1, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-03T00:00:00"), max_a: 0.95993108859688125, min_p: 60.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((8.30301122730751 5.128774112168699, 8.24156284286227 4.959946063443454, 8.411039289178655 4.898261681575065, 8.472487673623894 5.067089730300339, 8.30301122730751 5.128774112168699))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 320, p: 2, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 50.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((-2.5414649965255296 53.86834241621756, -2.7433738935640104 53.368600359569825, -2.183205190113302 53.142277512483645, -1.9812962930748217 53.64201956913138, -2.5414649965255296 53.86834241621756))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 321, p: 2, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-03T00:00:00"), max_a: 0.78539816339744828, min_p: 60.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((-19.227843372656842 65.35817995896684, -19.320015949324713 65.10493788587891, -18.91815182702349 64.95867130714174, -18.82597925035562 65.2119133802297, -19.227843372656842 65.35817995896684))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 322, p: 3, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-04T00:00:00"), max_a: 0.95993108859688125, min_p: 60.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((-46.73357579241549 -23.369637743068665, -46.82574836908334 -23.62287981615657, -46.549505262271985 -23.723424084457108, -46.45733268560412 -23.470182011369232, -46.73357579241549 -23.369637743068665))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 323, p: 3, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-05T00:00:00"), max_a: 0.95993108859688125, min_p: 70.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((-53.38412914720887 48.58173644618182, -53.44557753165411 48.41290839745656, -53.31824817212707 48.36656430064056, -53.25679978768183 48.53539234936582, -53.38412914720887 48.58173644618182))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 330, p: 2, d1: DateTime.Parse("2018-03-01T13:27:00"), d2: DateTime.Parse("2018-03-03T13:27:00"), max_a: 0.87266462599716477, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((126.62480592378415 -14.31823303125367, 126.64700746187006 -14.305272850284837, 126.63353204377925 -14.294959615999502, 126.61570787080565 -14.288369433364153, 126.61297170945132 -14.307982784865686, 126.62480592378415 -14.31823303125367))", sT: 0, comp: 0, alb: 0.0));
+            requests.Add(new RequestParams(i: 331, p: 3, d1: DateTime.Parse("2018-02-26T19:22:00"), d2: DateTime.Parse("2018-03-13T19:22:00"), max_a: 0.52359877559829882, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((9.13324843996645 5.912918992576621, 9.11764935876068 5.824452206931596, 9.206581004918789 5.808771158275093, 9.22218008612456 5.897237943920118, 9.13324843996645 5.912918992576621))", sT: 0, comp: 0, alb: 0.0));
             /*
             var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerDB, new List<Tuple<DateTime, DateTime>>());
             
@@ -957,7 +1051,7 @@ namespace ViewModel
 
             RouteMPZ routempz = new RouteMPZ(routeParam, managerDB) { NPZ = 0, Nroute = 0 };
             List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
-            routesToDrop.Add(routempz);
+           // routesToDrop.Add(routempz);
 
             CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 2, null);
             StaticConf scToDelete = ccToDelete.DefaultStaticConf();
@@ -970,12 +1064,15 @@ namespace ViewModel
             RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerDB) { NPZ = 0, Nroute = 0 };
 
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
-            routesToDelete.Add(routempzToDelete);
+          //  routesToDelete.Add(routempzToDelete);
+
             
-            string s = "POLYGON((126.62833380556265 -14.265775772684364, 126.61297170945132 -14.307982784865686, 126.6565272839827 -14.323835717531452, 126.671889380094 -14.281628705350116, 126.62833380556265 -14.265775772684364))";
-            RequestParams rp = new RequestParams(i : 301, p: 3, d1: dt1, d2: dt2, max_a: 55 * Math.PI / 180, min_p: 50, max_s_a: 10, min_s_a: 90, polygon: s, alb : 0.36, comp : 10, sT : 1);
+
+        //    string s = "POLYGON((126.62833380556265 -14.265775772684364, 126.61297170945132 -14.307982784865686, 126.6565272839827 -14.323835717531452, 126.671889380094 -14.281628705350116, 126.62833380556265 -14.265775772684364))";
+          //  RequestParams rp = new RequestParams(i : 301, p: 3, d1: dt1, d2: dt2, max_a: 55 * Math.PI / 180, min_p: 50, max_s_a: 10, min_s_a: 90, polygon: s, alb : 0.36, comp : 10, sT : 1);
             //12.03.2015 по 14.03.2015
-            Sessions.getMPZArray(new List<RequestParams> {rp}, dt1, dt2
+            // Sessions.getMPZArray(new List<RequestParams> {rp}, dt1, dt2
+            Sessions.getMPZArray(requests, dt1, dt2
                 , silenceRanges
                 , inactivityRanges
                 , routesToDrop

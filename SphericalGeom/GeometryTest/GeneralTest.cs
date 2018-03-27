@@ -31,11 +31,11 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 5; testi++)
-            {
+            for (int testi = 0; testi < 20; testi++)
+           {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 15; i++)
+                for (int i = 0; i < 30; i++)
                 {
                     Polygon randpol = getRandomPolygon(rand, 3, 8, 2, 8);
                     polygons.Add(randpol);
@@ -99,7 +99,7 @@ namespace GeometryTest
         {
             List<Polygon> polygons = new List<Polygon>();
             Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 2; i++) // у меня памяти не хватает на больший тест
+            for (int i = 0; i < 2; i++) 
             {
                 Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
                 polygons.Add(randpol);
@@ -109,7 +109,7 @@ namespace GeometryTest
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
             DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 8);
+            DateTime dt2 = new DateTime(2019, 1, 4, 20,0,0);
 
             DataFetcher fetcher = new DataFetcher(manager);
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
@@ -159,7 +159,7 @@ namespace GeometryTest
                 routeParamtoDrop.binded_route = new Tuple<int, int>(1, 1);
                 // double timedrop = routeParam.getDropTime();
 
-                RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop) { NPZ = 0, Nroute = 0 };
+                RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, manager) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
                 routesToDrop.Add(routempzToDrop);
@@ -173,18 +173,18 @@ namespace GeometryTest
                 routeParamtoDelete.end = new DateTime(2019, 1, 5);
                 routeParamtoDelete.File_Size = 1000;
                 routeParamtoDelete.binded_route = new Tuple<int, int>(1, 1);
-                RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete) { NPZ = 0, Nroute = 0 };
+                RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, manager) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
                 routesToDelete.Add(routempzToDelete);
 
                 List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-                silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
+               // silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
                 //silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
                  
 
                 var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
-                inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
+               // inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
 
                  
                 List<MPZ> mpzArray;
