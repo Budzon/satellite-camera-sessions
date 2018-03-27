@@ -407,7 +407,7 @@ namespace SatelliteSessions
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
-            List<MPZParams> captureMPZParams = captureGraph.findOptimalChain();
+            List<MPZParams> captureMPZParams = captureGraph.findOptimalChain(Nmax);
 
             // Найдём все возможные промежутки времени для сброса (из диапазона [timeFrom - timeTo] вычитаются все inactivityRanges и диапазоны съемки)
             List<Tuple<DateTime, DateTime>> captureIntervals = captureMPZParams.Select(mpz => new Tuple<DateTime, DateTime>(mpz.start, mpz.end)).ToList();
@@ -425,7 +425,12 @@ namespace SatelliteSessions
             allRoutesToDrop.AddRange(routesToDrop);
             allRoutesToDrop.AddRange(captureMpz.SelectMany(mpz => mpz.Routes).Where(route => route.Parameters.type == 0).ToList()); // добавим к сбросу только что отснятые маршруты
 
-            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> dropRoutesParamsByIntervals = getRoutesParamsInIntervals(allRoutesToDrop, freeRangesForDrop, workType: 1);
+            int maxRouteDropId = routesToDrop.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
+            int maxRouteDeleteId = routesToDelete.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
+            int maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max(); 
+            int maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
+            
+            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> dropRoutesParamsByIntervals = getRoutesParamsInIntervals(allRoutesToDrop, freeRangesForDrop, workType: 1, startId: maxRoutesNumber);
 
             foreach (var intervalRoutes in dropRoutesParamsByIntervals)
             {
@@ -445,6 +450,7 @@ namespace SatelliteSessions
                 }
             }
 
+            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(0).Max() + 1;
 
             // теперь создаем новые мпз сброса из оставшихся маршрутов
             List<MPZParams> dropMpzParams = new List<MPZParams>();
@@ -454,11 +460,11 @@ namespace SatelliteSessions
                 // Tuple<DateTime, DateTime> interval = intervalRoutes.Key;
                 if (routparamsList.Count > 0)
                 {
-                    List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList);
+                    List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, maxMpzNum);
                     dropMpzParams.AddRange(curMPZ);
                 }
             }
-
+             
             List<Tuple<DateTime, DateTime>> dropIntervals = dropMpzParams.Select(mpzparams => new Tuple<DateTime, DateTime>(mpzparams.start, mpzparams.end)).ToList();
             List<Tuple<DateTime, DateTime>> inactivityDropCaptureIntervals = new List<Tuple<DateTime, DateTime>>();
             inactivityDropCaptureIntervals.AddRange(captureIntervals);
@@ -467,7 +473,14 @@ namespace SatelliteSessions
             inactivityDropCaptureIntervals = compressTimePeriods(inactivityDropCaptureIntervals);
             List<Tuple<DateTime, DateTime>> freeRangesForDelete = getFreeIntervals(inactivityDropCaptureIntervals, timeFrom, timeTo);
 
-            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> deleteRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2);
+
+            maxRouteDropId = dropMpzParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
+            maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
+     
+            maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
+            Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> deleteRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2, startId: maxRoutesNumber);
+
+            maxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(0).Max() + 1;
 
             // создаем новые мпз удаления из маршрутов на удаление
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
@@ -475,7 +488,7 @@ namespace SatelliteSessions
             {
                 List<RouteParams> routparamsList = intervalRoutes.Value;
                 //Tuple<DateTime, DateTime> interval = intervalRoutes.Key;
-                List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList);
+                List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, maxMpzNum);
                 deleteMpzParams.AddRange(curMPZ);
             }
 
@@ -580,7 +593,7 @@ namespace SatelliteSessions
         /// <param name="routesToDrop"></param>
         /// <param name="freeCompressedIntervals"></param>
         /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
-        public static Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<Tuple<DateTime, DateTime>> freeCompressedIntervals, int workType)
+        public static Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<Tuple<DateTime, DateTime>> freeCompressedIntervals, int workType, int startId)
         {
             Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> res = new Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>>();
             List<RouteMPZ> routes = new List<RouteMPZ>(inpRoutes);
@@ -591,6 +604,7 @@ namespace SatelliteSessions
 
             foreach (var interval in freeCompressedIntervals)
             {
+                int id = startId + 1;
                 // получим все маршруты, которые могут быть сброшены/удалены в этом промежутке
                 List<RouteMPZ> curRoutes = routes.Where(rout => rout.Parameters.end < interval.Item2).ToList();
 
@@ -620,8 +634,10 @@ namespace SatelliteSessions
                     nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
 
                     RouteParams curParam = new RouteParams(workType, prevDt, nextDt, Tuple.Create(rmpz.NPZ, rmpz.Nroute));
+                    curParam.id = id;
                     curParam.ShootingConf = rmpz.Parameters.ShootingConf;
                     curPeriodRoutes.Add(curParam);
+                    id++;
                     routes.Remove(rmpz);
 
                     prevDt = nextDt;
@@ -748,9 +764,10 @@ namespace SatelliteSessions
         public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax, DIOS.Common.SqlManager managerDB, FlagsMPZ flags = null)
         {
             List<MPZ> res = new List<MPZ>();
-            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams);
+            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, Nmax);
             foreach (var param in mpzParams)
                 res.Add(new MPZ(param, managerDB, flags ?? new FlagsMPZ()));
+
             return res;
         }
 
