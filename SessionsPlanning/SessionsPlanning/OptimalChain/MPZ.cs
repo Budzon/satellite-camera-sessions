@@ -210,7 +210,7 @@ namespace OptimalChain
             List<MPZParams> FTAs = new List<MPZParams>();
             routes.Sort((x, y) => DateTime.Compare(x.start, y.start));
             MPZParams currentMPZ = null;
-            int N = 101;
+            int N = maxMpzNum+1;
             foreach(RouteParams r in routes)
             {
                 if(currentMPZ==null)
@@ -232,16 +232,13 @@ namespace OptimalChain
                         {
                             currentMPZ = new MPZParams(N, r);   
                         }
-                        else
-                        {
-                            currentMPZ = new MPZParams(N);
-                        }
+                        
                         N++;
                     }
 
                     else
                     {
-                        if (currentMPZ.isCompatible(r))
+                        if (currentMPZ.isCompatible(r)||currentMPZ.GetLastRoute()==null)
                         {
                              currentMPZ.AddRoute(r);
                         }
@@ -262,7 +259,8 @@ namespace OptimalChain
 
             }
 
-            FTAs.Add(currentMPZ); 
+            if (currentMPZ!=null)
+                FTAs.Add(currentMPZ); 
             return FTAs;
 
         }
@@ -409,6 +407,8 @@ namespace OptimalChain
         public bool isCompatible(RouteParams r)
         {
             StaticConf c1, c2;
+
+           
             if (r.start > this.start)
             {
                 c2 = r.ShootingConf;
@@ -419,6 +419,10 @@ namespace OptimalChain
                 c1 = r.ShootingConf;
                 c2 = this.ShootingConf;
             }
+
+            if (c1 == null || c2 == null)
+                return true;
+
             double ms = c1.reConfigureMilisecinds(c2);
             if (r.type != 0 || this.type != 0) ms = 0;
             double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
