@@ -266,7 +266,7 @@ namespace OptimalChain
             return res;
         }
 
-        public List<MPZParams> findOptimalChain()
+        public List<MPZParams> findOptimalChain(int maxMpzNum = 0)
         {
             List<Vertex> sorted = this.deepGo(vertices[0]);
           
