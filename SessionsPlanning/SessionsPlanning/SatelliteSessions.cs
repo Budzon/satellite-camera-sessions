@@ -480,7 +480,7 @@ namespace SatelliteSessions
             maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
             Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> deleteRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2, startId: maxRoutesNumber);
 
-            maxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(0).Max() + 1;
+            maxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max() + 1;
 
             // создаем новые мпз удаления из маршрутов на удаление
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
