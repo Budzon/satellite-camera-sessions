@@ -450,7 +450,7 @@ namespace SatelliteSessions
                 }
             }
 
-            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(Nmax).Max() + 1;
+            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(Nmax).Max();
 
             // теперь создаем новые мпз сброса из оставшихся маршрутов
             List<MPZParams> dropMpzParams = new List<MPZParams>();
@@ -460,7 +460,8 @@ namespace SatelliteSessions
                 // Tuple<DateTime, DateTime> interval = intervalRoutes.Key;
                 if (routparamsList.Count > 0)
                 {
-                    List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, maxMpzNum);
+                    int curMaxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
+                    List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, curMaxMpzNum);
                     dropMpzParams.AddRange(curMPZ);
                 }
             }
@@ -480,7 +481,7 @@ namespace SatelliteSessions
             maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
             Dictionary<Tuple<DateTime, DateTime>, List<RouteParams>> deleteRoutesParamsByIntervals = getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2, startId: maxRoutesNumber);
 
-            maxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max() + 1;
+            maxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
 
             // создаем новые мпз удаления из маршрутов на удаление
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
@@ -488,7 +489,8 @@ namespace SatelliteSessions
             {
                 List<RouteParams> routparamsList = intervalRoutes.Value;
                 //Tuple<DateTime, DateTime> interval = intervalRoutes.Key;
-                List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, maxMpzNum);
+                int curMaxMpzNum = deleteMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
+                List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, curMaxMpzNum);
                 deleteMpzParams.AddRange(curMPZ);
             }
 
@@ -504,7 +506,7 @@ namespace SatelliteSessions
                 mpzArray.Add(new MPZ(mpz_param, managerDB, flags ?? new FlagsMPZ()));
 
 
-            mpzArray.AddRange(captureMpz);
+            mpzArray.InsertRange(0, captureMpz);
 
             // составим массив использованных сессий
 
