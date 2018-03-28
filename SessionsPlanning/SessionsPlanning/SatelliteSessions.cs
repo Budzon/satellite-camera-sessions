@@ -450,7 +450,7 @@ namespace SatelliteSessions
                 }
             }
 
-            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(0).Max() + 1;
+            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(Nmax).Max() + 1;
 
             // теперь создаем новые мпз сброса из оставшихся маршрутов
             List<MPZParams> dropMpzParams = new List<MPZParams>();
