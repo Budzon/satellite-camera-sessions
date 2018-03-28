@@ -55,7 +55,7 @@ namespace SatelliteSessions
             if (dumpsData)
                 Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
             else
-                Header.CONF_RLCI += 0; // ВЫКЛЮЧИТЬ СВРЛ
+                Header.CONF_RLCI = 0; // ВЫКЛЮЧИТЬ СВРЛ; ПО ПРОСЬБЕ СОФЬИ БЕЗ СБРОСА СОВСЕМ 0
 
             /* ---------- Session_key_On -----------*/
             Header.Session_key_ON = (byte)(flags.sessionKeyOn ? 1 : 0);
