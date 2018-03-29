@@ -378,10 +378,10 @@ namespace SatelliteTrajectory
     /// </summary>
     public class LanePos
     {
-        enum RollOrientation
-        { // в какую сторону от надир осуществлен наклон съемки
-            left, right
-        };
+        //enum RollOrientation
+        //{ // в какую сторону от надир осуществлен наклон съемки
+        //    left, right
+        //};
 
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
@@ -402,7 +402,7 @@ namespace SatelliteTrajectory
         private double width;
         private DateTime time;
 
-        private RollOrientation rollOrient;
+       //  private RollOrientation rollOrient;
 
         private Vector3D topLeftViewPoint;
         private Vector3D botLeftViewPoint;
@@ -608,7 +608,7 @@ namespace SatelliteTrajectory
 
             topLeftViewPoint = viewPol.Vertices[0];
             topRightViewPoint = viewPol.Vertices[1];
-            topRightViewPoint = viewPol.Vertices[2];
+            botRightViewPoint = viewPol.Vertices[2];
             botLeftViewPoint = viewPol.Vertices[3];
         }
 
