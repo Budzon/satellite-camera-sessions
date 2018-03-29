@@ -77,20 +77,20 @@ namespace SatelliteSessions
             {
                 if (flags.useYKZU1)
                 {
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 10);
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 12);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 10);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 12);
                 }
                 else if (flags.useYKZU2)
                 {
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 11);
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 13);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 11);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 13);
                 }
                 else
                 {
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 10);
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 12);
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 11);
-                    ByteRoutines.SetBitOne(Routes[i].REGta_Param, 13);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 10);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 12);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 11);
+                    ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 13);
                 }
             }
         }
@@ -118,8 +118,10 @@ namespace SatelliteSessions
                 if (i + 1 < routes.Count - 1)
                 {
                     if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
-                        ByteRoutines.SetBitOne(Routes[i].REGta, 10); // suspend_mode
+                        ByteRoutines.SetBitOne(Routes[i].REGta_bytes, 10); // suspend_mode
                 }
+                Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
+                Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
             if (Routes.Count > 0)
                 Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
@@ -433,10 +435,10 @@ namespace SatelliteSessions
             s += "\nAutotune_ON=" + Autotune_ON;
             s += "\nTtask=" + Ttask;
             s += "\nTvideo=" + Tvideo;
-            s += "\nCONF_C=" + ByteRoutines.ToLong(CONF_C);
-            s += "\nRCONF_C=" + ByteRoutines.ToLong(RCONF_C);
-            s += "\nCONF_B=" + ByteRoutines.ToLong(CONF_B);
-            s += "\nRCONF_B=" + ByteRoutines.ToLong(RCONF_B);
+            s += "\nCONF_C=" + ByteRoutines.ToInt(CONF_C);
+            s += "\nRCONF_C=" + ByteRoutines.ToInt(RCONF_C);
+            s += "\nCONF_B=" + ByteRoutines.ToInt(CONF_B);
+            s += "\nRCONF_B=" + ByteRoutines.ToInt(RCONF_B);
             return s;
         }
     }
@@ -457,8 +459,10 @@ namespace SatelliteSessions
         public byte N_MK { get; set; } // 8 bit
         public int Ts { get; set; } // 16bit
         public int Troute { get; set; } // 16 bit
-        public byte[] REGta { get; set; } // 16 bit
-        public byte[] REGta_Param { get; set; } // 16 bit
+        public byte[] REGta_bytes { get; set; } // 16 bit
+        public int REGta { get; set; }
+        public byte[] REGta_Param_bytes { get; set; } // 16 bit
+        public int REGta_Param { get; set; }
         public IdFile IDFile { get; set; }
         public byte Delta_T { get; set; } // 1 byte
         public byte Hroute { get; set; } // 1 byte
@@ -570,17 +574,17 @@ namespace SatelliteSessions
                 switch (Parameters.shooting_type)
                 {
                     case 0:
-                        ByteRoutines.SetBitOne(REGta, 0); // кадровая
+                        ByteRoutines.SetBitOne(REGta_bytes, 0); // кадровая
                         break;
                     case 1:
-                        ByteRoutines.SetBitOne(REGta, 1); // стереотриплет
-                        ByteRoutines.SetBitOne(REGta, 2);
+                        ByteRoutines.SetBitOne(REGta_bytes, 1); // стереотриплет
+                        ByteRoutines.SetBitOne(REGta_bytes, 2);
                         break;
                     case 2:
-                        ByteRoutines.SetBitOne(REGta, 2); // коридорная
+                        ByteRoutines.SetBitOne(REGta_bytes, 2); // коридорная
                         break;
                     default:
-                        ByteRoutines.SetBitOne(REGta, 0); // кадровая
+                        ByteRoutines.SetBitOne(REGta_bytes, 0); // кадровая
                         break;
                 }
             }
@@ -592,38 +596,38 @@ namespace SatelliteSessions
                     switch (Parameters.zipPK)
                     {
                         case 0: // без потерь
-                            ByteRoutines.SetBitZero(REGta_Param, 0);
-                            ByteRoutines.SetBitOne(REGta_Param, 1);
-                            ByteRoutines.SetBitZero(REGta_Param, 2);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 0);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 1);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 2);
                             break;
                         case 1: // без сжатия
-                            ByteRoutines.SetBitOne(REGta_Param, 0);
-                            ByteRoutines.SetBitOne(REGta_Param, 1);
-                            ByteRoutines.SetBitZero(REGta_Param, 2);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 0);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 1);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 2);
                             break;
                         default: // сжатие с потерями
-                            ByteRoutines.SetBitZero(REGta_Param, 0);
-                            ByteRoutines.SetBitOne(REGta_Param, 1);
-                            ByteRoutines.SetBitOne(REGta_Param, 2);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 0);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 1);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 2);
                             break;
                     }
-                    ByteRoutines.SetBitZero(REGta_Param, 3);
+                    ByteRoutines.SetBitZero(REGta_Param_bytes, 3);
                     switch (Parameters.zipMK)
                     {
                         case 0: // без потерь
-                            ByteRoutines.SetBitZero(REGta_Param, 4);
-                            ByteRoutines.SetBitOne(REGta_Param, 5);
-                            ByteRoutines.SetBitZero(REGta_Param, 6);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 4);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 5);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 6);
                             break;
                         case 1: // без сжатия
-                            ByteRoutines.SetBitOne(REGta_Param, 4);
-                            ByteRoutines.SetBitOne(REGta_Param, 5);
-                            ByteRoutines.SetBitZero(REGta_Param, 6);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 4);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 5);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 6);
                             break;
                         default: // сжатие с потерями
-                            ByteRoutines.SetBitZero(REGta_Param, 4);
-                            ByteRoutines.SetBitOne(REGta_Param, 5);
-                            ByteRoutines.SetBitOne(REGta_Param, 6);
+                            ByteRoutines.SetBitZero(REGta_Param_bytes, 4);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 5);
+                            ByteRoutines.SetBitOne(REGta_Param_bytes, 6);
                             break;
                     }
                     // 7-9 -- нули по умолчанию
@@ -824,19 +828,19 @@ namespace SatelliteSessions
 
             /* ---------- REGta -----------*/
             #region set REGta
-            REGta = new byte[2] { 0, 0 };
-            ByteRoutines.SetBitZero(REGta, 0); //
-            ByteRoutines.SetBitZero(REGta, 1); // Штатный ЗИ и НП -- отдельно 
-            ByteRoutines.SetBitZero(REGta, 2); //
-            ByteRoutines.SetBitOne(REGta, 3);
-            ByteRoutines.SetBitZero(REGta, 4);
-            ByteRoutines.SetBitZero(REGta, 5);
-            ByteRoutines.SetBitZero(REGta, 6);
-            ByteRoutines.SetBitOne(REGta, 7);
-            ByteRoutines.SetBitZero(REGta, 8);
-            ByteRoutines.SetBitOne(REGta, 9);
+            REGta_bytes = new byte[2] { 0, 0 };
+            ByteRoutines.SetBitZero(REGta_bytes, 0); //
+            ByteRoutines.SetBitZero(REGta_bytes, 1); // Штатный ЗИ и НП -- отдельно 
+            ByteRoutines.SetBitZero(REGta_bytes, 2); //
+            ByteRoutines.SetBitOne(REGta_bytes, 3);
+            ByteRoutines.SetBitZero(REGta_bytes, 4);
+            ByteRoutines.SetBitZero(REGta_bytes, 5);
+            ByteRoutines.SetBitZero(REGta_bytes, 6);
+            ByteRoutines.SetBitOne(REGta_bytes, 7);
+            ByteRoutines.SetBitZero(REGta_bytes, 8);
+            ByteRoutines.SetBitOne(REGta_bytes, 9);
             // ByteRoutines.SetBitOne(REGta, 10); задается отдельно в МПЗ, SUSPEND_MODE
-            ByteRoutines.SetBitZero(REGta, 11);
+            ByteRoutines.SetBitZero(REGta_bytes, 11);
             int typeRegime = 0;
             switch (regimeType)
             {
@@ -845,10 +849,10 @@ namespace SatelliteSessions
                 case RegimeTypes.ZI_fok_yust:
                 case RegimeTypes.KPI_unload:
                 case RegimeTypes.BBZU_control:
-                    ByteRoutines.SetBitZero(REGta, 12);
+                    ByteRoutines.SetBitZero(REGta_bytes, 12);
                     break;
                 default:
-                    ByteRoutines.SetBitOne(REGta, 12);
+                    ByteRoutines.SetBitOne(REGta_bytes, 12);
                     typeRegime += 1;
                     break;
             }
@@ -860,11 +864,11 @@ namespace SatelliteSessions
                 case RegimeTypes.NP_fok_yust:
                 case RegimeTypes.KPI_unload:
                 case RegimeTypes.PUF_control:
-                    ByteRoutines.SetBitOne(REGta, 13);
+                    ByteRoutines.SetBitOne(REGta_bytes, 13);
                     typeRegime += 2;
                     break;
                 default:
-                    ByteRoutines.SetBitZero(REGta, 13);
+                    ByteRoutines.SetBitZero(REGta_bytes, 13);
                     break;
             }
             
@@ -874,33 +878,33 @@ namespace SatelliteSessions
                 case RegimeTypes.ZI:
                 case RegimeTypes.VI:
                 case RegimeTypes.NP:
-                    ByteRoutines.SetBitZero(REGta, 14);
-                    ByteRoutines.SetBitZero(REGta, 15);
+                    ByteRoutines.SetBitZero(REGta_bytes, 14);
+                    ByteRoutines.SetBitZero(REGta_bytes, 15);
                     break;
                 case RegimeTypes.ZI_cal:
                 case RegimeTypes.ZI_fok_yust:
                 case RegimeTypes.NP_fok_yust:
-                    ByteRoutines.SetBitOne(REGta, 14);
-                    ByteRoutines.SetBitZero(REGta, 15);
+                    ByteRoutines.SetBitOne(REGta_bytes, 14);
+                    ByteRoutines.SetBitZero(REGta_bytes, 15);
                     groupNumber = 1;
                     break;
                 case RegimeTypes.KPI_load:
                 case RegimeTypes.KPI_unload:
                 case RegimeTypes.PUF_control:
-                    ByteRoutines.SetBitZero(REGta, 14);
-                    ByteRoutines.SetBitOne(REGta, 15);
+                    ByteRoutines.SetBitZero(REGta_bytes, 14);
+                    ByteRoutines.SetBitOne(REGta_bytes, 15);
                     groupNumber = 2;
                     break;
                 default:
-                    ByteRoutines.SetBitOne(REGta, 14);
-                    ByteRoutines.SetBitOne(REGta, 15);
+                    ByteRoutines.SetBitOne(REGta_bytes, 14);
+                    ByteRoutines.SetBitOne(REGta_bytes, 15);
                     groupNumber = 3;
                     break;
             }
             #endregion
 
             /* ---------- REGta_Param -----------*/
-            REGta_Param = new byte[2] { 0, 0 };
+            REGta_Param_bytes = new byte[2] { 0, 0 };
             
             /* ---------- IDFile -----------*/
             IDFile = new IdFile { TNPZ = 0, TNroute = 0, TNPos = 0 }; // задается отдельно
@@ -974,8 +978,8 @@ namespace SatelliteSessions
             s += "\nN_MK=" + N_MK;
             s += "\nTs=" + Ts;
             s += "\nTroute=" + Troute;
-            s += "\nREGta=" + ByteRoutines.ToLong(REGta);
-            s += "\nREGta_Param=" + ByteRoutines.ToLong(REGta_Param);
+            s += "\nREGta=" + ByteRoutines.ToInt(REGta_bytes);
+            s += "\nREGta_Param=" + ByteRoutines.ToInt(REGta_Param_bytes);
             s += "\nTarget_RatePK=" + Target_RatePK;
             s += "\nTarget_RateMK=" + Target_RateMK;
             s += "\nQuant_InitValuePK=" + Quant_InitValuePK;
@@ -1019,10 +1023,10 @@ namespace SatelliteSessions
 
             int CodVznCalibr;
             if (RegimeType == RegimeTypes.ZI_cal)
-                if (REGta_Param[1] == 0)
+                if (REGta_Param_bytes[1] == 0)
                     CodVznCalibr = 1;
                 else
-                    CodVznCalibr = REGta_Param[1];
+                    CodVznCalibr = REGta_Param_bytes[1];
             else
                 CodVznCalibr = 1;
 
@@ -1172,9 +1176,9 @@ namespace SatelliteSessions
 
     public static class ByteRoutines
     {
-        public static long ToLong(byte[] data)
+        public static int ToInt(byte[] data)
         {
-            long res = 0;
+            int res = 0;
             for (int i = 0; i < data.Length; ++i)
                 res = 256 * res + data[data.Length - 1 - i];
             return res;
