@@ -27,8 +27,14 @@ namespace SatelliteSessions
                 routes.Add(new RouteMPZ(rout_params, DBmanager));
             }
 
-            bool hasPK = parameters.routes.Any(route => route.shooting_channel == "pk" || route.shooting_channel == "cm");
-            bool hasMK = parameters.routes.Any(route => route.shooting_channel == "mk" || route.shooting_channel == "cm");
+
+            var shootings = parameters.routes.Where(route => 
+            {
+                RegimeTypes type = RouteMPZ.IntToType(route.type);
+                return (type == RegimeTypes.NP) || (type == RegimeTypes.ZI);
+            });
+            bool hasPK = shootings.Any(route => route.shooting_channel == "pk" || route.shooting_channel == "cm");
+            bool hasMK = shootings.Any(route => route.shooting_channel == "mk" || route.shooting_channel == "cm");
 
             Header = new HeaderMPZ(hasPK, hasMK, flags);
 
@@ -978,7 +984,7 @@ namespace SatelliteSessions
             return s;
         }
 
-        private static RegimeTypes IntToType(int type)
+        public static RegimeTypes IntToType(int type)
         {
             switch (type)
             {
