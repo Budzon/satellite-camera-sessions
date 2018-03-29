@@ -529,18 +529,21 @@ namespace SatelliteSessions
             N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
 
             /* ---------- Z -----------*/
-            switch(Parameters.shooting_channel)
-            {
-                case "pk":
-                    Z = 16;
-                    break;
-                case "mk":
-                    Z = 15;
-                    break;
-                default:
-                    Z = 31;
-                    break;
-            }
+            if (RegimeType == RegimeTypes.ZI || RegimeType == RegimeTypes.NP)
+                switch (Parameters.shooting_channel)
+                {
+                    case "pk":
+                        Z = 16;
+                        break;
+                    case "mk":
+                        Z = 15;
+                        break;
+                    default:
+                        Z = 31;
+                        break;
+                }
+            else
+                Z = 0;
 
             /* ---------- Troute -----------*/
             switch (RegimeType)
@@ -820,7 +823,7 @@ namespace SatelliteSessions
             // отдельно
 
             /* ---------- Z -----------*/
-            Z = 31;
+            Z = 0;
 
             /* ---------- N_MK -----------*/
             N_MK = 0; // поле не используется, всегда 0
