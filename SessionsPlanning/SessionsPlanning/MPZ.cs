@@ -61,7 +61,7 @@ namespace SatelliteSessions
             if (dumpsData)
                 Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
             else
-                Header.CONF_RLCI = 0; // ВЫКЛЮЧИТЬ СВРЛ; ПО ПРОСЬБЕ СОФЬИ БЕЗ СБРОСА СОВСЕМ 0
+                Header.CONF_RLCI = 0; // нет сброса, то 0 целиком
 
             /* ---------- Session_key_On -----------*/
             Header.Session_key_ON = (byte)(flags.sessionKeyOn ? 1 : 0);
@@ -75,7 +75,16 @@ namespace SatelliteSessions
             /* ---------- REGta_Param -----------*/
             for (int i = 0; i < Routes.Count; ++i)
             {
-                if (flags.useYKZU1)
+                if (Routes[i].RegimeType == RegimeTypes.VI || Routes[i].RegimeType == RegimeTypes.SI)
+                {
+                    Routes[i].REGta_Param_bytes[0] = 0;
+                    Routes[i].REGta_Param_bytes[1] = 0;
+                    Routes[i].Target_RateMK = 0;
+                    Routes[i].Target_RatePK = 0;
+                    Routes[i].Quant_InitValueMK = 0;
+                    Routes[i].Quant_InitValuePK = 0;
+                }
+                else if (flags.useYKZU1)
                 {
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 10);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 12);
@@ -109,12 +118,15 @@ namespace SatelliteSessions
         private void loadRoutes(List<RouteMPZ> routes)
         {
             Routes = routes;
-            
+
+            if (Routes.Count > 0)
+                Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
+            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
             for (int i = 0; i < routes.Count; ++i)
             {
                 Routes[i].NPZ = Header.NPZ;
                 Routes[i].Nroute = i;
-                Routes[i].Ts = i == 0 ? (int)(HeaderMPZ.TON_DELTA.TotalSeconds * 5) : Routes[i - 1].Ts + Routes[i - 1].Troute; 
+                Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalSeconds * 5;
                 if (i + 1 < routes.Count - 1)
                 {
                     if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
@@ -123,9 +135,7 @@ namespace SatelliteSessions
                 Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
                 Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
-            if (Routes.Count > 0)
-                Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
-            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
+            
             try
             {
                 RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
@@ -134,7 +144,7 @@ namespace SatelliteSessions
             catch
             {
                 // Нет маршрутов со съемкой
-                Header.Tvideo = (uint)(23 * 60 + 20) * 5;
+                Header.Tvideo = (uint)(HeaderMPZ.TTASK_MAX.TotalSeconds) * 5;
             }
         }
 
@@ -528,18 +538,21 @@ namespace SatelliteSessions
             N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
 
             /* ---------- Z -----------*/
-            switch(Parameters.shooting_channel)
-            {
-                case "pk":
-                    Z = 16;
-                    break;
-                case "mk":
-                    Z = 15;
-                    break;
-                default:
-                    Z = 31;
-                    break;
-            }
+            if (RegimeType == RegimeTypes.ZI || RegimeType == RegimeTypes.NP)
+                switch (Parameters.shooting_channel)
+                {
+                    case "pk":
+                        Z = 16;
+                        break;
+                    case "mk":
+                        Z = 15;
+                        break;
+                    default:
+                        Z = 31;
+                        break;
+                }
+            else
+                Z = 0;
 
             /* ---------- Troute -----------*/
             switch (RegimeType)
@@ -632,47 +645,6 @@ namespace SatelliteSessions
                             break;
                     }
                     // 7-9 -- нули по умолчанию
-
-
-                    //switch (parameters.memoryCellMZU1)
-                    //{
-                    //    case 0:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 10);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 11);
-                    //        break;
-                    //    case 1:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 10);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 11);
-                    //        break;
-                    //    case 2:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 10);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 11);
-                    //        break;
-                    //    case 3:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 10);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 11);
-                    //        break;
-                    //}
-                    //switch (parameters.memoryCellMZU2)
-                    //{
-                    //    case 0:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 12);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 13);
-                    //        break;
-                    //    case 1:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 12);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 13);
-                    //        break;
-                    //    case 2:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 12);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 13);
-                    //        break;
-                    //    case 3:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 12);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 13);
-                    //        break;
-                    //}
-
                     // 10-13 -- БУДУТ ЗАПОЛНЕНЫ В МПЗ НА ОСНОВЕ CONF_B
                     // 14-15 -- нули по умолчанию
                     break;
@@ -819,7 +791,7 @@ namespace SatelliteSessions
             // отдельно
 
             /* ---------- Z -----------*/
-            Z = 31;
+            Z = 0;
 
             /* ---------- N_MK -----------*/
             N_MK = 0; // поле не используется, всегда 0
