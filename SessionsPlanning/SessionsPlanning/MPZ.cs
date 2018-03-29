@@ -109,12 +109,15 @@ namespace SatelliteSessions
         private void loadRoutes(List<RouteMPZ> routes)
         {
             Routes = routes;
-            
+
+            if (Routes.Count > 0)
+                Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
+            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
             for (int i = 0; i < routes.Count; ++i)
             {
                 Routes[i].NPZ = Header.NPZ;
                 Routes[i].Nroute = i;
-                Routes[i].Ts = i == 0 ? (int)(HeaderMPZ.TON_DELTA.TotalSeconds * 5) : Routes[i - 1].Ts + Routes[i - 1].Troute; 
+                Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalSeconds * 5;
                 if (i + 1 < routes.Count - 1)
                 {
                     if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
@@ -123,9 +126,7 @@ namespace SatelliteSessions
                 Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
                 Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
-            if (Routes.Count > 0)
-                Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
-            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
+            
             try
             {
                 RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
@@ -134,7 +135,7 @@ namespace SatelliteSessions
             catch
             {
                 // Нет маршрутов со съемкой
-                Header.Tvideo = (uint)(23 * 60 + 20) * 5;
+                Header.Tvideo = (uint)(HeaderMPZ.TTASK_MAX.TotalSeconds) * 5;
             }
         }
 
