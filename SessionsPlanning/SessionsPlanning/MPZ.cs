@@ -61,7 +61,7 @@ namespace SatelliteSessions
             if (dumpsData)
                 Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
             else
-                Header.CONF_RLCI = 0; // ВЫКЛЮЧИТЬ СВРЛ; ПО ПРОСЬБЕ СОФЬИ БЕЗ СБРОСА СОВСЕМ 0
+                Header.CONF_RLCI = 0; // нет сброса, то 0 целиком
 
             /* ---------- Session_key_On -----------*/
             Header.Session_key_ON = (byte)(flags.sessionKeyOn ? 1 : 0);
@@ -75,7 +75,12 @@ namespace SatelliteSessions
             /* ---------- REGta_Param -----------*/
             for (int i = 0; i < Routes.Count; ++i)
             {
-                if (flags.useYKZU1)
+                if (Routes[i].RegimeType == RegimeTypes.VI || Routes[i].RegimeType == RegimeTypes.SI)
+                {
+                    Routes[i].REGta_Param_bytes[0] = 0;
+                    Routes[i].REGta_Param_bytes[1] = 0;
+                }
+                else if (flags.useYKZU1)
                 {
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 10);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 12);
@@ -636,47 +641,6 @@ namespace SatelliteSessions
                             break;
                     }
                     // 7-9 -- нули по умолчанию
-
-
-                    //switch (parameters.memoryCellMZU1)
-                    //{
-                    //    case 0:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 10);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 11);
-                    //        break;
-                    //    case 1:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 10);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 11);
-                    //        break;
-                    //    case 2:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 10);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 11);
-                    //        break;
-                    //    case 3:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 10);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 11);
-                    //        break;
-                    //}
-                    //switch (parameters.memoryCellMZU2)
-                    //{
-                    //    case 0:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 12);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 13);
-                    //        break;
-                    //    case 1:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 12);
-                    //        ByteRoutines.SetBitZero(REGta_Param, 13);
-                    //        break;
-                    //    case 2:
-                    //        ByteRoutines.SetBitZero(REGta_Param, 12);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 13);
-                    //        break;
-                    //    case 3:
-                    //        ByteRoutines.SetBitOne(REGta_Param, 12);
-                    //        ByteRoutines.SetBitOne(REGta_Param, 13);
-                    //        break;
-                    //}
-
                     // 10-13 -- БУДУТ ЗАПОЛНЕНЫ В МПЗ НА ОСНОВЕ CONF_B
                     // 14-15 -- нули по умолчанию
                     break;
