@@ -187,7 +187,7 @@ namespace SatelliteTrajectory
                     if (outOfRange)
                         break;
                     
-                    if (tmin >= tmax)
+                    if ((tmax - tmin).TotalSeconds < 2)
                         continue;
 
                     Order order = new Order();
