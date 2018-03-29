@@ -471,6 +471,7 @@ namespace SatelliteSessions
         public byte[] Tune_Param { get; set; } // 64 byte
         public double W_D_MpZ { get; set; } // 4 byte
         public int Coef_tang { get; set; } // 2 byte
+        public int Compression { get; set; }
         public int Target_RatePK { get; set; } // 2 byte
         public int Target_RateMK { get; set; } // 2 byte
         public int Quant_InitValuePK { get; set; } // 14 bit
@@ -692,6 +693,9 @@ namespace SatelliteSessions
 
             /* ---------- Delta_T -----------*/
             Delta_T = 0; //(byte)(parameters.Delta_T == null ? 0 : parameters.Delta_T);
+
+            /* ---------- Compression -----------*/
+            Compression = Math.Max(Parameters.zipPK, Parameters.zipMK);
 
             /* ---------- Target_RatePK -----------*/
             if (Parameters.zipPK >= 2)
