@@ -812,31 +812,95 @@ namespace ViewModel
                 reqparams.wktPolygon = pol.ToWtk();
                 reqparams.albedo = 0;
                 reqparams.compression = 0;
+                reqparams.requestChannel = null;
                 requests.Add(reqparams);
                 id++;
             }
 
 
             requests[0].compression = 2;
+            requests[0].priority = 2;
+            requests[0].Max_SOEN_anlge = AstronomyMath.ToRad(1);
+            requests[0].requestChannel = null;
+
             requests[1].compression = 1;
+            requests[1].priority = 1;
+            requests[1].Max_SOEN_anlge = AstronomyMath.ToRad(1);
+            requests[1].requestChannel = null;
+
             requests[2].compression = 1;
+            requests[2].priority = 1;
+            requests[2].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+            requests[2].requestChannel = null;
+
             requests[3].compression = 1;
+            requests[3].priority = 2;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+            requests[3].requestChannel = null;
+
             requests[4].compression = 1;
+            requests[4].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(1);
+
             requests[5].compression = 9;
+            requests[5].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[6].compression = 1;
+            requests[6].priority = 2;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[7].compression = 8;
+            requests[7].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[8].compression = 1;
+            requests[8].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[9].compression = 10;
+            requests[9].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[10].compression = 1;
+            requests[10].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(6);
+
             requests[11].compression = 10;
+            requests[11].priority = 3;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[12].compression = 5;
+            requests[12].priority = 2;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[13].compression = 10;
+            requests[13].priority = 2;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[14].compression = 1;
+            requests[14].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[15].compression = 10;
+            requests[15].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(11);
+
             requests[16].compression = 6;
+            requests[16].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[17].compression = 2;
+            requests[17].priority = 3;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
             requests[18].compression = 2;
-            requests[19].compression = 1;             
+            requests[18].priority = 2;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
+
+            requests[19].compression = 1;
+            requests[19].priority = 1;
+            requests[3].Max_SOEN_anlge = AstronomyMath.ToRad(12);
             
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
