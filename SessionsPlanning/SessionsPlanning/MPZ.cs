@@ -79,6 +79,10 @@ namespace SatelliteSessions
                 {
                     Routes[i].REGta_Param_bytes[0] = 0;
                     Routes[i].REGta_Param_bytes[1] = 0;
+                    Routes[i].Target_RateMK = 0;
+                    Routes[i].Target_RatePK = 0;
+                    Routes[i].Quant_InitValueMK = 0;
+                    Routes[i].Quant_InitValuePK = 0;
                 }
                 else if (flags.useYKZU1)
                 {
