@@ -101,6 +101,8 @@ namespace SatelliteSessions
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 11);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 13);
                 }
+                Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
+                Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
         }
  
@@ -132,8 +134,6 @@ namespace SatelliteSessions
                     if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
                         ByteRoutines.SetBitOne(Routes[i].REGta_bytes, 10); // suspend_mode
                 }
-                Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
-                Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
             
             try
