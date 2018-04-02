@@ -27,6 +27,7 @@ using SatelliteSessions;
 using DataParsers;
 using Astronomy;
 using OptimalChain;
+using DBTables;
 
 namespace ViewModel
 {
@@ -763,10 +764,149 @@ namespace ViewModel
 
         }
 
+
+
+        public void testTrapezium()
+        {
+            var allPols = new List<Polygon>();
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            DataFetcher fetcher = new DataFetcher(managerDB);
+                        double rollAngle = AstronomyMath.ToRad(45);
+            double pitchAngle = AstronomyMath.ToRad(30);
+            double viewAngle = OptimalChain.Constants.camera_angle;
+
+            DateTime dt1 = new DateTime(2019, 2, 2, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 0, 09, 00);
+
+            DateTime segmdt1 = new DateTime(2019, 2, 2, 0, 00, 00);
+            DateTime segmdt12 = new DateTime(2019, 2, 2, 0, 04, 20);
+            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 08, 00);
+            
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+            Console.Write("GEOMETRYCOLLECTION(");
+
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            Console.Write("LINESTRING(");
+            for (int i = 0; i < trajectory.Count; i++ )
+            {
+                TrajectoryPoint trajPoint = trajectory.Points[i];
+                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
+                if (i != 0)
+                    Console.Write(" , ");
+                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            Console.Write(")");
+
+            Console.Write(",");
+
+            Console.Write("LINESTRING(");
+            int step = 1;
+            for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
+            {
+                DateTime curDt = dt1.AddSeconds(t);
+                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
+                if (t != 0)
+                    Console.Write(" , ");
+                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            Console.Write(")");
+
+            Console.Write(",");
+
+             
+            Console.Write("LINESTRING(");
+            for (int i = 0; i < trajectory.Count; i++)
+            {
+                TrajectoryPoint trajPoint = trajectory.Points[i];
+                Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
+                GeoPoint pos = GeoPoint.FromCartesian(pe);
+                if (i != 0)
+                    Console.Write(" , ");
+                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            Console.Write(")");
+
+            Console.Write(",");
+
+            Console.Write("LINESTRING(");
+            int steppp = 1;
+            for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += steppp)
+            {                
+                DateTime curDt = dt1.AddSeconds(t);
+                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+                 Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
+                GeoPoint pos = GeoPoint.FromCartesian(pe);
+                if (t != 0)
+                    Console.Write(" , ");
+                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            Console.Write(")");
+
+           
+            Console.Write(")");
+
+             return;
+
+
+
+            SatLane lane_roll = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+            SatLane nadirlane = new SatLane(trajectory, 0, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+            SatLane nadirlane_pitch = new SatLane(trajectory, 0, pitchAngle, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+ 
+            Polygon segment_lane_roll = lane_roll.getSegment(segmdt1, segmdt2);
+            Polygon segment_nadirlane = nadirlane.getSegment(segmdt1, segmdt2);
+            Polygon segment_nadir_pich = nadirlane_pitch.getSegment(segmdt1, segmdt2);
+
+            Polygon segment_nadirlane1 = nadirlane.getSegment(segmdt1, segmdt12);
+            Polygon segment_nadirlane2 = nadirlane.getSegment(segmdt12, segmdt2);
+
+            Polygon segment_roll_lane1 = lane_roll.getSegment(segmdt1, segmdt12);
+            Polygon segment_roll_lane2 = lane_roll.getSegment(segmdt12, segmdt2);
+
+      
+
+
+
+            // allPols.Add(segment_nadirlane_roll);
+            allPols.Add(segment_lane_roll);
+            // allPols.Add(segment_nadir_pich);
+
+            //allPols.Add(segment_roll_lane1);
+           // allPols.Add(segment_roll_lane2);
+
+            int st = 10;
+            for (int t = st+st+st; t <= (segmdt2 - segmdt1).TotalSeconds; t += st)
+            {
+                DateTime dtcur1 = segmdt1.AddSeconds(t - st);
+                DateTime dtcur2 = segmdt1.AddSeconds(t);
+                Polygon segment = lane_roll.getSegment(dtcur1, dtcur2);
+                allPols.Add(segment);
+            }
+
+            //for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += 5)
+            //{
+            //    DateTime dtcur = segmdt1.AddSeconds(t);
+            //    TrajectoryPoint p1 = trajectory.GetPoint(dtcur);
+            //    Vector3D dirVector = LanePos.getDirectionVector(p1, rollAngle, 0);
+            //    Polygon viewPolBegNadir = Routines.getViewPolygon(p1, dirVector, OptimalChain.Constants.camera_angle);
+            //    allPols.Add(viewPolBegNadir);
+            //}
+     
+            Console.WriteLine(Polygon.getMultipolFromPolygons(allPols));
+            Console.Write(")");
+        }
+
+
         public IList<CaptureConf> test_getCaptureConfArray()
         {
+            testTrapezium();
+            return null;
+
             DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
-            DateTime dt2 = new DateTime(2019, 2, 8, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 0, 00, 00);
 
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -833,6 +973,7 @@ namespace ViewModel
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             //polygons.Add(new Polygon("POLYGON((-315.14378163320714 -1.645382936563152, -306.1789378832072 9.73302071251409, -341.3351878832072 29.937923070513676, -351.70628163320714 8.344268391587661, -315.14378163320714 -1.645382936563152))"));
             //     polygons.Add(new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"));
+   
 
            //  polygons.Add(new Polygon("POLYGON ((0.02 -0.02, 0.02 0.02, -0.02 0.02, -0.02 -0.02, 0.02 -0.02))"));
 
@@ -879,6 +1020,29 @@ namespace ViewModel
             polygons.Add(new Polygon("POLYGON ((73.166398746769 83.3795342613812,69.1157648056298 78.3986011694295,69.1017292969888 77.8679160512509,82.572775740474 76.204628990747,82.7895030334302 76.948348271668,82.8510351925494 77.29836274115,77.2353040566382 83.8046777874499,73.166398746769 83.3795342613812))"));
             */
 
+
+            polygons.Add(new Polygon("POLYGON((-43.04908666268235 -3.044447530220779, -43.53966399220003 -4.8753070490222115, -43.435288337317644 -4.903274421457425, -42.94471100779996 -3.072414902655993, -43.04908666268235 -3.044447530220779))"));
+            polygons.Add(new Polygon("POLYGON((-50.31716140529085 -0.5747537972736154, -50.335880302737785 -0.6809139400476596, -50.22971359470917 -0.6996339951261064, -50.21099469726223 -0.5934738523520622, -50.31716140529085 -0.5747537972736154))"));
+            polygons.Add(new Polygon("POLYGON((-50.757977960298355 -4.601211337347138, -50.79484699096549 -4.702508166582305, -50.66780328970164 -4.748748292293342, -50.63093425903449 -4.647451463058189, -50.757977960298355 -4.601211337347138))"));
+            polygons.Add(new Polygon("POLYGON((-51.53707293487392 -10.95804247857238, -51.57394196554107 -11.059339307807562, -51.47073956512608 -11.096901909663444, -51.43387053445894 -10.995605080428277, -51.53707293487392 -10.95804247857238))"));
+            polygons.Add(new Polygon("POLYGON((-50.0445858914435 -17.92960004489511, -50.08145492211064 -18.030896874130264, -49.974945358556525 -18.069663184928643, -49.93807632788937 -17.96836635569349, -50.0445858914435 -17.92960004489511))"));
+            polygons.Add(new Polygon("POLYGON((-51.29401917952477 -27.05982002977042, -51.4885101436886 -27.17210944028536, -51.362230820475226 -27.390831644036325, -51.16773985631141 -27.2785422335214, -51.29401917952477 -27.05982002977042))"));
+            polygons.Add(new Polygon("POLYGON((-51.01542607825896 -27.806425118514035, -51.0522951089261 -27.90772194774918, -50.937698921741074 -27.949431548844935, -50.900829891073926 -27.84813471960979, -51.01542607825896 -27.806425118514035))"));
+            polygons.Add(new Polygon("POLYGON((-52.76928527125471 -32.0626588950123, -52.81484260451908 -32.16035691147769, -52.69946472874528 -32.21415849853267, -52.653907395480914 -32.116460482067275, -52.76928527125471 -32.0626588950123))"));
+            polygons.Add(new Polygon("POLYGON((-76.05760560063729 -0.3044491885171112, -76.09447463130444 -0.40574601775226427, -75.9931756493627 -0.4426158319405289, -75.95630661869555 -0.34131900270537585, -76.05760560063729 -0.3044491885171112))"));
+            polygons.Add(new Polygon("POLYGON((-75.02261245242727 -7.145101806681566, -75.02261245242727 -7.252899640775922, -74.4793406725727 -7.252899640775922, -74.4793406725727 -7.145101806681566, -75.02261245242727 -7.145101806681566))"));
+            polygons.Add(new Polygon("POLYGON((-71.50374721803709 -16.36160036124477, -71.61049597102021 -16.34659780239707, -71.62613559446291 -16.457879505510718, -71.51938684147979 -16.472882064358416, -71.50374721803709 -16.36160036124477))"));
+            polygons.Add(new Polygon("POLYGON((-70.341356382513 -18.260661169175805, -70.41816686306956 -18.471696230082372, -70.195752992487 -18.55264825866236, -70.11894251193044 -18.341613197755777, -70.341356382513 -18.260661169175805))"));
+            polygons.Add(new Polygon("POLYGON((-70.10729191358107 -22.690346453785182, -70.1441609442482 -22.791643283020335, -70.03430964891893 -22.831625884715763, -69.9974406182518 -22.73032905548061, -70.10729191358107 -22.690346453785182))"));
+            polygons.Add(new Polygon("POLYGON((-73.6440945444437 -37.57108600065295, -73.66281344189062 -37.67724614342698, -73.5287570180563 -37.70088390788626, -73.51003812060938 -37.59472376511223, -73.6440945444437 -37.57108600065295))"));
+            polygons.Add(new Polygon("POLYGON((-74.24014189543877 -41.28663429970019, -74.27701092610593 -41.38793112893536, -73.2622995108112 -41.75725588047276, -73.22543048014404 -41.655959051237595, -74.24014189543877 -41.28663429970019))"));
+            polygons.Add(new Polygon("POLYGON((-74.02992281372227 -41.50300106334383, -74.21426796705799 -42.00948520951961, -73.67027249877776 -42.2074833675493, -73.48592734544204 -41.700999221373536, -74.02992281372227 -41.50300106334383))"));
+            polygons.Add(new Polygon("POLYGON((-73.8783475012522 -42.38835527514226, -73.91521653191933 -42.48965210437743, -73.7779024987478 -42.53963032519891, -73.74103346808067 -42.438333495963754, -73.8783475012522 -42.38835527514226))"));
+            polygons.Add(new Polygon("POLYGON((-73.13456455512787 -45.17485422757945, -73.17143358579503 -45.27615105681462, -73.02754481987213 -45.328522284655854, -72.99067578920497 -45.22722545542068, -73.13456455512787 -45.17485422757945))"));
+            polygons.Add(new Polygon("POLYGON((-73.62010006363346 -46.79009087295539, -73.65696909430062 -46.891387702190556, -73.50880618636654 -46.945314590500885, -73.47193715569938 -46.84401776126571, -73.62010006363346 -46.79009087295539))"));
+            polygons.Add(new Polygon("POLYGON((-74.06313603850693 -49.21755569317754, -74.10000506917409 -49.31885252241271, -73.9446764614931 -49.375387512138595, -73.90780743082594 -49.27409068290343, -74.06313603850693 -49.21755569317754))"));
+
+
            //  polygons.Add(new Polygon("POLYGON ((-38.9763453298122 30.0080564431448,-38.6761961185558 29.8972269350411,-35.9101429589335 32.9187079087084,-37.1682845064806 34.0511201603333,-38.9763453298122 30.0080564431448))"));
             // polygons.Add(new Polygon("POLYGON ((68.295061612353 33.8432044928854,70.6685350162804 30.4622223756182,72.4730436946195 30.319934864894,75.21705428202 34.526308734133,68.295061612353 33.8432044928854))"));
 
@@ -889,103 +1053,128 @@ namespace ViewModel
             // с 01.02.2019  16:40 по 01.02.2019 17:00
  
 
-            /*
+        
             int id = 310;
             foreach (var pol in polygons)
             {
                 RequestParams reqparams = new RequestParams();
                 reqparams.id = id;
-                //reqparams.timeFrom = new DateTime(2019, 1, 31, 0, 00, 00); //  2019-01-31T00:00:00
-                //reqparams.timeTo = new DateTime(2019, 2, 2, 0, 00, 00);                
+                reqparams.timeFrom = new DateTime(2019, 2, 01, 0, 00, 00); 
+                reqparams.timeTo = new DateTime(2019, 2, 25, 0, 00, 00);                
                 reqparams.shootingType = 0;
                 reqparams.minCoverPerc = 70;
-                //reqparams.Max_SOEN_anlge = 0.9599310885968813;//AstronomyMath.ToRad(45);
+                reqparams.Max_SOEN_anlge = 0.9599310885968813;//AstronomyMath.ToRad(45);
                 reqparams.wktPolygon = pol.ToWtk();
                 reqparams.albedo = 0;
                 reqparams.compression = 0;
                 requests.Add(reqparams);                
                 id++;
             }
-            requests[0].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[0].timeTo = DateTime.Parse("2019-02-02T00:00:00");
-            requests[0].priority = 3;
-            requests[0].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[1].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[1].timeTo = DateTime.Parse("2019-02-02T00:00:00");
-            requests[1].priority = 2;
-            requests[1].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[2].timeFrom = DateTime.Parse("2019-02-01T00:00:00");
-            requests[2].timeTo = DateTime.Parse("2019-02-03T00:00:00");
-            requests[2].priority = 1;
-            requests[2].Max_SOEN_anlge = 0.9599310885968813;
 
 
-            requests[3].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[3].timeTo = DateTime.Parse("2019-02-02T00:00:00");
-            requests[3].priority = 2;
-            requests[3].Max_SOEN_anlge = 0.9599310885968813;
+            requests[0].compression = 2;
+            requests[1].compression = 1;
+            requests[2].compression = 1;
+            requests[3].compression = 1;
+            requests[4].compression = 1;
+            requests[5].compression = 9;
+            requests[6].compression = 1;
+            requests[7].compression = 8;
+            requests[8].compression = 1;
+            requests[9].compression = 10;
+            requests[10].compression = 1;
+            requests[11].compression = 10;
+            requests[12].compression = 5;
+            requests[13].compression = 10;
+            requests[14].compression = 1;
+            requests[15].compression = 10;
+            requests[16].compression = 6;
+            requests[17].compression = 2;
+            requests[18].compression = 2;
+            requests[19].compression = 1;
 
-            requests[4].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[4].timeTo = DateTime.Parse("2019-02-03T00:00:00");
-            requests[4].priority = 3;
-            requests[4].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[5].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[5].timeTo = DateTime.Parse("2019-02-02T00:00:00");
-            requests[5].priority = 2;
-            requests[5].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[6].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[6].timeTo = DateTime.Parse("2019-02-05T00:00:00");
-            requests[6].priority = 3;
-            requests[6].shootingType = 1;
-            requests[6].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[7].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[7].timeTo = DateTime.Parse("2019-02-02T00:00:00");
-            requests[7].priority = 1;
-            requests[7].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[8].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[8].timeTo = DateTime.Parse("2019-02-03T00:00:00");
-            requests[8].priority = 1;
-            requests[8].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[9].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[9].timeTo = DateTime.Parse("2019-02-02T00:00:00");
-            requests[9].priority = 2;
-            requests[9].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[10].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[10].timeTo = DateTime.Parse("2019-02-03T00:00:00");
-            requests[10].priority = 2;
-            requests[10].Max_SOEN_anlge = 0.7853981633974483;
-
-            requests[11].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[11].timeTo = DateTime.Parse("2019-02-04T00:00:00");
-            requests[11].priority = 3;
-            requests[11].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[12].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
-            requests[12].timeTo = DateTime.Parse("2019-02-05T00:00:00");
-            requests[12].priority = 3;
-            requests[12].Max_SOEN_anlge = 0.9599310885968813;
-
-            requests[13].timeFrom = DateTime.Parse("2018-03-01T13:27:00");
-            requests[13].timeTo = DateTime.Parse("2018-03-03T13:27:00");
-            requests[13].priority = 2;
-            requests[13].Max_SOEN_anlge = 0.8726646259971648;
-
-            requests[14].timeFrom = DateTime.Parse("2018-02-26T19:22:00");
-            requests[14].timeTo = DateTime.Parse("2018-03-13T19:22:00");
-            requests[14].priority = 3;
-            requests[14].Max_SOEN_anlge = 0.5235987755982988;
-            */
+           
 
 
-            /*
+
+            /*  
+        requests[0].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[0].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+        requests[0].priority = 3;
+        requests[0].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[1].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[1].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+        requests[1].priority = 2;
+        requests[1].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[2].timeFrom = DateTime.Parse("2019-02-01T00:00:00");
+        requests[2].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+        requests[2].priority = 1;
+        requests[2].Max_SOEN_anlge = 0.9599310885968813;
+
+
+        requests[3].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[3].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+        requests[3].priority = 2;
+        requests[3].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[4].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[4].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+        requests[4].priority = 3;
+        requests[4].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[5].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[5].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+        requests[5].priority = 2;
+        requests[5].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[6].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[6].timeTo = DateTime.Parse("2019-02-05T00:00:00");
+        requests[6].priority = 3;
+        requests[6].shootingType = 1;
+        requests[6].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[7].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[7].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+        requests[7].priority = 1;
+        requests[7].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[8].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[8].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+        requests[8].priority = 1;
+        requests[8].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[9].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[9].timeTo = DateTime.Parse("2019-02-02T00:00:00");
+        requests[9].priority = 2;
+        requests[9].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[10].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[10].timeTo = DateTime.Parse("2019-02-03T00:00:00");
+        requests[10].priority = 2;
+        requests[10].Max_SOEN_anlge = 0.7853981633974483;
+
+        requests[11].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[11].timeTo = DateTime.Parse("2019-02-04T00:00:00");
+        requests[11].priority = 3;
+        requests[11].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[12].timeFrom = DateTime.Parse("2019-01-31T00:00:00");
+        requests[12].timeTo = DateTime.Parse("2019-02-05T00:00:00");
+        requests[12].priority = 3;
+        requests[12].Max_SOEN_anlge = 0.9599310885968813;
+
+        requests[13].timeFrom = DateTime.Parse("2018-03-01T13:27:00");
+        requests[13].timeTo = DateTime.Parse("2018-03-03T13:27:00");
+        requests[13].priority = 2;
+        requests[13].Max_SOEN_anlge = 0.8726646259971648;
+
+        requests[14].timeFrom = DateTime.Parse("2018-02-26T19:22:00");
+        requests[14].timeTo = DateTime.Parse("2018-03-13T19:22:00");
+        requests[14].priority = 3;
+        requests[14].Max_SOEN_anlge = 0.5235987755982988;
+       
             requests.Add(new RequestParams(i: 310, p: 3, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 70.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((126.35281885204118 -15.644335352003495, 126.32209465981855 -15.728749376366125, 126.40978114795878 -15.760664647996506, 126.44050534018143 -15.676250623633877, 126.35281885204118 -15.644335352003495))", sT: 0, comp: 10, alb: 0.0));
             requests.Add(new RequestParams(i: 311, p: 2, d1: DateTime.Parse("2019-01-31T00:00:00"), d2: DateTime.Parse("2019-02-02T00:00:00"), max_a: 0.95993108859688125, min_p: 80.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((121.83117292297347 -33.45740031865339, 121.64682776963774 -33.96388446482916, 122.13442233635772 -34.141354373505145, 122.31876748969344 -33.63487022732936, 121.83117292297347 -33.45740031865339))", sT: 0, comp: 10, alb: 0.0));
             requests.Add(new RequestParams(i: 313, p: 1, d1: DateTime.Parse("2019-02-01T00:00:00"), d2: DateTime.Parse("2019-02-03T00:00:00"), max_a: 0.95993108859688125, min_p: 60.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((109.48626654494377 19.5594462504705, 109.36336977605328 19.22179015301998, 109.45285099845553 19.18922165153981, 109.57574776734603 19.52687774899033, 109.48626654494377 19.5594462504705))", sT: 0, comp: 10, alb: 0.0));
@@ -1008,7 +1197,7 @@ namespace ViewModel
             */
 
 
-            requests.Add(new RequestParams(i: 331, p: 3, d1: DateTime.Parse("2018-02-26T19:22:00"), d2: DateTime.Parse("2019-03-13T19:22:00"), max_a: 0.52359877559829882, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((32.185089 29.690301, 32.185089 33.690301, 28.185089 33.690301, 28.185089 29.690301, 32.185089 29.690301))", sT: 0, comp: 10, alb: 0.0));
+          //  requests.Add(new RequestParams(i: 331, p: 3, d1: DateTime.Parse("2018-02-26T19:22:00"), d2: DateTime.Parse("2019-03-13T19:22:00"), max_a: 0.52359877559829882, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((32.185089 29.690301, 32.185089 33.690301, 28.185089 33.690301, 28.185089 29.690301, 32.185089 29.690301))", sT: 0, comp: 10, alb: 0.0));
             //requests.Add(new RequestParams(i: 331, p: 3, d1: DateTime.Parse("2018-02-26T19:22:00"), d2: DateTime.Parse("2019-03-13T19:22:00"), max_a: 0.52359877559829882, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((33.690301 28.185089, 33.690301 32.185089, 29.690301 32.185089, 29.690301 28.185089, 33.690301 28.185089))", sT: 0, comp: 10, alb: 0.0));
             
             /*
@@ -1132,6 +1321,24 @@ namespace ViewModel
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
             return new List<CaptureConf>();
 
+        }
+
+
+        public static string getMultipolFromPolygon(List<Polygon> polygons)
+        {
+            string res = "";
+            foreach (var pol in polygons)
+            {
+                res = res + pol.ToWtk() + "\n";
+                if (pol != polygons.Last() )
+                    res += ",";
+            }
+
+            res = res.Replace("POLYGON", "");
+
+            res = "MULTIPOLYGON (" + res + ")";
+ 
+            return res;
         }
 
         public bool RegionCanBeCaptured { get; private set; }
