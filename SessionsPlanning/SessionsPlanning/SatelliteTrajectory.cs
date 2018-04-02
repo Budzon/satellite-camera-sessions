@@ -438,8 +438,8 @@ namespace SatelliteTrajectory
 
             Vector3D eDirVect = new Vector3D(-pointKA.Position.X, -pointKA.Position.Y, -pointKA.Position.Z);
 
-            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(pointKA.Velocity, AstronomyMath.ToDegrees(minAngle)));
-            RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(pointKA.Velocity, AstronomyMath.ToDegrees(maxAngle)));
+            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(-pointKA.Velocity, AstronomyMath.ToDegrees(minAngle)));
+            RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(-pointKA.Velocity, AstronomyMath.ToDegrees(maxAngle)));
              
             Vector3D pitchAxis = Vector3D.CrossProduct(pointKA.Velocity, eDirVect);
             RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle)));
@@ -452,6 +452,7 @@ namespace SatelliteTrajectory
 
             Vector3D leftCrossPoint = Routines.SphereVectIntersect(leftVector, pointKA.Position, Astronomy.Constants.EarthRadius);
             Vector3D rightCrossPoint = Routines.SphereVectIntersect(rightVector, pointKA.Position, Astronomy.Constants.EarthRadius);
+
             Vector3D KAPoint = pointKA.Position.ToVector();
 
             //var tanHalfVa = Math.Tan(viewAngle / 2);
@@ -519,22 +520,12 @@ namespace SatelliteTrajectory
         public static Vector3D applyRollRotation(TrajectoryPoint point, Vector3D dirVect, double rollAngle)
         {
             Vector3D position = point.Position.ToVector();
-            Vector3D velo = point.Velocity;      
-            //Vector3D pitchAxis =  Vector3D.CrossProduct(dirVect, velo);
-            //Vector3D rollAxis = Vector3D.CrossProduct(pitchAxis, dirVect);
+            Vector3D velo = point.Velocity;       
             RotateTransform3D rollTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-velo, AstronomyMath.ToDegrees(rollAngle)));
             Vector3D rollRotDir = rollTransfrom.Transform(dirVect);
             return rollRotDir;
         }
         
-        public static Vector3D getDirectionVector_TEST(TrajectoryPoint point, double rollAngle, double pitchAngle)
-        {
-            Vector3D eDirVect = -point.Position.ToVector();
-            Vector3D pitchDir = applyPitchlRotation(point, eDirVect, pitchAngle);
-            Vector3D resDir = applyRollRotation(point, pitchDir, rollAngle);            
-            return resDir;
-        }
-
         public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
         {
             Vector3D eDirVect = -point.Position.ToVector();

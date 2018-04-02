@@ -440,6 +440,13 @@ namespace ViewModel
 
         }
 
+        public static Vector3D getDirectionVector_TEST(TrajectoryPoint point, double rollAngle, double pitchAngle)
+        {
+            Vector3D eDirVect = -point.Position.ToVector();
+            Vector3D pitchDir = applyPitchlRotation(point, eDirVect, pitchAngle);
+            Vector3D resDir = applyRollRotation(point, pitchDir, rollAngle);
+            return resDir;
+        }
 
         public void test_roll_correction()
         {
@@ -487,13 +494,13 @@ namespace ViewModel
             polygons.Add(getPointPolygon(pointRollPitch));
 
             test_vectors(-point.Position.ToVector(),
-                 LanePos.getDirectionVector_TEST(point, rollAngle, 0)
-                , LanePos.getDirectionVector_TEST(point, rollAngle, pitchAngle)
-                , LanePos.getDirectionVector_TEST(point, 0, pitchAngle));
+                 getDirectionVector_TEST(point, rollAngle, 0)
+                , getDirectionVector_TEST(point, rollAngle, pitchAngle)
+                , getDirectionVector_TEST(point, 0, pitchAngle));
 
 
-            Vector3D pp1 = LanePos.getDirectionVector_TEST(point, 0, pitchAngle);
-            Vector3D pp2 = LanePos.getDirectionVector_TEST(point, rollAngle, pitchAngle);
+            Vector3D pp1 = getDirectionVector_TEST(point, 0, pitchAngle);
+            Vector3D pp2 = getDirectionVector_TEST(point, rollAngle, pitchAngle);
 
             Console.WriteLine("pp1 = {0}", pp1);
             Console.WriteLine("pp2 = {0}", pp2);
@@ -503,7 +510,7 @@ namespace ViewModel
             //polygons.Add(getPointPolygon(GeoPoint.ToCartesian(new GeoPoint(0, 0), 1)));
 
             //Vector3D pp1 = LanePos.getDirectionVector(point, AstronomyMath.ToRad(2), AstronomyMath.ToRad(13));
-            //Vector3D pp2 = LanePos.getDirectionVector_TEST(point, AstronomyMath.ToRad(2), AstronomyMath.ToRad(13));
+            //Vector3D pp2 = getDirectionVector_TEST(point, AstronomyMath.ToRad(2), AstronomyMath.ToRad(13));
 
             //Console.WriteLine("pp1 = {0}", pp1);
             //Console.WriteLine("pp2 = {0}", pp2);         
