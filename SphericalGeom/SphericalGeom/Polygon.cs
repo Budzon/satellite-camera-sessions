@@ -716,6 +716,20 @@ namespace SphericalGeom
                 q.knowArcs = false;
             }
         }
+
+        public static string getMultipolFromPolygons(List<Polygon> polygons)
+        {
+            string res = "";
+            foreach (var pol in polygons)
+            {
+                res = res + pol.ToWtk() + "\n";
+                if (pol != polygons.Last())
+                    res += ",";
+            }          
+            res = "GEOMETRYCOLLECTION (" + res + ")";
+            return res;
+        }
+
         #endregion
     }
 }
