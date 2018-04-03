@@ -777,46 +777,81 @@ namespace ViewModel
             double viewAngle = OptimalChain.Constants.camera_angle;
 
             DateTime dt1 = new DateTime(2019, 2, 2, 0, 00, 00);
-            DateTime dt2 = new DateTime(2019, 2, 2, 0, 09, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 1, 9, 00);
 
             DateTime segmdt1 = new DateTime(2019, 2, 2, 0, 00, 00);
             DateTime segmdt12 = new DateTime(2019, 2, 2, 0, 04, 20);
             DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 08, 00);
             
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+            
+            
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            int step = 1;
+            //Console.Write("x = [");
+            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
+            //{
+            //    DateTime curDt = dt1.AddSeconds(t);
+            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+            //    Console.Write(" {0} ", trajPoint.Position.X.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write("];\n");
+
+            //Console.Write("y = [");
+            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
+            //{
+            //    DateTime curDt = dt1.AddSeconds(t);
+            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+            //    Console.Write(" {0} ", trajPoint.Position.Y.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write("];\n");
+
+            //Console.Write("z = [");
+            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
+            //{
+            //    DateTime curDt = dt1.AddSeconds(t);
+            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+            //    Console.Write(" {0} ", trajPoint.Position.Z.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write("];\n");
+
+            //Console.Write("plot3(x,y,z)");
+
+            //return;
 
             Console.Write("GEOMETRYCOLLECTION(");
 
-            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
-            Console.Write("LINESTRING(");
-            for (int i = 0; i < trajectory.Count; i++ )
-            {
-                TrajectoryPoint trajPoint = trajectory.Points[i];
-                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
-                if (i != 0)
-                    Console.Write(" , ");
-                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
-            }
-            Console.Write(")");
+           
+            //Console.Write("LINESTRING(");
+            //for (int i = 0; i < trajectory.Count; i++ )
+            //{
+            //    TrajectoryPoint trajPoint = trajectory.Points[i];
+            //    GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
+            //    if (i != 0)
+            //        Console.Write(" , ");
+            //    Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write(")");
 
-            Console.Write(",");
+            //Console.Write(",");
 
-            Console.Write("LINESTRING(");
-            int step = 1;
-            for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
-            {
-                DateTime curDt = dt1.AddSeconds(t);
-                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
-                if (t != 0)
-                    Console.Write(" , ");
-                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
-            }
-            Console.Write(")");
+            //Console.Write("LINESTRING(");
+           
+            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
+            //{
+            //    DateTime curDt = dt1.AddSeconds(t);
+            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+            //    GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
+            //    if (t != 0)
+            //        Console.Write(" , ");
+            //    Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write(")");
 
-            Console.Write(",");
+            //Console.Write(",");
 
-             
+
+
             Console.Write("LINESTRING(");
             for (int i = 0; i < trajectory.Count; i++)
             {
@@ -834,10 +869,10 @@ namespace ViewModel
             Console.Write("LINESTRING(");
             int steppp = 1;
             for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += steppp)
-            {                
+            {
                 DateTime curDt = dt1.AddSeconds(t);
                 TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-                 Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
+                Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
                 GeoPoint pos = GeoPoint.FromCartesian(pe);
                 if (t != 0)
                     Console.Write(" , ");
