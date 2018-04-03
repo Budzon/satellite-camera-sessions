@@ -5,7 +5,7 @@ using System.Text;
 using System.Windows.Media.Media3D;
 using System.IO;
 using System.Globalization;
-
+using MathNetCubicSpline = MathNet.Numerics.Interpolation.CubicSpline; // пересечения с Astronomy CubicSpline
 namespace Astronomy
 {
     /// <summary>
@@ -15,11 +15,24 @@ namespace Astronomy
     {
         private TrajectoryPoint[] points;
         private TrajectoryCircuit[] cachedCircuits;
+        private MathNetCubicSpline xPosAkimaInterpolation; 
+        private MathNetCubicSpline yPosAkimaInterpolation;
+        private MathNetCubicSpline zPosAkimaInterpolation;
+        private MathNetCubicSpline xVeloAkimaInterpolation;
+        private MathNetCubicSpline yVeloAkimaInterpolation;
+        private MathNetCubicSpline zVeloAkimaInterpolation;
 
         private Trajectory(TrajectoryPoint[] points)
         {
             if (points == null) throw new ArgumentNullException("points");
             this.points = points;
+            var timeArray = points.Select(p => (double)p.Time.Ticks).ToArray();
+            xPosAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Position.X).ToArray());
+            yPosAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Position.Y).ToArray());
+            zPosAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Position.Z).ToArray());
+            xVeloAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Velocity.X).ToArray());
+            yVeloAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Y).ToArray());
+            zVeloAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Z).ToArray());
         }
 
         public TrajectorySource Source { get; set; }
@@ -155,6 +168,11 @@ namespace Astronomy
             if (i >= 0) return i;
             return ~i;
         }
+        
+        public TrajectoryPoint GetPoint(DateTime t)
+        { 
+            return new TrajectoryPoint(t, GetPosition(t), GetVelocity(t));
+        }
 
         /// <summary>
         /// Point with time "t".
@@ -164,39 +182,10 @@ namespace Astronomy
         /// <returns></returns>
         public Point3D GetPosition(DateTime t)
         {
-            int i = GetNearestGE(t);
-            if (i == 0) return points[0].Position;
-            else if (i == points.Length) return points[i - 1].Position;
-            return GetPosition(t, i);
-        }
-
-
-        public TrajectoryPoint GetPoint(DateTime t)
-        {
-            int i = GetNearestGE(t);
-            return new TrajectoryPoint(t, GetPosition(t, i), GetVelocity(t, i));
-        }
-
-        /// <summary>
-        /// Point with time "t" is between indexNext-1 and indexNext.
-        /// </summary>
-        /// <param name="t"></param>
-        /// <param name="indexNext"></param>
-        /// <returns></returns>
-        public Point3D GetPosition(DateTime t, int indexNext)
-        {
-            if (indexNext == 0)
-            {
-                if (points[0].Time == t) return points[0].Position;
-                throw new ArgumentException("Value at the indexNext should be GE than given time");
-            }
-            DateTime t0 = points[indexNext - 1].Time;
-            DateTime t1 = points[indexNext].Time;
-            if (t == t0) return points[indexNext - 1].Position;
-            if (t == t1) return points[indexNext].Position;
-            double alpha = (double)(t.Ticks - t0.Ticks) / (t1.Ticks - t0.Ticks);
-            var p = alpha * (points[indexNext].Position - points[indexNext - 1].Position) + points[indexNext - 1].Position;
-            return p;
+            double x = xPosAkimaInterpolation.Interpolate(t.Ticks);
+            double y = yPosAkimaInterpolation.Interpolate(t.Ticks);
+            double z = zPosAkimaInterpolation.Interpolate(t.Ticks);
+            return new Point3D(x, y, z);
         }
 
         /// <summary>
@@ -207,32 +196,12 @@ namespace Astronomy
         /// <returns></returns>
         public Vector3D GetVelocity(DateTime t)
         {
-            int i = GetNearestGE(t);
-            return GetVelocity(t, i);
+            double x = xVeloAkimaInterpolation.Interpolate(t.Ticks);
+            double y = yVeloAkimaInterpolation.Interpolate(t.Ticks);
+            double z = zVeloAkimaInterpolation.Interpolate(t.Ticks);
+            return new Vector3D(x, y, z);
         }
-
-        /// <summary>
-        /// Point velocity with time "t" is between indexNext-1 and indexNext.
-        /// </summary>
-        /// <param name="t"></param>
-        /// <param name="indexNext"></param>
-        /// <returns></returns>
-        public Vector3D GetVelocity(DateTime t, int indexNext)
-        {
-            if (indexNext == 0)
-            {
-                if (points[0].Time == t) return points[0].Velocity;
-                throw new ArgumentException("Value at the indexNext should be GE than given time");
-            }
-            DateTime t0 = points[indexNext - 1].Time;
-            DateTime t1 = points[indexNext].Time;
-            if (t == t0) return points[indexNext - 1].Velocity;
-            if (t == t1) return points[indexNext].Velocity;
-            double alpha = (double)(t.Ticks - t0.Ticks) / (t1.Ticks - t0.Ticks);
-            var p = alpha * (points[indexNext].Velocity - points[indexNext - 1].Velocity) + points[indexNext - 1].Velocity;
-            return p;
-        }
-
+                 
         public TrajectoryCircuit GetCircuit(int index)
         {
             if (cachedCircuits == null)
