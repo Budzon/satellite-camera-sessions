@@ -117,26 +117,29 @@ namespace DBTables
             string dtimestr = dtime.ToString(datePattern);
 
             DataRow[] beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, dtime, 1);
-            DataRow[] afterPos = GetDataAfterEqualDate(SatTable.Name, SatTable.Time, dtime, 2);
+            DataRow[] afterPos = GetDataAfterEqualDate(SatTable.Name, SatTable.Time, dtime, 1);
 
-            if (beforePos.Length < 1 || afterPos.Length < 2)
-            {
+            if (beforePos.Length < 1 || afterPos.Length < 1)           
                 return null;
-            }
+           
 
-            var point1 = new SpaceTime { Position = SatTable.GetPosition(beforePos[0]), Time = SatTable.GetTime(beforePos[0]) };
-            var point2 = new SpaceTime { Position = SatTable.GetPosition(afterPos[0]), Time = SatTable.GetTime(afterPos[0]) };
-            var point3 = new SpaceTime { Position = SatTable.GetPosition(afterPos[1]), Time = SatTable.GetTime(afterPos[1]) };
+            SpaceTime point1 = new SpaceTime { Position = SatTable.GetPosition(beforePos[0]), Time = SatTable.GetTime(beforePos[0]) };
+            SpaceTime point2 = new SpaceTime { Position = SatTable.GetPosition(afterPos[0]), Time = SatTable.GetTime(afterPos[0]) };           
 
-            if (point2.Time == dtime) // на случай, если такая точка уже есть
-            {
-                return SpaceTime.createTrajectoryPoint(point2, point3);
-            }
+            Trajectory trajectory = SpaceTime.createTrajectory(new List<SpaceTime>() { point1, point2 });
 
-            TrajectoryPoint first_point = SpaceTime.createTrajectoryPoint(point1, point2);
-            TrajectoryPoint second_point = SpaceTime.createTrajectoryPoint(point2, point3);
+            // var point3 = new SpaceTime { Position = SatTable.GetPosition(afterPos[1]), Time = SatTable.GetTime(afterPos[1]) };
+            //if (point2.Time == dtime) // на случай, если такая точка уже есть
+            //{
+            //    return SpaceTime.createTrajectoryPoint(point2, point3);
+            //}
 
-            Trajectory trajectory = Trajectory.Create(new TrajectoryPoint[2]{first_point, second_point});
+            //TrajectoryPoint first_point = SpaceTime.createTrajectoryPoint(point1, point2);
+            //TrajectoryPoint second_point = SpaceTime.createTrajectoryPoint(point2, point3);
+
+            //Trajectory trajectory = Trajectory.Create(new TrajectoryPoint[2]{first_point, second_point});
+
+            //(new List<SpaceTime>(){point2, point3});
 
             return  trajectory.GetPoint(dtime);
         }
@@ -178,18 +181,19 @@ namespace DBTables
                     preTrajectory.Add(spt);
                 }
             }
-            
-            TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
 
-            points[0] = SpaceTime.createTrajectoryPoint(preTrajectory[0], preTrajectory[1]);
+            return SpaceTime.createTrajectory(preTrajectory);
+            //TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
 
-            for (int i = 1; i < preTrajectory.Count - 1; ++i)
-                points[i] = SpaceTime.createTrajectoryPoint(preTrajectory[i], preTrajectory[i + 1]);
+            //points[0] = SpaceTime.createTrajectoryPoint(preTrajectory[0], preTrajectory[1]);
 
-            points[preTrajectory.Count - 1] = SpaceTime.createTrajectoryPoint(preTrajectory[preTrajectory.Count - 1],
-                                                                              preTrajectory[preTrajectory.Count - 2]);
+            //for (int i = 1; i < preTrajectory.Count - 1; ++i)
+            //    points[i] = SpaceTime.createTrajectoryPoint(preTrajectory[i], preTrajectory[i + 1]);
 
-            return Trajectory.Create(points);
+            //points[preTrajectory.Count - 1] = SpaceTime.createTrajectoryPoint(preTrajectory[preTrajectory.Count - 1],
+            //                                                                  preTrajectory[preTrajectory.Count - 2]);
+
+            //return Trajectory.Create(points);
         }
 
         /// <summary>
@@ -806,27 +810,40 @@ namespace DBTables
     {
         public Vector3D Position { get; set; }
         public DateTime Time { get; set; }
-
+ 
         /// <summary>
-        /// Получить TrajectoryPoint из двух SpaceTime
+        /// Получить объект Astronomy.Trajectory из набора точек
         /// </summary>
-        /// <param name="point"></param>
-        /// <param name="additionalPoint"></param>
-        /// <returns>точку типа TrajectoryPoint</returns>
-        public static TrajectoryPoint createTrajectoryPoint(SpaceTime point, SpaceTime additionalPoint)
+        /// <param name="points">точки траектории</param>
+        /// <returns></returns>
+        public static Trajectory createTrajectory(List<SpaceTime> points)
         {
-            Vector3D velocity;
-            if (additionalPoint.Time > point.Time)
-                velocity = (additionalPoint.Position - point.Position) / (additionalPoint.Time - point.Time).TotalSeconds;
-            else
-                velocity = (point.Position - additionalPoint.Position) / (point.Time - additionalPoint.Time).TotalSeconds;
+            int count = points.Count;
+            TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[count];
 
-            TrajectoryPoint trajPoint  = new TrajectoryPoint(
-                    point.Time,
-                    point.Position.ToPoint(),
-                    velocity);
+            for (int i = 0; i < count; i++)            
+                trajectoryPoints[i] = new TrajectoryPoint(points[i].Time, points[i].Position.ToPoint(), new Vector3D(0,0,0));             
 
-            return trajPoint;
+            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
+
+            double timeStep = 1;  
+            for (int i = 0; i < count; i++)
+            {
+                TrajectoryPoint curpoint = trajectory.Points[i];
+                Vector3D velo;
+                if (i != count-1)
+                {
+                    Point3D nextPoint = trajectory.GetPosition(curpoint.Time.AddSeconds(timeStep));
+                    velo = (nextPoint - curpoint.Position) / timeStep;
+                }
+                else
+                {
+                    Point3D nextPoint = trajectory.GetPosition(curpoint.Time.AddSeconds(-timeStep));
+                    velo = (curpoint.Position - nextPoint) / timeStep;
+                }
+                trajectory.Points[i] = new TrajectoryPoint(curpoint.Time, curpoint.Position, velo);                
+            }
+            return Trajectory.Create(trajectory.Points); // через констркутор для того, чтобы пересчитались интерполянты
         }
     }
 
