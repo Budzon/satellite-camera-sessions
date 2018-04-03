@@ -212,29 +212,16 @@ namespace OptimalChain
             Tuple<int, int> newConnectedRoute = confs1.connectedRoute;
             CaptureConf newConf = new CaptureConf(dateFrom, dateTo, confs1.rollAngle, orders, confs1.confType, newConnectedRoute);
 
-            /*
-            for (int i = 0; i < confs1.orders.Count; i++)
-            {
-                newConf.orders.Add(confs1.orders[i]);
-                for (int j = 0; j < confs2.orders.Count; j++)
-                {
-                    if (confs1.orders[i].request.id != confs2.orders[j].request.id)
-                    {                       
-                        newConf.orders.Add(confs2.orders[j]);                        
-                    }
-                    else
-                    {
-                        var order = new Order();
-                        
-                    }                    
-                }
-            }*/
-
             return newConf;
         }
 
         public static bool isNeedUnit(CaptureConf c1, CaptureConf c2)
         {
+            if (c1.shootingType != c2.shootingType ||
+                c1.shootingChannel != c2.shootingChannel ||
+                c1.confType != c2.confType)
+                return false;
+
             /// @todo добавить минимально допустимое расстояние (по времени)
             return ((c1.dateFrom <= c2.dateTo && c2.dateTo <= c1.dateTo) || (c1.dateFrom <= c2.dateFrom && c2.dateFrom <= c1.dateTo)
                   || (c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));

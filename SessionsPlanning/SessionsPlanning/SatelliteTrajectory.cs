@@ -187,7 +187,7 @@ namespace SatelliteTrajectory
                     if (outOfRange)
                         break;
                     
-                    if (tmin >= tmax)
+                    if ((tmax - tmin).TotalSeconds < 2)
                         continue;
 
                     Order order = new Order();
@@ -548,7 +548,7 @@ namespace SatelliteTrajectory
         }
 
         
-        public LanePos(TrajectoryPoint pointKA, double viewAngle, double _rollAngle, double _pitchAngle)
+          public LanePos(TrajectoryPoint pointKA, double viewAngle, double _rollAngle, double _pitchAngle)
         {
             rollAngle = _rollAngle;
             pitchAngle = _pitchAngle;
@@ -601,22 +601,12 @@ namespace SatelliteTrajectory
         public static Vector3D applyRollRotation(TrajectoryPoint point, Vector3D dirVect, double rollAngle)
         {
             Vector3D position = point.Position.ToVector();
-            Vector3D velo = point.Velocity;      
-            //Vector3D pitchAxis =  Vector3D.CrossProduct(dirVect, velo);
-            //Vector3D rollAxis = Vector3D.CrossProduct(pitchAxis, dirVect);
+            Vector3D velo = point.Velocity;       
             RotateTransform3D rollTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-velo, AstronomyMath.ToDegrees(rollAngle)));
             Vector3D rollRotDir = rollTransfrom.Transform(dirVect);
             return rollRotDir;
         }
         
-        public static Vector3D getDirectionVector_TEST(TrajectoryPoint point, double rollAngle, double pitchAngle)
-        {
-            Vector3D eDirVect = -point.Position.ToVector();
-            Vector3D pitchDir = applyPitchlRotation(point, eDirVect, pitchAngle);
-            Vector3D resDir = applyRollRotation(point, pitchDir, rollAngle);            
-            return resDir;
-        }
-
         public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
         {
             Vector3D eDirVect = -point.Position.ToVector();
