@@ -328,9 +328,9 @@ namespace SphericalGeom
         /// </summary>
         /// <param name="kaPoint">точка на орбите</param>
         /// <param name="dirVector">направление СОЭН</param>        
-        /// <param name="pointsNum">количество точек на сторону полигона видимости (по умолчанию 5)</param>
+        /// <param name="pointsOnSideNum">количество точек на сторону полигона видимости (по умолчанию 5)</param>
         /// <returns>Полигон видимости СОЭН</returns>
-        public static Polygon getViewPolygon(TrajectoryPoint kaPoint, Vector3D dirVector, double viewAngle, int pointsNum = 5) 
+        public static Polygon getViewPolygon(TrajectoryPoint kaPoint, Vector3D dirVector, double viewAngle, int pointsOnSideNum = 5) 
         {
             List<Vector3D> verts = new List<Vector3D>();
             Vector3D velo = kaPoint.Velocity;
@@ -358,9 +358,9 @@ namespace SphericalGeom
             var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
             var angle_degr = AstronomyMath.ToDegrees(angle_rad);
 
-            double angle_h = angle_rad * 2 / pointsNum;
+            double angle_h = angle_rad * 2 / pointsOnSideNum;
 
-            for (int j = 1; j <= pointsNum - 1; j++)
+            for (int j = 1; j <= pointsOnSideNum - 1; j++)
             {
                 Vector3D rAxis = Vector3D.CrossProduct(topVector, botTopAxis);
                 double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
@@ -370,7 +370,7 @@ namespace SphericalGeom
                 verts.Add(crossPoint);
             }
 
-            for (int j = 0; j <= pointsNum; j++)
+            for (int j = 0; j <= pointsOnSideNum; j++)
             {
                 Vector3D rAxis = Vector3D.CrossProduct(rightVector, leftRightAxis);
                 double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);                
@@ -380,7 +380,7 @@ namespace SphericalGeom
                 verts.Add(crossPoint);
             }
                       
-            for (int j = 1; j <= pointsNum - 1; j++)
+            for (int j = 1; j <= pointsOnSideNum - 1; j++)
             {
                 Vector3D rAxis = Vector3D.CrossProduct(botVector, botTopAxis);
                 double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
@@ -390,7 +390,7 @@ namespace SphericalGeom
                 verts.Add(crossPoint);
             }
 
-            for (int j = 0; j <= pointsNum; j++)
+            for (int j = 0; j <= pointsOnSideNum; j++)
             {
                 Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
                 double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);

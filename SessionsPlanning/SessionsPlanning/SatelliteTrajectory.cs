@@ -277,15 +277,18 @@ namespace SatelliteTrajectory
                 rightPolygonPoints.Add(posTo.RightCartPoint);
                 last = posTo;
             }
- 
+
+          
+
             // учёт трапецевидности
-            /*
-            polygonPoints.Insert(0, fisrt.BotLeftViewPoint);
-            polygonPoints.Add(fisrt.TopLeftViewPoint);
             
-            rightPolygonPoints.Insert(0, fisrt.BotRightViewPoint);
-            rightPolygonPoints.Add(fisrt.TopRightViewPoint);
-              */   
+            //polygonPoints.Insert(0, fisrt.BotLeftViewPoint);
+            //rightPolygonPoints.Insert(0, fisrt.BotRightViewPoint);
+
+
+            //polygonPoints.Add(last.TopLeftViewPoint);
+            //rightPolygonPoints.Add(last.TopRightViewPoint);
+                
             for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
                 polygonPoints.Add(rightPolygonPoints[ind]);
 
@@ -727,12 +730,12 @@ namespace SatelliteTrajectory
         private void calculateViewPoints()
         {
             Vector3D dirVector = LanePos.getDirectionVector(trajPoint, rollAngle, pitchAngle);
-            Polygon viewPol = Routines.getViewPolygon(trajPoint, dirVector, OptimalChain.Constants.camera_angle, pointsNum: 1);
+            Polygon viewPol = Routines.getViewPolygon(trajPoint, dirVector, OptimalChain.Constants.camera_angle, pointsOnSideNum: 1);
 
-            topLeftViewPoint = viewPol.Vertices[0];
-            topRightViewPoint = viewPol.Vertices[1];
-            botRightViewPoint = viewPol.Vertices[2];
-            botLeftViewPoint = viewPol.Vertices[3];
+            botLeftViewPoint = viewPol.Vertices[0]; 
+            topLeftViewPoint = viewPol.Vertices[1];      
+            topRightViewPoint = viewPol.Vertices[2];                 
+            botRightViewPoint = viewPol.Vertices[3]; 
         }
 
         public TrajectoryPoint TrajPoint{ get{ return trajPoint; } }
