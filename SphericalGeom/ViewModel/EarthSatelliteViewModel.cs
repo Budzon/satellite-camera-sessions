@@ -488,23 +488,22 @@ namespace ViewModel
             polygons.Add(getPointPolygon(pointRollPitch));
 
             test_vectors(-point.Position.ToVector(),
-                 LanePos.getDirectionVector_TEST(point, rollAngle, 0)
-                , LanePos.getDirectionVector_TEST(point, rollAngle, pitchAngle)
-                , LanePos.getDirectionVector_TEST(point, 0, pitchAngle));
+                 LanePos.getDirectionVector(point, rollAngle, 0)
+                , LanePos.getDirectionVector(point, rollAngle, pitchAngle)
+                , LanePos.getDirectionVector(point, 0, pitchAngle));
 
-
-            Vector3D pp1 = LanePos.getDirectionVector_TEST(point, 0, pitchAngle);
-            Vector3D pp2 = LanePos.getDirectionVector_TEST(point, rollAngle, pitchAngle);
+            Vector3D pp1 = LanePos.getDirectionVector(point, 0, pitchAngle);
+            Vector3D pp2 = LanePos.getDirectionVector(point, rollAngle, pitchAngle);
 
             Console.WriteLine("pp1 = {0}", pp1);
             Console.WriteLine("pp2 = {0}", pp2);
-            Console.WriteLine("angle_12 = {0}; ", Vector3D.AngleBetween(pp1, pp2));
+            Console.WriteLine("angle_12 = {0}; " , Vector3D.AngleBetween(pp1, pp2));
             Console.WriteLine("rollAngle = {0}; ", AstronomyMath.ToDegrees(rollAngle));
 
             //polygons.Add(getPointPolygon(GeoPoint.ToCartesian(new GeoPoint(0, 0), 1)));
 
             //Vector3D pp1 = LanePos.getDirectionVector(point, AstronomyMath.ToRad(2), AstronomyMath.ToRad(13));
-            //Vector3D pp2 = LanePos.getDirectionVector_TEST(point, AstronomyMath.ToRad(2), AstronomyMath.ToRad(13));
+            //Vector3D pp2 = LanePos.getDirectionVector(point, AstronomyMath.ToRad(2), AstronomyMath.ToRad(13));
 
             //Console.WriteLine("pp1 = {0}", pp1);
             //Console.WriteLine("pp2 = {0}", pp2);         
@@ -547,7 +546,7 @@ namespace ViewModel
             double rollAngle = -0.78539816339744828;
             double viewAngle = OptimalChain.Constants.camera_angle;
             var trajectory = DatParser.getTrajectoryFromDatFile("trajectory_1day.dat", new DateTime(2000, 1, 1), new DateTime(2020, 1, 1));
-            SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+            SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle);
 
             DateTime dt1 = DateTime.Parse("12.03.2015 19:11:38");
             DateTime dt2 = DateTime.Parse("12.03.2015 19:17:27");
@@ -700,7 +699,7 @@ namespace ViewModel
                 return;
             }
 
-            SatLane strip15 = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+            SatLane strip15 = new SatLane(trajectory, rollAngle, viewAngle);
 
             captureLanes.Add(strip15);
         }
@@ -772,7 +771,7 @@ namespace ViewModel
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
-                        double rollAngle = AstronomyMath.ToRad(45);
+            double rollAngle = AstronomyMath.ToRad(45);
             double pitchAngle = AstronomyMath.ToRad(30);
             double viewAngle = OptimalChain.Constants.camera_angle;
 
@@ -780,46 +779,27 @@ namespace ViewModel
             DateTime dt2 = new DateTime(2019, 2, 2, 1, 9, 00);
 
             DateTime segmdt1 = new DateTime(2019, 2, 2, 0, 00, 00);
-            DateTime segmdt12 = new DateTime(2019, 2, 2, 0, 04, 20);
-            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 08, 00);
+            DateTime segmdt12 = new DateTime(2019, 2, 2, 0, 00, 30);
+            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 01, 00);
             
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
-            
-            
+                        
             Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
             int step = 1;
-            //Console.Write("x = [");
-            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
-            //{
-            //    DateTime curDt = dt1.AddSeconds(t);
-            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-            //    Console.Write(" {0} ", trajPoint.Position.X.ToString().Replace(separator, '.'));
-            //}
-            //Console.Write("];\n");
+            
+            //var ppp1 = LanePos.getDirectionVector_BINDED_ROTATIONS(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
+         //   var ppp2 = LanePos.getDirectionVector_BINDED_ROTATIONS_2(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
+         //   var ppp3 = LanePos.getDirectionVector(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
+            
 
-            //Console.Write("y = [");
-            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
-            //{
-            //    DateTime curDt = dt1.AddSeconds(t);
-            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-            //    Console.Write(" {0} ", trajPoint.Position.Y.ToString().Replace(separator, '.'));
-            //}
-            //Console.Write("];\n");
+           // //ppp1.Normalize();
+           // ppp2.Normalize();
+           // ppp3.Normalize();
+           //// Console.WriteLine("ppp1 = {0}", ppp1);
+           // Console.WriteLine("ppp2 = {0}", ppp2);
+           // Console.WriteLine("ppp3 = {0}", ppp3);
 
-            //Console.Write("z = [");
-            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
-            //{
-            //    DateTime curDt = dt1.AddSeconds(t);
-            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-            //    Console.Write(" {0} ", trajPoint.Position.Z.ToString().Replace(separator, '.'));
-            //}
-            //Console.Write("];\n");
-
-            //Console.Write("plot3(x,y,z)");
-
-            //return;
-
-            Console.Write("GEOMETRYCOLLECTION(");
+         //   Console.Write("GEOMETRYCOLLECTION(");
 
            
             //Console.Write("LINESTRING(");
@@ -836,10 +816,10 @@ namespace ViewModel
             //Console.Write(",");
 
             //Console.Write("LINESTRING(");
-           
-            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += step)
+
+            //for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += step)
             //{
-            //    DateTime curDt = dt1.AddSeconds(t);
+            //    DateTime curDt = segmdt1.AddSeconds(t);
             //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
             //    GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
             //    if (t != 0)
@@ -852,86 +832,128 @@ namespace ViewModel
 
 
 
-            Console.Write("LINESTRING(");
-            for (int i = 0; i < trajectory.Count; i++)
-            {
-                TrajectoryPoint trajPoint = trajectory.Points[i];
-                Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
-                GeoPoint pos = GeoPoint.FromCartesian(pe);
-                if (i != 0)
-                    Console.Write(" , ");
-                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
-            }
-            Console.Write(")");
+            //Console.Write("LINESTRING(");
+            //for (int i = 0; i < trajectory.Count; i++)
+            //{
+            //    TrajectoryPoint trajPoint = trajectory.Points[i];
+            //    Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
+            //    GeoPoint pos = GeoPoint.FromCartesian(pe);
+            //    if (i != 0)
+            //        Console.Write(" , ");
+            //    Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write(")");
 
-            Console.Write(",");
+            //Console.Write(",");
 
-            Console.Write("LINESTRING(");
-            int steppp = 1;
-            for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += steppp)
-            {
-                DateTime curDt = dt1.AddSeconds(t);
-                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-                Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
-                GeoPoint pos = GeoPoint.FromCartesian(pe);
-                if (t != 0)
-                    Console.Write(" , ");
-                Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
-            }
-            Console.Write(")");
+            //Console.Write("LINESTRING(");
+            //int steppp = 1;
+            //for (int t = 0; t <= (dt2 - dt1).TotalSeconds; t += steppp)
+            //{
+            //    DateTime curDt = dt1.AddSeconds(t);
+            //    TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+            //    Vector3D pe = LanePos.getSurfacePoint(trajPoint, rollAngle, 0);
+            //    GeoPoint pos = GeoPoint.FromCartesian(pe);
+            //    if (t != 0)
+            //        Console.Write(" , ");
+            //    Console.WriteLine("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            //}
+            //Console.Write(")");
 
            
-            Console.Write(")");
+            //Console.Write(")");
 
-             return;
-
-
-
-            SatLane lane_roll = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
-            SatLane nadirlane = new SatLane(trajectory, 0, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
-            SatLane nadirlane_pitch = new SatLane(trajectory, 0, pitchAngle, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+            // return;
+            
+            SatLane lane_roll = new SatLane(trajectory, rollAngle, viewAngle);
+            SatLane nadirlane = new SatLane(trajectory, 0, viewAngle);
+         //   SatLane lane_pitch = new SatLane(trajectory, 0, pitchAngle, viewAngle, stripPassStep: OptimalChain.Constants.stripStepPassing);
+         //   SatLane lane_roll_pitch = new SatLane(trajectory, rollAngle, pitchAngle, viewAngle, stripPassStep: OptimalChain.Constants.stripStepPassing);
  
-            Polygon segment_lane_roll = lane_roll.getSegment(segmdt1, segmdt2);
+            Polygon segment_roll = lane_roll.getSegment(segmdt1, segmdt2);
             Polygon segment_nadirlane = nadirlane.getSegment(segmdt1, segmdt2);
-            Polygon segment_nadir_pich = nadirlane_pitch.getSegment(segmdt1, segmdt2);
+          //  Polygon segment_pitch = lane_pitch.getSegment(segmdt1, segmdt2);
+          //  Polygon segment_pitch_roll = lane_roll_pitch.getSegment(segmdt1, segmdt2);
 
-            Polygon segment_nadirlane1 = nadirlane.getSegment(segmdt1, segmdt12);
-            Polygon segment_nadirlane2 = nadirlane.getSegment(segmdt12, segmdt2);
+            //Polygon segment_nadirlane1 = nadirlane.getSegment(segmdt1, segmdt12);
+            //Polygon segment_nadirlane2 = nadirlane.getSegment(segmdt12, segmdt2);
 
-            Polygon segment_roll_lane1 = lane_roll.getSegment(segmdt1, segmdt12);
-            Polygon segment_roll_lane2 = lane_roll.getSegment(segmdt12, segmdt2);
+            //Polygon segment_roll_lane1 = lane_roll.getSegment(segmdt1, segmdt12);
+            //Polygon segment_roll_lane2 = lane_roll.getSegment(segmdt12, segmdt2);
 
-      
+            // allPols.Add(segment_pitch_roll);
+
+            //{
+            //    TrajectoryPoint p1 = trajectory.GetPoint(segmdt1);
+            //    Vector3D dirVector = LanePos.getDirectionVector(p1, rollAngle, pitchAngle);
+            //    Polygon viewPolBegNadir = Routines.getViewPolygon(p1, dirVector, OptimalChain.Constants.camera_angle, 20);
+            //    allPols.Add(viewPolBegNadir);
+            //}
+            //{
+            //    TrajectoryPoint p1 = trajectory.GetPoint(segmdt2);
+            //    Vector3D dirVector = LanePos.getDirectionVector(p1, rollAngle, pitchAngle);
+            //    Polygon viewPolBegNadir = Routines.getViewPolygon(p1, dirVector, OptimalChain.Constants.camera_angle, 20);
+            //    allPols.Add(viewPolBegNadir);
+            //}
+
+            //public LanePos(TrajectoryPoint pointKA, double viewAngle, double _rollAngle, double _pitchAngle)
 
 
 
-            // allPols.Add(segment_nadirlane_roll);
-            allPols.Add(segment_lane_roll);
+            /////
+
+            //LanePos pos1 = new LanePos(trajectory.GetPoint(segmdt1), viewAngle, rollAngle, pitchAngle);
+            //LanePos pos2 = new LanePos(trajectory.GetPoint(segmdt1.AddSeconds(5)), viewAngle, rollAngle, pitchAngle);
+            //Polygon posPol = new Polygon(new List<Vector3D>() { pos1.LeftCartPoint, pos1.RightCartPoint, pos2.RightCartPoint, pos2.LeftCartPoint});
+            //allPols.Add(posPol);
+
+            //SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(trajectory.GetPoint(segmdt1));
+            //kp.addRollPitchRot(rollAngle, pitchAngle);
+            //var vd = kp.ViewDir;                       
+            //Polygon testkpvp = kp.getViewPolygon;
+            //allPols.Add(testkpvp);
+            
+            ////
+
+            //var kaPoint = trajectory.GetPoint(segmdt1);
+            //double ha = viewAngle / 2;
+            //var vp1 = LanePos.getSurfacePoint(kaPoint, rollAngle + ha, pitchAngle + ha);
+            //var vp2 = LanePos.getSurfacePoint(kaPoint, rollAngle + ha, pitchAngle - ha);
+            //var vp3 = LanePos.getSurfacePoint(kaPoint, rollAngle - ha, pitchAngle - ha);
+            //var vp4 = LanePos.getSurfacePoint(kaPoint, rollAngle - ha, pitchAngle + ha);
+
+            //Polygon testViewPol = new Polygon(new List<Vector3D>() { vp1,vp2,vp3,vp4 });
+
+            //allPols.Add(testViewPol);
+ 
+ 
+
+            // allPols.Add(segment_lane_roll);
             // allPols.Add(segment_nadir_pich);
 
             //allPols.Add(segment_roll_lane1);
-           // allPols.Add(segment_roll_lane2);
+            // allPols.Add(segment_roll_lane2);
 
-            int st = 10;
-            for (int t = st+st+st; t <= (segmdt2 - segmdt1).TotalSeconds; t += st)
-            {
-                DateTime dtcur1 = segmdt1.AddSeconds(t - st);
-                DateTime dtcur2 = segmdt1.AddSeconds(t);
-                Polygon segment = lane_roll.getSegment(dtcur1, dtcur2);
-                allPols.Add(segment);
-            }
-
-            //for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += 5)
+            //int st = 10;
+            //for (int t = st; t <= (segmdt2 - segmdt1).TotalSeconds; t += st)
             //{
-            //    DateTime dtcur = segmdt1.AddSeconds(t);
-            //    TrajectoryPoint p1 = trajectory.GetPoint(dtcur);
-            //    Vector3D dirVector = LanePos.getDirectionVector(p1, rollAngle, 0);
-            //    Polygon viewPolBegNadir = Routines.getViewPolygon(p1, dirVector, OptimalChain.Constants.camera_angle);
-            //    allPols.Add(viewPolBegNadir);
+            //    DateTime dtcur1 = segmdt1.AddSeconds(t - st);
+            //    DateTime dtcur2 = segmdt1.AddSeconds(t);
+            //    Polygon segment = lane_roll.getSegment(dtcur1, dtcur2);
+            //    allPols.Add(segment);
             //}
+
+            /* for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += 5)
+            {
+                DateTime dtcur = segmdt1.AddSeconds(t);
+                TrajectoryPoint p1 = trajectory.GetPoint(dtcur);
+                Vector3D dirVector = LanePos.getDirectionVector(p1, rollAngle, pitchAngle);
+                Polygon viewPolBegNadir = Routines.getViewPolygon(p1, dirVector, OptimalChain.Constants.camera_angle);
+                allPols.Add(viewPolBegNadir);
+            }*/
      
             Console.WriteLine(Polygon.getMultipolFromPolygons(allPols));
-            Console.Write(")");
+            // Console.Write(")");
         }
 
 

@@ -144,7 +144,7 @@ namespace SatelliteSessions
             List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
             foreach (var traj in possibleTrajParts)
             {
-                SatLane viewLane = new SatLane(traj, 0, 0, viewAngle);
+                SatLane viewLane = new SatLane(traj, 0, viewAngle);
                 List<CaptureConf> curConfs = viewLane.getCaptureConfs(request);
                 fictiveBigConfs.AddRange(curConfs);
             }
@@ -233,7 +233,7 @@ namespace SatelliteSessions
                 for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
 #endif
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-                SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle);
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -865,32 +865,32 @@ namespace SatelliteSessions
                 {
                     DateTime timeTo = dateTime.AddMilliseconds(duration);
                     Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
-                    SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
+                    Polygon pol = SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
+                    wtk = pol.ToWtk();
+                    //if (viewLane.Sectors.Count > 0)
+                    //{
+                    //    List<Vector3D> leftLanePoints = new List<Vector3D>();
+                    //    List<Vector3D> rightLanePoints = new List<Vector3D>();
 
-                    if (viewLane.Sectors.Count > 0)
-                    {
-                        List<Vector3D> leftLanePoints = new List<Vector3D>();
-                        List<Vector3D> rightLanePoints = new List<Vector3D>();
+                    //    for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
+                    //    {
+                    //        var sect = viewLane.Sectors[sectId];
+                    //        int i = 0;
+                    //        if (sectId > 0)
+                    //            i = 1;
+                    //        for (; i < sect.sectorPoints.Count; i++)
+                    //        {
+                    //            var pos = sect.sectorPoints[i];
+                    //            leftLanePoints.Add(pos.LeftCartPoint);
+                    //            rightLanePoints.Add(pos.RightCartPoint);
+                    //        }
+                    //    }
+                    //    for (int i = rightLanePoints.Count - 1; i >= 0; i--)
+                    //        leftLanePoints.Add(rightLanePoints[i]);
 
-                        for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
-                        {
-                            var sect = viewLane.Sectors[sectId];
-                            int i = 0;
-                            if (sectId > 0)
-                                i = 1;
-                            for (; i < sect.sectorPoints.Count; i++)
-                            {
-                                var pos = sect.sectorPoints[i];
-                                leftLanePoints.Add(pos.LeftCartPoint);
-                                rightLanePoints.Add(pos.RightCartPoint);
-                            }
-                        }
-                        for (int i = rightLanePoints.Count - 1; i >= 0; i--)
-                            leftLanePoints.Add(rightLanePoints[i]);
-
-                        Polygon pol = new Polygon(leftLanePoints);
-                        wtk = pol.ToWtk();
-                    }
+                    //    Polygon pol = new Polygon(leftLanePoints);
+                    //    wtk = pol.ToWtk();
+                    //}
                 }
             }
             else

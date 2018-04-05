@@ -219,7 +219,7 @@ namespace DBTables
 
             Trajectory traj = GetTrajectorySat(from, to);
             foreach (TrajectoryPoint p in traj.Points)
-                res.Add(new SatelliteTrajectory.LanePos(p, 2*OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0, 0));
+                res.Add(new SatelliteTrajectory.LanePos(p, 2*OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
 
             return res;
         }

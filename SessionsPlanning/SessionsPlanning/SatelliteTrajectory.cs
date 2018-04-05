@@ -12,7 +12,7 @@ using OptimalChain;
 using Microsoft.Research.Oslo;
 
 namespace SatelliteTrajectory
-{   
+{
     /// <summary>
     /// Полоса захвата
     /// </summary>
@@ -27,26 +27,26 @@ namespace SatelliteTrajectory
         private Astronomy.Trajectory trajectory;
         private double rollAngle;
         private double viewAngle;
-        private double pitchAngle;
 
-        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _pitchAngle, double _viewAngle, int polygonStep = OptimalChain.Constants.stripPolygonStep)
+
+
+        public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle)
         {
             trajectory = _trajectory;
             rollAngle = _rollAngle;
             viewAngle = _viewAngle;
-            pitchAngle = _pitchAngle;
 
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
 
-            createPolygons(minAngle, maxAngle, polygonStep);
+            createPolygons(minAngle, maxAngle, OptimalChain.Constants.stripStepPassing);
         }
 
-        
+
         private void createPolygons(double minAngle, double maxAngle, int polygonStep)
         {
             Sectors = new List<LaneSector>();
-             
+
             List<Vector3D> leftLanePoints = new List<Vector3D>();
             List<Vector3D> rightLanePoints = new List<Vector3D>();
 
@@ -59,7 +59,7 @@ namespace SatelliteTrajectory
             TrajectoryPoint[] points = trajectory.Points;
             int points_count = trajectory.Count;
 
-            LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle, pitchAngle);
+            LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle);
 
             DateTime sectorFromDT = firstPos.Time;
             DateTime sectorToDT;
@@ -67,9 +67,9 @@ namespace SatelliteTrajectory
 
             GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(firstPos.LeftCartPoint.ToPoint());
 
-            for (int p_ind = 0; p_ind < points_count ; p_ind++)
+            for (int p_ind = 0; p_ind < points_count; p_ind++)
             {
-                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle, pitchAngle); 
+                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle);
                 sectorPoints.Add(pos);
 
                 if (p_ind == 0)
@@ -149,7 +149,7 @@ namespace SatelliteTrajectory
                 }
             }
         }
-         
+
         public List<CaptureConf> getCaptureConfs(RequestParams request)
         {
             Polygon region = new Polygon(request.wktPolygon);
@@ -186,7 +186,7 @@ namespace SatelliteTrajectory
 
                     if (outOfRange)
                         break;
-                    
+
                     if ((tmax - tmin).TotalSeconds < 2)
                         continue;
 
@@ -218,7 +218,7 @@ namespace SatelliteTrajectory
 
             if (Sectors[0].sectorPoints[0].Time > begTime || lastPoint.Time < endTime)
                 throw new System.ArgumentException("Incorrect time interval.");
-            
+
             List<Vector3D> polygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();
 
@@ -278,21 +278,21 @@ namespace SatelliteTrajectory
                 last = posTo;
             }
 
-          
+
 
             // учёт трапецевидности
-            
+
             //polygonPoints.Insert(0, fisrt.BotLeftViewPoint);
             //rightPolygonPoints.Insert(0, fisrt.BotRightViewPoint);
 
 
             //polygonPoints.Add(last.TopLeftViewPoint);
             //rightPolygonPoints.Add(last.TopRightViewPoint);
-                
+
             for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
                 polygonPoints.Add(rightPolygonPoints[ind]);
 
-            return new Polygon(polygonPoints, new Vector3D(0, 0, 0));            
+            return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
         }
 
 
@@ -395,16 +395,16 @@ namespace SatelliteTrajectory
             //   last.BotLeftViewPoint
             //}  )
             };
-            
+
 
             return pols;
         }
 
 
         private LanePos interpolatelanePosByTime(DateTime time)
-        { 
-            TrajectoryPoint trajPoint = trajectory.GetPoint(time); 
-            return new LanePos(trajPoint, viewAngle, rollAngle, pitchAngle);
+        {
+            TrajectoryPoint trajPoint = trajectory.GetPoint(time);
+            return new LanePos(trajPoint, viewAngle, rollAngle);
         }
 
         /*
@@ -505,6 +505,7 @@ namespace SatelliteTrajectory
         //    left, right
         //};
 
+
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
         private Vector3D cartKAPoint;
@@ -517,14 +518,12 @@ namespace SatelliteTrajectory
         private GeoPoint leftGeoPoint;
         private GeoPoint rightGeoPoint;
         private GeoPoint geoKAPoint;
-        private TrajectoryPoint trajPoint;
         private double rollAngle;
-        private double pitchAngle;
 
         private double width;
         private DateTime time;
 
-       //  private RollOrientation rollOrient;
+        //  private RollOrientation rollOrient;
 
         private Vector3D topLeftViewPoint;
         private Vector3D botLeftViewPoint;
@@ -535,7 +534,7 @@ namespace SatelliteTrajectory
         {
             knowLeftConrol = false;
             knowRightConrol = false;
-            knowViewPolygon = false;  
+            knowViewPolygon = false;
 
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
@@ -550,17 +549,16 @@ namespace SatelliteTrajectory
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
         }
 
-        
-          public LanePos(TrajectoryPoint pointKA, double viewAngle, double _rollAngle, double _pitchAngle)
+
+        public LanePos(TrajectoryPoint pointKA, double viewAngle, double _rollAngle)
         {
             rollAngle = _rollAngle;
-            pitchAngle = _pitchAngle;
 
             double minAngle = rollAngle - viewAngle / 2;
             double maxAngle = rollAngle + viewAngle / 2;
- 
-            Vector3D leftVector = getDirectionVector(pointKA, minAngle, pitchAngle);
-            Vector3D rightVector = getDirectionVector(pointKA, maxAngle, pitchAngle);
+
+            Vector3D leftVector = getDirectionVector(pointKA, minAngle, 0);
+            Vector3D rightVector = getDirectionVector(pointKA, maxAngle, 0);
 
             Vector3D leftCrossPoint = Routines.SphereVectIntersect(leftVector, pointKA.Position, Astronomy.Constants.EarthRadius);
             Vector3D rightCrossPoint = Routines.SphereVectIntersect(rightVector, pointKA.Position, Astronomy.Constants.EarthRadius);
@@ -570,7 +568,8 @@ namespace SatelliteTrajectory
             rightCrossPoint.Normalize();
             KAPoint.Normalize();
 
-            trajPoint = pointKA;
+            KaCoords = new SatelliteCoordinates(pointKA);
+
             leftCartPoint = leftCrossPoint;
             rightCartPoint = rightCrossPoint;
             cartKAPoint = pointKA.Position.ToVector();
@@ -587,59 +586,31 @@ namespace SatelliteTrajectory
             knowRightConrol = false;
             knowViewPolygon = false;
         }
-        
+
+        public DateTime Time { get { return time; } }
+
+        public Vector3D LeftCartPoint { get { return leftCartPoint; } }
+
+        public Vector3D RightCartPoint { get { return rightCartPoint; } }
+
+        public Vector3D CartKAPoint { get { return cartKAPoint; } }
+
+        public GeoPoint LeftGeoPoint { get { return leftGeoPoint; } }
+
+        public GeoPoint RightGeoPoint { get { return rightGeoPoint; } }
+
+        public GeoPoint GeoKAPoint { get { return geoKAPoint; } }
+
+        public SatelliteCoordinates KaCoords { get; private set; }
 
 
-        public static Vector3D applyPitchlRotation(TrajectoryPoint point, Vector3D dirVect, double pitchAngle)
-        {
-            Vector3D position = point.Position.ToVector();
-            Vector3D velo = point.Velocity;
-            Vector3D eDirVect = -position; 
-            Vector3D pitchAxis = Vector3D.CrossProduct(eDirVect, velo); 
-            RotateTransform3D pitchTransfrom = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle))); 
-            Vector3D pitchRotDir = pitchTransfrom.Transform(dirVect); 
-            return pitchRotDir;
-        }
-
-        public static Vector3D applyRollRotation(TrajectoryPoint point, Vector3D dirVect, double rollAngle)
-        {
-            Vector3D position = point.Position.ToVector();
-            Vector3D velo = point.Velocity;       
-            RotateTransform3D rollTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-velo, AstronomyMath.ToDegrees(rollAngle)));
-            Vector3D rollRotDir = rollTransfrom.Transform(dirVect);
-            return rollRotDir;
-        }
-        
-        public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
-        {
-            Vector3D eDirVect = -point.Position.ToVector();
-            Vector3D rollDir = applyRollRotation(point, eDirVect, rollAngle);
-            return applyPitchlRotation(point, rollDir, pitchAngle);
-        }
-
-        public static Vector3D getSurfacePoint(TrajectoryPoint point, double rollAngle, double pitchAngle)
-        {
-            Vector3D dirVector = getDirectionVector(point, rollAngle, pitchAngle);
-            return Routines.SphereVectIntersect(dirVector, point.Position, Astronomy.Constants.EarthRadius);
-        }
-      
-        private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
-        {
-            Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
-            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAx, 90));
-            Vector3D controlPoint = leftTransform.Transform(KAPoint);
-            double lenth = Vector3D.DotProduct(sidePoint, controlPoint) / controlPoint.Length;
-            controlPoint.Normalize();
-            controlPoint = controlPoint * lenth;
-            return controlPoint;
-        }
 
         public Vector3D LeftControlPoint
         {
             get
             {
-                if (!knowLeftConrol) 
-                {                   
+                if (!knowLeftConrol)
+                {
                     leftControlPoint = getControlPoint(CartKAPoint, leftCartPoint);
                     knowLeftConrol = true;
                 }
@@ -651,10 +622,10 @@ namespace SatelliteTrajectory
         {
             get
             {
-                if (!knowRightConrol) 
-                {                    
+                if (!knowRightConrol)
+                {
                     rightControlPoint = getControlPoint(CartKAPoint, rightCartPoint);
-                    knowRightConrol = true;                    
+                    knowRightConrol = true;
                 }
                 return rightControlPoint;
             }
@@ -666,10 +637,10 @@ namespace SatelliteTrajectory
         public Vector3D TopLeftViewPoint
         {
             get
-            { 
+            {
                 if (!knowViewPolygon)
                 {
-                    calculateViewPoints();                    
+                    calculateViewPoints();
                     knowViewPolygon = true;
                 }
                 return topLeftViewPoint;
@@ -709,7 +680,6 @@ namespace SatelliteTrajectory
         }
 
 
-
         /// <summary>
         /// получить заднюю (по направлению скорости) правую точку полигона видимости
         /// </summary>
@@ -725,34 +695,42 @@ namespace SatelliteTrajectory
                 return botRightViewPoint;
             }
         }
- 
+
 
         private void calculateViewPoints()
         {
-            Vector3D dirVector = LanePos.getDirectionVector(trajPoint, rollAngle, pitchAngle);
-            Polygon viewPol = Routines.getViewPolygon(trajPoint, dirVector, OptimalChain.Constants.camera_angle, pointsOnSideNum: 1);
-
-            botLeftViewPoint = viewPol.Vertices[0]; 
-            topLeftViewPoint = viewPol.Vertices[1];      
-            topRightViewPoint = viewPol.Vertices[2];                 
-            botRightViewPoint = viewPol.Vertices[3]; 
+            Polygon viewPol = KaCoords.getViewPolygon();
+            topRightViewPoint = viewPol.Vertices[0];
+            topLeftViewPoint = viewPol.Vertices[1];
+            botLeftViewPoint = viewPol.Vertices[2];
+            botRightViewPoint = viewPol.Vertices[3];
         }
 
-        public TrajectoryPoint TrajPoint{ get{ return trajPoint; } }
+        public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
+        {
+            SatelliteCoordinates ka = new SatelliteCoordinates(point);
+            ka.addRollRot(rollAngle);
+            ka.addPitchRot(pitchAngle);
+            return ka.ViewDir;
+        }
 
-        public DateTime Time{ get{ return time; } }
 
-        public Vector3D LeftCartPoint{ get{ return leftCartPoint; } }
+        public static Vector3D getSurfacePoint(TrajectoryPoint point, double rollAngle, double pitchAngle)
+        {
+            Vector3D dirVector = getDirectionVector(point, rollAngle, pitchAngle);
+            return Routines.SphereVectIntersect(dirVector, point.Position, Astronomy.Constants.EarthRadius);
+        }
 
-        public Vector3D RightCartPoint{ get{ return rightCartPoint; } }
-
-        public Vector3D CartKAPoint{ get{ return cartKAPoint; } }
-
-        public GeoPoint LeftGeoPoint{ get{ return leftGeoPoint; } }
-
-        public GeoPoint RightGeoPoint{ get{ return rightGeoPoint; } }
-
-        public GeoPoint GeoKAPoint{ get{  return geoKAPoint; } }
+        private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
+        {
+            Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
+            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAx, 90));
+            Vector3D controlPoint = leftTransform.Transform(KAPoint);
+            double lenth = Vector3D.DotProduct(sidePoint, controlPoint) / controlPoint.Length;
+            controlPoint.Normalize();
+            controlPoint = controlPoint * lenth;
+            return controlPoint;
+        }
 
         /// <summary>
         /// Return distance from gpoint to line [leftGeoPoint - rightGeoPoint] in radians
@@ -911,7 +889,7 @@ namespace SatelliteTrajectory
             while (dists[dists.Count - 1] < dist)
             {
                 double s = dists[dists.Count - 1];
-                double D = 1e3*(curTP.Position - GeoPoint.ToCartesian(curP, Astronomy.Constants.EarthRadius)).ToVector().Length;
+                double D = 1e3 * (curTP.Position - GeoPoint.ToCartesian(curP, Astronomy.Constants.EarthRadius)).ToVector().Length;
                 double W = WD * D;
                 s += W * dt;
                 dists.Add(s);
@@ -950,7 +928,7 @@ namespace SatelliteTrajectory
         /// <param name="B2"></param>
         /// <param name="L1"></param>
         /// <param name="L2"></param>
-        public static void getGeodesicLineEndPoints(GeoPoint p, GeoPoint pEnd, 
+        public static void getGeodesicLineEndPoints(GeoPoint p, GeoPoint pEnd,
                                                     out double B1, out double B2, out double L1, out double L2)
         {
             //Vector3D v0 = GeoPoint.ToCartesian(p, 1);
@@ -1062,6 +1040,85 @@ namespace SatelliteTrajectory
     {
         public Polygon Polygon { get; set; }
         public bool Lit { get; set; }
+    }
+
+
+    public class SatelliteCoordinates
+    {
+        private Vector3D kaX;
+        private Vector3D kaY;
+        private Vector3D kaZ;
+
+        public TrajectoryPoint trajPos { get; private set; }
+
+        public SatelliteCoordinates(TrajectoryPoint _trajPos)
+        {
+            trajPos = _trajPos;
+            kaY = -trajPos.Position.ToVector();
+            kaZ = trajPos.Velocity;
+            kaX = Vector3D.CrossProduct(kaY, kaZ);
+
+            kaX.Normalize();
+            kaY.Normalize();
+            kaZ.Normalize();
+        }
+
+        public SatelliteCoordinates(SatelliteCoordinates posCopy)
+        {
+            trajPos = posCopy.trajPos;
+            kaX = posCopy.kaX;
+            kaY = posCopy.kaY;
+            kaZ = posCopy.kaZ;
+        }
+
+        /// <summary>
+        /// направление на объект съемки 
+        /// </summary>
+        public Vector3D ViewDir { get { return kaY; } }
+
+        public void addRollPitchRot(double rollAngle, double pitchAngle)
+        {
+            addRollRot(rollAngle);
+            addPitchRot(pitchAngle);
+        }
+
+        public void addRollRot(double angle)
+        {
+            if (angle == 0)
+                return;
+            /// поворачиваем в обратную сторону, так как за положительный крен принят поворот по часовой
+            RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(kaZ, AstronomyMath.ToDegrees(-angle)));
+            kaX = rollTransform.Transform(kaX);
+            kaY = rollTransform.Transform(kaY);
+        }
+
+        public void addPitchRot(double angle)
+        {
+            if (angle == 0)
+                return;
+            RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(kaX, AstronomyMath.ToDegrees(angle)));
+            kaY = pitchTransform.Transform(kaY);
+            kaZ = pitchTransform.Transform(kaZ);
+        }
+
+        public Polygon getViewPolygon()
+        {
+            double half = OptimalChain.Constants.camera_angle / 2;
+            double tgHalf = Math.Tan(half);
+
+            Vector3D topRight = kaY / tgHalf + kaX + kaZ;
+            Vector3D topLeft = kaY / tgHalf - kaX + kaZ;
+            Vector3D botLeft = kaY / tgHalf - kaX - kaZ;
+            Vector3D botRight = kaY / tgHalf + kaX - kaZ;
+
+            Vector3D topRightPoint = Routines.SphereVectIntersect(topRight, trajPos.Position, Astronomy.Constants.EarthRadius);
+            Vector3D topLeftPoint = Routines.SphereVectIntersect(topLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
+            Vector3D botRightPoint = Routines.SphereVectIntersect(botRight, trajPos.Position, Astronomy.Constants.EarthRadius);
+            Vector3D botLeftPoint = Routines.SphereVectIntersect(botLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
+
+            return new Polygon(new List<Vector3D>() { topRightPoint, topLeftPoint, botLeftPoint, botRightPoint });
+        }
+
     }
 }
 
