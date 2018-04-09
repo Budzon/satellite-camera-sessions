@@ -323,87 +323,87 @@ namespace SphericalGeom
         }
 
 
-        /// <summary>
-        /// Полигон видимости СОЭН
-        /// </summary>
-        /// <param name="kaPoint">точка на орбите</param>
-        /// <param name="dirVector">направление СОЭН</param>        
-        /// <param name="pointsOnSideNum">количество точек на сторону полигона видимости (по умолчанию 5)</param>
-        /// <returns>Полигон видимости СОЭН</returns>
-        public static Polygon getViewPolygon(TrajectoryPoint kaPoint, Vector3D dirVector, double viewAngle, int pointsOnSideNum = 5)
-        { 
+        ///// <summary>
+        ///// Полигон видимости СОЭН
+        ///// </summary>
+        ///// <param name="kaPoint">точка на орбите</param>
+        ///// <param name="dirVector">направление СОЭН</param>        
+        ///// <param name="pointsOnSideNum">количество точек на сторону полигона видимости (по умолчанию 5)</param>
+        ///// <returns>Полигон видимости СОЭН</returns>
+        //public static Polygon getViewPolygon(TrajectoryPoint kaPoint, Vector3D dirVector, double viewAngle, int pointsOnSideNum = 5)
+        //{ 
 
 
-            List<Vector3D> verts = new List<Vector3D>();
-            Vector3D velo = kaPoint.Velocity;
-            Vector3D botTopAxis = Vector3D.CrossProduct(velo, dirVector);
+        //    List<Vector3D> verts = new List<Vector3D>();
+        //    Vector3D velo = kaPoint.Velocity;
+        //    Vector3D botTopAxis = Vector3D.CrossProduct(velo, dirVector);
 
-            RotateTransform3D topVertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(botTopAxis, AstronomyMath.ToDegrees(+viewAngle / 2)));
-            RotateTransform3D botVertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(botTopAxis, AstronomyMath.ToDegrees(-viewAngle / 2)));
+        //    RotateTransform3D topVertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(botTopAxis, AstronomyMath.ToDegrees(+viewAngle / 2)));
+        //    RotateTransform3D botVertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(botTopAxis, AstronomyMath.ToDegrees(-viewAngle / 2)));
 
-            Vector3D topVector = topVertTransfrom.Transform(dirVector);
-            Vector3D botVector = botVertTransfrom.Transform(dirVector);
+        //    Vector3D topVector = topVertTransfrom.Transform(dirVector);
+        //    Vector3D botVector = botVertTransfrom.Transform(dirVector);
 
-            Vector3D leftRightAxis = Vector3D.CrossProduct(dirVector, botTopAxis);
-            RotateTransform3D rightHorizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(leftRightAxis, AstronomyMath.ToDegrees(+viewAngle / 2)));
-            RotateTransform3D leftHorizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(leftRightAxis, AstronomyMath.ToDegrees(-viewAngle / 2)));
+        //    Vector3D leftRightAxis = Vector3D.CrossProduct(dirVector, botTopAxis);
+        //    RotateTransform3D rightHorizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(leftRightAxis, AstronomyMath.ToDegrees(+viewAngle / 2)));
+        //    RotateTransform3D leftHorizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(leftRightAxis, AstronomyMath.ToDegrees(-viewAngle / 2)));
 
-            Vector3D leftVector = leftHorizTransfrom.Transform(dirVector);
-            Vector3D rightVector = rightHorizTransfrom.Transform(dirVector);
+        //    Vector3D leftVector = leftHorizTransfrom.Transform(dirVector);
+        //    Vector3D rightVector = rightHorizTransfrom.Transform(dirVector);
 
-            var topPoint = Routines.SphereVectIntersect(topVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-            var botPoint = Routines.SphereVectIntersect(botVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-            var rightPoint = Routines.SphereVectIntersect(rightVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-            var leftPoint = Routines.SphereVectIntersect(leftVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //    var topPoint = Routines.SphereVectIntersect(topVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //    var botPoint = Routines.SphereVectIntersect(botVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //    var rightPoint = Routines.SphereVectIntersect(rightVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //    var leftPoint = Routines.SphereVectIntersect(leftVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
 
-            var tanHalfVa = Math.Tan(viewAngle / 2);
-            var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
-            var angle_degr = AstronomyMath.ToDegrees(angle_rad);
+        //    var tanHalfVa = Math.Tan(viewAngle / 2);
+        //    var angle_rad = Math.Atan(tanHalfVa / (Math.Sqrt(tanHalfVa * tanHalfVa + 1)));
+        //    var angle_degr = AstronomyMath.ToDegrees(angle_rad);
 
-            double angle_h = angle_rad * 2 / pointsOnSideNum;
+        //    double angle_h = angle_rad * 2 / pointsOnSideNum;
 
-            for (int j = 1; j <= pointsOnSideNum - 1; j++)
-            {
-                Vector3D rAxis = Vector3D.CrossProduct(topVector, botTopAxis);
-                double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
-                Vector3D crossVector = vertTransfrom.Transform(topVector);
-                Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-            }
+        //    for (int j = 1; j <= pointsOnSideNum - 1; j++)
+        //    {
+        //        Vector3D rAxis = Vector3D.CrossProduct(topVector, botTopAxis);
+        //        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
+        //        RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
+        //        Vector3D crossVector = vertTransfrom.Transform(topVector);
+        //        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //        verts.Add(crossPoint);
+        //    }
 
-            for (int j = 0; j <= pointsOnSideNum; j++)
-            {
-                Vector3D rAxis = Vector3D.CrossProduct(rightVector, leftRightAxis);
-                double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
-                Vector3D crossVector = horizTransfrom.Transform(rightVector);
-                Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-            }
+        //    for (int j = 0; j <= pointsOnSideNum; j++)
+        //    {
+        //        Vector3D rAxis = Vector3D.CrossProduct(rightVector, leftRightAxis);
+        //        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
+        //        RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(rAxis, angle));
+        //        Vector3D crossVector = horizTransfrom.Transform(rightVector);
+        //        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //        verts.Add(crossPoint);
+        //    }
 
-            for (int j = 1; j <= pointsOnSideNum - 1; j++)
-            {
-                Vector3D rAxis = Vector3D.CrossProduct(botVector, botTopAxis);
-                double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
-                Vector3D crossVector = vertTransfrom.Transform(botVector);
-                Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-            }
+        //    for (int j = 1; j <= pointsOnSideNum - 1; j++)
+        //    {
+        //        Vector3D rAxis = Vector3D.CrossProduct(botVector, botTopAxis);
+        //        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
+        //        RotateTransform3D vertTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
+        //        Vector3D crossVector = vertTransfrom.Transform(botVector);
+        //        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //        verts.Add(crossPoint);
+        //    }
 
-            for (int j = 0; j <= pointsOnSideNum; j++)
-            {
-                Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
-                double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
-                RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
-                Vector3D crossVector = horizTransfrom.Transform(leftVector);
-                Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
-                verts.Add(crossPoint);
-            }
+        //    for (int j = 0; j <= pointsOnSideNum; j++)
+        //    {
+        //        Vector3D rAxis = Vector3D.CrossProduct(leftVector, leftRightAxis);
+        //        double angle = AstronomyMath.ToDegrees(-angle_rad + angle_h * j);
+        //        RotateTransform3D horizTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-rAxis, angle));
+        //        Vector3D crossVector = horizTransfrom.Transform(leftVector);
+        //        Vector3D crossPoint = Routines.SphereVectIntersect(crossVector, kaPoint.Position, Astronomy.Constants.EarthRadius);
+        //        verts.Add(crossPoint);
+        //    }
 
-            return new Polygon(verts);
-        }
+        //    return new Polygon(verts);
+        //}
 
     }
 }

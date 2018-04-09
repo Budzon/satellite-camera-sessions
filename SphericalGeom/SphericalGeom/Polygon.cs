@@ -720,6 +720,10 @@ namespace SphericalGeom
         public static string getMultipolFromPolygons(List<Polygon> polygons)
         {
             string res = "";
+
+            if (polygons.Count == 0)
+                return res;
+
             foreach (var pol in polygons)
             {
                 res = res + pol.ToWtk() + "\n";

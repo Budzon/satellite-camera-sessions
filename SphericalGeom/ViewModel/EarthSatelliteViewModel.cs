@@ -383,7 +383,7 @@ namespace ViewModel
             double viewAngle = AstronomyMath.ToRad(1);
             Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(DatFileName, new DateTime(2000, 1, 1), new DateTime(2020, 1, 1));
 
-            SatLane strip = new SatLane(trajectory, 0, 0, viewAngle);
+            SatLane strip = new SatLane(trajectory, 0, viewAngle);
             captureLanes.Add(strip);
 
             int count = trajectory.Count;
@@ -441,6 +441,7 @@ namespace ViewModel
 
         }
 
+       
 
         public void test_roll_correction()
         {
@@ -584,8 +585,8 @@ namespace ViewModel
             double pitchAngle = AstronomyMath.ToRad(0);
             double viewAngle = AstronomyMath.ToRad(20);
 
-            Vector3D dir = LanePos.getDirectionVector(point, rollAngle, pitchAngle);
-            var pol1 = Routines.getViewPolygon(point, dir, viewAngle);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(point, rollAngle, pitchAngle);
+            var pol1 = kaPos.ViewPolygon;
             //  Console.WriteLine(pol1.ToWtk());
             //  polygons.Add(pol1);
             //     polygons.Add(getPointPolygon(position, 6));
@@ -762,11 +763,146 @@ namespace ViewModel
 
 
         }
+        public string getWKTInterpolateTrajectory(Trajectory trajectory,DateTime segmdt1, DateTime segmdt2, int step)
+        {
+            string res = "";
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            res += "LINESTRING(\n";
+            for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += step)
+            {
+                DateTime curDt = segmdt1.AddSeconds(t);
+                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
+                if (t != 0)
+                    res += " , ";
+                res += string.Format("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            res += ")\n";
+            return res;
+        }
+
+        public string getWKTViewInterpolPolygons(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, double rollAngle, double pitchAngle, int step)
+        {            
+            var allPols = new List<Polygon>();
+            for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += step)
+            {
+                DateTime dtcur = segmdt1.AddSeconds(t);
+                TrajectoryPoint p1 = trajectory.GetPoint(dtcur);
+                SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(p1, rollAngle, pitchAngle);
+                Polygon testkpvp = kp.ViewPolygon;
+                allPols.Add(testkpvp);
+            }
+            return Polygon.getMultipolFromPolygons(allPols);  
+        }
+
+        public string getWKTViewPolygons(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, double rollAngle, double pitchAngle, int step)
+        {
+            var allPols = new List<Polygon>();
+            foreach (var point in trajectory.Points)
+            {
+                if (point.Time < segmdt1)
+                    continue;
+                if (point.Time > segmdt2)
+                    break;
+
+                SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(point, rollAngle, pitchAngle);
+                Polygon testkpvp = kp.ViewPolygon;
+                allPols.Add(testkpvp);
+            }
+            return Polygon.getMultipolFromPolygons(allPols);
+        }
+
+        public string getWKTViewLine(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, double rollAngle, double pitchAngle, int step)
+        {
+            string res = "";
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            res += "LINESTRING(\n";
+            for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += step)
+            {
+                DateTime curDt = segmdt1.AddSeconds(t);
+                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+                SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(trajPoint, rollAngle, pitchAngle);
+                Vector3D vp = Routines.SphereVectIntersect(kp.ViewDir, trajPoint.Position, Astronomy.Constants.EarthRadius);
+                GeoPoint pos = GeoPoint.FromCartesian(vp);
+                if (t != 0)
+                    res += " , ";
+                res += string.Format("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            res += ")\n";
+            return res;
+        }
+
+        public void test_PlotTrajectoryAndSeveralViewPolygons()
+        {
+            var allPols = new List<Polygon>();
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            double rollAngle = AstronomyMath.ToRad(45);
+            double pitchAngle = AstronomyMath.ToRad(30);
+            double viewAngle = OptimalChain.Constants.camera_angle;
+
+            DateTime dt1 = new DateTime(2019, 2, 2, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 1, 9, 00);
+
+            DateTime segmdt1 = new DateTime(2019, 2, 2, 0, 00, 00); 
+            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 01, 00);
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(segmdt1, segmdt2);
+                       
+            int step = 1;
+
+            Console.Write("GEOMETRYCOLLECTION(");
+
+            Console.WriteLine(getWKTInterpolateTrajectory(trajectory, segmdt1, segmdt2, step));
+           
+            Console.Write(",");
+
+            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, rollAngle, pitchAngle, step));
+            
+            Console.Write(")");
+
+        }
 
 
+        public void testTrajectoryInterpolation()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 14, 9, 00);            
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+            TrajectoryPoint[] points = trajectory.Points;
+            int count = trajectory.Count();
+
+            int testNum = count / 2;
+
+            TrajectoryPoint testPoint = points[testNum];
+
+            TrajectoryPoint[] newPoints = new TrajectoryPoint[count / 2]; // оставим каждую вторую точку
+
+            for (int i= 0; i < count; i+=2)
+            {
+                int j = i/2;
+                newPoints[j] = points[i];
+            }
+
+            Trajectory testTrajectory = Trajectory.Create(newPoints);
+
+            Point3D testPos = testTrajectory.GetPosition(testPoint.Time);
+            double dist = (testPos.ToVector() - testPoint.Position.ToVector()).Length;
+            Console.WriteLine("расстояние между расчётной и реальной точками: {0} км", dist);
+            
+        }
 
         public void testTrapezium()
         {
+            testTrajectoryInterpolation();
+            return;
+            //test_plotTrajectoryAndSeveralViewPolygons();
+            //return;
             var allPols = new List<Polygon>();
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -780,28 +916,71 @@ namespace ViewModel
 
             DateTime segmdt1 = new DateTime(2019, 2, 2, 0, 00, 00);
             DateTime segmdt12 = new DateTime(2019, 2, 2, 0, 00, 30);
-            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 01, 00);
-            
-            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 30, 00);
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(segmdt1, segmdt2);
                         
             Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
             int step = 1;
+
+            Console.Write("GEOMETRYCOLLECTION(");
             
+       //     Console.WriteLine(getWKTInterpolateTrajectory(trajectory,segmdt1, segmdt2, step));
+
+       //    Console.Write(",");
+
+         //  Console.WriteLine(getWKTViewLine(trajectory, segmdt1, segmdt2, rollAngle, pitchAngle, step));
+         //  Console.Write(",");
+         //  Console.WriteLine(getWKTViewPolygons(trajectory, segmdt1, segmdt2, rollAngle, pitchAngle, step));
+
+              Console.WriteLine(getWKTInterpolateTrajectory(trajectory, segmdt1, segmdt2, step));
+            //  Console.Write(",");
+              //Console.WriteLine(getWKTViewPolygons(trajectory, segmdt1, segmdt2, 0, 0, step));
+
+           Console.Write(")");
+
+            //{
+            //    SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(trajectory.GetPoint(segmdt12));
+            //    //kp.addRollPitchRot(0, 0);
+            //    Polygon testkpvp = kp.ViewPolygon;
+            //    allPols.Add(testkpvp);
+            //}
+
+            Polygon lanePitchRoll = SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle);
+      //      allPols.Add(lanePitchRoll);
+
+            // return;
+            /*
+
+
+            {
+                SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(trajectory.GetPoint(segmdt1));
+                kp.addRollPitchRot(rollAngle, pitchAngle);
+                Polygon testkpvp = kp.ViewPolygon;
+                allPols.Add(testkpvp);
+            }
+            {
+                SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(trajectory.GetPoint(segmdt2));
+                kp.addRollPitchRot(rollAngle, pitchAngle);
+                Polygon testkpvp = kp.ViewPolygon;
+                allPols.Add(testkpvp);
+            }
+            */
             //var ppp1 = LanePos.getDirectionVector_BINDED_ROTATIONS(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
-         //   var ppp2 = LanePos.getDirectionVector_BINDED_ROTATIONS_2(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
-         //   var ppp3 = LanePos.getDirectionVector(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
-            
+            //   var ppp2 = LanePos.getDirectionVector_BINDED_ROTATIONS_2(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
+            //   var ppp3 = LanePos.getDirectionVector(trajectory.GetPoint(segmdt1), rollAngle, pitchAngle);
 
-           // //ppp1.Normalize();
-           // ppp2.Normalize();
-           // ppp3.Normalize();
-           //// Console.WriteLine("ppp1 = {0}", ppp1);
-           // Console.WriteLine("ppp2 = {0}", ppp2);
-           // Console.WriteLine("ppp3 = {0}", ppp3);
 
-         //   Console.Write("GEOMETRYCOLLECTION(");
+            // //ppp1.Normalize();
+            // ppp2.Normalize();
+            // ppp3.Normalize();
+            //// Console.WriteLine("ppp1 = {0}", ppp1);
+            // Console.WriteLine("ppp2 = {0}", ppp2);
+            // Console.WriteLine("ppp3 = {0}", ppp3);
 
-           
+            //   Console.Write("GEOMETRYCOLLECTION(");
+
+
             //Console.Write("LINESTRING(");
             //for (int i = 0; i < trajectory.Count; i++ )
             //{
@@ -860,20 +1039,20 @@ namespace ViewModel
             //}
             //Console.Write(")");
 
-           
+
             //Console.Write(")");
 
             // return;
-            
-            SatLane lane_roll = new SatLane(trajectory, rollAngle, viewAngle);
-            SatLane nadirlane = new SatLane(trajectory, 0, viewAngle);
-         //   SatLane lane_pitch = new SatLane(trajectory, 0, pitchAngle, viewAngle, stripPassStep: OptimalChain.Constants.stripStepPassing);
-         //   SatLane lane_roll_pitch = new SatLane(trajectory, rollAngle, pitchAngle, viewAngle, stripPassStep: OptimalChain.Constants.stripStepPassing);
- 
-            Polygon segment_roll = lane_roll.getSegment(segmdt1, segmdt2);
-            Polygon segment_nadirlane = nadirlane.getSegment(segmdt1, segmdt2);
-          //  Polygon segment_pitch = lane_pitch.getSegment(segmdt1, segmdt2);
-          //  Polygon segment_pitch_roll = lane_roll_pitch.getSegment(segmdt1, segmdt2);
+
+      //      SatLane lane_roll = new SatLane(trajectory, rollAngle, viewAngle);
+      //      SatLane nadirlane = new SatLane(trajectory, 0, viewAngle);
+            //   SatLane lane_pitch = new SatLane(trajectory, 0, pitchAngle, viewAngle, stripPassStep: OptimalChain.Constants.stripStepPassing);
+            //   SatLane lane_roll_pitch = new SatLane(trajectory, rollAngle, pitchAngle, viewAngle, stripPassStep: OptimalChain.Constants.stripStepPassing);
+
+      //      Polygon segment_roll = lane_roll.getSegment(segmdt1, segmdt2);
+      //      Polygon segment_nadirlane = nadirlane.getSegment(segmdt1, segmdt2);
+            //  Polygon segment_pitch = lane_pitch.getSegment(segmdt1, segmdt2);
+            //  Polygon segment_pitch_roll = lane_roll_pitch.getSegment(segmdt1, segmdt2);
 
             //Polygon segment_nadirlane1 = nadirlane.getSegment(segmdt1, segmdt12);
             //Polygon segment_nadirlane2 = nadirlane.getSegment(segmdt12, segmdt2);
@@ -912,7 +1091,7 @@ namespace ViewModel
             //var vd = kp.ViewDir;                       
             //Polygon testkpvp = kp.getViewPolygon;
             //allPols.Add(testkpvp);
-            
+
             ////
 
             //var kaPoint = trajectory.GetPoint(segmdt1);
@@ -925,8 +1104,8 @@ namespace ViewModel
             //Polygon testViewPol = new Polygon(new List<Vector3D>() { vp1,vp2,vp3,vp4 });
 
             //allPols.Add(testViewPol);
- 
- 
+
+
 
             // allPols.Add(segment_lane_roll);
             // allPols.Add(segment_nadir_pich);
@@ -943,17 +1122,18 @@ namespace ViewModel
             //    allPols.Add(segment);
             //}
 
-            /* for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += 5)
-            {
-                DateTime dtcur = segmdt1.AddSeconds(t);
-                TrajectoryPoint p1 = trajectory.GetPoint(dtcur);
-                Vector3D dirVector = LanePos.getDirectionVector(p1, rollAngle, pitchAngle);
-                Polygon viewPolBegNadir = Routines.getViewPolygon(p1, dirVector, OptimalChain.Constants.camera_angle);
-                allPols.Add(viewPolBegNadir);
-            }*/
-     
-            Console.WriteLine(Polygon.getMultipolFromPolygons(allPols));
-            // Console.Write(")");
+            //for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += 5)
+            //{
+            //    DateTime dtcur = segmdt1.AddSeconds(t);
+            //    TrajectoryPoint p1 = trajectory.GetPoint(dtcur);
+            //    SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(p1);
+            //    kp.addRollPitchRot(rollAngle, pitchAngle);
+            //    Polygon testkpvp = kp.ViewPolygon;
+            //    allPols.Add(testkpvp);
+            //}
+
+         //   Console.WriteLine(Polygon.getMultipolFromPolygons(allPols));
+        //    Console.Write(")");
         }
 
 

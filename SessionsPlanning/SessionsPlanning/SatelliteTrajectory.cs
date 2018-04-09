@@ -28,7 +28,38 @@ namespace SatelliteTrajectory
         private double rollAngle;
         private double viewAngle;
 
+        /// <summary>
+        ///  Функция рассчитывает полигон видимости для полосы с ненулевым тангажом и креном
+        /// </summary>
+        /// <param name="trajectory"></param>
+        /// <param name="rollAngle"></param>
+        /// <param name="pitchAngle"></param>
+        /// <param name="viewAngle"></param>
+        /// <returns> полигон видимости </returns>
+        public static Polygon getRollPitchLanePolygon(Astronomy.Trajectory trajectory, double rollAngle, double pitchAngle)
+        { 
+            int count = trajectory.Count;
+            // количество точек будущего полигона - две точки с каждого полигона видимости
 
+            Vector3D[] points = new Vector3D[count * 2]; 
+
+            for (int i = 0; i < count; i ++)
+            { 
+                SatelliteCoordinates kaPos = new SatelliteCoordinates(trajectory.Points[i]);
+                kaPos.addRollPitchRot(rollAngle, pitchAngle);
+                if (0 == i)
+                {
+                    points[i] = kaPos.BotRightViewPoint;
+                    points[count * 2 - 1 - i] = kaPos.BotLeftViewPoint;
+                }
+                else
+                {
+                    points[i] = kaPos.TopRightViewPoint;
+                    points[count * 2 - 1 - i] = kaPos.TopLeftViewPoint;
+                }
+            }
+            return new Polygon(points.ToList());
+        }
 
         public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle)
         {
@@ -504,16 +535,14 @@ namespace SatelliteTrajectory
         //{ // в какую сторону от надир осуществлен наклон съемки
         //    left, right
         //};
-
-
+        
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
         private Vector3D cartKAPoint;
         private Vector3D leftControlPoint;
         private Vector3D rightControlPoint;
         private bool knowLeftConrol;
-        private bool knowRightConrol;
-        private bool knowViewPolygon;
+        private bool knowRightConrol; 
 
         private GeoPoint leftGeoPoint;
         private GeoPoint rightGeoPoint;
@@ -523,18 +552,10 @@ namespace SatelliteTrajectory
         private double width;
         private DateTime time;
 
-        //  private RollOrientation rollOrient;
-
-        private Vector3D topLeftViewPoint;
-        private Vector3D botLeftViewPoint;
-        private Vector3D topRightViewPoint;
-        private Vector3D botRightViewPoint;
-
         public LanePos(Vector3D _leftPoint, Vector3D _kaPoint, Vector3D _rightPoint, DateTime _time)
         {
             knowLeftConrol = false;
-            knowRightConrol = false;
-            knowViewPolygon = false;
+            knowRightConrol = false; 
 
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
@@ -583,8 +604,7 @@ namespace SatelliteTrajectory
             time = pointKA.Time;
 
             knowLeftConrol = false;
-            knowRightConrol = false;
-            knowViewPolygon = false;
+            knowRightConrol = false; 
         }
 
         public DateTime Time { get { return time; } }
@@ -602,8 +622,6 @@ namespace SatelliteTrajectory
         public GeoPoint GeoKAPoint { get { return geoKAPoint; } }
 
         public SatelliteCoordinates KaCoords { get; private set; }
-
-
 
         public Vector3D LeftControlPoint
         {
@@ -629,81 +647,6 @@ namespace SatelliteTrajectory
                 }
                 return rightControlPoint;
             }
-        }
-
-        /// <summary>
-        /// получить переднюю (по направлению скорости) левую точку полигона видимости
-        /// </summary>
-        public Vector3D TopLeftViewPoint
-        {
-            get
-            {
-                if (!knowViewPolygon)
-                {
-                    calculateViewPoints();
-                    knowViewPolygon = true;
-                }
-                return topLeftViewPoint;
-            }
-        }
-
-        /// <summary>
-        /// получить заднюю (по направлению скорости) левую точку полигона видимости
-        /// </summary>
-        public Vector3D BotLeftViewPoint
-        {
-            get
-            {
-                if (!knowViewPolygon)
-                {
-                    calculateViewPoints();
-                    knowViewPolygon = true;
-                }
-                return botLeftViewPoint;
-            }
-        }
-
-        /// <summary>
-        /// получить переднюю (по направлению скорости) правую точку полигона видимости
-        /// </summary>
-        public Vector3D TopRightViewPoint
-        {
-            get
-            {
-                if (!knowViewPolygon)
-                {
-                    calculateViewPoints();
-                    knowViewPolygon = true;
-                }
-                return topRightViewPoint;
-            }
-        }
-
-
-        /// <summary>
-        /// получить заднюю (по направлению скорости) правую точку полигона видимости
-        /// </summary>
-        public Vector3D BotRightViewPoint
-        {
-            get
-            {
-                if (!knowViewPolygon)
-                {
-                    calculateViewPoints();
-                    knowViewPolygon = true;
-                }
-                return botRightViewPoint;
-            }
-        }
-
-
-        private void calculateViewPoints()
-        {
-            Polygon viewPol = KaCoords.getViewPolygon();
-            topRightViewPoint = viewPol.Vertices[0];
-            topLeftViewPoint = viewPol.Vertices[1];
-            botLeftViewPoint = viewPol.Vertices[2];
-            botRightViewPoint = viewPol.Vertices[3];
         }
 
         public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
@@ -1048,9 +991,15 @@ namespace SatelliteTrajectory
         private Vector3D kaX;
         private Vector3D kaY;
         private Vector3D kaZ;
+        private Vector3D topRightViewPoint;
+        private Vector3D topLeftViewPoint;
+        private Vector3D botRightViewPoint;
+        private Vector3D botLeftViewPoint;
+        private Polygon viewPolygon;
+        private bool knowViewPolygon;
 
         public TrajectoryPoint trajPos { get; private set; }
-
+        
         public SatelliteCoordinates(TrajectoryPoint _trajPos)
         {
             trajPos = _trajPos;
@@ -1061,6 +1010,14 @@ namespace SatelliteTrajectory
             kaX.Normalize();
             kaY.Normalize();
             kaZ.Normalize();
+
+            knowViewPolygon = false;
+        }
+
+        public SatelliteCoordinates(TrajectoryPoint _trajPos, double rollAngle, double pitchAngle)
+            : this(_trajPos)
+        {
+            addRollPitchRot(rollAngle, pitchAngle);
         }
 
         public SatelliteCoordinates(SatelliteCoordinates posCopy)
@@ -1069,6 +1026,7 @@ namespace SatelliteTrajectory
             kaX = posCopy.kaX;
             kaY = posCopy.kaY;
             kaZ = posCopy.kaZ;
+            knowViewPolygon = false;
         }
 
         /// <summary>
@@ -1090,6 +1048,7 @@ namespace SatelliteTrajectory
             RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(kaZ, AstronomyMath.ToDegrees(-angle)));
             kaX = rollTransform.Transform(kaX);
             kaY = rollTransform.Transform(kaY);
+            knowViewPolygon = false;
         }
 
         public void addPitchRot(double angle)
@@ -1099,9 +1058,90 @@ namespace SatelliteTrajectory
             RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(kaX, AstronomyMath.ToDegrees(angle)));
             kaY = pitchTransform.Transform(kaY);
             kaZ = pitchTransform.Transform(kaZ);
+            knowViewPolygon = false;
+        }
+         
+
+        /// <summary>
+        /// получить переднюю (по направлению скорости) левую точку полигона видимости
+        /// </summary>
+        public Vector3D TopLeftViewPoint
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return topLeftViewPoint;
+            }
         }
 
-        public Polygon getViewPolygon()
+        /// <summary>
+        /// получить заднюю (по направлению скорости) левую точку полигона видимости
+        /// </summary>
+        public Vector3D BotLeftViewPoint
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return botLeftViewPoint;
+            }
+        }
+
+        /// <summary>
+        /// получить переднюю (по направлению скорости) правую точку полигона видимости
+        /// </summary>
+        public Vector3D TopRightViewPoint
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return topRightViewPoint;
+            }
+        }
+
+
+        /// <summary>
+        /// получить заднюю (по направлению скорости) правую точку полигона видимости
+        /// </summary>
+        public Vector3D BotRightViewPoint
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return botRightViewPoint;
+            }
+        }
+
+
+        public Polygon ViewPolygon 
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return viewPolygon;
+            }
+        }
+
+        private void calculateViewPolygon()
         {
             double half = OptimalChain.Constants.camera_angle / 2;
             double tgHalf = Math.Tan(half);
@@ -1111,12 +1151,12 @@ namespace SatelliteTrajectory
             Vector3D botLeft = kaY / tgHalf - kaX - kaZ;
             Vector3D botRight = kaY / tgHalf + kaX - kaZ;
 
-            Vector3D topRightPoint = Routines.SphereVectIntersect(topRight, trajPos.Position, Astronomy.Constants.EarthRadius);
-            Vector3D topLeftPoint = Routines.SphereVectIntersect(topLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
-            Vector3D botRightPoint = Routines.SphereVectIntersect(botRight, trajPos.Position, Astronomy.Constants.EarthRadius);
-            Vector3D botLeftPoint = Routines.SphereVectIntersect(botLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
-
-            return new Polygon(new List<Vector3D>() { topRightPoint, topLeftPoint, botLeftPoint, botRightPoint });
+            topRightViewPoint = Routines.SphereVectIntersect(topRight, trajPos.Position, Astronomy.Constants.EarthRadius);
+            topLeftViewPoint = Routines.SphereVectIntersect(topLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
+            botRightViewPoint = Routines.SphereVectIntersect(botRight, trajPos.Position, Astronomy.Constants.EarthRadius);
+            botLeftViewPoint = Routines.SphereVectIntersect(botLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
+            viewPolygon = new Polygon(new List<Vector3D>() { topRightViewPoint, topLeftViewPoint, botLeftViewPoint, botRightViewPoint });            
+            knowViewPolygon = true;
         }
 
     }

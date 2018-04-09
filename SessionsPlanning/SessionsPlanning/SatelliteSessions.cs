@@ -801,15 +801,20 @@ namespace SatelliteSessions
                 rollAngle, pitchAngle,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
 
-            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            kaPos.addRollPitchRot(rollAngle, pitchAngle);
+            //LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
+            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
+            // @todo доделать учёт kaPos.Top*ViewPoint
 
             GeoPoint[] leftPoints = new GeoPoint[10];
             for (int i = 0; i < leftPoints.Length; ++i)
             {
                 double d = dist / leftPoints.Length * (i + 1);
                 leftPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Longitude) + l1 * d + l2 * d * d)
                 );
             }
             GeoPoint[] rightPoints = new GeoPoint[10];
@@ -817,16 +822,16 @@ namespace SatelliteSessions
             {
                 double d = dist / rightPoints.Length * (rightPoints.Length - i);
                 rightPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Longitude) + l1 * d + l2 * d * d)
                 );
             }
 
             List<GeoPoint> vertices = new List<GeoPoint>();
-            vertices.Add(lpBegin.LeftGeoPoint);
+            vertices.Add(leftFirstPoint);
             vertices.AddRange(leftPoints);
             vertices.AddRange(rightPoints);
-            vertices.Add(lpBegin.RightGeoPoint);
+            vertices.Add(rightFirstPoint);
 
             Polygon pol = new Polygon(vertices);
             wktPoly = pol.ToWtk();
@@ -857,16 +862,16 @@ namespace SatelliteSessions
                     {
                         return wtk;
                     }
-                    Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
-                    Polygon viewPol = Routines.getViewPolygon((TrajectoryPoint)point, dirVector, OptimalChain.Constants.camera_angle);
-                    wtk = viewPol.ToWtk();
+                    SatelliteCoordinates kaPos = new SatelliteCoordinates((TrajectoryPoint)point, rollAngle, pitchAngle);                    
+                    wtk = kaPos.ViewPolygon.ToWtk();
                 }
                 else
                 {
                     DateTime timeTo = dateTime.AddMilliseconds(duration);
                     Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
-                    Polygon pol = SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
+                    Polygon pol = SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle);
                     wtk = pol.ToWtk();
+
                     //if (viewLane.Sectors.Count > 0)
                     //{
                     //    List<Vector3D> leftLanePoints = new List<Vector3D>();

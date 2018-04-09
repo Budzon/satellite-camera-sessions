@@ -5,7 +5,7 @@ using System.Text;
 using System.Windows.Media.Media3D;
 using System.IO;
 using System.Globalization;
-using MathNetCubicSpline = MathNet.Numerics.Interpolation.CubicSpline; // пересечения с Astronomy CubicSpline
+using MNCbicSplne = MathNet.Numerics.Interpolation.CubicSpline; // пересечения с Astronomy CubicSpline
 namespace Astronomy
 {
     /// <summary>
@@ -15,25 +15,34 @@ namespace Astronomy
     {
         private TrajectoryPoint[] points;
         private TrajectoryCircuit[] cachedCircuits;
-        private MathNetCubicSpline xPosAkimaInterpolation; 
-        private MathNetCubicSpline yPosAkimaInterpolation;
-        private MathNetCubicSpline zPosAkimaInterpolation;
-        private MathNetCubicSpline xVeloAkimaInterpolation;
-        private MathNetCubicSpline yVeloAkimaInterpolation;
-        private MathNetCubicSpline zVeloAkimaInterpolation;
 
+        private Tuple<MNCbicSplne, MNCbicSplne, MNCbicSplne> PosAkimaInterpolation;
+        private Tuple<MNCbicSplne, MNCbicSplne, MNCbicSplne> VeloAkimaInterpolation;
+        
         private Trajectory(TrajectoryPoint[] points)
         {
             if (points == null) throw new ArgumentNullException("points");
+            if (points.Count() < 5) throw new ArgumentNullException("Number of points is less than 5");
             this.points = points;
             var timeArray = points.Select(p => (double)p.Time.Ticks).ToArray();
-            xPosAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Position.X).ToArray());
-            yPosAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Position.Y).ToArray());
-            zPosAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Position.Z).ToArray());
-            xVeloAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Velocity.X).ToArray());
-            yVeloAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Y).ToArray());
-            zVeloAkimaInterpolation = MathNetCubicSpline.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Z).ToArray());
+
+            PosAkimaInterpolation = Tuple.Create(
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Position.X).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Position.Y).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Position.Z).ToArray())
+                );
+
+            VeloAkimaInterpolation = Tuple.Create(
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Velocity.X).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Y).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Z).ToArray())
+                );
         }
+        
+        /// <summary>
+        /// минимальное количетсво точек, при котором возможно обеспечить интерполяцию спрайлами Акима
+        /// </summary>
+        public const int minNumPoints = 5;
 
         public TrajectorySource Source { get; set; }
 
@@ -168,9 +177,9 @@ namespace Astronomy
             if (i >= 0) return i;
             return ~i;
         }
-        
+
         public TrajectoryPoint GetPoint(DateTime t)
-        { 
+        {
             return new TrajectoryPoint(t, GetPosition(t), GetVelocity(t));
         }
 
@@ -182,9 +191,9 @@ namespace Astronomy
         /// <returns></returns>
         public Point3D GetPosition(DateTime t)
         {
-            double x = xPosAkimaInterpolation.Interpolate(t.Ticks);
-            double y = yPosAkimaInterpolation.Interpolate(t.Ticks);
-            double z = zPosAkimaInterpolation.Interpolate(t.Ticks);
+            double x = PosAkimaInterpolation.Item1.Interpolate(t.Ticks);
+            double y = PosAkimaInterpolation.Item2.Interpolate(t.Ticks);
+            double z = PosAkimaInterpolation.Item3.Interpolate(t.Ticks);
             return new Point3D(x, y, z);
         }
 
@@ -196,12 +205,12 @@ namespace Astronomy
         /// <returns></returns>
         public Vector3D GetVelocity(DateTime t)
         {
-            double x = xVeloAkimaInterpolation.Interpolate(t.Ticks);
-            double y = yVeloAkimaInterpolation.Interpolate(t.Ticks);
-            double z = zVeloAkimaInterpolation.Interpolate(t.Ticks);
+            double x = VeloAkimaInterpolation.Item1.Interpolate(t.Ticks);
+            double y = VeloAkimaInterpolation.Item2.Interpolate(t.Ticks);
+            double z = VeloAkimaInterpolation.Item3.Interpolate(t.Ticks);
             return new Vector3D(x, y, z);
         }
-                 
+
         public TrajectoryCircuit GetCircuit(int index)
         {
             if (cachedCircuits == null)
@@ -360,4 +369,3 @@ namespace Astronomy
         #endregion
     }
 }
-
