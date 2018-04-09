@@ -112,88 +112,111 @@ namespace DBTables
             return res;
         }
 
+        private List<SpaceTime> DataRowToSatPositions(DataRow[] beforePos)
+        { 
+            List<SpaceTime> res = new List<SpaceTime>();
+            foreach (var row in beforePos)            
+                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });            
+            return res;
+        }
+
+
         public TrajectoryPoint? GetPositionSat(DateTime dtime)
         {
             string dtimestr = dtime.ToString(datePattern);
-
-            DataRow[] beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, dtime, 1);
-            DataRow[] afterPos = GetDataAfterEqualDate(SatTable.Name, SatTable.Time, dtime, 1);
-
-            if (beforePos.Length < 1 || afterPos.Length < 1)           
+            List<SpaceTime> points = GetMinimumPointsArray(dtime, dtime);
+            if (points.Count == 0)
                 return null;
-           
-
-            SpaceTime point1 = new SpaceTime { Position = SatTable.GetPosition(beforePos[0]), Time = SatTable.GetTime(beforePos[0]) };
-            SpaceTime point2 = new SpaceTime { Position = SatTable.GetPosition(afterPos[0]), Time = SatTable.GetTime(afterPos[0]) };           
-
-            Trajectory trajectory = SpaceTime.createTrajectory(new List<SpaceTime>() { point1, point2 });
-
-            // var point3 = new SpaceTime { Position = SatTable.GetPosition(afterPos[1]), Time = SatTable.GetTime(afterPos[1]) };
-            //if (point2.Time == dtime) // на случай, если такая точка уже есть
-            //{
-            //    return SpaceTime.createTrajectoryPoint(point2, point3);
-            //}
-
-            //TrajectoryPoint first_point = SpaceTime.createTrajectoryPoint(point1, point2);
-            //TrajectoryPoint second_point = SpaceTime.createTrajectoryPoint(point2, point3);
-
-            //Trajectory trajectory = Trajectory.Create(new TrajectoryPoint[2]{first_point, second_point});
-
-            //(new List<SpaceTime>(){point2, point3});
-
-            return  trajectory.GetPoint(dtime);
+            Trajectory trajectory = SpaceTime.createTrajectory(points);
+            return trajectory.GetPoint(dtime);
         }
+         
+
+        /// <summary>
+        /// Получить из БД массив точек траектории в диапазоне времени, для которого нет нужного колва точек 
+        /// </summary>
+        /// <param name="fromDT"> начало диапазона </param>
+        /// <param name="toDT"> конец диапазона </param>
+        /// <returns> список точек</returns>
+        public List<SpaceTime> GetMinimumPointsArray(DateTime fromDT, DateTime toDT)
+        {
+            int minNumPoints = Trajectory.minNumPoints;
+            string fromDTStr = fromDT.ToString(datePattern);
+            string toDTStr = toDT.ToString(datePattern);
+
+            List<SpaceTime> positions;
+                             
+            positions = GetPositionSat(fromDT, toDT);
+           
+            int halfMissNum = (minNumPoints - positions.Count + 1) / 2;
+             
+            DataRow[] beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, halfMissNum);
+            DataRow[] afterPos;
+
+            afterPos = GetDataAfterDate(SatTable.Name, SatTable.Time, toDT, halfMissNum);
+
+            if (beforePos.Length < halfMissNum)
+                afterPos = GetDataAfterDate(SatTable.Name, SatTable.Time, toDT, minNumPoints - positions.Count - beforePos.Length);
+
+            if (afterPos.Length < halfMissNum)
+                beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, minNumPoints - positions.Count - afterPos.Length);
+
+            positions.InsertRange(0, DataRowToSatPositions(beforePos));
+            positions.AddRange(DataRowToSatPositions(afterPos));
+
+            if (positions.Count < minNumPoints)
+                return new List<SpaceTime>();
+
+            TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[positions.Count];
+            for (int i = 0; i < positions.Count; i++)
+                trajectoryPoints[i] = new TrajectoryPoint(positions[i].Time, positions[i].Position.ToPoint(), new Vector3D(0, 0, 0));
+            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
+
+            long timeStep = (toDT -  fromDT).Ticks / (minNumPoints - 1);
+            
+            SpaceTime[] resPoints = new SpaceTime[minNumPoints];
+            for (int i = 0; i < minNumPoints; i++)
+            {
+                DateTime dt = fromDT.AddTicks(i * timeStep);
+                resPoints[i] = new SpaceTime() { Position = trajectory.GetPosition(dt).ToVector(), Time = dt };
+            }
+
+            return resPoints.ToList();
+        }
+
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to)
         {
             List<SpaceTime> preTrajectory = GetPositionSat(from, to);
 
-            if (preTrajectory.Count < 2)
+            if (preTrajectory.Count < Trajectory.minNumPoints)
+                preTrajectory = GetMinimumPointsArray(from, to);
+            else
             {
-                TrajectoryPoint? firstPoint = GetPositionSat(from); 
-                TrajectoryPoint? secondPoint = GetPositionSat(to);
-                TrajectoryPoint[] trajpoints;
-                if (firstPoint == null || secondPoint == null)
-                    trajpoints = new TrajectoryPoint[0];                
-                else                
-                    trajpoints = new TrajectoryPoint[2] { (TrajectoryPoint)firstPoint, (TrajectoryPoint)secondPoint };
-                return Trajectory.Create(trajpoints);
-            }
-
-            if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
-            {
-                TrajectoryPoint? firstPoint = GetPositionSat(from);
-                if (firstPoint != null)
+                if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
                 {
-                    TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
-                    SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = from };
-                    preTrajectory.Insert(0, spt);
+                    TrajectoryPoint? firstPoint = GetPositionSat(from);
+                    if (firstPoint != null)
+                    {
+                        TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
+                        SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = from };
+                        preTrajectory.Insert(0, spt);
+                    }
                 }
-            }
 
-            if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
-            {
-                TrajectoryPoint? secondPoint = GetPositionSat(to);
-                if (secondPoint != null)
+                if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
                 {
-                    TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
-                    SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = to};
-                    preTrajectory.Add(spt);
+                    TrajectoryPoint? secondPoint = GetPositionSat(to);
+                    if (secondPoint != null)
+                    {
+                        TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
+                        SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = to };
+                        preTrajectory.Add(spt);
+                    }
                 }
             }
 
             return SpaceTime.createTrajectory(preTrajectory);
-            //TrajectoryPoint[] points = new TrajectoryPoint[preTrajectory.Count];
-
-            //points[0] = SpaceTime.createTrajectoryPoint(preTrajectory[0], preTrajectory[1]);
-
-            //for (int i = 1; i < preTrajectory.Count - 1; ++i)
-            //    points[i] = SpaceTime.createTrajectoryPoint(preTrajectory[i], preTrajectory[i + 1]);
-
-            //points[preTrajectory.Count - 1] = SpaceTime.createTrajectoryPoint(preTrajectory[preTrajectory.Count - 1],
-            //                                                                  preTrajectory[preTrajectory.Count - 2]);
-
-            //return Trajectory.Create(points);
         }
 
         /// <summary>
@@ -320,6 +343,13 @@ namespace DBTables
                 limit: count).Select();
         }
 
+        public DataRow[] GetDataAfterDate(string tableName, string dateFieldName, DateTime date, int count)
+        {
+            return manager.GetSqlObject(
+                tableName,
+                String.Format("where {0} > '{1}' ORDER BY {0} ASC", dateFieldName, date.ToString(datePattern)),
+                limit: count).Select();
+        }
         public DataRow[] GetDataBeforeEqualDate(string tableName, string dateFieldName, DateTime date, int count)
         {
             return manager.GetSqlObject(
@@ -818,6 +848,7 @@ namespace DBTables
         /// <returns></returns>
         public static Trajectory createTrajectory(List<SpaceTime> points)
         {
+            //@todo сделать расчёт вектора скорости через касательные к кривой
             int count = points.Count;
             TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[count];
 
