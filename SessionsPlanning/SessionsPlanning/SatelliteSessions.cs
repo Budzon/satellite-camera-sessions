@@ -203,7 +203,8 @@ namespace SatelliteSessions
 
         private static void getCaptureConfArrayForTrajectory(
             IList<RequestParams> requests,
-            Trajectory trajectory, List<CaptureConf> captureConfs,
+            Trajectory trajectory,
+            List<CaptureConf> captureConfs,
             List<Tuple<DateTime, DateTime>> freeSessionPeriodsForDrop,
             List<Tuple<DateTime, DateTime>> capturePeriods)
         {
@@ -393,17 +394,6 @@ namespace SatelliteSessions
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
-
-
-            //////////////////// 
-            /*
-            Console.WriteLine("полигон: {0}", requests[0].wktPolygon);
-            foreach (var conf in confsToCapture)
-            {
-                Console.WriteLine("conf: {0}", conf.wktPolygon);
-            }
-            */
-            ///////////////////
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
@@ -1091,7 +1081,7 @@ namespace SatelliteSessions
                 {
                     while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
                         curSunPositionIndex++;
-
+ 
                     // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);

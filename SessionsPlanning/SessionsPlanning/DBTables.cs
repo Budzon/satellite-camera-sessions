@@ -124,20 +124,11 @@ namespace DBTables
         public TrajectoryPoint? GetPositionSat(DateTime dtime)
         {
             string dtimestr = dtime.ToString(datePattern);
-            List<SpaceTime> points = GetMinimumPointsArray(dtime, dtime);
-            if (points.Count == 0)
-                return null;
-            Trajectory trajectory = SpaceTime.createTrajectory(points);
+            Trajectory trajectory =  SpaceTime.createTrajectory(GetMinimumPointsArray(dtime, dtime));
             return trajectory.GetPoint(dtime);
         }
 
 
-        /// <summary>
-        /// Получить из БД массив точек траектории в диапазоне времени, для которого нет нужного колва точек 
-        /// </summary>
-        /// <param name="fromDT"> начало диапазона </param>
-        /// <param name="toDT"> конец диапазона </param>
-        /// <returns> список точек</returns>
         public List<SpaceTime> GetMinimumPointsArray(DateTime fromDT, DateTime toDT)
         {
             int minNumPoints = Trajectory.minNumPoints;
@@ -165,12 +156,23 @@ namespace DBTables
             positions.AddRange(DataRowToSatPositions(afterPos));
 
             if (positions.Count < minNumPoints)
-                return new List<SpaceTime>();
+                throw new ArgumentException("Not enough points in the database for " + fromDT.ToString()  );
 
-            TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[positions.Count];
-            for (int i = 0; i < positions.Count; i++)
-                trajectoryPoints[i] = new TrajectoryPoint(positions[i].Time, positions[i].Position.ToPoint(), new Vector3D(0, 0, 0));
-            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
+            return positions;           
+        }
+
+        /// <summary>
+        /// Получить из БД массив точек траектории в диапазоне времени, для которого нет нужного колва точек 
+        /// </summary>
+        /// <param name="fromDT"> начало диапазона </param>
+        /// <param name="toDT"> конец диапазона </param>
+        /// <returns> список точек</returns>
+        public List<SpaceTime> IncreasePointsNumber(DateTime fromDT, DateTime toDT)
+        {
+            int minNumPoints = Trajectory.minNumPoints;
+            List<SpaceTime> positions = GetMinimumPointsArray(fromDT, toDT);         
+            TrajectoryPoint[] trajectoryPoints = positions.Select(pos => new TrajectoryPoint(pos.Time, pos.Position.ToPoint(), new Vector3D(0, 0, 0))).ToArray();             
+            Trajectory trajectory = Trajectory.Create(trajectoryPoints);      
 
             long timeStep = (toDT - fromDT).Ticks / (minNumPoints - 1);
 
@@ -180,9 +182,11 @@ namespace DBTables
                 DateTime dt = fromDT.AddTicks(i * timeStep);
                 resPoints[i] = new SpaceTime() { Position = trajectory.GetPosition(dt).ToVector(), Time = dt };
             }
-
             return resPoints.ToList();
         }
+
+
+
 
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to)
@@ -190,7 +194,7 @@ namespace DBTables
             List<SpaceTime> preTrajectory = GetPositionSat(from, to);
 
             if (preTrajectory.Count < Trajectory.minNumPoints)
-                preTrajectory = GetMinimumPointsArray(from, to);
+                preTrajectory = IncreasePointsNumber(from, to);
             else
             {
                 if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
@@ -241,8 +245,8 @@ namespace DBTables
             //    }
 
             Trajectory traj = GetTrajectorySat(from, to);
-            foreach (TrajectoryPoint p in traj.Points)
-                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
+            foreach (TrajectoryPoint p in traj.Points)            
+                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));            
 
             return res;
         }
