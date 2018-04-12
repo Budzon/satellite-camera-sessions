@@ -393,18 +393,7 @@ namespace SatelliteSessions
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
-
-
-            //////////////////// 
-            /*
-            Console.WriteLine("полигон: {0}", requests[0].wktPolygon);
-            foreach (var conf in confsToCapture)
-            {
-                Console.WriteLine("conf: {0}", conf.wktPolygon);
-            }
-            */
-            ///////////////////
-
+ 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
             List<MPZParams> captureMPZParams = captureGraph.findOptimalChain(Nmax);
