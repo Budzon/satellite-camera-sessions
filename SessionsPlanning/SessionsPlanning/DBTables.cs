@@ -62,7 +62,7 @@ namespace DBTables
         {
             return snkpoi;
         }
-        
+
         /// <summary>
         /// Fetches MNKPOI position such that <paramref name="time"/> lies in [timeBegin, timeEnd).
         /// </summary>
@@ -113,10 +113,10 @@ namespace DBTables
         }
 
         private List<SpaceTime> DataRowToSatPositions(DataRow[] beforePos)
-        { 
+        {
             List<SpaceTime> res = new List<SpaceTime>();
-            foreach (var row in beforePos)            
-                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });            
+            foreach (var row in beforePos)
+                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
             return res;
         }
 
@@ -130,7 +130,7 @@ namespace DBTables
             Trajectory trajectory = SpaceTime.createTrajectory(points);
             return trajectory.GetPoint(dtime);
         }
-         
+
 
         /// <summary>
         /// Получить из БД массив точек траектории в диапазоне времени, для которого нет нужного колва точек 
@@ -145,11 +145,11 @@ namespace DBTables
             string toDTStr = toDT.ToString(datePattern);
 
             List<SpaceTime> positions;
-                             
+
             positions = GetPositionSat(fromDT, toDT);
-           
+
             int halfMissNum = (minNumPoints - positions.Count + 1) / 2;
-             
+
             DataRow[] beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, halfMissNum);
             DataRow[] afterPos;
 
@@ -172,8 +172,8 @@ namespace DBTables
                 trajectoryPoints[i] = new TrajectoryPoint(positions[i].Time, positions[i].Position.ToPoint(), new Vector3D(0, 0, 0));
             Trajectory trajectory = Trajectory.Create(trajectoryPoints);
 
-            long timeStep = (toDT -  fromDT).Ticks / (minNumPoints - 1);
-            
+            long timeStep = (toDT - fromDT).Ticks / (minNumPoints - 1);
+
             SpaceTime[] resPoints = new SpaceTime[minNumPoints];
             for (int i = 0; i < minNumPoints; i++)
             {
@@ -215,8 +215,8 @@ namespace DBTables
                     }
                 }
             }
-
-            return SpaceTime.createTrajectory(preTrajectory);
+             
+            return SpaceTime.createTrajectory(preTrajectory); ;
         }
 
         /// <summary>
@@ -242,7 +242,7 @@ namespace DBTables
 
             Trajectory traj = GetTrajectorySat(from, to);
             foreach (TrajectoryPoint p in traj.Points)
-                res.Add(new SatelliteTrajectory.LanePos(p, 2*OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
+                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
 
             return res;
         }
@@ -261,8 +261,8 @@ namespace DBTables
                 if (preRows.Length < 1) // no data about turns that began before the given date
                     return null;
                 Tuple<int, DateTime> preTurn = Tuple.Create(OrbitTable.GetNumTurn(preRows[0]), OrbitTable.GetTimeEquator(preRows[0]));
-                
-                times.Add(Tuple.Create(preTurn.Item1, chunk.Begin)); 
+
+                times.Add(Tuple.Create(preTurn.Item1, chunk.Begin));
 
                 int ind = 0;
                 if (preTurn.Item2 == chunk.Begin) // == turns[0].Item2
@@ -840,7 +840,7 @@ namespace DBTables
     {
         public Vector3D Position { get; set; }
         public DateTime Time { get; set; }
- 
+
         /// <summary>
         /// Получить объект Astronomy.Trajectory из набора точек
         /// </summary>
@@ -850,19 +850,17 @@ namespace DBTables
         {
             //@todo сделать расчёт вектора скорости через касательные к кривой
             int count = points.Count;
-            TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[count];
 
-            for (int i = 0; i < count; i++)            
-                trajectoryPoints[i] = new TrajectoryPoint(points[i].Time, points[i].Position.ToPoint(), new Vector3D(0,0,0));             
+            TrajectoryPoint[] trajectoryPoints = points.Select(point => new TrajectoryPoint(point.Time, point.Position.ToPoint(), new Vector3D(0, 0, 0))).ToArray();
 
             Trajectory trajectory = Trajectory.Create(trajectoryPoints);
 
-            double timeStep = 1;  
+            double timeStep = 1;
             for (int i = 0; i < count; i++)
             {
                 TrajectoryPoint curpoint = trajectory.Points[i];
                 Vector3D velo;
-                if (i != count-1)
+                if (i != count - 1)
                 {
                     Point3D nextPoint = trajectory.GetPosition(curpoint.Time.AddSeconds(timeStep));
                     velo = (nextPoint - curpoint.Position) / timeStep;
@@ -872,9 +870,11 @@ namespace DBTables
                     Point3D nextPoint = trajectory.GetPosition(curpoint.Time.AddSeconds(-timeStep));
                     velo = (curpoint.Position - nextPoint) / timeStep;
                 }
-                trajectory.Points[i] = new TrajectoryPoint(curpoint.Time, curpoint.Position, velo);                
+                trajectory.Points[i] = new TrajectoryPoint(curpoint.Time, curpoint.Position, velo);
             }
-            return Trajectory.Create(trajectory.Points); // через констркутор для того, чтобы пересчитались интерполянты
+
+            // Далее проверим, что шаг удовлетворяет условиям. И пропустим через констркутор для того, чтобы пересчитались интерполянты.
+            return Trajectory.changeMaximumTimeStep(Trajectory.Create(trajectory.Points), OptimalChain.Constants.minTrajectoryStep);
         }
     }
 
