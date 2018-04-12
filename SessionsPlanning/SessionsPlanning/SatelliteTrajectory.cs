@@ -37,62 +37,61 @@ namespace SatelliteTrajectory
         /// <param name="viewAngle"></param>
         /// <returns> полигон видимости </returns>
         public static Polygon getRollPitchLanePolygon(Astronomy.Trajectory trajectory, double rollAngle, double pitchAngle)
-        { 
+        {
             int count = trajectory.Count;
             // количество точек будущего полигона - две точки с каждого полигона видимости
 
             int vertNum = count * 2 + 2;
-            Vector3D[] points = new Vector3D[vertNum]; 
+            Vector3D[] points = new Vector3D[vertNum];
 
-            for (int i = 0; i < count; i ++)
-            { 
-                SatelliteCoordinates kaPos = new SatelliteCoordinates(trajectory.Points[i]);
-                kaPos.addRollPitchRot(rollAngle, pitchAngle);
-                if (0 == i) // первый кадр
-                {
-                    if (Math.Sign(rollAngle) == Math.Sign(pitchAngle))
-                    {
-                        points[0] = kaPos.BotRightViewPoint;
-                        points[vertNum - 1] = kaPos.BotLeftViewPoint;
-                        points[1] = kaPos.TopRightViewPoint;
-                    }
-                    else
-                    {
-                        points[0] = kaPos.BotRightViewPoint;
-                        points[vertNum - 1] = kaPos.BotLeftViewPoint; 
-                        points[vertNum - 2] = kaPos.TopLeftViewPoint;
-                    }
-                }
-                else if (count - 1 == i) // последний кадр
-                {
-                    if (Math.Sign(rollAngle) == Math.Sign(pitchAngle))
-                    {
-                        points[count] = kaPos.TopRightViewPoint;
-                        points[count + 1] = kaPos.TopLeftViewPoint;
-                        points[count + 2] = kaPos.BotLeftViewPoint;
-                    }
-                    else
-                    {
-                        points[count-1] = kaPos.BotRightViewPoint;
-                        points[count] = kaPos.TopRightViewPoint;
-                        points[count + 1] = kaPos.TopLeftViewPoint;
-                    }
-                }
-                else // промежуточные кадры
-                {
-                    if (Math.Sign(rollAngle) == Math.Sign(pitchAngle))
-                    {
-                        points[i + 1] = kaPos.TopRightViewPoint;
-                        points[vertNum - 1 - i] = kaPos.BotLeftViewPoint;
-                    }
-                    else
-                    {
-                        points[i] = kaPos.BotRightViewPoint;
-                        points[vertNum - 2 - i] = kaPos.TopLeftViewPoint;
-                    }
 
+            // первый кадр
+            SatelliteCoordinates firstKaPos = new SatelliteCoordinates(trajectory.Points[0]);
+            firstKaPos.addRollPitchRot(rollAngle, pitchAngle);
+            if (Math.Sign(rollAngle) == Math.Sign(pitchAngle))
+            {
+                points[0] = firstKaPos.BotRightViewPoint;
+                points[vertNum - 1] = firstKaPos.BotLeftViewPoint;
+                points[1] = firstKaPos.TopRightViewPoint;
+            }
+            else
+            {
+                points[0] = firstKaPos.BotRightViewPoint;
+                points[vertNum - 1] = firstKaPos.BotLeftViewPoint;
+                points[vertNum - 2] = firstKaPos.TopLeftViewPoint;
+            }
+
+            for (int i = 1; i < count - 1; i++)
+            {
+                SatelliteCoordinates curKaPos = new SatelliteCoordinates(trajectory.Points[i]);
+                curKaPos.addRollPitchRot(rollAngle, pitchAngle);
+
+                if (Math.Sign(rollAngle) == Math.Sign(pitchAngle))
+                {
+                    points[i + 1] = curKaPos.TopRightViewPoint;
+                    points[vertNum - 1 - i] = curKaPos.BotLeftViewPoint;
+                }
+                else
+                {
+                    points[i] = curKaPos.BotRightViewPoint;
+                    points[vertNum - 2 - i] = curKaPos.TopLeftViewPoint;
                 }
             }
+            SatelliteCoordinates lastKaPos = new SatelliteCoordinates(trajectory.Points.Last());
+            lastKaPos.addRollPitchRot(rollAngle, pitchAngle);
+            if (Math.Sign(rollAngle) == Math.Sign(pitchAngle))
+            {
+                points[count] = lastKaPos.TopRightViewPoint;
+                points[count + 1] = lastKaPos.TopLeftViewPoint;
+                points[count + 2] = lastKaPos.BotLeftViewPoint;
+            }
+            else
+            {
+                points[count - 1] = lastKaPos.BotRightViewPoint;
+                points[count] = lastKaPos.TopRightViewPoint;
+                points[count + 1] = lastKaPos.TopLeftViewPoint;
+            }
+
             return new Polygon(points.ToList());
         }
 
@@ -343,7 +342,7 @@ namespace SatelliteTrajectory
                 rightPolygonPoints.Add(posTo.RightCartPoint);
                 last = posTo;
             }
-            
+
             // учёт трапецевидности
 
             //polygonPoints.Insert(0, fisrt.BotLeftViewPoint);
@@ -568,14 +567,14 @@ namespace SatelliteTrajectory
         //{ // в какую сторону от надир осуществлен наклон съемки
         //    left, right
         //};
-        
+
         private Vector3D leftCartPoint;
         private Vector3D rightCartPoint;
         private Vector3D cartKAPoint;
         private Vector3D leftControlPoint;
         private Vector3D rightControlPoint;
         private bool knowLeftConrol;
-        private bool knowRightConrol; 
+        private bool knowRightConrol;
 
         private GeoPoint leftGeoPoint;
         private GeoPoint rightGeoPoint;
@@ -588,7 +587,7 @@ namespace SatelliteTrajectory
         public LanePos(Vector3D _leftPoint, Vector3D _kaPoint, Vector3D _rightPoint, DateTime _time)
         {
             knowLeftConrol = false;
-            knowRightConrol = false; 
+            knowRightConrol = false;
 
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
@@ -637,7 +636,7 @@ namespace SatelliteTrajectory
             time = pointKA.Time;
 
             knowLeftConrol = false;
-            knowRightConrol = false; 
+            knowRightConrol = false;
         }
 
         public DateTime Time { get { return time; } }
@@ -1032,7 +1031,7 @@ namespace SatelliteTrajectory
         private bool knowViewPolygon;
 
         public TrajectoryPoint trajPos { get; private set; }
-        
+
         public SatelliteCoordinates(TrajectoryPoint _trajPos)
         {
             trajPos = _trajPos;
@@ -1093,7 +1092,7 @@ namespace SatelliteTrajectory
             kaZ = pitchTransform.Transform(kaZ);
             knowViewPolygon = false;
         }
-         
+
 
         /// <summary>
         /// получить переднюю (по направлению скорости) левую точку полигона видимости
@@ -1161,7 +1160,7 @@ namespace SatelliteTrajectory
         }
 
 
-        public Polygon ViewPolygon 
+        public Polygon ViewPolygon
         {
             get
             {
@@ -1188,7 +1187,7 @@ namespace SatelliteTrajectory
             topLeftViewPoint = Routines.SphereVectIntersect(topLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
             botRightViewPoint = Routines.SphereVectIntersect(botRight, trajPos.Position, Astronomy.Constants.EarthRadius);
             botLeftViewPoint = Routines.SphereVectIntersect(botLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
-            viewPolygon = new Polygon(new List<Vector3D>() { topRightViewPoint, topLeftViewPoint, botLeftViewPoint, botRightViewPoint });            
+            viewPolygon = new Polygon(new List<Vector3D>() { topRightViewPoint, topLeftViewPoint, botLeftViewPoint, botRightViewPoint });
             knowViewPolygon = true;
         }
 
