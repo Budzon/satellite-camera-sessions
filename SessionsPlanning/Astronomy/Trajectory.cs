@@ -52,6 +52,20 @@ namespace Astronomy
 
         public int Count { get { return points.Length; } }
 
+        /// <summary>
+        /// продолжительность траектории в секундах
+        /// </summary>
+        public double Duration 
+        { 
+            get 
+            {
+                if (Count == 0)
+                    return 0;
+                else
+                    return (points.Last().Time - points[0].Time).TotalSeconds;
+            } 
+        }
+
         public void Save(string path)
         {
             using (StreamWriter sw = new StreamWriter(path, false))
@@ -270,6 +284,34 @@ namespace Astronomy
                 }
             }
             cachedCircuits = circuits.ToArray();
+        }
+
+        /// <summary>
+        /// Проверяет максимальный временной шаг траектории, в случае необходимости интерполирует новую траеткорию с заданным шагом
+        /// </summary>
+        /// <param name="trajectory">базовая траектория</param>
+        /// <param name="maxTimeStep">максимально допустимый шаг траектории по времени</param>
+        /// <returns>траектория с шагом, меньшим чем maxTimeStep </returns>
+        public static Trajectory changeMaximumTimeStep(Trajectory trajectory, double maxTimeStep)
+        { 
+            // максимальный шаг по времени между точками траектории
+            double maxStep = trajectory.Points.Skip(1).Zip(trajectory.Points, (curr, prev) => (curr.Time - prev.Time).TotalSeconds).Max();
+ 
+            if (maxStep < maxTimeStep)
+                return trajectory;
+             
+            int size = (int)Math.Ceiling(trajectory.Duration / maxTimeStep) + 1;
+            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+
+            for (int i = 0; i < size-1; i++ )
+            {
+                DateTime t = trajectory.points[0].Time.AddSeconds(i*maxTimeStep);                
+                newTrajsPoints[i] = trajectory.GetPoint(t);
+            }
+
+            newTrajsPoints[size - 1] = trajectory.GetPoint(trajectory.points.Last().Time);
+
+            return Trajectory.Create(newTrajsPoints.ToArray());
         }
 
         #region IEnumerable<TrajectoryPoint> Members
