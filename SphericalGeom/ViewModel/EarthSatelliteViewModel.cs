@@ -414,8 +414,8 @@ namespace ViewModel
             Console.WriteLine("v = {0};", velo);
 
             // расчитаем поправку по крену
-            double rollDelta = -AstronomyMath.ToRad(0.0928849189990871);//
-            // double rollDelta = getRollCorrection(h, velo, w, b, pitchAngle);
+           // double rollDelta = -AstronomyMath.ToRad(0.0928849189990871);//
+            double rollDelta = getRollCorrection(h, velo, w, b, pitchAngle);
             Console.WriteLine("{0} рад - рассчитаная поправка по крену. В градусах - {1}", rollDelta, AstronomyMath.ToDegrees(rollDelta));
             var resTestPoint = LanePos.getSurfacePoint(point, 0 + rollDelta, pitchAngle);
 
@@ -781,6 +781,21 @@ namespace ViewModel
             return res;
         }
 
+        public string getWKTLinePoints(List<Vector3D> points)
+        {
+            string res = "";
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            res += "LINESTRING(\n";
+            for (int i = 0; i < points.Count; i++)
+            {
+                GeoPoint pos = GeoPoint.FromCartesian(points[i]);
+                if (i != 0)
+                    res += " , ";
+                res += string.Format("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            res += ")\n";
+            return res;
+        }
 
         public string getWKTInterpolateTrajectory(Trajectory trajectory,DateTime segmdt1, DateTime segmdt2, int step)
         {
@@ -1057,6 +1072,7 @@ namespace ViewModel
 
             Console.Write(")");
 
+            #region
             //{
             //    SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(trajectory.GetPoint(segmdt12));
             //    //kp.addRollPitchRot(0, 0);
@@ -1253,19 +1269,102 @@ namespace ViewModel
 
          //   Console.WriteLine(Polygon.getMultipolFromPolygons(allPols));
         //    Console.Write(")");
+
+#endregion
         }
 
-
-        public IList<CaptureConf> test_getCaptureConfArray()
+        public void test_calculatePitchArray()
         {
-            //testTrapezium();
-            //return null;
-
-            DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
-            DateTime dt2 = new DateTime(2019, 2, 2, 0, 00, 00);
+            DateTime dt1 = DateTime.Parse("01.02.2019 00:00:00");
+            DateTime dtMid = DateTime.Parse("01.02.2019 00:05:00");
+            DateTime dt2 = DateTime.Parse("01.02.2019 00:10:00"); 
 
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            double rollAngle = AstronomyMath.ToRad(45);
+            double pitchAngle = AstronomyMath.ToRad(30);
+            double viewAngle = OptimalChain.Constants.camera_angle;
+
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetPositionSat(dtMid);
+
+            List<Vector3D> pitchLine = new List<Vector3D>();
+            double pitchStep = AstronomyMath.ToRad(1);
+            for (double pitch = -pitchAngle; pitch <= pitchAngle; pitch += pitchStep)
+            {
+                Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle, pitch);
+                pitchLine.Add(surfPoint);
+            }
+
+            List<Vector3D> nopitchLine = new List<Vector3D>();
+            foreach (var trp in trajectory)
+            {
+                Vector3D surfPoint = LanePos.getSurfacePoint(trp, rollAngle, 0);
+                nopitchLine.Add(surfPoint);
+            }
+
+            List<Vector3D> rollCorrPitchLine = new List<Vector3D>();
+            for (double pitch = -pitchAngle; pitch <= pitchAngle; pitch += pitchStep)
+            {
+                double height = pp1.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
+                double velo = pp1.Velocity.Length / (Astronomy.Constants.EarthRadius + height);
+                GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pp1.Position.ToVector());
+                double rollCor = Sessions.getRollCorrection(height, velo, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
+  
+                Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle + rollCor, pitch);
+                rollCorrPitchLine.Add(surfPoint);
+                Console.WriteLine(rollCor);
+            }
+
+            //GeoPoint p1 = new GeoPoint(-49.01265386395501, -14.562377929687498);
+            //GeoPoint p2 = new GeoPoint(-49.11343354595957, -14.974365234374996);
+            //Console.WriteLine("err = {0}", GeoPoint.DistanceOverSurface(p1, p2) * Astronomy.Constants.EarthRadius);
+ 
+
+
+
+            Polygon centre = getPointPolygon(LanePos.getSurfacePoint(pp1, rollAngle, 0));
+             
+            Console.Write("GEOMETRYCOLLECTION(");            
+            Console.WriteLine(getWKTLinePoints(pitchLine));
+            Console.WriteLine(",");
+            Console.WriteLine(getWKTLinePoints(rollCorrPitchLine));
+            Console.WriteLine(",");
+            Console.WriteLine(getWKTLinePoints(nopitchLine));
+            Console.WriteLine(",");
+            Console.WriteLine(getWKTTrajectory(trajectory));
+            Console.WriteLine(",");
+            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>(){centre}) );
+            Console.WriteLine(")");
+        }
+
+        public IList<CaptureConf> test_getCaptureConfArray()
+        {
+            test_calculatePitchArray();
+            return null;
+
+            DateTime dt1 = DateTime.Parse("01.02.2019 1:12:30") ; 
+            DateTime dt2 = DateTime.Parse("01.02.2019 1:14:30"); 
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+             //for (int i = 0; i < 10; i++)
+             //{ 
+             //    List<Tuple<DateTime, DateTime>> shadowPeriods;
+             //    List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+             //    Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+
+             //    Console.WriteLine(shadowPeriods.Count);
+             //}
+
+
+             //return null;
+
+
+            #region
 
             /*
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
@@ -1555,7 +1654,7 @@ namespace ViewModel
 
           //  requests.Add(new RequestParams(i: 331, p: 3, d1: DateTime.Parse("2018-02-26T19:22:00"), d2: DateTime.Parse("2019-03-13T19:22:00"), max_a: 0.52359877559829882, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((32.185089 29.690301, 32.185089 33.690301, 28.185089 33.690301, 28.185089 29.690301, 32.185089 29.690301))", sT: 0, comp: 10, alb: 0.0));
             //requests.Add(new RequestParams(i: 331, p: 3, d1: DateTime.Parse("2018-02-26T19:22:00"), d2: DateTime.Parse("2019-03-13T19:22:00"), max_a: 0.52359877559829882, min_p: 10.0, max_s_a: 90, min_s_a: 10, polygon: "POLYGON((33.690301 28.185089, 33.690301 32.185089, 29.690301 32.185089, 29.690301 28.185089, 33.690301 28.185089))", sT: 0, comp: 10, alb: 0.0));
-            
+
             /*
             var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerDB, new List<Tuple<DateTime, DateTime>>());
             
@@ -1573,7 +1672,9 @@ namespace ViewModel
             
             return res;
             */
-            
+
+            #endregion
+
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
             
@@ -1621,12 +1722,43 @@ namespace ViewModel
 
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
           //  routesToDelete.Add(routempzToDelete);
-
-            
+                       
 
             string s = "POLYGON((126.62833380556265 -14.265775772684364, 126.61297170945132 -14.307982784865686, 126.6565272839827 -14.323835717531452, 126.671889380094 -14.281628705350116, 126.62833380556265 -14.265775772684364))";
-            RequestParams rp = new RequestParams(i : 301, p: 3, d1: dt1, d2: dt2, max_a: 55 * Math.PI / 180, min_p: 50, max_s_a: 10, min_s_a: 90, polygon: s, alb : 0.36, comp : 10, sT : 1);
-            //12.03.2015 по 14.03.2015
+            RequestParams rp = new RequestParams(i : 301, p: 3, d1: dt1, d2: dt2, max_a: 55 * Math.PI / 180, min_p: 50, max_s_a: 10, min_s_a: 90, polygon: s, alb : 0.36, comp : 10, sT : 0);
+            
+            
+            //            DataFetcher fetcher = new DataFetcher(managerDB);
+            //Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+            //SatLane sl = new SatLane(trajectory,   0.012167999999999603, OptimalChain.Constants.camera_angle);
+            //CaptureConf cccc = sl.getCaptureConfs(rp)[0];
+
+
+            //List<Polygon> allPols = new List<Polygon>();
+            ////  allPols.Add(sl.Sectors[0].polygon);
+            
+            ////  allPols.Add(sl.getSegment(cccc.dateFrom, cccc.dateTo));
+
+            //Trajectory trajectory2 = fetcher.GetTrajectorySat(cccc.dateFrom, cccc.dateTo);
+            //SatLane sl2 = new SatLane(trajectory2, 0.012167999999999603, OptimalChain.Constants.camera_angle);
+            //allPols.Add(sl2.Sectors[0].polygon);
+
+
+            //Console.Write("GEOMETRYCOLLECTION(");
+            //Console.WriteLine(Polygon.getMultipolFromPolygons(allPols));
+            //Console.Write(",");
+            //Console.WriteLine(getWKTTrajectory(trajectory2));
+            //Console.Write(",");
+            //Console.Write("POLYGON((126.62833380556265 -14.265775772684364,126.61297170945132 -14.307982784865686,126.6565272839827 -14.323835717531452,126.671889380094 -14.281628705350116,126.62833380556265 -14.265775772684364))");
+            //Console.Write(")");
+           
+            //Console.WriteLine();
+
+            ////IList<Polygon> intersections = Polygon.Intersect(sl.Sectors[0].polygon, new Polygon(s));
+
+            //return null;
+                        
              Sessions.getMPZArray(new List<RequestParams> {rp}, dt1, dt2
           //  Sessions.getMPZArray(requests, dt1, dt2
                 , silenceRanges
