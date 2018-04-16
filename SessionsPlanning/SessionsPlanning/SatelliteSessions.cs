@@ -1541,8 +1541,9 @@ namespace SatelliteSessions
             {
                 double pitch = pitchInterpolation.GetValue(t);
                 double height = pointFrom.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
+                double velo = pp1.Velocity.Length / (Astronomy.Constants.EarthRadius + height);
                 GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pointFrom.Position.ToVector());
-                var rollCorrection = getRollCorrection(height, pointFrom.Velocity.Length, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
+                var rollCorrection = getRollCorrection(height, velo, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
                 timeAngleArray[t] = Tuple.Create(pitch, rollCorrection);
             }
 
@@ -1565,19 +1566,25 @@ namespace SatelliteSessions
         }
 
 
-        public static double getRollCorrection(double height, double velo, double bKa, double pitchAngle)
+        /// <summary>
+        /// расчёт поправки по крену 
+        /// </summary>
+        /// <param name="height">высота ка в км</param>
+        /// <param name="velo">скорость подспутниковой точки в радианах</param>
+        /// <param name="bKa">широта подспутниковой точки в радианах </param>
+        /// <param name="pitchAngle">угол тангажа</param>
+        /// <returns>поправка по крену</returns>
+        public static double getRollCorrection(double height, double velo, double bKa, double pitch)
         {
             double wEarth = OptimalChain.Constants.earthRotSpeed;
             double I = OptimalChain.Constants.orbital_inclination;
             double R = Astronomy.Constants.EarthRadius;
-            //double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - (R + h) * (R + h) / R / R * Math.Sin(pitch) * Math.Sin(pitch))) - pitch);
-            //double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I);
-            //double sinRoll = R * Math.Sin(d) / Math.Sqrt(R * R + (R + h) * (R + h) - 2 * R * (R + h) * Math.Cos(d));
-            //return Math.Asin(sinRoll); 
-            double bm = bKa + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitchAngle), 2))) - pitchAngle);
-            double d = Math.Cos(bm) * wEarth / velo * pitchAngle * Math.Sin(I);
+            double bm = bKa + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitch), 2))) - pitch);
+            //Разница между двумя позициями спутника
+            double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitch), 2))) - Math.Abs(pitch);
+            double d = Math.Cos(bm) * wEarth / velo * b2 * Math.Sin(I);
             double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + height, 2) - 2 * R * (R + height) * Math.Cos(d));
-            return Math.Asin(sinRoll);
+            return Math.Asin(sinRoll); 
         }
 
 
