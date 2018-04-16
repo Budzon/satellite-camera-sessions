@@ -33,7 +33,7 @@ namespace OptimalChain
         public const double camera_angle = 0.016616; // ~0.952 градуса - угол обзора камеры
         public const double max_roll_angle = 0.78540; // 45 градусов - максимально возможный угол крена
         public const double max_pitch_angle = 0.52360; // 30 градусов - максимально возможный угол тангажа
-        public const double earthRotSpeed = Math.PI / (12 * 60 * 60); 
+        public const double earthRotSpeed = 7.2921158553e-5; // 1/c
         public const double orbital_inclination = 1.7104; // угол наклона орбиты в градусах
         public const double orbit_height = 720; // км (или 650?)
         public const double routeDeleteTime = 15; // время на удаление маршрута
