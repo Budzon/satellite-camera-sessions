@@ -1535,7 +1535,7 @@ namespace SatelliteSessions
             {
                 double pitch = pitchInterpolation.GetValue(t);
                 double height = pointFrom.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
-                double velo = pointFrom.Velocity.Length / (Astronomy.Constants.EarthRadius + height);
+                double velo = pointFrom.Velocity.Length / pointFrom.Position.ToVector().Length;
                 GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pointFrom.Position.ToVector());
                 var rollCorrection = getRollCorrection(height, velo, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
                 timeAngleArray[t] = Tuple.Create(pitch, rollCorrection);
