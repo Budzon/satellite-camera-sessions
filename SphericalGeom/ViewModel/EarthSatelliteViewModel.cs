@@ -866,6 +866,28 @@ namespace ViewModel
             return res;
         }
 
+        public string getWKTStrip(Trajectory trajectory, double rollAngle, int step)
+        { 
+            SatLane lane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
+            string res = Polygon.getMultipolFromPolygons(lane.Sectors.Select(sect => sect.polygon).ToList());
+            return res;
+        }
+
+        public string getWKTStripSegment(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, double rollAngle)
+        {
+            SatLane lane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);         
+            return lane.getSegment(segmdt1, segmdt2).ToWtk();
+        }
+
+
+        public string getWKTViewPolygon(Trajectory trajectory, double rollAngle, double pitchAngle, DateTime dtime)
+        {
+            TrajectoryPoint p1 = trajectory.GetPoint(dtime);
+            SatelliteTrajectory.SatelliteCoordinates kp = new SatelliteTrajectory.SatelliteCoordinates(p1, rollAngle, pitchAngle);
+            return kp.ViewPolygon.ToWtk();
+        }
+
+
         public void test_PlotTrajectoryAndSeveralViewPolygons()
         {
             var allPols = new List<Polygon>();
@@ -997,12 +1019,77 @@ namespace ViewModel
             
         }
 
-        public void testTrapezium()
+        public void test_calculatePitchArray()
         {
-         //   testTrajectoryInterpolationFromDat();
-           // return;
-            //test_plotTrajectoryAndSeveralViewPolygons();
-                    
+            DateTime dt1 = DateTime.Parse("01.02.2019 00:00:00");
+            DateTime dtMid = DateTime.Parse("01.02.2019 00:05:00");
+            DateTime dt2 = DateTime.Parse("01.02.2019 00:10:00");
+
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            double rollAngle = AstronomyMath.ToRad(45);
+            double pitchAngle = AstronomyMath.ToRad(30);
+            double viewAngle = OptimalChain.Constants.camera_angle;
+
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetPositionSat(dtMid);
+
+            List<Vector3D> pitchLine = new List<Vector3D>();
+            double pitchStep = AstronomyMath.ToRad(1);
+            for (double pitch = -pitchAngle; pitch <= pitchAngle; pitch += pitchStep)
+            {
+                Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle, pitch);
+                pitchLine.Add(surfPoint);
+            }
+
+            List<Vector3D> nopitchLine = new List<Vector3D>();
+            foreach (var trp in trajectory)
+            {
+                Vector3D surfPoint = LanePos.getSurfacePoint(trp, rollAngle, 0);
+                nopitchLine.Add(surfPoint);
+            }
+
+            List<Vector3D> rollCorrPitchLine = new List<Vector3D>();
+            for (double pitch = -pitchAngle; pitch <= pitchAngle; pitch += pitchStep)
+            {
+                double height = pp1.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
+                double velo = pp1.Velocity.Length / (Astronomy.Constants.EarthRadius + height);
+                GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pp1.Position.ToVector());
+                double rollCor = Sessions.getRollCorrection(height, velo, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
+
+                Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle + rollCor, pitch);
+                rollCorrPitchLine.Add(surfPoint);
+                Console.WriteLine(rollCor);
+            }
+
+            //GeoPoint p1 = new GeoPoint(-49.01265386395501, -14.562377929687498);
+            //GeoPoint p2 = new GeoPoint(-49.11343354595957, -14.974365234374996);
+            //Console.WriteLine("err = {0}", GeoPoint.DistanceOverSurface(p1, p2) * Astronomy.Constants.EarthRadius);
+
+
+
+
+            Polygon centre = getPointPolygon(LanePos.getSurfacePoint(pp1, rollAngle, 0));
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.WriteLine(getWKTLinePoints(pitchLine));
+            Console.WriteLine(",");
+            Console.WriteLine(getWKTLinePoints(rollCorrPitchLine));
+            Console.WriteLine(",");
+            Console.WriteLine(getWKTLinePoints(nopitchLine));
+            Console.WriteLine(",");
+            Console.WriteLine(getWKTTrajectory(trajectory));
+            Console.WriteLine(",");
+            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { centre }));
+            Console.WriteLine(")");
+        }
+
+        public void test_plot4getRollPitchLanePolygon()
+        {
+
             var allPols = new List<Polygon>();
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -1020,6 +1107,56 @@ namespace ViewModel
 
             Trajectory trajectory = fetcher.GetTrajectorySat(segmdt1, segmdt2);
 
+            int step = 5;
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            
+
+            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, rollAngle, pitchAngle, step));
+            Console.Write(",");
+            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle) }));
+
+            Console.Write(",");
+            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, -rollAngle, pitchAngle, step));
+            Console.Write(",");
+            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, -rollAngle, pitchAngle) }));
+
+            Console.Write(",");
+            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, rollAngle, -pitchAngle, step));
+            Console.Write(",");
+            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, rollAngle, -pitchAngle) }));
+
+            Console.Write(",");
+            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, -rollAngle, -pitchAngle, step));
+            Console.Write(",");
+            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, -rollAngle, -pitchAngle) }));
+
+            Console.Write(")");
+        }
+
+        public void testTrapezium()
+        {
+         //   testTrajectoryInterpolationFromDat();
+           // return;
+            //test_plotTrajectoryAndSeveralViewPolygons();
+                    
+            var allPols = new List<Polygon>();
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            double rollAngle = AstronomyMath.ToRad(45);
+            double pitchAngle = AstronomyMath.ToRad(30);
+            double viewAngle = OptimalChain.Constants.camera_angle;
+
+            DateTime dt1 = new DateTime(2019, 2, 2, 0, 00, 00);
+            DateTime dt2 = new DateTime(2019, 2, 2, 0, 2, 00);
+
+            DateTime segmdt1 = new DateTime(2019, 2, 2, 0, 00, 30);
+            DateTime segmdt12 = new DateTime(2019, 2, 2, 0, 0, 40);
+            DateTime segmdt2 = new DateTime(2019, 2, 2, 0, 00, 50);
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
             TrajectoryPoint pp1 = (TrajectoryPoint) fetcher.GetPositionSat(DateTime.Parse("01.02.2019 0:15:00"));
             
             Vector3D leftVector = LanePos.getDirectionVector(pp1, -0.793708, 0);
@@ -1027,14 +1164,26 @@ namespace ViewModel
 
             LanePos llp1 = new LanePos(pp1, OptimalChain.Constants.camera_angle, 0);
 
-            // Console.WriteLine(getWKTTrajectory(trajectory));
-            return;
-            
+           
             Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
             int step = 5;
 
             Console.Write("GEOMETRYCOLLECTION(");
-            
+
+            Console.WriteLine(getWKTInterpolateTrajectory(trajectory, segmdt1, segmdt2, step));
+            Console.Write(",");
+            Console.WriteLine(getWKTViewLine(trajectory, segmdt1, segmdt2, rollAngle, 0, step));
+            Console.Write(",");
+            Console.WriteLine(getWKTStripSegment(trajectory, segmdt1, segmdt2, rollAngle));
+            Console.Write(",");
+            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, rollAngle, 0, step));
+          ////  Console.WriteLine(getWKTViewPolygon(trajectory, rollAngle, 0, segmdt1));
+         //   Console.Write(",");
+         ///   Console.WriteLine(getWKTViewPolygon(trajectory, rollAngle, 0, segmdt2));
+
+
+            Console.Write(")");
+
        //     Console.WriteLine(getWKTInterpolateTrajectory(trajectory,segmdt1, segmdt2, step));
 
        //    Console.Write(",");
@@ -1051,26 +1200,7 @@ namespace ViewModel
         //   Console.WriteLine(getWKTTrajectory(trajectory));
 
             //  Console.Write(",");
-            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, rollAngle, pitchAngle, step));
-            Console.Write(",");
-            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle) }));
-              
-            Console.Write(",");
-            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, -rollAngle, pitchAngle, step));
-            Console.Write(",");
-            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, -rollAngle, pitchAngle) }));
-
-            Console.Write(",");
-            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, rollAngle, -pitchAngle, step));
-            Console.Write(",");
-            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, rollAngle, -pitchAngle) }));
-            
-            Console.Write(",");
-            Console.WriteLine(getWKTViewInterpolPolygons(trajectory, segmdt1, segmdt2, -rollAngle, -pitchAngle, step));
-            Console.Write(",");
-            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>() { SatLane.getRollPitchLanePolygon(trajectory, -rollAngle, -pitchAngle) }));
-
-            Console.Write(")");
+       
 
             #region
             //{
@@ -1080,8 +1210,7 @@ namespace ViewModel
             //    allPols.Add(testkpvp);
             //}
 
-            Polygon lanePitchRoll = SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle);
-
+           
       //      allPols.Add(lanePitchRoll);
 
             // return;
@@ -1273,77 +1402,9 @@ namespace ViewModel
 #endregion
         }
 
-        public void test_calculatePitchArray()
-        {
-            DateTime dt1 = DateTime.Parse("01.02.2019 00:00:00");
-            DateTime dtMid = DateTime.Parse("01.02.2019 00:05:00");
-            DateTime dt2 = DateTime.Parse("01.02.2019 00:10:00"); 
-
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
-
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            double rollAngle = AstronomyMath.ToRad(45);
-            double pitchAngle = AstronomyMath.ToRad(30);
-            double viewAngle = OptimalChain.Constants.camera_angle;
-
-
-            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
-            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetPositionSat(dtMid);
-
-            List<Vector3D> pitchLine = new List<Vector3D>();
-            double pitchStep = AstronomyMath.ToRad(1);
-            for (double pitch = -pitchAngle; pitch <= pitchAngle; pitch += pitchStep)
-            {
-                Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle, pitch);
-                pitchLine.Add(surfPoint);
-            }
-
-            List<Vector3D> nopitchLine = new List<Vector3D>();
-            foreach (var trp in trajectory)
-            {
-                Vector3D surfPoint = LanePos.getSurfacePoint(trp, rollAngle, 0);
-                nopitchLine.Add(surfPoint);
-            }
-
-            List<Vector3D> rollCorrPitchLine = new List<Vector3D>();
-            for (double pitch = -pitchAngle; pitch <= pitchAngle; pitch += pitchStep)
-            {
-                double height = pp1.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
-                double velo = pp1.Velocity.Length / (Astronomy.Constants.EarthRadius + height);
-                GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pp1.Position.ToVector());
-                double rollCor = Sessions.getRollCorrection(height, velo, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
-  
-                Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle + rollCor, pitch);
-                rollCorrPitchLine.Add(surfPoint);
-                Console.WriteLine(rollCor);
-            }
-
-            //GeoPoint p1 = new GeoPoint(-49.01265386395501, -14.562377929687498);
-            //GeoPoint p2 = new GeoPoint(-49.11343354595957, -14.974365234374996);
-            //Console.WriteLine("err = {0}", GeoPoint.DistanceOverSurface(p1, p2) * Astronomy.Constants.EarthRadius);
- 
-
-
-
-            Polygon centre = getPointPolygon(LanePos.getSurfacePoint(pp1, rollAngle, 0));
-             
-            Console.Write("GEOMETRYCOLLECTION(");            
-            Console.WriteLine(getWKTLinePoints(pitchLine));
-            Console.WriteLine(",");
-            Console.WriteLine(getWKTLinePoints(rollCorrPitchLine));
-            Console.WriteLine(",");
-            Console.WriteLine(getWKTLinePoints(nopitchLine));
-            Console.WriteLine(",");
-            Console.WriteLine(getWKTTrajectory(trajectory));
-            Console.WriteLine(",");
-            Console.WriteLine(Polygon.getMultipolFromPolygons(new List<Polygon>(){centre}) );
-            Console.WriteLine(")");
-        }
-
         public IList<CaptureConf> test_getCaptureConfArray()
         {
-            test_calculatePitchArray();
+            testTrapezium();
             return null;
 
             DateTime dt1 = DateTime.Parse("01.02.2019 1:12:30") ; 
@@ -1812,22 +1873,7 @@ namespace ViewModel
         }
 
 
-        public static string getMultipolFromPolygon(List<Polygon> polygons)
-        {
-            string res = "";
-            foreach (var pol in polygons)
-            {
-                res = res + pol.ToWtk() + "\n";
-                if (pol != polygons.Last() )
-                    res += ",";
-            }
-
-            res = res.Replace("POLYGON", "");
-
-            res = "MULTIPOLYGON (" + res + ")";
- 
-            return res;
-        }
+        
 
         public bool RegionCanBeCaptured { get; private set; }
         public double SatelliteRoll { get; private set; }
