@@ -267,10 +267,10 @@ namespace SatelliteTrajectory
 
                     if (outOfRange)
                         break;
-
+                                        
                     tFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
                     tTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
-                    
+                   
                     if ((tTo - tFrom).TotalSeconds < 2)
                         continue;
 
@@ -366,7 +366,7 @@ namespace SatelliteTrajectory
 
             polygonPoints.Insert(0, fisrt.KaCoords.BotLeftViewPoint);
             rightPolygonPoints.Insert(0, fisrt.KaCoords.BotRightViewPoint);
-            
+
             polygonPoints.Add(last.KaCoords.TopLeftViewPoint);
             rightPolygonPoints.Add(last.KaCoords.TopRightViewPoint);
 
@@ -389,8 +389,7 @@ namespace SatelliteTrajectory
             LanePos curPos = new LanePos(trajPoint, viewAngle, rollAngle);              
             double a = GeoPoint.DistanceOverSurface(curPos.LeftCartPoint, target);
             double b = GeoPoint.DistanceOverSurface(curPos.RightCartPoint, target);
-            double ab = GeoPoint.DistanceOverSurface(curPos.LeftGeoPoint, curPos.RightGeoPoint);
-            Console.WriteLine("ab = {0}, a+b = {1}", ab, a + b);
+            double ab = GeoPoint.DistanceOverSurface(curPos.LeftGeoPoint, curPos.RightGeoPoint); 
             double botTrapezBase = GeoPoint.DistanceOverSurface(curPos.KaCoords.BotLeftViewPoint, curPos.KaCoords.TopLeftViewPoint);
             double topTrapezBase = GeoPoint.DistanceOverSurface(curPos.KaCoords.BotRightViewPoint, curPos.KaCoords.TopRightViewPoint);
             double triangleBase = Math.Abs(topTrapezBase - botTrapezBase) / 2;

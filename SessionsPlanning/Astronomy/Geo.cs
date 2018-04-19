@@ -296,11 +296,14 @@ namespace Common
 
         public static double DistanceOverSurface(GeoPoint p1, GeoPoint p2)
         {
+            if (p1 == p2)
+                return 0;
             double lat1 = p1.lat * DegToRad;
             double lat2 = p2.lat * DegToRad;
             double lon1 = p1.lon * DegToRad;
-            double lon2 = p2.lon * DegToRad;            
-            return Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon1));
+            double lon2 = p2.lon * DegToRad;
+            double res = Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon1)); 
+            return res;
         }
 
         public static double DistanceOverSurface(Vector3D p1, Vector3D p2)

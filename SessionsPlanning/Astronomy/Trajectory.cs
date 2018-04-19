@@ -297,7 +297,7 @@ namespace Astronomy
             // максимальный шаг по времени между точками траектории
             double maxStep = trajectory.Points.Skip(1).Zip(trajectory.Points, (curr, prev) => (curr.Time - prev.Time).TotalSeconds).Max();
  
-            if (maxStep < maxTimeStep)
+            if (maxStep <= maxTimeStep)
                 return trajectory;
              
             int size = (int)Math.Ceiling(trajectory.Duration / maxTimeStep) + 1;
