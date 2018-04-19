@@ -111,16 +111,7 @@ namespace DBTables
 
             return res;
         }
-
-        private List<SpaceTime> DataRowToSatPositions(DataRow[] beforePos)
-        {
-            List<SpaceTime> res = new List<SpaceTime>();
-            foreach (var row in beforePos)
-                res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
-            return res;
-        }
-
-
+         
         public TrajectoryPoint? GetPositionSat(DateTime dtime)
         {
             string dtimestr = dtime.ToString(datePattern);
@@ -152,8 +143,9 @@ namespace DBTables
             if (afterPos.Length < halfMissNum)
                 beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, minNumPoints - positions.Count - afterPos.Length);
 
-            positions.InsertRange(0, DataRowToSatPositions(beforePos));
-            positions.AddRange(DataRowToSatPositions(afterPos));
+
+            positions.InsertRange(0, beforePos.Reverse().Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }));
+            positions.AddRange(afterPos.Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }) );
 
             if (positions.Count < minNumPoints)
                 throw new ArgumentException("Not enough points in the database for " + fromDT.ToString()  );
