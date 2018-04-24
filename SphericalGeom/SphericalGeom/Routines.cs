@@ -12,18 +12,54 @@ namespace SphericalGeom
 {
     public static class Routines
     {
+        public static void GetRollPitch(TrajectoryPoint p, GeoPoint q, out double roll, out double pitch)
+        {
+            // It's a kind of magic: fixed erros for pitch!
+            double delta_fix = 0.00544785916907597;
+            double extra_fix_pos = 0.010895718338;
+
+            Vector3D eDirVect = -p.Position.ToVector();
+            Vector3D rollAxis = p.Velocity;
+            rollAxis.Normalize();
+            Vector3D pitchAxis = Vector3D.CrossProduct(eDirVect, rollAxis);
+            pitchAxis.Normalize();
+
+            Vector3D qv = GeoPoint.ToCartesian(q, Astronomy.Constants.EarthRadius);
+            Vector3D lookAt = eDirVect + qv;
+            lookAt.Normalize();
+            eDirVect.Normalize();
+
+            double x = Vector3D.DotProduct(Vector3D.CrossProduct(rollAxis, pitchAxis), lookAt);
+            double y = Vector3D.DotProduct(pitchAxis, lookAt);
+            double z = Vector3D.DotProduct(rollAxis, lookAt);
+            GeoPoint gp = GeoPoint.FromCartesian(x, y, z);
+            roll = AstronomyMath.ToRad(gp.Longitude);
+            pitch = AstronomyMath.ToRad(gp.Latitude);
+            pitch += pitch > 0 ? -delta_fix : delta_fix - extra_fix_pos;
+            //roll = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(pitchAxis, lookAt - Project(lookAt, rollAxis)));
+            //pitch = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(rollAxis, lookAt - Project(lookAt, pitchAxis)));
+        }
+
+        public static Vector3D Project(Vector3D v, Vector3D axis)
+        {
+            return Vector3D.DotProduct(v, axis) / axis.LengthSquared * axis;
+        }
+
         public static GeoPoint IntersectOpticalAxisAndEarth(TrajectoryPoint p, double roll, double pitch)
         {
             Vector3D eDirVect = -p.Position.ToVector();
+            eDirVect.Normalize();
+            Vector3D vel = p.Velocity;
+            vel.Normalize();
             RotateTransform3D rollTransform = new RotateTransform3D(
                 new AxisAngleRotation3D(
-                    p.Velocity, 
+                    vel, 
                     AstronomyMath.ToDegrees(-roll)
                 )
             );
             RotateTransform3D pitchTransform = new RotateTransform3D(
                 new AxisAngleRotation3D(
-                    Vector3D.CrossProduct(p.Velocity, eDirVect), 
+                    Vector3D.CrossProduct(vel, eDirVect), 
                     AstronomyMath.ToDegrees(-pitch)
                 )
             );

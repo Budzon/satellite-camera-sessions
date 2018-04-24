@@ -60,15 +60,121 @@ namespace GeometryTest
         }
 
         [TestMethod]
+        public void TestLitSpans()
+        {
+            DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
+            DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+
+            for (int i = 0; i < 10; i++)
+            {
+                List<Tuple<DateTime, DateTime>> shadowPeriods;
+                List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+                Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+
+                Console.WriteLine(i + " count=" + shadowPeriods.Count);
+                foreach (var loop_wkts in partsLitAndNot)
+                    Console.WriteLine(Polygon.getMultipolFromWkts(loop_wkts.Item2.Select(wktlit => wktlit.wktPolygon).ToList()));
+                foreach (var period in shadowPeriods)
+                    Console.WriteLine(period.Item1 + " " + period.Item2);
+            }
+        }
+
+        [TestMethod]
+        public void TestPiecewiseCoridor()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+
+            // -------------------------------- СЕВЕРНОЕ ПОЛУШАРИЕ ПРИМЕР
+            // def f(x): return 81.8 + 0.1*np.cos(np.pi/10*x)
+            //lons = np.linspace(60, 90, 100)
+            //DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+            
+            //List<string> wkts;
+            //List<GeoPoint> satPos;
+            //List<GeoPoint> verts = new List<GeoPoint>() {
+            //    new GeoPoint(81.7, 90),
+            //    //new GeoPoint(81.8, 85),
+            //    new GeoPoint(81.9, 80),
+            //    //new GeoPoint(81.8, 75),
+            //    new GeoPoint(81.7, 70),
+            //    //new GeoPoint(81.8, 65),
+            //    new GeoPoint(81.9, 60)
+            //};    
+
+            // --------------ЮЖНОЕ
+            //DateTime dt1 = new DateTime(2019, 1, 1, 9, 58, 00);
+//            def f(x):
+//    return -81.8 - 0.1*sp.sinc((x + 90) / 3)
+    
+//# lons = np.linspace(-80, -100, 100)
+            //List<string> wkts;
+            //List<GeoPoint> satPos;
+            //List<GeoPoint> verts = new List<GeoPoint>() {
+            //    new GeoPoint(-81.79173007, -100),
+            //    new GeoPoint(-81.8127324, -97.5),
+            //    new GeoPoint(-81.77932517, -94),
+            //    new GeoPoint(-81.9, -90),
+            //    new GeoPoint(-81.77932517, -86),
+            //    new GeoPoint(-81.8127324, -82.5),
+            //    new GeoPoint(-81.79173007, -80)
+            //}; 
+     
+            //Sessions.getPieciwiseCoridor(dt1, verts, manager, out wkts, out satPos);
+
+            // CUSTOM
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+            int steps = 50;
+            double lon0 = 60, lon1 = 85, dlon = lon1 - lon0, step = dlon / steps;
+            
+            double[] lons = new double[steps];
+            for (int i = 0; i < lons.Length; ++i)
+            {
+                lons[i] = lon0 + step * (lons.Length - i - 1);
+            }
+            double[] lats = new double[steps];
+            for (int i = 0; i < lats.Length; ++i)
+            {
+                lats[i] = 81.8 + 0.05 * Math.Cos(Math.PI / 5 * lons[i]);
+            }
+
+            List<string> wkts;
+            List<GeoPoint> satPos;
+            List<GeoPoint> curve = new List<GeoPoint>();
+            for (int i = 0; i < lons.Length; ++i)
+                curve.Add(new GeoPoint(lats[i], lons[i]));
+
+            Sessions.getPieciwiseCoridor(dt1, curve, manager, out wkts, out satPos, custom: true);
+            Console.WriteLine(wkts.Aggregate("[", (tail, wkt) => tail + ", '" + wkt + "'") + "]");
+            Console.WriteLine(satPos.Aggregate("[", (tail, pos) => tail + ", (" + pos + ")") + "]");
+        }
+
+        [TestMethod]
         public void TestCoridorPoly()
         {
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-            DateTime dt1 = new DateTime(2019, 2, 3);
+            DateTime dt1 = new DateTime(2019, 1, 1, 9, 58, 30);
             string wkt;
-            double dur;
-            SatelliteSessions.Sessions.getCoridorPoly(dt1, AstronomyMath.ToRad(0), AstronomyMath.ToRad(0), 70e3, AstronomyMath.ToRad(-20), manager, out wkt, out dur);
+            double dur, dist = 50e3;
+            double roll = 0, pitch = 0, az = 0;
+            SatelliteSessions.Sessions.getCoridorPoly(
+                dt1,
+                AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
+                dist, AstronomyMath.ToRad(az),
+                manager, out wkt, out dur);
+            Console.WriteLine(wkt);
+            //SatelliteSessions.Sessions.getCoridorPoly(
+            //    dt1,
+            //    AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
+            //    new GeoPoint(6.32, 143.55),
+            //    manager, out wkt, out dur, out dist);
+            //Console.WriteLine(wkt);
         }
 
         [TestMethod]

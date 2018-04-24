@@ -3,6 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SphericalGeom", "SphericalGeom\SphericalGeom.csproj", "{66F7848E-F105-4A6C-9941-3FF44EE9B9D7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{92589C2D-3833-496F-87E8-788FD511B162} = {92589C2D-3833-496F-87E8-788FD511B162}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GUI", "GUI\GUI.csproj", "{A6136A96-B881-4F83-BDFE-B001B2FA7463}"
 EndProject

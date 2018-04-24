@@ -954,8 +954,8 @@ namespace SatelliteSessions
             s += "\nN_MK=" + N_MK;
             s += "\nTs=" + Ts;
             s += "\nTroute=" + Troute;
-            s += "\nREGta=" + ByteRoutines.ToInt(REGta_bytes);
-            s += "\nREGta_Param=" + ByteRoutines.ToInt(REGta_Param_bytes);
+            s += "\nREGta=" + REGta;
+            s += "\nREGta_Param=" + REGta_Param;
             s += "\nTarget_RatePK=" + Target_RatePK;
             s += "\nTarget_RateMK=" + Target_RateMK;
             s += "\nQuant_InitValuePK=" + Quant_InitValuePK;

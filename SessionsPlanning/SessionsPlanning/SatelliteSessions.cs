@@ -774,6 +774,73 @@ namespace SatelliteSessions
         }
 
 
+        public static void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, out List<GeoPoint> satPos, bool custom = false)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            wkts = new List<string>();
+            satPos = new List<GeoPoint>();
+
+            GeoPoint curr, next;
+            TrajectoryPoint tp;
+            double roll, pitch, duration, dist;
+            DateTime now = dateTime;
+            string wkt;
+
+            if (!custom)
+            {
+                for (int i = 0; i < vertices.Count - 1; ++i)
+                {
+                    curr = vertices[i];
+                    next = vertices[i + 1];
+                    tp = fetcher.GetPositionSat(now).Value;
+
+                    //Routines.GetRollPitch(tp, curr, out roll, out pitch);
+                    //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                    getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                    wkts.Add(wkt);
+                    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
+                    now = now.AddSeconds(duration); // + 12
+                }
+            }
+            {
+                List<List<GeoPoint>> curves = new List<List<GeoPoint>>();
+                List<GeoPoint> curCurve = new List<GeoPoint>();
+                int lastSign = 1, curSign = 1;
+                for (int i = 1; i < vertices.Count - 1; ++i)
+                {
+                    if (i == 1)
+                    {
+                        lastSign = Math.Sign(vertices[0].Latitude - 2 * vertices[1].Latitude + vertices[2].Latitude);
+                        curCurve.Add(vertices[0]);
+                        curCurve.Add(vertices[1]);
+                        continue;
+                    }
+                    curSign = Math.Sign(vertices[i - 1].Latitude - 2 * vertices[i].Latitude + vertices[i + 1].Latitude);
+                    if (curSign * lastSign == 1)
+                    {
+                        curCurve.Add(vertices[i]);
+                    }
+                    else
+                    {
+                        lastSign *= -1;
+                        curves.Add(curCurve);
+                        curCurve = new List<GeoPoint>() { vertices[i-1], vertices[i] };
+                    }
+                }
+                curCurve.Add(vertices[vertices.Count - 1]);
+                curves.Add(curCurve);
+
+                for (int i = 0; i < curves.Count; ++i)
+                {
+                    tp = fetcher.GetPositionSat(now).Value;
+                    getCustomCoridor(now, curves[i], managerDB, out wkt, out duration, out dist);
+                    wkts.Add(wkt);
+                    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
+                    now = now.AddSeconds(duration);
+                }
+            }
+        }
+
         /// <summary>
         /// Рассчитать коридор съемки/видимости для заданной конфигурации СОЭНc
         /// </summary>
@@ -803,33 +870,97 @@ namespace SatelliteSessions
 
             LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
 
-            GeoPoint[] leftPoints = new GeoPoint[10];
+            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            wktPoly = pol.ToWtk();
+        }
+
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, GeoPoint end, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration, out double dist)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3;
+            TrajectoryRoutines.GetCoridorParams(
+                fetcher, dateTime, rollAngle, pitchAngle,
+                end,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist);
+
+            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+
+            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            wktPoly = pol.ToWtk();
+        }
+
+        public static void getCoridorPoly(DateTime dateTime, GeoPoint start, GeoPoint end, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration, out double dist)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
+            TrajectoryRoutines.GetCoridorParams(
+                fetcher, dateTime, start, end,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
+
+            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            wktPoly = pol.ToWtk();
+        }
+
+        /// <summary>
+        /// Assumes positive(negative) curvature of the curve
+        /// </summary>
+        /// <param name="dateTime"></param>
+        /// <param name="curve"></param>
+        /// <param name="managerDB"></param>
+        /// <param name="wktPoly"></param>
+        /// <param name="duration"></param>
+        /// <param name="dist"></param>
+        public static void getCustomCoridor(DateTime dateTime, List<GeoPoint> curve, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration, out double dist)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
+            TrajectoryRoutines.GetCustomCoridorParams(
+                fetcher, dateTime, curve,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
+
+            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            wktPoly = pol.ToWtk();
+        }
+
+        private static Polygon GetSecondOrderCoridor(LanePos start, double dist, double b1, double b2, double l1, double l2, int points = 10)
+        {
+            GeoPoint[] leftPoints = new GeoPoint[points];
             for (int i = 0; i < leftPoints.Length; ++i)
             {
                 double d = dist / leftPoints.Length * (i + 1);
                 leftPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
                 );
             }
-            GeoPoint[] rightPoints = new GeoPoint[10];
+            GeoPoint[] rightPoints = new GeoPoint[points];
             for (int i = 0; i < rightPoints.Length; ++i)
             {
                 double d = dist / rightPoints.Length * (rightPoints.Length - i);
                 rightPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(lpBegin.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
                 );
             }
 
             List<GeoPoint> vertices = new List<GeoPoint>();
-            vertices.Add(lpBegin.LeftGeoPoint);
+            vertices.Add(start.LeftGeoPoint);
             vertices.AddRange(leftPoints);
             vertices.AddRange(rightPoints);
-            vertices.Add(lpBegin.RightGeoPoint);
+            vertices.Add(start.RightGeoPoint);
 
-            Polygon pol = new Polygon(vertices);
-            wktPoly = pol.ToWtk();
+            return new Polygon(vertices);
         }
 
         /// <summary>
@@ -1086,7 +1217,11 @@ namespace SatelliteSessions
                 {
                     while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
                         curSunPositionIndex++;
-
+                    if (i == 4)
+                    {
+                        int a = 2;
+                        a += 3;
+                    }
                     // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);

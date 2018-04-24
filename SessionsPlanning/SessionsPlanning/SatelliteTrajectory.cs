@@ -12,7 +12,7 @@ using OptimalChain;
 using Microsoft.Research.Oslo;
 
 namespace SatelliteTrajectory
-{   
+{
     /// <summary>
     /// Полоса захвата
     /// </summary>
@@ -42,11 +42,11 @@ namespace SatelliteTrajectory
             createPolygons(minAngle, maxAngle, polygonStep);
         }
 
-        
+
         private void createPolygons(double minAngle, double maxAngle, int polygonStep)
         {
             Sectors = new List<LaneSector>();
-             
+
             List<Vector3D> leftLanePoints = new List<Vector3D>();
             List<Vector3D> rightLanePoints = new List<Vector3D>();
 
@@ -69,7 +69,7 @@ namespace SatelliteTrajectory
 
             for (int p_ind = 0; p_ind < points_count ; p_ind++)
             {
-                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle, pitchAngle); 
+                LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle, pitchAngle);
                 sectorPoints.Add(pos);
 
                 if (p_ind == 0)
@@ -186,7 +186,7 @@ namespace SatelliteTrajectory
 
                     if (outOfRange)
                         break;
-                    
+
                     if ((tmax - tmin).TotalSeconds < 2)
                         continue;
 
@@ -218,7 +218,7 @@ namespace SatelliteTrajectory
 
             if (Sectors[0].sectorPoints[0].Time > begTime || lastPoint.Time < endTime)
                 throw new System.ArgumentException("Incorrect time interval.");
-            
+
             List<Vector3D> polygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();
 
@@ -276,12 +276,12 @@ namespace SatelliteTrajectory
             for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
                 polygonPoints.Add(rightPolygonPoints[ind]);
 
-            return new Polygon(polygonPoints, new Vector3D(0, 0, 0));            
+            return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
         }
 
         private LanePos interpolatelanePosByTime(DateTime time)
-        { 
-            TrajectoryPoint trajPoint = trajectory.GetPoint(time); 
+        {
+            TrajectoryPoint trajPoint = trajectory.GetPoint(time);
             return new LanePos(trajPoint, viewAngle, rollAngle, 0);
         }
 
@@ -413,7 +413,7 @@ namespace SatelliteTrajectory
         {
             knowLeftConrol = false;
             knowRightConrol = false;
-            knowViewPolygon = false;  
+            knowViewPolygon = false;
 
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
@@ -440,8 +440,8 @@ namespace SatelliteTrajectory
 
             RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(-pointKA.Velocity, AstronomyMath.ToDegrees(minAngle)));
             RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(-pointKA.Velocity, AstronomyMath.ToDegrees(maxAngle)));
-             
-            Vector3D pitchAxis = Vector3D.CrossProduct(pointKA.Velocity, eDirVect);
+
+            Vector3D pitchAxis = -Vector3D.CrossProduct(pointKA.Velocity, eDirVect);
             RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle)));
 
             Vector3D leftVector = pitchTransform.Transform(leftTransform.Transform(eDirVect));
@@ -482,7 +482,7 @@ namespace SatelliteTrajectory
             rightCrossPoint.Normalize();
             KAPoint.Normalize();
 
-            //LanePos(leftCrossPoint, rightCrossPoint, pointKA);            
+            //LanePos(leftCrossPoint, rightCrossPoint, pointKA);
 
             trajPoint = pointKA;
             leftCartPoint = leftCrossPoint;
@@ -501,31 +501,31 @@ namespace SatelliteTrajectory
 
             //leftControlPoint = getControlPoint(KACartPoint, leftCartPoint);
             //rightControlPoint = getControlPoint(KACartPoint, rightCartPoint);
-            knowLeftConrol = false; 
-            knowRightConrol = false; 
-            knowViewPolygon = false;  
+            knowLeftConrol = false;
+            knowRightConrol = false;
+            knowViewPolygon = false;
         }
-         
+
         public static Vector3D applyPitchlRotation(TrajectoryPoint point, Vector3D dirVect, double pitchAngle)
         {
             Vector3D position = point.Position.ToVector();
             Vector3D velo = point.Velocity;
-            Vector3D eDirVect = -position; 
-            Vector3D pitchAxis = Vector3D.CrossProduct(eDirVect, velo); 
-            RotateTransform3D pitchTransfrom = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle))); 
-            Vector3D pitchRotDir = pitchTransfrom.Transform(dirVect); 
+            Vector3D eDirVect = -position;
+            Vector3D pitchAxis = Vector3D.CrossProduct(eDirVect, velo);
+            RotateTransform3D pitchTransfrom = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle)));
+            Vector3D pitchRotDir = pitchTransfrom.Transform(dirVect);
             return pitchRotDir;
         }
 
         public static Vector3D applyRollRotation(TrajectoryPoint point, Vector3D dirVect, double rollAngle)
         {
             Vector3D position = point.Position.ToVector();
-            Vector3D velo = point.Velocity;       
+            Vector3D velo = point.Velocity;
             RotateTransform3D rollTransfrom = new RotateTransform3D(new AxisAngleRotation3D(-velo, AstronomyMath.ToDegrees(rollAngle)));
             Vector3D rollRotDir = rollTransfrom.Transform(dirVect);
             return rollRotDir;
         }
-        
+
         public static Vector3D getDirectionVector(TrajectoryPoint point, double rollAngle, double pitchAngle)
         {
             Vector3D eDirVect = -point.Position.ToVector();
@@ -538,7 +538,7 @@ namespace SatelliteTrajectory
             Vector3D dirVector = getDirectionVector(point, rollAngle, pitchAngle);
             return Routines.SphereVectIntersect(dirVector, point.Position, Astronomy.Constants.EarthRadius);
         }
-      
+
         private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
         {
             Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
@@ -554,8 +554,8 @@ namespace SatelliteTrajectory
         {
             get
             {
-                if (!knowLeftConrol) 
-                {                   
+                if (!knowLeftConrol)
+                {
                     leftControlPoint = getControlPoint(CartKAPoint, leftCartPoint);
                     knowLeftConrol = true;
                 }
@@ -567,10 +567,10 @@ namespace SatelliteTrajectory
         {
             get
             {
-                if (!knowRightConrol) 
-                {                    
+                if (!knowRightConrol)
+                {
                     rightControlPoint = getControlPoint(CartKAPoint, rightCartPoint);
-                    knowRightConrol = true;                    
+                    knowRightConrol = true;
                 }
                 return rightControlPoint;
             }
@@ -582,10 +582,10 @@ namespace SatelliteTrajectory
         public Vector3D TopLeftViewPoint
         {
             get
-            { 
+            {
                 if (!knowViewPolygon)
                 {
-                    calculateViewPoints();                    
+                    calculateViewPoints();
                     knowViewPolygon = true;
                 }
                 return topLeftViewPoint;
@@ -762,6 +762,133 @@ namespace SatelliteTrajectory
             getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
+        public static void GetCoridorParams(DBTables.DataFetcher fetcher,
+            DateTime start, double start_roll, double start_pitch,
+            GeoPoint end,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist)
+        {
+            Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
+            GeoPoint startPoint = Routines.IntersectOpticalAxisAndEarth(traj[0], start_roll, start_pitch);
+            dist = GeoPoint.DistanceOverSurface(startPoint, end) * Astronomy.Constants.EarthRadius * 1e3;
+
+            getGeodesicLineEndPoints(startPoint, end, out B1, out B2, out L1, out L2);
+            getDistanceCoef(traj, dist, start_roll, start_pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
+        public static void GetCoridorParams(DBTables.DataFetcher fetcher,
+            DateTime startTime, GeoPoint startPoint,
+            GeoPoint end,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist, out double roll, out double pitch)
+        {
+            Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1)); // должно хватить на коридор
+            dist = GeoPoint.DistanceOverSurface(startPoint, end) * Astronomy.Constants.EarthRadius * 1e3;
+
+            Routines.GetRollPitch(traj[0], startPoint, out roll, out pitch);
+
+            getGeodesicLineEndPoints(startPoint, end, out B1, out B2, out L1, out L2);
+            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
+        public static void GetCustomCoridorParams(DBTables.DataFetcher fetcher,
+            DateTime startTime, List<GeoPoint> curve,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist, out double roll, out double pitch)
+        {
+            Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1));
+            dist = 0;
+            double[] dists = new double[curve.Count];
+            dists[0] = 0;
+            for (int i = 0; i < curve.Count - 1; ++i)
+            {
+                dists[i + 1] = GeoPoint.DistanceOverSurface(curve[i], curve[i + 1]) * Astronomy.Constants.EarthRadius * 1e3;
+                dist += dists[i + 1];
+            }
+
+            Routines.GetRollPitch(traj[0], curve[0], out roll, out pitch);
+
+            // Find maximum curvature
+            //int ind_curv = 0;
+            //double curv = 0;
+            //for (int i = 1; i < curve.Count - 1; ++i)
+            //{
+            //    double curcurv = (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude) * 2
+            //        / Math.Pow((curve[i + 1].Longitude - curve[i - 1].Longitude) / 2, 2);
+            //    if (Math.Abs(curcurv) > Math.Abs(curv))
+            //    {
+            //        ind_curv = i;
+            //        curv = curcurv;
+            //    }
+            //}
+
+            ///// Solve lat(s) = A + Bs + Css at s=0 and s=dist.
+            ///// Get a solution ABC0 and a kernel V, so that ABC = ABC0 + t * V
+            //Vector3D zero_dist = new Vector3D(1, 0, 0);
+            //Vector3D midl_dist = new Vector3D(1, dist / 2, dist * dist / 4);
+            //Vector3D full_dist = new Vector3D(1, dist, dist * dist);
+            //Vector3D ABC0 = Routines.SolveSLE2x3(zero_dist, full_dist, curve[0].Latitude, curve[curve.Count - 1].Latitude);
+            //Vector3D V = new Vector3D(0, dist, -1);//Vector3D.CrossProduct(zero_dist, full_dist);
+            ///// Let X = (1, x, x*x).
+            ///// G(x) is the latitude curve, 
+            ///// P2(x) = <V,X>/<V,mid_dist>,
+            ///// K(x) = G(x) - <ABC0,X> + <ABC0,mid_dist>P2(x)
+            ///// g = <K, P2> / <P2, P2> in L2 sense
+            ///// t = (g - <ABC0,mid_dist>) / <V, mid_dist>
+            //double KP2 = 0, P2P2 = 0;
+            //for (int i = 0; i < curve.Count - 1; ++i)
+            //{
+            //    Vector3D cur_dist = new Vector3D(1, dists[i], dists[i] * dists[i]);
+            //    double P2 = Vector3D.DotProduct(V, cur_dist) / Vector3D.DotProduct(V, midl_dist);
+            //    double K = curve[i].Latitude - Vector3D.DotProduct(ABC0, cur_dist);
+            //    KP2 += K * P2 * (dists[i + 1] - dists[i]);
+            //    P2P2 += P2 * P2 * (dists[i + 1] - dists[i]); 
+            //}
+            ////double g = Vector3D.DotProduct(ABC0, midl_dist) + KP2 / P2P2;
+            //double t = (KP2 / P2P2) / Vector3D.DotProduct(V, midl_dist);
+            //Vector3D ABC = ABC0 + t * V;
+            //B1 = ABC.Y;
+            //B2 = ABC.Z;
+
+            // Solve for longitude
+            int ind_curv = curve.Count / 2;
+            GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
+            //double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
+            double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
+            //Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
+            Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
+
+            double d1 = dist * (double)ind_curv / (curve.Count - 1);
+            double d2 = dist;
+
+            Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
+            //Vector B = Gauss.Solve(A, Bm);
+            //B1 = B[0];
+            //B2 = B[1];
+            Vector L = Gauss.Solve(A, Lm);
+            L1 = L[0];
+            L2 = L[1];
+
+            // Find average curvature
+            double curv = 0;
+            for (int i = 1; i < curve.Count - 1; ++i)
+            {
+                curv += (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude)
+                    / Math.Pow((dists[i + 1] - dists[i - 1]) / 2, 2);
+            }
+            curv /= (curve.Count - 2) * 2;
+
+            B2 = curv / 2;
+            B1 = (curve[curve.Count - 1].Latitude - curve[0].Latitude - B2 * dist * dist) / dist;
+
+
+            // Find latitude through longitude and curve lat = F(lon)
+            //double dlon1 = curve[1].Longitude - curve[0].Longitude;
+            //double dlon2 = curve[2].Longitude - curve[1].Longitude;
+            //double F_prime = (curve[1].Latitude - curve[0].Latitude) / dlon1;
+            //double F_2prime = (curve[2].Latitude - 2 * curve[1].Latitude + curve[0].Latitude) * 2 / (dlon1 + dlon2);
+            //B1 = F_prime * L1;
+            //B2 = F_prime * L2 + F_2prime * L1 * L1 / 2;
+            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
         private static void getDistanceCoef(Trajectory traj, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
         {
             double WD = OptimalChain.RouteParams.WD(roll, pitch);
@@ -773,7 +900,7 @@ namespace SatelliteTrajectory
             double startLat = AstronomyMath.ToRad(curP.Latitude);
             double startLon = AstronomyMath.ToRad(curP.Longitude);
 
-            while (dists[dists.Count - 1] < dist)
+            while (dists[dists.Count - 1] < dist + 10)
             {
                 double s = dists[dists.Count - 1];
                 double D = 1e3*(curTP.Position - GeoPoint.ToCartesian(curP, Astronomy.Constants.EarthRadius)).ToVector().Length;
@@ -815,29 +942,33 @@ namespace SatelliteTrajectory
         /// <param name="B2"></param>
         /// <param name="L1"></param>
         /// <param name="L2"></param>
-        public static void getGeodesicLineEndPoints(GeoPoint p, GeoPoint pEnd, 
+        public static void getGeodesicLineEndPoints(GeoPoint p, GeoPoint pEnd,
                                                     out double B1, out double B2, out double L1, out double L2)
         {
-            //Vector3D v0 = GeoPoint.ToCartesian(p, 1);
-            //Vector3D v00 = GeoPoint.ToCartesian(pEnd, 1);
-            //Arc geodesic = new Arc(v0, v00);
-            //Arc meridian = new Arc(v0, new Vector3D(0, 0, 1));
-            //double az = Math.Asin(Vector3D.DotProduct(v0, Vector3D.CrossProduct(meridian.TangentA, geodesic.TangentA)));
-            //double dist = geodesic.CentralAngle * Constants.EarthRadius * 1e3;
+            Vector3D v0 = GeoPoint.ToCartesian(p, 1);
+            Vector3D v00 = GeoPoint.ToCartesian(pEnd, 1);
+            Arc geodesic = new Arc(v0, v00);
+            Arc meridian = new Arc(v0, new Vector3D(0, 0, 1));
+            double sin = Vector3D.DotProduct(v0, Vector3D.CrossProduct(meridian.TangentA, geodesic.TangentA));
+            double cos = Vector3D.DotProduct(meridian.TangentA, geodesic.TangentA);
+            double az = Math.Atan2(sin, cos);
+            double dist = geodesic.CentralAngle * Astronomy.Constants.EarthRadius * 1e3;
 
-            double dB = AstronomyMath.ToRad(pEnd.Latitude - p.Latitude);
-            double dL = AstronomyMath.ToRad(pEnd.Longitude - p.Longitude);
-            double midB = AstronomyMath.ToRad(pEnd.Latitude + p.Latitude) / 2;
-            double mSin = Math.Sin(midB), mCos = Math.Cos(midB);
+            getGeodesicLine(p, -az, dist, out B1, out B2, out L1, out L2);
 
-            double P = dB * (1 - dL * dL / 12 - (dL * mSin) * (dL * mSin) / 24);
-            double Q = dL * mCos * (1 + dB * dB / 12 - (dL * mSin) * (dL * mSin) / 24);
-            double dist = Math.Sqrt(P * P + Q * Q) * Astronomy.Constants.EarthRadius * 1e3;
-            double mA = Math.Atan2(P, Q);
-            double dA = dL * mSin * (1 + (dB * dB + dL * dL) / 12 - (dL * mSin) * (dL * mSin) / 24);
-            double az = mA - dA / 2;
+            //double dB = AstronomyMath.ToRad(pEnd.Latitude - p.Latitude);
+            //double dL = AstronomyMath.ToRad(pEnd.Longitude - p.Longitude);
+            //double midB = AstronomyMath.ToRad(pEnd.Latitude + p.Latitude) / 2;
+            //double mSin = Math.Sin(midB), mCos = Math.Cos(midB);
 
-            getGeodesicLine(p, az, dist, out B1, out B2, out L1, out L2);
+            //double P = dB * (1 - dL * dL / 12 - (dL * mSin) * (dL * mSin) / 24);
+            //double Q = dL * mCos * (1 + dB * dB / 12 - (dL * mSin) * (dL * mSin) / 24);
+            //double dist = Math.Sqrt(P * P + Q * Q) * Astronomy.Constants.EarthRadius * 1e3;
+            //double mA = Math.Atan2(P, Q);
+            //double dA = dL * mSin * (1 + (dB * dB + dL * dL) / 12 - (dL * mSin) * (dL * mSin) / 24);
+            //double az = mA - dA / 2;
+
+            //getGeodesicLine(p, Math.PI / 2 - az, dist, out B1, out B2, out L1, out L2);
         }
 
         /// <summary>
@@ -879,27 +1010,32 @@ namespace SatelliteTrajectory
             //}
             //else
             //{
+            int steps = 2;
+            double step = dist / steps;
             var arr = Ode.RK547M(0,
              new Vector(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az),
              (t, x) => new Vector(
                  Math.Cos(x[2]) / Astronomy.Constants.EarthRadius / 1e3,
                  Math.Sin(x[2]) / Math.Cos(x[0]) / Astronomy.Constants.EarthRadius / 1e3,
                  Math.Sin(x[2]) / Astronomy.Constants.EarthRadius / 1e3 * Math.Tan(x[0])),
-             new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, 0.5 * dist).ToArray();
+             new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, step).ToArray();
 
             var p0 = arr[0].X;
             var s0 = arr[0].T;
-
-            var p1 = arr[1].X;
-            var s1 = arr[1].T;
-
-            var p2 = arr[2].X;
-            var s2 = arr[2].T;
+            int mid = steps / 2;
+            var p1 = arr[mid].X;
+            var s1 = arr[mid].T;
+            int end = arr.Length - 1;
+            var p2 = arr[end].X;
+            var s2 = arr[end].T;
 
             Bm = new Vector(p1[0] - p0[0], p2[0] - p0[0]);
             Lm = new Vector(p1[1] - p0[1], p2[1] - p0[1]);
 
-            Matrix A = new Matrix(new double[][] { new double[] { 0.5 * dist, 0.25 * dist * dist }, new double[] { dist, dist * dist } });
+            double d1 = mid * step;
+            double d2 = end * step;
+
+            Matrix A = new Matrix(new double[][] { new double[] { d1, d1*d1 }, new double[] { d2, d2*d2 } });
             Vector B = Gauss.Solve(A, Bm);
             B1 = B[0];
             B2 = B[1];
@@ -929,4 +1065,3 @@ namespace SatelliteTrajectory
         public bool Lit { get; set; }
     }
 }
-
