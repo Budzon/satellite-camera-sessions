@@ -17,6 +17,31 @@ namespace GeometryTest
     public class GeneralTest
     {
         [TestMethod]
+        public void TestLitSpans()
+        {
+            DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
+            DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
+            //DateTime dt2 = DateTime.Parse("01.02.2019 2:39:30");
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+
+            for (int i = 0; i < 50; i++)
+            {
+                List<Tuple<DateTime, DateTime>> shadowPeriods;
+                List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+                Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+
+                Console.WriteLine(i + " count=" + shadowPeriods.Count);
+                if (shadowPeriods.Count != 0)
+                    foreach (var loop_wkts in partsLitAndNot)
+                        Console.WriteLine(Polygon.getMultipolFromWkts(loop_wkts.Item2.Select(wktlit => wktlit.wktPolygon).ToList()));
+                foreach (var period in shadowPeriods)
+                    Console.WriteLine(period.Item1 + " " + period.Item2);
+            }
+        }
+
+        [TestMethod]
         public void TestMPZ()
         {
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";

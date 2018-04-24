@@ -18,14 +18,14 @@ namespace GeometryTest
             set { testContextInstance = value; }
         }
 
-        [TestMethod]
-        public void TestHemishphere()
-        {
-            Polygon hs = Polygon.Hemisphere(new Vector3D(1, 0, 0));
+        //[TestMethod]
+        //public void TestHemishphere()
+        //{
+        //    Polygon hs = Polygon.Hemisphere(new Vector3D(1, 0, 0));
 
-            Assert.IsTrue(hs.Contains(new Vector3D(1, 0, 0))
-                && !hs.Contains(new Vector3D(-1, 0, 0)));
-        }
+        //    Assert.IsTrue(hs.Contains(new Vector3D(1, 0, 0))
+        //        && !hs.Contains(new Vector3D(-1, 0, 0)));
+        //}
 
         [TestMethod]
         public void TestContains_Yes()
