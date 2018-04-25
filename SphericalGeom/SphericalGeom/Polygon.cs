@@ -224,7 +224,7 @@ namespace SphericalGeom
         }
         #endregion
 
-        public static Polygon Hemisphere(Vector3D capCenter)
+        public static Polygon[] Hemisphere(Vector3D capCenter)
         {
             double ang = 1e-12, c = Math.Cos(ang), s = Math.Sin(ang);
             Polygon basic = new Polygon(new List<Vector3D>{
@@ -234,14 +234,28 @@ namespace SphericalGeom
                 new Vector3D(0, -c, s)
             });
 
+            Polygon leftLobe = new Polygon(new List<Vector3D>{
+                new Vector3D(0, 1, 0),
+                new Vector3D(1, 0, 0),
+                new Vector3D(0, -1, 0),
+                new Vector3D(0, 0, 1)
+            });
+            Polygon rightLobe = new Polygon(new List<Vector3D>{
+                new Vector3D(0, 1, 0),
+                new Vector3D(-1, 0, 0),
+                new Vector3D(0, -1, 0),
+                new Vector3D(0, 0, 1)
+            });
+
             Vector3D basisVec = Vector3D.CrossProduct(capCenter,
                 new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
             ReferenceFrame capFrame = new ReferenceFrame(
                 basisVec,
                 Vector3D.CrossProduct(basisVec, capCenter),
                 capCenter);
-            basic.FromThisFrame(capFrame);
-            return basic;
+            leftLobe.FromThisFrame(capFrame);
+            rightLobe.FromThisFrame(capFrame);
+            return new Polygon[2] { leftLobe, rightLobe };
         }
 
         /// <summary>
@@ -481,6 +495,26 @@ namespace SphericalGeom
             return new Tuple<IList<Polygon>, IList<Polygon>>(intersection, difference);
         }
 
+        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, IList<Polygon> qs)
+        {
+            List<Polygon> intersection = new List<Polygon>();
+            List<Polygon> diff = new List<Polygon>() { p };
+            foreach (Polygon q in qs)
+            {
+                List<Polygon> newDiff = new List<Polygon>();
+                foreach (Polygon d in diff)
+                {
+                    var intSub = IntersectAndSubtract(d, q);
+                    newDiff.AddRange(intSub.Item2);
+                    intersection.AddRange(intSub.Item1);
+                }
+                diff.Clear();
+                diff = newDiff;
+            }
+
+            return Tuple.Create(intersection, diff);
+        }
+
         public string ToWtk()
         {
             if (!knowWtk)
@@ -518,6 +552,23 @@ namespace SphericalGeom
             return wtk;
         }
  
+        public static string getMultipolFromWkts(List<string> wkts)
+        {
+            string res = "";
+
+            if (wkts.Count == 0)
+                return res;
+
+            foreach (var wkt in wkts)
+            {
+                res = res + wkt + "\n";
+                if (wkt != wkts.Last())
+                    res += ",";
+            }
+            res = "GEOMETRYCOLLECTION (" + res + ")";
+            return res;
+        }
+
         #region Polygon private methods
         private void SetAreaOrientation()
         {
