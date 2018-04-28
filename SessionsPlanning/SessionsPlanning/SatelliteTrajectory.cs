@@ -856,7 +856,7 @@ namespace SatelliteTrajectory
             double curv = 0;
             for (int i = 1; i < curve.Count - 1; ++i)
             {
-                double dlon = (dists[i + 1] - dists[i - 1]) / 2;
+                double dlon = (curve[i + 1].Longitude - curve[i - 1].Longitude) / 2;
                 double df2 = (curve[i - 1].Latitude - 2 * curve[i].Latitude + curve[i + 1].Latitude)
                     / (dlon * dlon);
                 double df1 = (curve[i + 1].Latitude - curve[i - 1].Latitude) / (2 * dlon);
@@ -892,7 +892,7 @@ namespace SatelliteTrajectory
             //    double P2 = Vector3D.DotProduct(V, cur_dist) / Vector3D.DotProduct(V, midl_dist);
             //    double K = curve[i].Latitude - Vector3D.DotProduct(ABC0, cur_dist);
             //    KP2 += K * P2 * (dists[i + 1] - dists[i]);
-            //    P2P2 += P2 * P2 * (dists[i + 1] - dists[i]); 
+            //    P2P2 += P2 * P2 * (dists[i + 1] - dists[i]);
             //}
             ////double g = Vector3D.DotProduct(ABC0, midl_dist) + KP2 / P2P2;
             //double t = (KP2 / P2P2) / Vector3D.DotProduct(V, midl_dist);
@@ -901,23 +901,36 @@ namespace SatelliteTrajectory
             //B2 = ABC.Z;
 
             // Solve for longitude
-            ind_curv = curve.Count / 2;
+            //ind_curv = curve.Count / 2;
             GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
             double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
             double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
-            Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
+            Vector Bm = new Vector(lats);
             Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
 
+            // Find lats based on lons
+            Matrix A_for_preB = new Matrix(new double[][]
+            { 
+                new double[] { 1, lons[0], lons[0] * lons[0] },
+                new double[] { 1, lons[1], lons[1] * lons[1] },
+                new double[] { 1, lons[2], lons[2] * lons[2] }
+            });
+            Vector preB = Gauss.Solve(A_for_preB, Bm);
+
+            // Find lons based on dist
             double d1 = dist * (double)ind_curv / (curve.Count - 1);
             double d2 = dist;
-
             Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
-            Vector B = Gauss.Solve(A, Bm);
-            B1 = B[0];
-            B2 = B[1];
+            //Vector B = Gauss.Solve(A, Bm);
+            //B1 = B[0];
+            //B2 = B[1];
             Vector L = Gauss.Solve(A, Lm);
             L1 = L[0];
             L2 = L[1];
+
+            // Plug to find B
+            B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
+            B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
 
             // Find average curvature
             //double curv = 0;

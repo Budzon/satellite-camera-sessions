@@ -874,6 +874,7 @@ namespace SatelliteSessions
                 curvatures[i - 1] = df2 / Math.Pow(1 + df1 * df1, 1.5);
             }
 
+            int maxsize = 45;
             int lastSign = 1, curSign = 1;
             for (int i = 1; i < vertices.Count - 1; ++i)
             {
@@ -885,34 +886,32 @@ namespace SatelliteSessions
                     continue;
                 }
                 curSign = Math.Sign(curvatures[i - 1]);
-                //if (curCurve.Count > maxsize)
-                //{
-                //    curves.Add(curCurve);
-                //    curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
-                //}
-                //else
+                if (curSign * lastSign == 1)
                 {
-                    if (curSign * lastSign == 1)
-                    {
-                        curCurve.Add(vertices[i]);
-                    }
+                    curCurve.Add(vertices[i]);
+                }
+                else
+                {
+                    lastSign *= -1;
+
+                    if (curCurve.Count < maxsize)
+                        curves.Add(curCurve);
                     else
                     {
-                        lastSign *= -1;
-
-                        //if (curCurve.Count < maxsize)
-                        curves.Add(curCurve);
-                        //else
-                        //{
-                        //    curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
-                        //    curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
-                        //}
-                        curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
+                        curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
+                        curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
                     }
+                    curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
                 }
             }
             curCurve.Add(vertices[vertices.Count - 1]);
-            curves.Add(curCurve);
+            if (curCurve.Count < maxsize)
+                curves.Add(curCurve);
+            else
+            {
+                curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
+                curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
+            }
 
             //double threshold = (0.75 * curvatures.Average() + 0.25 * curvatures.Min());
 
