@@ -786,12 +786,13 @@ namespace SatelliteSessions
             DateTime now = dateTime;
             string wkt;
 
+            var curves = BreakCurveByCurvature(vertices);
             if (!custom)
             {
-                for (int i = 0; i < vertices.Count - 1; ++i)
+                for (int i = 0; i < curves.Count; ++i)
                 {
-                    curr = vertices[i];
-                    next = vertices[i + 1];
+                    curr = curves[i][0];
+                    next = curves[i][curves[i].Count - 1];
                     tp = fetcher.GetPositionSat(now).Value;
 
                     //Routines.GetRollPitch(tp, curr, out roll, out pitch);
@@ -802,34 +803,50 @@ namespace SatelliteSessions
                     now = now.AddSeconds(duration); // + 12
                 }
             }
+            else
             {
-                List<List<GeoPoint>> curves = new List<List<GeoPoint>>();
-                List<GeoPoint> curCurve = new List<GeoPoint>();
-                int lastSign = 1, curSign = 1;
-                for (int i = 1; i < vertices.Count - 1; ++i)
-                {
-                    if (i == 1)
-                    {
-                        lastSign = Math.Sign(vertices[0].Latitude - 2 * vertices[1].Latitude + vertices[2].Latitude);
-                        curCurve.Add(vertices[0]);
-                        curCurve.Add(vertices[1]);
-                        continue;
-                    }
-                    curSign = Math.Sign(vertices[i - 1].Latitude - 2 * vertices[i].Latitude + vertices[i + 1].Latitude);
-                    if (curSign * lastSign == 1)
-                    {
-                        curCurve.Add(vertices[i]);
-                    }
-                    else
-                    {
-                        lastSign *= -1;
-                        curves.Add(curCurve);
-                        curCurve = new List<GeoPoint>() { vertices[i-1], vertices[i] };
-                    }
-                }
-                curCurve.Add(vertices[vertices.Count - 1]);
-                curves.Add(curCurve);
+                //int maxsize = 10;
+                //List<List<GeoPoint>> curves = new List<List<GeoPoint>>();
+                //List<GeoPoint> curCurve = new List<GeoPoint>();
+                //int lastSign = 1, curSign = 1;
+                //for (int i = 1; i < vertices.Count - 1; ++i)
+                //{
+                //    if (i == 1)
+                //    {
+                //        lastSign = Math.Sign(vertices[0].Latitude - 2 * vertices[1].Latitude + vertices[2].Latitude);
+                //        curCurve.Add(vertices[0]);
+                //        curCurve.Add(vertices[1]);
+                //        continue;
+                //    }
+                //    curSign = Math.Sign(vertices[i - 1].Latitude - 2 * vertices[i].Latitude + vertices[i + 1].Latitude);
+                //    //if (curCurve.Count > maxsize)
+                //    //{
+                //    //    curves.Add(curCurve);
+                //    //    curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
+                //    //}
+                //    //else
+                //    {
+                //        if (curSign * lastSign == 1)
+                //        {
+                //            curCurve.Add(vertices[i]);
+                //        }
+                //        else
+                //        {
+                //            lastSign *= -1;
 
+                //            if (curCurve.Count < maxsize)
+                //                curves.Add(curCurve);
+                //            else
+                //            {
+                //                curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
+                //                curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
+                //            }
+                //            curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
+                //        }
+                //    }
+                //}
+                //curCurve.Add(vertices[vertices.Count - 1]);
+                //curves.Add(curCurve);
                 for (int i = 0; i < curves.Count; ++i)
                 {
                     tp = fetcher.GetPositionSat(now).Value;
@@ -839,6 +856,109 @@ namespace SatelliteSessions
                     now = now.AddSeconds(duration);
                 }
             }
+        }
+
+        private static List<List<GeoPoint>> BreakCurveByCurvature(List<GeoPoint> vertices)
+        {
+            List<List<GeoPoint>> curves = new List<List<GeoPoint>>();
+            List<GeoPoint> curCurve = new List<GeoPoint>();
+            List<GeoPoint> straight = new List<GeoPoint>(){vertices[0]};
+
+            double[] curvatures = new double[vertices.Count - 2];
+            for (int i = 1; i < vertices.Count - 1; ++i)
+            {
+                double dlon = (vertices[i + 1].Longitude - vertices[i - 1].Longitude) / 2;
+                double df2 = (vertices[i - 1].Latitude - 2 * vertices[i].Latitude + vertices[i + 1].Latitude)
+                    / (dlon * dlon);
+                double df1 = (vertices[i + 1].Latitude - vertices[i - 1].Latitude) / (2 * dlon);
+                curvatures[i - 1] = df2 / Math.Pow(1 + df1 * df1, 1.5);
+            }
+
+            int lastSign = 1, curSign = 1;
+            for (int i = 1; i < vertices.Count - 1; ++i)
+            {
+                if (i == 1)
+                {
+                    lastSign = Math.Sign(curvatures[0]);
+                    curCurve.Add(vertices[0]);
+                    curCurve.Add(vertices[1]);
+                    continue;
+                }
+                curSign = Math.Sign(curvatures[i - 1]);
+                //if (curCurve.Count > maxsize)
+                //{
+                //    curves.Add(curCurve);
+                //    curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
+                //}
+                //else
+                {
+                    if (curSign * lastSign == 1)
+                    {
+                        curCurve.Add(vertices[i]);
+                    }
+                    else
+                    {
+                        lastSign *= -1;
+
+                        //if (curCurve.Count < maxsize)
+                        curves.Add(curCurve);
+                        //else
+                        //{
+                        //    curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
+                        //    curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
+                        //}
+                        curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
+                    }
+                }
+            }
+            curCurve.Add(vertices[vertices.Count - 1]);
+            curves.Add(curCurve);
+
+            //double threshold = (0.75 * curvatures.Average() + 0.25 * curvatures.Min());
+
+            //for (int i = 1; i < vertices.Count - 1; ++i)
+            //{
+            //    if (Math.Abs(curvatures[i - 1]) < threshold)
+            //    {
+            //        if (curCurve.Count > 0)
+            //        {
+            //            if (curCurve.Count < 3)
+            //            {
+            //                straight.AddRange(curCurve);
+            //            }
+            //            else
+            //            {
+            //                curves.Add(curCurve);
+            //            }
+            //            curCurve = new List<GeoPoint>();
+            //            straight.Add(vertices[i - 1]);
+            //        }
+            //        straight.Add(vertices[i]);
+            //    }
+            //    else
+            //    {
+            //        if (straight.Count > 0)
+            //        {
+            //            if (straight.Count < 3)
+            //            {
+            //                curCurve.AddRange(straight);
+            //            }
+            //            else
+            //            {
+            //                curves.Add(straight);
+            //            }
+            //            straight = new List<GeoPoint>();
+            //            curCurve.Add(vertices[i - 1]);
+            //        }
+
+            //        curCurve.Add(vertices[i]);
+            //    }
+            //}
+            //curCurve.AddRange(straight);
+            //curCurve.Add(vertices[vertices.Count - 1]);
+            //curves.Add(curCurve);
+
+            return curves;
         }
 
         /// <summary>

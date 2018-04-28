@@ -126,10 +126,15 @@ namespace GeometryTest
      
             //Sessions.getPieciwiseCoridor(dt1, verts, manager, out wkts, out satPos);
 
+            /// ---------------- СЕВЕР КАВАЙНЫЙ ПРИМЕР
+            /// f(x) = 81.8 + 0.05*np.cos(np.pi/5*x)
+            /// lons = np.linspace(60, 90, 200)
+            /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+
             // CUSTOM
             DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
-            int steps = 50;
-            double lon0 = 60, lon1 = 85, dlon = lon1 - lon0, step = dlon / steps;
+            int steps = 100;
+            double lon0 = 60, lon1 = 90, dlon = lon1 - lon0, step = dlon / steps;
             
             double[] lons = new double[steps];
             for (int i = 0; i < lons.Length; ++i)
@@ -139,9 +144,9 @@ namespace GeometryTest
             double[] lats = new double[steps];
             for (int i = 0; i < lats.Length; ++i)
             {
-                lats[i] = 81.8 + 0.05 * Math.Cos(Math.PI / 5 * lons[i]);
+                lats[i] = 81.8 + 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2); //+0.3 * Math.Cos(Math.PI / 9 * lons[i]) + 0.05 * Math.Sin(lons[i]);
             }
-
+            //+ 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
             List<string> wkts;
             List<GeoPoint> satPos;
             List<GeoPoint> curve = new List<GeoPoint>();
@@ -159,7 +164,7 @@ namespace GeometryTest
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-            DateTime dt1 = new DateTime(2019, 1, 1, 9, 58, 30);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
             string wkt;
             double dur, dist = 50e3;
             double roll = 0, pitch = 0, az = 0;

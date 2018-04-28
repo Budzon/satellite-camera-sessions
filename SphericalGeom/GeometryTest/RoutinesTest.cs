@@ -85,7 +85,7 @@ namespace GeometryTest
             for (int i = 0; i < pitches.Length; ++i)
                 pitches[i] = i - 45;
 
-            DateTime dt1 = new DateTime(2019, 1, 1, 3, 0, 0);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 55, 30);
             TrajectoryPoint tp = fetcher.GetPositionSat(dt1).Value;
 
             double roll, pitch;
@@ -99,7 +99,7 @@ namespace GeometryTest
                     pitch = AstronomyMath.ToRad(pitches[j]);
                     GeoPoint q = Routines.IntersectOpticalAxisAndEarth(tp, roll, pitch);
                     Routines.GetRollPitch(tp, q, out roll1, out pitch1);
-                    equal = Comparison.IsEqual(roll, roll1) && Comparison.IsEqual(pitch, pitch1);
+                    equal = Comparison.IsZero(Math.Pow(roll - roll1, 3)) && Comparison.IsZero(Math.Pow(pitch - pitch1, 3));
                     ok = ok && equal;
                     if (!equal)
                     {

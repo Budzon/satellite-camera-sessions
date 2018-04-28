@@ -506,6 +506,52 @@ namespace SatelliteTrajectory
             knowViewPolygon = false;
         }
 
+        public LanePos(TrajectoryPoint pointKA, double viewAngle, GeoPoint viewPoint)
+        {
+            double rollAngle, pitchAngle;
+            Routines.GetRollPitch(pointKA, viewPoint, out rollAngle, out pitchAngle);
+            double minAngle = -viewAngle / 2;
+            double maxAngle =  viewAngle / 2;
+
+            Vector3D nadirVect = -pointKA.Position.ToVector();            
+
+            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(-pointKA.Velocity, AstronomyMath.ToDegrees(minAngle)));
+            RotateTransform3D rightTransform = new RotateTransform3D(new AxisAngleRotation3D(-pointKA.Velocity, AstronomyMath.ToDegrees(maxAngle)));
+
+            Vector3D pitchAxis = -Vector3D.CrossProduct(pointKA.Velocity, nadirVect);
+            RotateTransform3D backPitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitchAngle)));
+            RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, -AstronomyMath.ToDegrees(pitchAngle)));
+
+            Vector3D eDirVect = backPitchTransform.Transform(GeoPoint.ToCartesian(viewPoint, Astronomy.Constants.EarthRadius)) + nadirVect;
+            Vector3D leftVector = pitchTransform.Transform(leftTransform.Transform(eDirVect));
+            Vector3D rightVector = pitchTransform.Transform(rightTransform.Transform(eDirVect));
+
+            Vector3D leftCrossPoint = Routines.SphereVectIntersect(leftVector, pointKA.Position, Astronomy.Constants.EarthRadius);
+            Vector3D rightCrossPoint = Routines.SphereVectIntersect(rightVector, pointKA.Position, Astronomy.Constants.EarthRadius);
+
+            Vector3D KAPoint = pointKA.Position.ToVector();
+
+            leftCrossPoint.Normalize();
+            rightCrossPoint.Normalize();
+            KAPoint.Normalize();
+
+            trajPoint = pointKA;
+            leftCartPoint = leftCrossPoint;
+            rightCartPoint = rightCrossPoint;
+            cartKAPoint = pointKA.Position.ToVector();
+            CartKAPoint.Normalize();
+            geoKAPoint = GeoPoint.FromCartesian(CartKAPoint);
+
+            leftGeoPoint = GeoPoint.FromCartesian(leftCartPoint);
+            rightGeoPoint = GeoPoint.FromCartesian(rightCartPoint);
+            width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
+
+            time = pointKA.Time;
+            knowLeftConrol = false;
+            knowRightConrol = false;
+            knowViewPolygon = false;
+        }
+
         public static Vector3D applyPitchlRotation(TrajectoryPoint point, Vector3D dirVect, double pitchAngle)
         {
             Vector3D position = point.Position.ToVector();
@@ -806,18 +852,25 @@ namespace SatelliteTrajectory
             Routines.GetRollPitch(traj[0], curve[0], out roll, out pitch);
 
             // Find maximum curvature
-            //int ind_curv = 0;
-            //double curv = 0;
-            //for (int i = 1; i < curve.Count - 1; ++i)
-            //{
-            //    double curcurv = (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude) * 2
-            //        / Math.Pow((curve[i + 1].Longitude - curve[i - 1].Longitude) / 2, 2);
-            //    if (Math.Abs(curcurv) > Math.Abs(curv))
-            //    {
-            //        ind_curv = i;
-            //        curv = curcurv;
-            //    }
-            //}
+            int ind_curv = 0;
+            double curv = 0;
+            for (int i = 1; i < curve.Count - 1; ++i)
+            {
+                double dlon = (dists[i + 1] - dists[i - 1]) / 2;
+                double df2 = (curve[i - 1].Latitude - 2 * curve[i].Latitude + curve[i + 1].Latitude)
+                    / (dlon * dlon);
+                double df1 = (curve[i + 1].Latitude - curve[i - 1].Latitude) / (2 * dlon);
+                double curcurv = df2 / Math.Pow(1e-9 + df1 * df1, 1.5);
+                //double curcurv = (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude) * 2
+                //    / Math.Pow((curve[i + 1].Longitude - curve[i - 1].Longitude) / 2, 2);
+                if (Math.Abs(curcurv) > Math.Abs(curv))
+                {
+                    ind_curv = i;
+                    curv = curcurv;
+                }
+            }
+            if (ind_curv == 0 || ind_curv == curve.Count - 1)
+                ind_curv = curve.Count / 2;
 
             ///// Solve lat(s) = A + Bs + Css at s=0 and s=dist.
             ///// Get a solution ABC0 and a kernel V, so that ABC = ABC0 + t * V
@@ -848,35 +901,35 @@ namespace SatelliteTrajectory
             //B2 = ABC.Z;
 
             // Solve for longitude
-            int ind_curv = curve.Count / 2;
+            ind_curv = curve.Count / 2;
             GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
-            //double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
+            double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
             double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
-            //Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
+            Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
             Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
 
             double d1 = dist * (double)ind_curv / (curve.Count - 1);
             double d2 = dist;
 
             Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
-            //Vector B = Gauss.Solve(A, Bm);
-            //B1 = B[0];
-            //B2 = B[1];
+            Vector B = Gauss.Solve(A, Bm);
+            B1 = B[0];
+            B2 = B[1];
             Vector L = Gauss.Solve(A, Lm);
             L1 = L[0];
             L2 = L[1];
 
             // Find average curvature
-            double curv = 0;
-            for (int i = 1; i < curve.Count - 1; ++i)
-            {
-                curv += (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude)
-                    / Math.Pow((dists[i + 1] - dists[i - 1]) / 2, 2);
-            }
-            curv /= (curve.Count - 2) * 2;
+            //double curv = 0;
+            //for (int i = 1; i < curve.Count - 1; ++i)
+            //{
+            //    curv += (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude)
+            //        / Math.Pow((dists[i + 1] - dists[i - 1]) / 2, 2);
+            //}
+            //curv /= (curve.Count - 2) * 2;
 
-            B2 = curv / 2;
-            B1 = (curve[curve.Count - 1].Latitude - curve[0].Latitude - B2 * dist * dist) / dist;
+            //B2 = curv / 2;
+            //B1 = (curve[curve.Count - 1].Latitude - curve[0].Latitude - B2 * dist * dist) / dist;
 
 
             // Find latitude through longitude and curve lat = F(lon)
