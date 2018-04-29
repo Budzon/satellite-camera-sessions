@@ -229,63 +229,69 @@ namespace SatelliteTrajectory
 
         public List<CaptureConf> getCaptureConfs(RequestParams request)
         {
-            Polygon region = new Polygon(request.wktPolygon);
-            List<CaptureConf> res = new List<CaptureConf>();
-            double square = region.Area;
-            foreach (LaneSector sector in Sectors)
+            List<CaptureConf> res = new List<CaptureConf>(); 
+
+            double square = request.polygons.Sum(pol => pol.Area);
+
+            foreach (var reqPol in request.polygons)
             {
-                IList<Polygon> intersections = Polygon.Intersect(sector.polygon, region);
-                foreach (var int_pol in intersections)
+                foreach (LaneSector sector in Sectors)
                 {
-                    var verts = int_pol.Vertices;
-                    var en = verts.GetEnumerator();
-                    en.MoveNext();
-                    DateTime tFrom = sector.getPointTime(en.Current);
-                    DateTime tTo = tFrom;
-                    Vector3D pointFrom = verts[0];
-                    Vector3D pointTo = verts[0];
-                    bool outOfRange = false;
-                    foreach (var point in verts)
+                    IList<Polygon> intersections = Polygon.Intersect(sector.polygon, reqPol);
+                    foreach (var int_pol in intersections)
                     {
-                        DateTime curTime = sector.getPointTime(point);
-                        if (curTime < request.timeFrom || request.timeTo < curTime)
+                        var verts = int_pol.Vertices;
+                        var en = verts.GetEnumerator();
+                        en.MoveNext();
+                        DateTime tFrom = sector.getPointTime(en.Current);
+                        DateTime tTo = tFrom;
+                        Vector3D pointFrom = verts[0];
+                        Vector3D pointTo = verts[0];
+                        bool outOfRange = false;
+                        foreach (var point in verts)
                         {
-                            outOfRange = true;                            
+                            DateTime curTime = sector.getPointTime(point);
+                            if (curTime < request.timeFrom || request.timeTo < curTime)
+                            {
+                                outOfRange = true;
+                                break;
+                            }
+                            else if (curTime < tFrom)
+                            {
+                                tFrom = curTime;
+                                pointFrom = point;
+                            }
+                            else if (curTime > tTo)
+                            {
+                                tTo = curTime;
+                                pointTo = point;
+                            }
+                        }
+
+                        if (outOfRange)
                             break;
-                        }
-                        else if (curTime < tFrom)
-                        {
-                            tFrom = curTime;
-                            pointFrom = point;
-                        }
-                        else if (curTime > tTo)
-                        {
-                            tTo = curTime;
-                            pointTo = point;
-                        }
+
+                        tFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
+                        tTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
+
+                        if ((tTo - tFrom).TotalSeconds < OptimalChain.Constants.minCConfDuration)              
+                            continue;
+                        
+                        Order order = new Order();
+                        order.captured = int_pol;
+                        order.request = request;
+                        double subsquare = int_pol.Area;
+                        order.intersection_coeff = subsquare / square;
+                        var orders = new List<Order>() { order };
+                        int type = 0;
+                        CaptureConf newcc = new CaptureConf(tFrom, tTo, rollAngle, orders, type, null);
+
+                        res.Add(newcc);
                     }
-
-                    if (outOfRange)
-                        break;
-                                        
-                    tFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
-                    tTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
-                   
-                    if ((tTo - tFrom).TotalSeconds < 2)
-                        continue;
-
-                    Order order = new Order();
-                    order.captured = int_pol;
-                    order.request = request;
-                    double subsquare = int_pol.Area;
-                    order.intersection_coeff = subsquare / square;
-                    var orders = new List<Order>() { order };
-                    int type = 0;
-                    CaptureConf newcc = new CaptureConf(tFrom, tTo, rollAngle, orders, type, null);
-
-                    res.Add(newcc);
                 }
             }
+             
+        
             return res;
         }
 
