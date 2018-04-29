@@ -58,6 +58,9 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommunicationZone.cs" />
+    <Compile Include="CommunicationSession.cs" />
+    <Compile Include="TimePeriod.cs" />
     <Compile Include="DataParsers\DATParser.cs" />
     <Compile Include="DBTables.cs" />
     <Compile Include="MPZ.cs" />
