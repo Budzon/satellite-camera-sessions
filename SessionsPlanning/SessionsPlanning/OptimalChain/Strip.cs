@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SphericalGeom;
 
 namespace OptimalChain
 {
@@ -86,14 +87,12 @@ namespace OptimalChain
         }
     }
 
-    public class CaptureConf
+    public class CaptureConf : SatelliteSessions.TimePeriod
     {
         public int id { get; set; }
         public int confType { get; set; } // 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
         public string shootingChannel {  get; private set; }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
         public int shootingType {  get; private set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
-        public DateTime dateFrom {  get; private set; } //время начала для съемки в надир
-        public DateTime dateTo {  get; private set; } //время окончания для съемки в надир       
         public double rollAngle {  get; private set; }//крен для съемки c нулевым тангажом
         public double square { get; private set; }//площадь полосы
         public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
@@ -132,6 +131,7 @@ namespace OptimalChain
             List<Order> _orders,
             int _confType,
             Tuple<int, int> _connectedRoute)
+            : base(_dateFrom, _dateTo)
         {
             if (_dateFrom >= _dateTo)
                 throw new ArgumentException("Incorrect time interval");
@@ -155,8 +155,6 @@ namespace OptimalChain
             id = -1;
             confType = _confType;
             orders = _orders;
-            dateFrom = _dateFrom;
-            dateTo = _dateTo;
             rollAngle = _rollAngle;            
             connectedRoute = _connectedRoute;
             pitchArray = new Dictionary<double, Tuple<double, double>>();
@@ -197,67 +195,39 @@ namespace OptimalChain
         }
 
 
-        public static CaptureConf unitCaptureConfs(CaptureConf confs1, CaptureConf confs2)
+        /// <summary>
+        /// объеденить (по времени) 
+        /// </summary>
+        /// <param name="confs"></param>
+        public static List<CaptureConf> compressCConfArray(List<CaptureConf> confs)
         {
-            if (confs1.shootingType != confs2.shootingType ||
-                confs1.shootingChannel != confs2.shootingChannel ||
-                confs1.confType != confs2.confType)
+            if (confs.Count < 1)
+                return confs;
+
+            var res = SatelliteSessions.TimePeriod.compressTimePeriods<CaptureConf>(confs, OptimalChain.Constants.minCConfDuration);
+
+            return res;
+        }
+
+        public override SatelliteSessions.TimePeriod Unite(SatelliteSessions.TimePeriod period)    
+        {
+            CaptureConf confs2 = (CaptureConf)period;
+            if (shootingType != confs2.shootingType ||
+                shootingChannel != confs2.shootingChannel ||
+                confType != confs2.confType)
                 throw new ArgumentException("it is impossible to unite confs with different channels or types.");
 
-            var dateFrom = (confs1.dateFrom < confs2.dateFrom) ? confs1.dateFrom : confs2.dateFrom;
-            var dateTo = (confs1.dateTo > confs2.dateTo) ? confs1.dateTo : confs2.dateTo;
+            var newDateFrom = (dateFrom < confs2.dateFrom) ? dateFrom : confs2.dateFrom;
+            var newDateTo = (dateTo > confs2.dateTo) ? dateTo : confs2.dateTo;
             var orders = new List<Order>();
-            orders.AddRange(confs1.orders);
+            orders.AddRange(orders);
             orders.AddRange(confs2.orders);
-            Tuple<int, int> newConnectedRoute = confs1.connectedRoute;
-            CaptureConf newConf = new CaptureConf(dateFrom, dateTo, confs1.rollAngle, orders, confs1.confType, newConnectedRoute);
+            Tuple<int, int> newConnectedRoute = connectedRoute;
+            CaptureConf newConf = new CaptureConf(newDateFrom, newDateTo, rollAngle, orders, confType, newConnectedRoute);
 
             return newConf;
         }
 
-        public static bool isNeedUnit(CaptureConf c1, CaptureConf c2)
-        {
-            if (c1.shootingType != c2.shootingType ||
-                c1.shootingChannel != c2.shootingChannel ||
-                c1.confType != c2.confType)
-                return false;
-
-            /// @todo добавить минимально допустимое расстояние (по времени)
-            return ((c1.dateFrom <= c2.dateTo && c2.dateTo <= c1.dateTo) || (c1.dateFrom <= c2.dateFrom && c2.dateFrom <= c1.dateTo)
-                  || (c2.dateFrom <= c1.dateTo && c1.dateTo <= c2.dateTo) || (c2.dateFrom <= c1.dateFrom && c1.dateFrom <= c2.dateTo));
-        }
-
-        public static void compressCConfArray(List<CaptureConf> confs)
-        {
-            for (int i = 0; i < confs.Count; i++)
-            {
-                for (int j = i + 1; j < confs.Count; j++)
-                {
-                    if (isNeedUnit(confs[i], confs[j]))
-                    {
-                        CaptureConf comConf = unitCaptureConfs(confs[i], confs[j]);
-                        confs[i] = comConf;
-                        confs.RemoveAt(j);
-                    }
-                }
-            }
-        }
-
-        public static void compressTwoCConfArrays(List<CaptureConf> confs1, List<CaptureConf> confs2)
-        {
-            for (int i = 0; i < confs1.Count; i++)
-            {
-                for (int j = 0; j < confs2.Count; j++)
-                {
-                    if (isNeedUnit(confs1[i], confs2[j]))
-                    {
-                        CaptureConf unitConf = unitCaptureConfs(confs1[i], confs2[j]);
-                        confs1[i] = unitConf;
-                        confs2.RemoveAt(j);
-                    }
-                }
-            }
-        }
 
         /// <summary>
         /// Создать стереотриплет из текущей конфигурации
@@ -265,7 +235,7 @@ namespace OptimalChain
         /// <param name="pointFrom">положение КА в момент съемки</param>
         /// <param name="availableRanges">доступные для съемки интервалы времени</param>
         /// <returns>false, если создание не удалось </returns>
-        public bool converToStereoTriplet(Astronomy.TrajectoryPoint pointFrom, List<Tuple<DateTime, DateTime>> availableRanges)
+        public bool converToStereoTriplet(Astronomy.TrajectoryPoint pointFrom, List<SatelliteSessions.TimePeriod> availableRanges)
         {
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double timeDelta = SatelliteSessions.Sessions.getTimeDeltaFromPitch(pointFrom, this.rollAngle, pitchAngle);
@@ -275,7 +245,7 @@ namespace OptimalChain
             if ((this.dateTo - this.dateFrom).TotalSeconds > timeDelta)
                 return false; // полоса слишком длинная. Мы не успеваем отснять с углом -30 до того, как начнём снимать с углом 0
 
-            if (!SatelliteSessions.Sessions.isPeriodInPeriods(Tuple.Create(dtFrom, dtTo), availableRanges))
+            if (!SatelliteSessions.TimePeriod.isPeriodInPeriods(new SatelliteSessions.TimePeriod(dtFrom, dtTo), availableRanges))
                 return false;  // мы не попадаем в разрешенные промежутки времени
 
             Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
@@ -294,51 +264,99 @@ namespace OptimalChain
 
     public class RequestParams
     {
-        public int id { get; set; }
-        public int priority { get; set; }
-        public DateTime timeFrom { get; set; }
-        public DateTime timeTo { get; set; }
-        public double Max_SOEN_anlge { get; set; }
-        public double minCoverPerc { get; set; }
-        public int Max_sun_angle { get; set; }
-        public int Min_sun_angle { get; set; }
-        public string wktPolygon { get; set; }
-        public string requestChannel { get; set; }
-        public int shootingType { get; set; } //0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
-        public int compression { get; set; } // коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями
-        public double albedo { get; set; } //  характеристика отражательной способности поверхности. 
+        public int id { get; private set; }
+        public int priority { get; private set; }
+        public DateTime timeFrom { get; private set; }
+        public DateTime timeTo { get; private set; }
+        public double Max_SOEN_anlge { get; private set; }
+        public double minCoverPerc { get; private set; }
+        public int Max_sun_angle { get; private set; }
+        public int Min_sun_angle { get; private set; }
+        public string wktPolygon { get; private set; }
+        public List<string> polygonToSubtract { get; private set; }
+        public string requestChannel { get; private set; } // pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
+        public int shootingType { get; private set; } //0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+        public int compression { get; private set; } // коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями
+        public double albedo { get; private set; } //  характеристика отражательной способности поверхности. 
+        public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
+        
+        /// <summary>
+        /// разделим заказы на группы по признаку совместимых CaptureConf-ов
+        /// </summary>
+        /// <param name="requests"> несортированные заказы, все вместе </param>
+        /// <returns> разделённые заказы </returns>
+        public static List<List<RequestParams>> breakRequestsIntoGroups(List<RequestParams> requests)
+        {
+            var breakingRequests = new Dictionary<Tuple<int,string,bool>, List<RequestParams>>();
+
+            foreach(var request in requests)
+            {
+                Tuple<int, string, bool> key = Tuple.Create(request.shootingType, request.requestChannel, request.compression == OptimalChain.Constants.compressionDropCapture);
+                if (!breakingRequests.ContainsKey(key))
+                    breakingRequests[key] = new List<RequestParams>();
+
+                breakingRequests[key].Add(request);
+            }
+            return breakingRequests.Values.ToList();
+        }
+
 
         /// <summary>
         /// Конструктор параметров заказа
         /// </summary>
-        /// <param name="i"> идентификатор</param>
-        /// <param name="p"> приоритет</param>
-        /// <param name="d1">Дата возможной съемки -- начало</param>
-        /// <param name="d2">Дата возможной съемки -- конец</param>
-        /// <param name="max_a">Максимально допустимый угол отклонения оси ОСЭН от надира</param>
-        /// <param name="min_p">Миимальный допустимый процент покрытия региона заказа</param>
-        /// <param name="max_s_a">Максимальный допусмтимый угол солнца над горизонтом</param>
-        /// <param name="min_s_a">Минимальный допусмтимый угол солнца над горизонтом</param>
-        /// <param name="polygon">Полигон заказа в формае WKT</param>
-        /// <param name="alb">  характеристика отражательной способности поверхности. </param>
-        /// <param name="comp"> коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями</param>
-        public RequestParams(int i, int p, DateTime d1, DateTime d2, double max_a, double min_p, int max_s_a, int min_s_a, string polygon, double alb = 0.36 , int comp = 0, int sT = 0)
+        /// <param name="_id"> идентификатор</param>
+        /// <param name="_priority"> приоритет</param>
+        /// <param name="_timeFrom">Дата возможной съемки -- начало</param>
+        /// <param name="_timeTo">Дата возможной съемки -- конец</param>
+        /// <param name="_Max_SOEN_anlge">Максимально допустимый угол отклонения оси ОСЭН от надира</param>
+        /// <param name="_minCoverPerc">Миимальный допустимый процент покрытия региона заказа</param>
+        /// <param name="_Max_sun_angle">Максимальный допусмтимый угол солнца над горизонтом</param>
+        /// <param name="_Min_sun_angle">Минимальный допусмтимый угол солнца над горизонтом</param>
+        /// <param name="_wktPolygon">Полигон заказа в формае WKT</param>
+        /// <param name="_albedo">  характеристика отражательной способности поверхности. </param>
+        /// <param name="_compression"> коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями</param>
+        public RequestParams(int _id,
+            int _priority,
+            DateTime _timeFrom,
+            DateTime _timeTo,
+            double _Max_SOEN_anlge,
+            double _minCoverPerc,
+            int _Max_sun_angle, 
+            int _Min_sun_angle,
+            string _wktPolygon,
+            List<string> _polygonToSubtract = null,
+            double _albedo = 0.36,
+            int _compression = 0,
+            int _shootingType = 0,
+            string _requestChannel = "mk"
+            )
         {
-            id = i;
-            priority = p;
-            timeFrom = d1;
-            timeTo = d2;
-            Max_SOEN_anlge = max_a;
-            minCoverPerc = min_p;
-            Max_sun_angle = max_s_a;
-            Min_sun_angle = min_s_a;
-            wktPolygon = polygon;
-            compression = comp;
-            albedo = alb;
-            shootingType = sT;
+            id = _id;
+            priority = _priority;
+            timeFrom = _timeFrom;
+            timeTo = _timeTo;
+            Max_SOEN_anlge = _Max_SOEN_anlge;
+            minCoverPerc = _minCoverPerc;
+            Max_sun_angle = _Max_sun_angle;
+            Min_sun_angle = _Min_sun_angle;
+            wktPolygon = _wktPolygon;
+            albedo = _albedo;
+            compression = _compression;            
+            shootingType = _shootingType;
+            requestChannel = _requestChannel;
+            polygonToSubtract = _polygonToSubtract;
+            Polygon comPolygon = new Polygon(wktPolygon);
+            if (_polygonToSubtract != null)
+            {
+                Tuple<List<Polygon>, List<Polygon>> res = Polygon.IntersectAndSubtract(comPolygon, _polygonToSubtract.Select(str => new Polygon(str)).ToList());
+                polygons = res.Item2;
+            }
+            else
+            {
+                polygons = new List<Polygon>() { comPolygon };
+            }
         }
-
-        public RequestParams() { }
+         
     }
 
     public class Order
