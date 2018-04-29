@@ -80,6 +80,7 @@
     <Compile Include="TimeOperationsTest.cs" />
     <Compile Include="CofigurationsTests.cs" />
     <Compile Include="TrajectoryTest.cs" />
+    <Compile Include="RequestParamsTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">
