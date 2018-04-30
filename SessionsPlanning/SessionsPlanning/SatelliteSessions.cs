@@ -789,70 +789,26 @@ namespace SatelliteSessions
             var curves = new Curve(vertices).BreakByCurvatureAndDistance(2e5); //BreakCurveByCurvature(vertices);
             if (!custom)
             {
-                return;
-                //for (int i = 0; i < curves.Count; ++i)
-                //{
-                //    curr = curves[i][0];
-                //    next = curves[i][curves[i].Count - 1];
-                //    tp = fetcher.GetPositionSat(now).Value;
+                for (int i = 0; i < curves.Count; ++i)
+                {
+                    curr = curves[i][0];
+                    next = curves[i][curves[i].Count - 1];
+                    tp = fetcher.GetPositionSat(now).Value;
 
-                //    //Routines.GetRollPitch(tp, curr, out roll, out pitch);
-                //    //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
-                //    getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
-                //    wkts.Add(wkt);
-                //    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
-                //    now = now.AddSeconds(duration); // + 12
-                //}
+                    //Routines.GetRollPitch(tp, curr, out roll, out pitch);
+                    //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                    getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                    wkts.Add(wkt);
+                    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
+                    now = now.AddSeconds(duration); // + 12
+                }
             }
             else
             {
-                //int maxsize = 10;
-                //List<List<GeoPoint>> curves = new List<List<GeoPoint>>();
-                //List<GeoPoint> curCurve = new List<GeoPoint>();
-                //int lastSign = 1, curSign = 1;
-                //for (int i = 1; i < vertices.Count - 1; ++i)
-                //{
-                //    if (i == 1)
-                //    {
-                //        lastSign = Math.Sign(vertices[0].Latitude - 2 * vertices[1].Latitude + vertices[2].Latitude);
-                //        curCurve.Add(vertices[0]);
-                //        curCurve.Add(vertices[1]);
-                //        continue;
-                //    }
-                //    curSign = Math.Sign(vertices[i - 1].Latitude - 2 * vertices[i].Latitude + vertices[i + 1].Latitude);
-                //    //if (curCurve.Count > maxsize)
-                //    //{
-                //    //    curves.Add(curCurve);
-                //    //    curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
-                //    //}
-                //    //else
-                //    {
-                //        if (curSign * lastSign == 1)
-                //        {
-                //            curCurve.Add(vertices[i]);
-                //        }
-                //        else
-                //        {
-                //            lastSign *= -1;
-
-                //            if (curCurve.Count < maxsize)
-                //                curves.Add(curCurve);
-                //            else
-                //            {
-                //                curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
-                //                curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
-                //            }
-                //            curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
-                //        }
-                //    }
-                //}
-                //curCurve.Add(vertices[vertices.Count - 1]);
-                //curves.Add(curCurve);
                 for (int i = 0; i < curves.Count; ++i)
                 {
                     tp = fetcher.GetPositionSat(now).Value;
                     getCustomCoridor(now, curves[i], managerDB, out wkt, out duration);
-                    Console.WriteLine(i + " " + curves[i].Meters);
                     wkts.Add(wkt);
                     satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
                     now = now.AddSeconds(duration);
@@ -991,7 +947,7 @@ namespace SatelliteSessions
 
             LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
 
-            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -1009,7 +965,7 @@ namespace SatelliteSessions
 
             LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
 
-            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -1025,7 +981,7 @@ namespace SatelliteSessions
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
 
             LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
-            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -1050,16 +1006,18 @@ namespace SatelliteSessions
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out roll, out pitch);
 
             LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
-            Polygon pol = GetSecondOrderCoridor(lpBegin, curve.Meters, b1, b2, l1, l2);
+            Console.WriteLine(roll + " " + pitch);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
-        private static Polygon GetSecondOrderCoridor(LanePos start, double dist, double b1, double b2, double l1, double l2, int points = 10)
+        private static Polygon GetSecondOrderCoridor(LanePos start, double duration, double b1, double b2, double l1, double l2, double s1, double s2, double s3, int points = 10)
         {
             GeoPoint[] leftPoints = new GeoPoint[points];
             for (int i = 0; i < leftPoints.Length; ++i)
             {
-                double d = dist / leftPoints.Length * (i + 1);
+                double t = duration / leftPoints.Length * (i + 1);
+                double d = t * (s1 + t * (s2 + t * s3));
                 leftPoints[i] = new GeoPoint(
                     AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
                     AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
@@ -1068,7 +1026,8 @@ namespace SatelliteSessions
             GeoPoint[] rightPoints = new GeoPoint[points];
             for (int i = 0; i < rightPoints.Length; ++i)
             {
-                double d = dist / rightPoints.Length * (rightPoints.Length - i);
+                double t = duration / rightPoints.Length * (rightPoints.Length - i);
+                double d = t * (s1 + t * (s2 + t * s3));
                 rightPoints[i] = new GeoPoint(
                     AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
                     AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
