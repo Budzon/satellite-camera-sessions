@@ -144,7 +144,7 @@ namespace GeometryTest
             double[] lats = new double[steps];
             for (int i = 0; i < lats.Length; ++i)
             {
-                lats[i] = 81.8 + 0.3 * Math.Cos(Math.PI / 9 * lons[i]) + 0.08 * Math.Sin(lons[i] / 2);
+                lats[i] = 81.8 + 0.3 * Math.Cos(Math.PI / 9 * lons[i]) + 0.08 * Math.Sin(lons[i]);
             }
             //+ 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
             List<string> wkts;

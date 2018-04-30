@@ -836,37 +836,19 @@ namespace SatelliteTrajectory
         }
 
         public static void GetCustomCoridorParams(DBTables.DataFetcher fetcher,
-            DateTime startTime, List<GeoPoint> curve,
-            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist, out double roll, out double pitch)
+            DateTime startTime, Curve curve,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double roll, out double pitch)
         {
             Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1));
-            dist = 0;
-            double[] dists = new double[curve.Count];
-            dists[0] = 0;
-            for (int i = 0; i < curve.Count - 1; ++i)
-            {
-                dists[i + 1] = GeoPoint.DistanceOverSurface(curve[i], curve[i + 1]) * Astronomy.Constants.EarthRadius * 1e3;
-                dist += dists[i + 1];
-            }
-
             Routines.GetRollPitch(traj[0], curve[0], out roll, out pitch);
 
             // Find maximum curvature
             int ind_curv = 0;
-            double curv = 0;
             for (int i = 1; i < curve.Count - 1; ++i)
             {
-                double dlon = (curve[i + 1].Longitude - curve[i - 1].Longitude) / 2;
-                double df2 = (curve[i - 1].Latitude - 2 * curve[i].Latitude + curve[i + 1].Latitude)
-                    / (dlon * dlon);
-                double df1 = (curve[i + 1].Latitude - curve[i - 1].Latitude) / (2 * dlon);
-                double curcurv = df2 / Math.Pow(1e-9 + df1 * df1, 1.5);
-                //double curcurv = (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude) * 2
-                //    / Math.Pow((curve[i + 1].Longitude - curve[i - 1].Longitude) / 2, 2);
-                if (Math.Abs(curcurv) > Math.Abs(curv))
+                if (Math.Abs(curve.Curvatures[i]) > Math.Abs(curve.Curvatures[ind_curv]))
                 {
                     ind_curv = i;
-                    curv = curcurv;
                 }
             }
             if (ind_curv == 0 || ind_curv == curve.Count - 1)
@@ -918,8 +900,8 @@ namespace SatelliteTrajectory
             Vector preB = Gauss.Solve(A_for_preB, Bm);
 
             // Find lons based on dist
-            double d1 = dist * (double)ind_curv / (curve.Count - 1);
-            double d2 = dist;
+            double d1 = curve.Meters * (double)ind_curv / (curve.Count - 1);
+            double d2 = curve.Meters;
             Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
             //Vector B = Gauss.Solve(A, Bm);
             //B1 = B[0];
@@ -952,7 +934,7 @@ namespace SatelliteTrajectory
             //double F_2prime = (curve[2].Latitude - 2 * curve[1].Latitude + curve[0].Latitude) * 2 / (dlon1 + dlon2);
             //B1 = F_prime * L1;
             //B2 = F_prime * L2 + F_2prime * L1 * L1 / 2;
-            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+            getDistanceCoef(traj, curve.Meters, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
         private static void getDistanceCoef(Trajectory traj, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
@@ -1130,4 +1112,176 @@ namespace SatelliteTrajectory
         public Polygon Polygon { get; set; }
         public bool Lit { get; set; }
     }
+
+    public class Curve
+    {
+        public GeoPoint[] Vertices { get; private set; }
+        public double[] Distances { get; private set; }
+        public double Meters { get; private set; }
+        public int Count { get { return Vertices.Length;} }
+        public double[] Derivatives { get; private set; }
+        public double[] SndDerivatives { get; private set; }
+        public double[] Curvatures { get; private set; }
+        public GeoPoint this[int index] { get{ return Vertices[index]; } }
+
+        public Curve(IEnumerable<GeoPoint> vertices)
+        {
+            Vertices = vertices.ToArray();
+            Distances = new double[Count];
+
+            Distances[0] = 0;
+            for (int i = 0; i < Count - 1; ++i)
+                Distances[i + 1] = GeoPoint.DistanceOverSurface(Vertices[i], Vertices[i + 1]) * Astronomy.Constants.EarthRadius * 1e3;
+
+            Meters = Distances.Sum();
+
+            Derivatives = new double[Count];
+            SndDerivatives = new double[Count];
+            Derivatives[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
+            for (int i = 1; i < Count - 1; ++i)
+            {
+                double dlon = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / 2;
+                SndDerivatives[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
+                    / (dlon * dlon);
+                Derivatives[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
+            }
+            Derivatives[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
+            SndDerivatives[0] = SndDerivatives[1];
+            SndDerivatives[Count - 1] = SndDerivatives[Count - 2];
+
+            Curvatures = new double[Count];
+            for (int i = 0; i < Count; ++i)
+                Curvatures[i] = SndDerivatives[i] / Math.Pow(1 + Derivatives[i] * Derivatives[i], 1.5);
+        }
+
+        public List<Curve> BreakIntoShorterParts(double maxDist)
+        {
+            List<Curve> parts = new List<Curve>();
+            double curDist = 0;
+            int begInd = 0, endInd = 0;
+            
+            while (endInd < Count - 1)
+            {
+                curDist += Distances[endInd];
+                if (curDist < maxDist)
+                {
+                    endInd++;
+                    continue;
+                }
+                else
+                {
+                    //parts.Add(new Curve(SubArray(this.Vertices, begInd, endInd - begInd + 1)));
+                    if (Count - endInd < 3)
+                        endInd = Count - 1;
+                    parts.Add(new Curve(Vertices.Where((gp, ind) => (ind >= begInd) && (ind <= endInd))));
+                    begInd = endInd;
+                    curDist = 0;
+                }
+            }
+            if (begInd != endInd)
+            {
+                parts.Add(new Curve(Vertices.Where((gp, ind) => (ind >= begInd) && (ind <= endInd))));
+            }
+
+            if (parts.Any(curve => curve.Count < 3))
+                throw new ArgumentException("Add more intermediate points to the curve.");
+            return parts;
+        }
+
+        public List<Curve> BreakByCurvature()
+        {
+            List<Curve> curves = new List<Curve>();
+            List<GeoPoint> curCurve = new List<GeoPoint>();
+            //List<GeoPoint> straight = new List<GeoPoint>() { Vertices[0] };
+
+            int lastSign = 1, curSign = 1;
+            for (int i = 1; i < Count - 1; ++i)
+            {
+                if (i == 1)
+                {
+                    lastSign = Math.Sign(Curvatures[1]);
+                    curCurve.Add(Vertices[0]);
+                    curCurve.Add(Vertices[1]);
+                    continue;
+                }
+                curSign = Math.Sign(Curvatures[i]);
+                if (curSign * lastSign == 1)
+                {
+                    curCurve.Add(Vertices[i]);
+                }
+                else
+                {
+                    lastSign *= -1;
+                    curves.Add(new Curve(curCurve));
+                    curCurve = new List<GeoPoint>() { Vertices[i - 1], Vertices[i] };
+                }
+            }
+            curCurve.Add(Vertices[Count - 1]);
+            curves.Add(new Curve(curCurve));
+
+            //double threshold = (0.75 * curvatures.Average() + 0.25 * curvatures.Min());
+
+            //for (int i = 1; i < vertices.Count - 1; ++i)
+            //{
+            //    if (Math.Abs(curvatures[i - 1]) < threshold)
+            //    {
+            //        if (curCurve.Count > 0)
+            //        {
+            //            if (curCurve.Count < 3)
+            //            {
+            //                straight.AddRange(curCurve);
+            //            }
+            //            else
+            //            {
+            //                curves.Add(curCurve);
+            //            }
+            //            curCurve = new List<GeoPoint>();
+            //            straight.Add(vertices[i - 1]);
+            //        }
+            //        straight.Add(vertices[i]);
+            //    }
+            //    else
+            //    {
+            //        if (straight.Count > 0)
+            //        {
+            //            if (straight.Count < 3)
+            //            {
+            //                curCurve.AddRange(straight);
+            //            }
+            //            else
+            //            {
+            //                curves.Add(straight);
+            //            }
+            //            straight = new List<GeoPoint>();
+            //            curCurve.Add(vertices[i - 1]);
+            //        }
+
+            //        curCurve.Add(vertices[i]);
+            //    }
+            //}
+            //curCurve.AddRange(straight);
+            //curCurve.Add(vertices[vertices.Count - 1]);
+            //curves.Add(curCurve);
+
+            return curves;
+        }
+
+        public List<Curve> BreakByCurvatureAndDistance(double maxDist)
+        {
+            var parts = BreakByCurvature();
+            List<Curve> res = new List<Curve>();
+            foreach (var part in parts)
+                res.AddRange(part.BreakIntoShorterParts(maxDist));
+            return res;
+        }
+
+        //private static T[] SubArray<T>(this T[] data, int index, int length)
+        //{
+        //    T[] result = new T[length];
+        //    Array.Copy(data, index, result, 0, length);
+        //    return result;
+        //}
+    }
+
+
 }

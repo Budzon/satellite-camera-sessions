@@ -786,22 +786,23 @@ namespace SatelliteSessions
             DateTime now = dateTime;
             string wkt;
 
-            var curves = BreakCurveByCurvature(vertices);
+            var curves = new Curve(vertices).BreakByCurvatureAndDistance(2e5); //BreakCurveByCurvature(vertices);
             if (!custom)
             {
-                for (int i = 0; i < curves.Count; ++i)
-                {
-                    curr = curves[i][0];
-                    next = curves[i][curves[i].Count - 1];
-                    tp = fetcher.GetPositionSat(now).Value;
+                return;
+                //for (int i = 0; i < curves.Count; ++i)
+                //{
+                //    curr = curves[i][0];
+                //    next = curves[i][curves[i].Count - 1];
+                //    tp = fetcher.GetPositionSat(now).Value;
 
-                    //Routines.GetRollPitch(tp, curr, out roll, out pitch);
-                    //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
-                    getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
-                    wkts.Add(wkt);
-                    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
-                    now = now.AddSeconds(duration); // + 12
-                }
+                //    //Routines.GetRollPitch(tp, curr, out roll, out pitch);
+                //    //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                //    getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                //    wkts.Add(wkt);
+                //    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
+                //    now = now.AddSeconds(duration); // + 12
+                //}
             }
             else
             {
@@ -850,7 +851,8 @@ namespace SatelliteSessions
                 for (int i = 0; i < curves.Count; ++i)
                 {
                     tp = fetcher.GetPositionSat(now).Value;
-                    getCustomCoridor(now, curves[i], managerDB, out wkt, out duration, out dist);
+                    getCustomCoridor(now, curves[i], managerDB, out wkt, out duration);
+                    Console.WriteLine(i + " " + curves[i].Meters);
                     wkts.Add(wkt);
                     satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
                     now = now.AddSeconds(duration);
@@ -874,7 +876,7 @@ namespace SatelliteSessions
                 curvatures[i - 1] = df2 / Math.Pow(1 + df1 * df1, 1.5);
             }
 
-            int maxsize = 45;
+            int maxsize = 500;
             int lastSign = 1, curSign = 1;
             for (int i = 1; i < vertices.Count - 1; ++i)
             {
@@ -1036,8 +1038,8 @@ namespace SatelliteSessions
         /// <param name="wktPoly"></param>
         /// <param name="duration"></param>
         /// <param name="dist"></param>
-        public static void getCustomCoridor(DateTime dateTime, List<GeoPoint> curve, DIOS.Common.SqlManager managerDB,
-            out string wktPoly, out double duration, out double dist)
+        public static void getCustomCoridor(DateTime dateTime, Curve curve, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration)
         {
             DataFetcher fetcher = new DataFetcher(managerDB);
             TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
@@ -1045,10 +1047,10 @@ namespace SatelliteSessions
             double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
             TrajectoryRoutines.GetCustomCoridorParams(
                 fetcher, dateTime, curve,
-                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out roll, out pitch);
 
             LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
-            Polygon pol = GetSecondOrderCoridor(lpBegin, dist, b1, b2, l1, l2);
+            Polygon pol = GetSecondOrderCoridor(lpBegin, curve.Meters, b1, b2, l1, l2);
             wktPoly = pol.ToWtk();
         }
 
