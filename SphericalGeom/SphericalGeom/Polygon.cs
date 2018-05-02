@@ -202,6 +202,7 @@ namespace SphericalGeom
             for (int i = 0; i < this.vertices.Count; ++i)
                 apexes.Add(apex);
         }
+        public Polygon(Polygon toCopy) : this(toCopy.Vertices, toCopy.Apexes) { }
         public Polygon(IEnumerable<Vector3D> vertices) : this(vertices, new Vector3D(0, 0, 0)) { }
         public Polygon(GeoRect rect) : this(rect.Points.Select(gp => GeoPoint.ToCartesian(gp, 1.0))) { }
         public Polygon(IEnumerable<GeoPoint> vertices) : this(vertices.Select(v => GeoPoint.ToCartesian(v, 1))) { }
@@ -694,14 +695,16 @@ namespace SphericalGeom
             }
             return resPoly;
         }
-        private static void PrepareForClipping(Polygon p, Polygon q, out List<Vector3D>[] vert, out List<pointType>[] type, out List<Vector3D>[] apex, out bool pInQ, out bool qInP)
+        private static void PrepareForClipping(Polygon inpP, Polygon inpQ, out List<Vector3D>[] vert, out List<pointType>[] type, out List<Vector3D>[] apex, out bool pInQ, out bool qInP)
         {
+            Polygon p = new Polygon(inpP);
+            Polygon q = new Polygon(inpQ);
+
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
 
             ReferenceFrame rotate = new ReferenceFrame();
-            rotate.RotateBy(q.Middle, rotationAngleIfOverlap);
-            int rotationCount = 0;
+            rotate.RotateBy(q.Middle, rotationAngleIfOverlap);            
             bool allGood = false;
             while (!allGood)
             {
@@ -717,8 +720,7 @@ namespace SphericalGeom
                     p.knowArcs = false;
                     q.knowArcs = false;
 
-                    q.ToThisFrame(rotate);
-                    rotationCount++;
+                    q.ToThisFrame(rotate);                    
 
                     pArcs = p.Arcs;
                     qArcs = q.Arcs;
@@ -758,14 +760,6 @@ namespace SphericalGeom
                     type[1][i] = curType;
                     curType = Not(curType);
                 }
-
-            if (rotationCount > 0)
-            {
-                rotate = new ReferenceFrame();
-                rotate.RotateBy(q.Middle, rotationCount * rotationAngleIfOverlap);
-                q.FromThisFrame(rotate);
-                q.knowArcs = false;
-            }
         }
 
         public static string getMultipolFromPolygons(List<Polygon> polygons)
