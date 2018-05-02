@@ -144,7 +144,7 @@ namespace SatelliteSessions
             List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
             foreach (var traj in possibleTrajParts)
             {
-                SatLane viewLane = new SatLane(traj, 0, 0, viewAngle);
+                SatLane viewLane = new SatLane(traj, 0, viewAngle);
                 List<CaptureConf> curConfs = viewLane.getCaptureConfs(request);
                 fictiveBigConfs.AddRange(curConfs);
             }
@@ -203,7 +203,8 @@ namespace SatelliteSessions
 
         private static void getCaptureConfArrayForTrajectory(
             IList<RequestParams> requests,
-            Trajectory trajectory, List<CaptureConf> captureConfs,
+            Trajectory trajectory,
+            List<CaptureConf> captureConfs,
             List<Tuple<DateTime, DateTime>> freeSessionPeriodsForDrop,
             List<Tuple<DateTime, DateTime>> capturePeriods)
         {
@@ -233,7 +234,7 @@ namespace SatelliteSessions
                 for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
 #endif
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // участки захвата для текущий линии захвата
-                SatLane viewLane = new SatLane(trajectory, rollAngle, 0, viewAngle, polygonStep: OptimalChain.Constants.stripPolygonStep);
+                SatLane viewLane = new SatLane(trajectory, rollAngle, viewAngle);
                 foreach (var request in requests)
                 {
                     if (Math.Abs(rollAngle) > Math.Abs(request.Max_SOEN_anlge))
@@ -393,17 +394,6 @@ namespace SatelliteSessions
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
-
-
-            //////////////////// 
-            /*
-            Console.WriteLine("полигон: {0}", requests[0].wktPolygon);
-            foreach (var conf in confsToCapture)
-            {
-                Console.WriteLine("conf: {0}", conf.wktPolygon);
-            }
-            */
-            ///////////////////
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
@@ -945,7 +935,12 @@ namespace SatelliteSessions
                 rollAngle, pitchAngle,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
 
-            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            kaPos.addRollPitchRot(rollAngle, pitchAngle);
+            //LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
+            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
+            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
+            // @todo доделать учёт kaPos.Top*ViewPoint
 
             Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
@@ -1019,8 +1014,8 @@ namespace SatelliteSessions
                 double t = duration / leftPoints.Length * (i + 1);
                 double d = t * (s1 + t * (s2 + t * s3));
                 leftPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.LeftGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.LeftGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Longitude) + l1 * d + l2 * d * d)
                 );
             }
             GeoPoint[] rightPoints = new GeoPoint[points];
@@ -1029,21 +1024,21 @@ namespace SatelliteSessions
                 double t = duration / rightPoints.Length * (rightPoints.Length - i);
                 double d = t * (s1 + t * (s2 + t * s3));
                 rightPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.RightGeoPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(start.RightGeoPoint.Longitude) + l1 * d + l2 * d * d)
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Latitude) + b1 * d + b2 * d * d),
+                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Longitude) + l1 * d + l2 * d * d)
                 );
             }
 
             List<GeoPoint> vertices = new List<GeoPoint>();
-            vertices.Add(start.LeftGeoPoint);
+            vertices.Add(leftFirstPoint);
             vertices.AddRange(leftPoints);
             vertices.AddRange(rightPoints);
-            vertices.Add(start.RightGeoPoint);
+            vertices.Add(rightFirstPoint);
 
             return new Polygon(vertices);
         }
 
-        /// <summary>
+ /// <summary>
         /// Рассчитать полигон съемки/видимости для заданной конфигурации СОЭН
         /// </summary>
         /// <param name="dateTime"> Момент времени DateTimec</param>
@@ -1068,40 +1063,40 @@ namespace SatelliteSessions
                     {
                         return wtk;
                     }
-                    Vector3D dirVector = LanePos.getDirectionVector((TrajectoryPoint)point, rollAngle, pitchAngle);
-                    Polygon viewPol = Routines.getViewPolygon((TrajectoryPoint)point, dirVector, OptimalChain.Constants.camera_angle);
-                    wtk = viewPol.ToWtk();
+                    SatelliteCoordinates kaPos = new SatelliteCoordinates((TrajectoryPoint)point, rollAngle, pitchAngle);                    
+                    wtk = kaPos.ViewPolygon.ToWtk();
                 }
                 else
                 {
                     DateTime timeTo = dateTime.AddMilliseconds(duration);
                     Trajectory trajectory = fetcher.GetTrajectorySat(dateTime, timeTo);
-                    SatLane viewLane = new SatLane(trajectory, rollAngle, pitchAngle, OptimalChain.Constants.camera_angle);
+                    Polygon pol = SatLane.getRollPitchLanePolygon(trajectory, rollAngle, pitchAngle);
+                    wtk = pol.ToWtk();
 
-                    if (viewLane.Sectors.Count > 0)
-                    {
-                        List<Vector3D> leftLanePoints = new List<Vector3D>();
-                        List<Vector3D> rightLanePoints = new List<Vector3D>();
+                    //if (viewLane.Sectors.Count > 0)
+                    //{
+                    //    List<Vector3D> leftLanePoints = new List<Vector3D>();
+                    //    List<Vector3D> rightLanePoints = new List<Vector3D>();
 
-                        for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
-                        {
-                            var sect = viewLane.Sectors[sectId];
-                            int i = 0;
-                            if (sectId > 0)
-                                i = 1;
-                            for (; i < sect.sectorPoints.Count; i++)
-                            {
-                                var pos = sect.sectorPoints[i];
-                                leftLanePoints.Add(pos.LeftCartPoint);
-                                rightLanePoints.Add(pos.RightCartPoint);
-                            }
-                        }
-                        for (int i = rightLanePoints.Count - 1; i >= 0; i--)
-                            leftLanePoints.Add(rightLanePoints[i]);
+                    //    for (int sectId = 0; sectId < viewLane.Sectors.Count; sectId++)
+                    //    {
+                    //        var sect = viewLane.Sectors[sectId];
+                    //        int i = 0;
+                    //        if (sectId > 0)
+                    //            i = 1;
+                    //        for (; i < sect.sectorPoints.Count; i++)
+                    //        {
+                    //            var pos = sect.sectorPoints[i];
+                    //            leftLanePoints.Add(pos.LeftCartPoint);
+                    //            rightLanePoints.Add(pos.RightCartPoint);
+                    //        }
+                    //    }
+                    //    for (int i = rightLanePoints.Count - 1; i >= 0; i--)
+                    //        leftLanePoints.Add(rightLanePoints[i]);
 
-                        Polygon pol = new Polygon(leftLanePoints);
-                        wtk = pol.ToWtk();
-                    }
+                    //    Polygon pol = new Polygon(leftLanePoints);
+                    //    wtk = pol.ToWtk();
+                    //}
                 }
             }
             else
@@ -1112,7 +1107,6 @@ namespace SatelliteSessions
 
             return wtk;
         }
-
         /// <summary>
         /// Проверка ПНб (программа наблюдений) на непротиворечивость
         /// </summary>
@@ -1756,8 +1750,9 @@ namespace SatelliteSessions
             {
                 double pitch = pitchInterpolation.GetValue(t);
                 double height = pointFrom.Position.ToVector().Length - Astronomy.Constants.EarthRadius;
+                double velo = pointFrom.Velocity.Length / pointFrom.Position.ToVector().Length;
                 GeoPoint kaGeoPoint = GeoPoint.FromCartesian(pointFrom.Position.ToVector());
-                var rollCorrection = getRollCorrection(height, pointFrom.Velocity.Length, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
+                var rollCorrection = getRollCorrection(height, velo, AstronomyMath.ToRad(kaGeoPoint.Latitude), pitch);
                 timeAngleArray[t] = Tuple.Create(pitch, rollCorrection);
             }
 
@@ -1780,19 +1775,25 @@ namespace SatelliteSessions
         }
 
 
-        public static double getRollCorrection(double height, double velo, double bKa, double pitchAngle)
+        /// <summary>
+        /// расчёт поправки по крену 
+        /// </summary>
+        /// <param name="height">высота ка в км</param>
+        /// <param name="velo">скорость подспутниковой точки в радианах</param>
+        /// <param name="bKa">широта подспутниковой точки в радианах </param>
+        /// <param name="pitchAngle">угол тангажа</param>
+        /// <returns>поправка по крену</returns>
+        public static double getRollCorrection(double height, double velo, double bKa, double pitch)
         {
             double wEarth = OptimalChain.Constants.earthRotSpeed;
             double I = OptimalChain.Constants.orbital_inclination;
             double R = Astronomy.Constants.EarthRadius;
-            //double bm = b + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - (R + h) * (R + h) / R / R * Math.Sin(pitch) * Math.Sin(pitch))) - pitch);
-            //double d = Math.Cos(bm) * w / v * pitch * Math.Sin(I);
-            //double sinRoll = R * Math.Sin(d) / Math.Sqrt(R * R + (R + h) * (R + h) - 2 * R * (R + h) * Math.Cos(d));
-            //return Math.Asin(sinRoll); 
-            double bm = bKa + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitchAngle), 2))) - pitchAngle);
-            double d = Math.Cos(bm) * wEarth / velo * pitchAngle * Math.Sin(I);
+            double bm = bKa + Math.Sin(I) * (Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitch), 2))) - pitch);
+            //Разница между двумя позициями спутника
+            double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitch), 2))) - Math.Abs(pitch);
+            double d = Math.Cos(bm) * wEarth / velo * b2 * Math.Sin(I);
             double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + height, 2) - 2 * R * (R + height) * Math.Cos(d));
-            return Math.Asin(sinRoll);
+            return Math.Asin(sinRoll); 
         }
 
 

@@ -1,4 +1,4 @@
-﻿#define SPHERE
+﻿#define NOT_SPHERE
 
 using System;
 using System.Collections.Generic;
@@ -44,7 +44,7 @@ namespace GUI
 #if SPHERE
             Terra = new Ellipse3D(1, 1, 1, 500);
 #else
-            Terra = new EllipseRegion3D(1, 1, 1, 20, 250);
+            Terra = new EllipseRegion3D(1, 1, 1, 20, 50);
 #endif
             PlotSphere(null, null);
         }

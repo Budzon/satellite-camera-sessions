@@ -5,7 +5,7 @@ using System.Text;
 using System.Windows.Media.Media3D;
 using System.IO;
 using System.Globalization;
-
+using MNCbicSplne = MathNet.Numerics.Interpolation.CubicSpline; // пересечения с Astronomy CubicSpline
 namespace Astronomy
 {
     /// <summary>
@@ -16,11 +16,33 @@ namespace Astronomy
         private TrajectoryPoint[] points;
         private TrajectoryCircuit[] cachedCircuits;
 
+        private Tuple<MNCbicSplne, MNCbicSplne, MNCbicSplne> PosAkimaInterpolation;
+        private Tuple<MNCbicSplne, MNCbicSplne, MNCbicSplne> VeloAkimaInterpolation;
+        
         private Trajectory(TrajectoryPoint[] points)
         {
             if (points == null) throw new ArgumentNullException("points");
+            if (points.Count() < 5) throw new ArgumentNullException("Number of points is less than 5");
             this.points = points;
+            var timeArray = points.Select(p => (double)p.Time.Ticks).ToArray();
+
+            PosAkimaInterpolation = Tuple.Create(
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Position.X).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Position.Y).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Position.Z).ToArray())
+                );
+
+            VeloAkimaInterpolation = Tuple.Create(
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Velocity.X).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Y).ToArray()),
+                MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Velocity.Z).ToArray())
+                );
         }
+        
+        /// <summary>
+        /// минимальное количетсво точек, при котором возможно обеспечить интерполяцию спрайлами Акима
+        /// </summary>
+        public const int minNumPoints = 5;
 
         public TrajectorySource Source { get; set; }
 
@@ -29,6 +51,20 @@ namespace Astronomy
         public TrajectoryPoint this[int index] { get { return points[index]; } }
 
         public int Count { get { return points.Length; } }
+
+        /// <summary>
+        /// продолжительность траектории в секундах
+        /// </summary>
+        public double Duration 
+        { 
+            get 
+            {
+                if (Count == 0)
+                    return 0;
+                else
+                    return (points.Last().Time - points[0].Time).TotalSeconds;
+            } 
+        }
 
         public void Save(string path)
         {
@@ -156,6 +192,11 @@ namespace Astronomy
             return ~i;
         }
 
+        public TrajectoryPoint GetPoint(DateTime t)
+        {
+            return new TrajectoryPoint(t, GetPosition(t), GetVelocity(t));
+        }
+
         /// <summary>
         /// Point with time "t".
         /// </summary>
@@ -164,39 +205,10 @@ namespace Astronomy
         /// <returns></returns>
         public Point3D GetPosition(DateTime t)
         {
-            int i = GetNearestGE(t);
-            if (i == 0) return points[0].Position;
-            else if (i == points.Length) return points[i - 1].Position;
-            return GetPosition(t, i);
-        }
-
-
-        public TrajectoryPoint GetPoint(DateTime t)
-        {
-            int i = GetNearestGE(t);
-            return new TrajectoryPoint(t, GetPosition(t, i), GetVelocity(t, i));
-        }
-
-        /// <summary>
-        /// Point with time "t" is between indexNext-1 and indexNext.
-        /// </summary>
-        /// <param name="t"></param>
-        /// <param name="indexNext"></param>
-        /// <returns></returns>
-        public Point3D GetPosition(DateTime t, int indexNext)
-        {
-            if (indexNext == 0)
-            {
-                if (points[0].Time == t) return points[0].Position;
-                throw new ArgumentException("Value at the indexNext should be GE than given time");
-            }
-            DateTime t0 = points[indexNext - 1].Time;
-            DateTime t1 = points[indexNext].Time;
-            if (t == t0) return points[indexNext - 1].Position;
-            if (t == t1) return points[indexNext].Position;
-            double alpha = (double)(t.Ticks - t0.Ticks) / (t1.Ticks - t0.Ticks);
-            var p = alpha * (points[indexNext].Position - points[indexNext - 1].Position) + points[indexNext - 1].Position;
-            return p;
+            double x = PosAkimaInterpolation.Item1.Interpolate(t.Ticks);
+            double y = PosAkimaInterpolation.Item2.Interpolate(t.Ticks);
+            double z = PosAkimaInterpolation.Item3.Interpolate(t.Ticks);
+            return new Point3D(x, y, z);
         }
 
         /// <summary>
@@ -207,30 +219,10 @@ namespace Astronomy
         /// <returns></returns>
         public Vector3D GetVelocity(DateTime t)
         {
-            int i = GetNearestGE(t);
-            return GetVelocity(t, i);
-        }
-
-        /// <summary>
-        /// Point velocity with time "t" is between indexNext-1 and indexNext.
-        /// </summary>
-        /// <param name="t"></param>
-        /// <param name="indexNext"></param>
-        /// <returns></returns>
-        public Vector3D GetVelocity(DateTime t, int indexNext)
-        {
-            if (indexNext == 0)
-            {
-                if (points[0].Time == t) return points[0].Velocity;
-                throw new ArgumentException("Value at the indexNext should be GE than given time");
-            }
-            DateTime t0 = points[indexNext - 1].Time;
-            DateTime t1 = points[indexNext].Time;
-            if (t == t0) return points[indexNext - 1].Velocity;
-            if (t == t1) return points[indexNext].Velocity;
-            double alpha = (double)(t.Ticks - t0.Ticks) / (t1.Ticks - t0.Ticks);
-            var p = alpha * (points[indexNext].Velocity - points[indexNext - 1].Velocity) + points[indexNext - 1].Velocity;
-            return p;
+            double x = VeloAkimaInterpolation.Item1.Interpolate(t.Ticks);
+            double y = VeloAkimaInterpolation.Item2.Interpolate(t.Ticks);
+            double z = VeloAkimaInterpolation.Item3.Interpolate(t.Ticks);
+            return new Vector3D(x, y, z);
         }
 
         public TrajectoryCircuit GetCircuit(int index)
@@ -292,6 +284,34 @@ namespace Astronomy
                 }
             }
             cachedCircuits = circuits.ToArray();
+        }
+
+        /// <summary>
+        /// Проверяет максимальный временной шаг траектории, в случае необходимости интерполирует новую траеткорию с заданным шагом
+        /// </summary>
+        /// <param name="trajectory">базовая траектория</param>
+        /// <param name="maxTimeStep">максимально допустимый шаг траектории по времени</param>
+        /// <returns>траектория с шагом, меньшим чем maxTimeStep </returns>
+        public static Trajectory changeMaximumTimeStep(Trajectory trajectory, double maxTimeStep)
+        { 
+            // максимальный шаг по времени между точками траектории
+            double maxStep = trajectory.Points.Skip(1).Zip(trajectory.Points, (curr, prev) => (curr.Time - prev.Time).TotalSeconds).Max();
+ 
+            if (maxStep <= maxTimeStep)
+                return trajectory;
+             
+            int size = (int)Math.Ceiling(trajectory.Duration / maxTimeStep) + 1;
+            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+
+            for (int i = 0; i < size-1; i++ )
+            {
+                DateTime t = trajectory.points[0].Time.AddSeconds(i*maxTimeStep);                
+                newTrajsPoints[i] = trajectory.GetPoint(t);
+            }
+
+            newTrajsPoints[size - 1] = trajectory.GetPoint(trajectory.points.Last().Time);
+
+            return Trajectory.Create(newTrajsPoints.ToArray());
         }
 
         #region IEnumerable<TrajectoryPoint> Members
@@ -391,4 +411,3 @@ namespace Astronomy
         #endregion
     }
 }
-

@@ -33,12 +33,14 @@ namespace OptimalChain
         public const double camera_angle = 0.016616; // ~0.952 градуса - угол обзора камеры
         public const double max_roll_angle = 0.78540; // 45 градусов - максимально возможный угол крена
         public const double max_pitch_angle = 0.52360; // 30 градусов - максимально возможный угол тангажа
-        public const double earthRotSpeed = Math.PI / (12 * 60 * 60); 
+        public const double earthRotSpeed = 7.2921158553e-5; // 1/c
         public const double orbital_inclination = 1.7104; // угол наклона орбиты в градусах
         public const double orbit_height = 720; // км (или 650?)
         public const double routeDeleteTime = 15; // время на удаление маршрута
         public const double stereoPitchAngle = 0.52360;
-        public const int stripPolygonStep = 1; // шаг по колву точек. Значение 1, если используем все точки, без оптимизации
+        public const int stripStepPassing = 1; // шаг по колву точек. Значение 1, если используем все точки, без оптимизации
+        public const int stripPolygonStep = 10000; // расстояние между точками в метрах
+        public const int minTrajectoryStep = 10; // минимальный шаг траектории в секундах. Если в БД лежит траектория с худшим шагом, то интерполируем точки.
 
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
 
