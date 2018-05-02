@@ -786,22 +786,5 @@ namespace SphericalGeom
         }
 
         #endregion
-
-        public static string getMultipolFromWkts(List<string> wkts)
-        {
-            string res = "";
-
-            if (wkts.Count == 0)
-                return res;
-
-            foreach (var wkt in wkts)
-            {
-                res = res + wkt + "\n";
-                if (wkt != wkts.Last())
-                    res += ",";
-            }
-            res = "GEOMETRYCOLLECTION (" + res + ")";
-            return res;
-        }
     }
 }

@@ -942,7 +942,7 @@ namespace SatelliteSessions
             GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
             // @todo доделать учёт kaPos.Top*ViewPoint
 
-            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
+            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -958,9 +958,11 @@ namespace SatelliteSessions
                 end,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist);
 
-            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
-
-            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            kaPos.addRollPitchRot(rollAngle, pitchAngle);
+            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
+            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
+            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -975,8 +977,11 @@ namespace SatelliteSessions
                 fetcher, dateTime, start, end,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
 
-            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
-            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            kaPos.addRollPitchRot(roll, pitch);
+            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
+            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
+            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -1000,13 +1005,16 @@ namespace SatelliteSessions
                 fetcher, dateTime, curve,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out roll, out pitch);
 
-            LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, roll, pitch);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            kaPos.addRollPitchRot(roll, pitch);
+            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
+            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
+            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
             Console.WriteLine(roll + " " + pitch);
-            Polygon pol = GetSecondOrderCoridor(lpBegin, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
-        private static Polygon GetSecondOrderCoridor(LanePos start, double duration, double b1, double b2, double l1, double l2, double s1, double s2, double s3, int points = 10)
+        private static Polygon GetSecondOrderCoridor(GeoPoint leftFirstPoint, GeoPoint rightFirstPoint, double duration, double b1, double b2, double l1, double l2, double s1, double s2, double s3, int points = 10)
         {
             GeoPoint[] leftPoints = new GeoPoint[points];
             for (int i = 0; i < leftPoints.Length; ++i)
