@@ -97,7 +97,9 @@ namespace GeometryTest
                 for (int j = 0; j < pitches.Length; ++j)
                 {
                     pitch = AstronomyMath.ToRad(pitches[j]);
-                    GeoPoint q = Routines.IntersectOpticalAxisAndEarth(tp, roll, pitch);
+                    //GeoPoint q = Routines.IntersectOpticalAxisAndEarth(tp, roll, pitch);
+                    SatelliteCoordinates satCoord = new SatelliteCoordinates(tp, roll, pitch);
+                    GeoPoint q = GeoPoint.FromCartesian(satCoord.MidViewPoint);
                     Routines.GetRollPitch(tp, q, out roll1, out pitch1);
                     equal = Comparison.IsZero(Math.Pow(roll - roll1, 3)) && Comparison.IsZero(Math.Pow(pitch - pitch1, 3));
                     ok = ok && equal;

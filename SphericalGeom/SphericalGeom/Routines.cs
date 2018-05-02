@@ -27,27 +27,29 @@ namespace SphericalGeom
 
             ReferenceFrame kaFrame = new ReferenceFrame(eDirVect, pitchAxis, rollAxis);
             Vector3D kaLookAt = kaFrame.ToThisFrame(lookAt);
-            roll = Math.Asin(kaLookAt.Y);
-            pitch = Math.Atan2(kaLookAt.Z, kaLookAt.X);
-
-            RotateTransform3D transform = new RotateTransform3D(
-                new AxisAngleRotation3D(
-                    rollAxis,
-                    AstronomyMath.ToDegrees(roll)
-                )
-            );
-            Vector3D newPitchAxis = transform.Transform(pitchAxis);
-
-            for (int i = 0; i < 10; ++i)
-            {
-                Vector3D newLookAt = LookAt(p, roll, pitch);
-                //Vector3D kaNewLookAt = kaFrame.ToThisFrame(newLookAt);
-                //Vector3D diff = lookAt - kaNewLookAt;
-                //pitch -= 0.5 * diff.LengthSquared / (diff.X * Math.Sin(pitch) - diff.Z * Math.Cos(pitch) + 1e-1);
-                pitch += Vector3D.DotProduct(Vector3D.CrossProduct(newLookAt, lookAt), newPitchAxis) / Math.Cos(roll);
-            }
-
+            //roll = Math.Asin(kaLookAt.Y);
+            //pitch = Math.Atan2(kaLookAt.Z, kaLookAt.X);
+            pitch = Math.Asin(kaLookAt.Z) + 0.0003814;
+            roll = Math.Atan2(kaLookAt.Y, kaLookAt.X);
             return;
+            //RotateTransform3D transform = new RotateTransform3D(
+            //    new AxisAngleRotation3D(
+            //        rollAxis,
+            //        AstronomyMath.ToDegrees(roll)
+            //    )
+            //);
+            //Vector3D newPitchAxis = transform.Transform(pitchAxis);
+
+            //for (int i = 0; i < 10; ++i)
+            //{
+            //    Vector3D newLookAt = LookAt(p, roll, pitch);
+            //    //Vector3D kaNewLookAt = kaFrame.ToThisFrame(newLookAt);
+            //    //Vector3D diff = lookAt - kaNewLookAt;
+            //    //pitch -= 0.5 * diff.LengthSquared / (diff.X * Math.Sin(pitch) - diff.Z * Math.Cos(pitch) + 1e-1);
+            //    pitch += Vector3D.DotProduct(Vector3D.CrossProduct(newLookAt, lookAt), newPitchAxis) / Math.Cos(roll);
+            //}
+
+            //return;
 
             //double leftSign = Math.Sign(Vector3D.DotProduct(lookAt, pitchAxis));
             //double frontSign = Math.Sign(Vector3D.DotProduct(lookAt, rollAxis));
@@ -68,38 +70,6 @@ namespace SphericalGeom
             //pitch += pitch > 0 ? -delta_fix : delta_fix - extra_fix_pos;
             //roll = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(pitchAxis, lookAt - Project(lookAt, rollAxis)));
             //pitch = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(rollAxis, lookAt - Project(lookAt, pitchAxis)));
-        }
-
-        public static Vector3D Project(Vector3D v, Vector3D axis)
-        {
-            return Vector3D.DotProduct(v, axis) / axis.LengthSquared * axis;
-        }
-
-        public static Vector3D LookAt(TrajectoryPoint p, double roll, double pitch)
-        {
-            Vector3D eDirVect = -p.Position.ToVector();
-            eDirVect.Normalize();
-            Vector3D vel = p.Velocity;
-            vel.Normalize();
-            RotateTransform3D rollTransform = new RotateTransform3D(
-                new AxisAngleRotation3D(
-                    vel,
-                    AstronomyMath.ToDegrees(-roll)
-                )
-            );
-            RotateTransform3D pitchTransform = new RotateTransform3D(
-                new AxisAngleRotation3D(
-                    Vector3D.CrossProduct(vel, eDirVect),
-                    AstronomyMath.ToDegrees(-pitch)
-                )
-            );
-            return pitchTransform.Transform(rollTransform.Transform(eDirVect));
-        }
-
-        public static GeoPoint IntersectOpticalAxisAndEarth(TrajectoryPoint p, double roll, double pitch)
-        {
-            Vector3D lookAt = LookAt(p, roll, pitch);
-            return Common.GeoPoint.FromCartesian(SphericalGeom.Routines.SphereVectIntersect(lookAt, p.Position, Astronomy.Constants.EarthRadius));
         }
 
         public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)

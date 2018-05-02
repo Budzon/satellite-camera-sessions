@@ -764,8 +764,8 @@ namespace SatelliteTrajectory
         /// <summary>
         /// Подсчёт коэффициентов полиномов для коридоров.
         /// </summary>
-        /// <param name="fetcher"></param>
-        /// <param name="start"></param>
+        /// <param name="traj">Часть траектории, заведомо покрывающая время съемки</param>
+        /// <param name="startTime">Момент начала съемкиН</param>
         /// <param name="az">Азимут [рад]</param>
         /// <param name="dist">Длина [мъ</param>
         /// <param name="roll">Крен [рад]</param>
@@ -778,49 +778,48 @@ namespace SatelliteTrajectory
         /// <param name="S2"></param>
         /// <param name="S3"></param>
         /// <param name="duration">Длительность [с]</param>
-        public static void GetCoridorParams(DBTables.DataFetcher fetcher, DateTime start, double az, double dist, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration)
+        public static void GetCoridorParams(Trajectory traj, DateTime startTime, double az, double dist, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration)
         {
             dist = Math.Min(dist, 97e3);
-            Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
-            GeoPoint startPoint = Routines.IntersectOpticalAxisAndEarth(traj[0], roll, pitch);
+            //Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
+            SatelliteCoordinates satCoord = new SatelliteCoordinates(traj.GetPoint(startTime), roll, pitch);
+            GeoPoint startPoint = GeoPoint.FromCartesian(satCoord.MidViewPoint);
 
             getGeodesicLine(startPoint, az, dist, out B1, out B2, out L1, out L2);
-            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+            getDistanceCoef(traj, startTime, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
-        public static void GetCoridorParams(DBTables.DataFetcher fetcher,
-            DateTime start, double start_roll, double start_pitch,
+        public static void GetCoridorParams(Trajectory traj, DateTime startTime, double start_roll, double start_pitch,
             GeoPoint end,
             out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist)
         {
-            Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
-            GeoPoint startPoint = Routines.IntersectOpticalAxisAndEarth(traj[0], start_roll, start_pitch);
+            // Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
+            SatelliteCoordinates satCoord = new SatelliteCoordinates(traj.GetPoint(startTime), start_roll, start_pitch);
+            GeoPoint startPoint = GeoPoint.FromCartesian(satCoord.MidViewPoint);
             dist = GeoPoint.DistanceOverSurface(startPoint, end) * Astronomy.Constants.EarthRadius * 1e3;
 
             getGeodesicLineEndPoints(startPoint, end, out B1, out B2, out L1, out L2);
-            getDistanceCoef(traj, dist, start_roll, start_pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+            getDistanceCoef(traj, startTime, dist, start_roll, start_pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
-        public static void GetCoridorParams(DBTables.DataFetcher fetcher,
-            DateTime startTime, GeoPoint startPoint,
+        public static void GetCoridorParams(Trajectory traj, DateTime startTime, GeoPoint startPoint,
             GeoPoint end,
             out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist, out double roll, out double pitch)
         {
-            Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1)); // должно хватить на коридор
+            //Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1)); // должно хватить на коридор
             dist = GeoPoint.DistanceOverSurface(startPoint, end) * Astronomy.Constants.EarthRadius * 1e3;
 
-            Routines.GetRollPitch(traj[0], startPoint, out roll, out pitch);
+            Routines.GetRollPitch(traj.GetPoint(startTime), startPoint, out roll, out pitch);
 
             getGeodesicLineEndPoints(startPoint, end, out B1, out B2, out L1, out L2);
-            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+            getDistanceCoef(traj, startTime, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
-        public static void GetCustomCoridorParams(DBTables.DataFetcher fetcher,
-            DateTime startTime, Curve curve,
+        public static void GetCustomCoridorParams(Trajectory traj, DateTime startTime, Curve curve,
             out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double roll, out double pitch)
         {
-            Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1));
-            Routines.GetRollPitch(traj[0], curve[0], out roll, out pitch);
+            //Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1));
+            Routines.GetRollPitch(traj.GetPoint(startTime), curve[0], out roll, out pitch);
 
             // Find maximum curvature
             int ind_curv = 0;
@@ -914,17 +913,18 @@ namespace SatelliteTrajectory
             //double F_2prime = (curve[2].Latitude - 2 * curve[1].Latitude + curve[0].Latitude) * 2 / (dlon1 + dlon2);
             //B1 = F_prime * L1;
             //B2 = F_prime * L2 + F_2prime * L1 * L1 / 2;
-            getDistanceCoef(traj, curve.Meters, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+            getDistanceCoef(traj, startTime, curve.Meters, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
-        private static void getDistanceCoef(Trajectory traj, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
+        private static void getDistanceCoef(Trajectory traj, DateTime startTime, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
         {
             double WD = OptimalChain.RouteParams.WD(roll, pitch);
             List<double> dists = new List<double> { 0 };
             double dt = 1e-1;
 
-            TrajectoryPoint curTP = traj[0];
-            GeoPoint curP = Routines.IntersectOpticalAxisAndEarth(curTP, roll, pitch);
+            TrajectoryPoint curTP = traj.GetPoint(startTime);
+            SatelliteCoordinates satCoord = new SatelliteCoordinates(curTP, roll, pitch);
+            GeoPoint curP = GeoPoint.FromCartesian(satCoord.MidViewPoint);
             double startLat = AstronomyMath.ToRad(curP.Latitude);
             double startLon = AstronomyMath.ToRad(curP.Longitude);
 
@@ -1103,6 +1103,7 @@ namespace SatelliteTrajectory
         private Vector3D topLeftViewPoint;
         private Vector3D botRightViewPoint;
         private Vector3D botLeftViewPoint;
+        private Vector3D midViewPoint;
         private Polygon viewPolygon;
         private bool knowViewPolygon;
 
@@ -1235,6 +1236,21 @@ namespace SatelliteTrajectory
             }
         }
 
+        /// <summary>
+        /// получить центр полигона видимости
+        /// </summary>
+        public Vector3D MidViewPoint
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return midViewPoint;
+            }
+        }
 
         public Polygon ViewPolygon
         {
@@ -1264,6 +1280,7 @@ namespace SatelliteTrajectory
             botRightViewPoint = Routines.SphereVectIntersect(botRight, trajPos.Position, Astronomy.Constants.EarthRadius);
             botLeftViewPoint = Routines.SphereVectIntersect(botLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
             viewPolygon = new Polygon(new List<Vector3D>() { topRightViewPoint, topLeftViewPoint, botLeftViewPoint, botRightViewPoint });
+            midViewPoint = Routines.SphereVectIntersect(kaY, trajPos.Position, Astronomy.Constants.EarthRadius);
             knowViewPolygon = true;
         }
 

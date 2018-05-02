@@ -509,8 +509,8 @@ namespace SatelliteSessions
                 throw new Exception("No trajectory data.");
             }
             Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-            Common.GeoPoint geoBegin = SphericalGeom.Routines.IntersectOpticalAxisAndEarth(
-                KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+            SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+            Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
 
             /* ---------- InitCoord -----------*/
             if (REGka == 0)
@@ -521,7 +521,7 @@ namespace SatelliteSessions
                 if (Parameters.shooting_type == 2) // коридорная
                 {
                     double l1, l2, b1, b2, s1, s2, s3, duration;
-                    SatelliteTrajectory.TrajectoryRoutines.GetCoridorParams(fetcher,
+                    SatelliteTrajectory.TrajectoryRoutines.GetCoridorParams(Sessions.getMaxTrajectory(DBmanager, Parameters.start),
                         Parameters.start, Parameters.coridorAzimuth, Parameters.coridorLength,
                         Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
                         out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);

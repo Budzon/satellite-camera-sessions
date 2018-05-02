@@ -763,10 +763,14 @@ namespace SatelliteSessions
             return res;
         }
 
+        public static Trajectory getMaxTrajectory(DIOS.Common.SqlManager managerDB, DateTime start)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            return fetcher.GetTrajectorySat(start, start.AddSeconds(1000)); // максимальная длительность маршрута
+        }
 
         public static void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, out List<GeoPoint> satPos, bool custom = false)
         {
-            DataFetcher fetcher = new DataFetcher(managerDB);
             wkts = new List<string>();
             satPos = new List<GeoPoint>();
 
@@ -776,14 +780,16 @@ namespace SatelliteSessions
             DateTime now = dateTime;
             string wkt;
 
-            var curves = new Curve(vertices).BreakByCurvatureAndDistance(2e5); //BreakCurveByCurvature(vertices);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+
+            var curves = new Curve(vertices).BreakByCurvatureAndDistance(2e5);
             if (!custom)
             {
                 for (int i = 0; i < curves.Count; ++i)
                 {
                     curr = curves[i][0];
                     next = curves[i][curves[i].Count - 1];
-                    tp = fetcher.GetPositionSat(now).Value;
+                    tp = traj.GetPoint(now);
 
                     //Routines.GetRollPitch(tp, curr, out roll, out pitch);
                     //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
@@ -797,115 +803,13 @@ namespace SatelliteSessions
             {
                 for (int i = 0; i < curves.Count; ++i)
                 {
-                    tp = fetcher.GetPositionSat(now).Value;
-                    getCustomCoridor(now, curves[i], managerDB, out wkt, out duration);
+                    tp = traj.GetPoint(now);
+                    getCustomCoridor(traj, now, curves[i], out wkt, out duration);
                     wkts.Add(wkt);
                     satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
                     now = now.AddSeconds(duration);
                 }
             }
-        }
-
-        private static List<List<GeoPoint>> BreakCurveByCurvature(List<GeoPoint> vertices)
-        {
-            List<List<GeoPoint>> curves = new List<List<GeoPoint>>();
-            List<GeoPoint> curCurve = new List<GeoPoint>();
-            List<GeoPoint> straight = new List<GeoPoint>(){vertices[0]};
-
-            double[] curvatures = new double[vertices.Count - 2];
-            for (int i = 1; i < vertices.Count - 1; ++i)
-            {
-                double dlon = (vertices[i + 1].Longitude - vertices[i - 1].Longitude) / 2;
-                double df2 = (vertices[i - 1].Latitude - 2 * vertices[i].Latitude + vertices[i + 1].Latitude)
-                    / (dlon * dlon);
-                double df1 = (vertices[i + 1].Latitude - vertices[i - 1].Latitude) / (2 * dlon);
-                curvatures[i - 1] = df2 / Math.Pow(1 + df1 * df1, 1.5);
-            }
-
-            int maxsize = 500;
-            int lastSign = 1, curSign = 1;
-            for (int i = 1; i < vertices.Count - 1; ++i)
-            {
-                if (i == 1)
-                {
-                    lastSign = Math.Sign(curvatures[0]);
-                    curCurve.Add(vertices[0]);
-                    curCurve.Add(vertices[1]);
-                    continue;
-                }
-                curSign = Math.Sign(curvatures[i - 1]);
-                if (curSign * lastSign == 1)
-                {
-                    curCurve.Add(vertices[i]);
-                }
-                else
-                {
-                    lastSign *= -1;
-
-                    if (curCurve.Count < maxsize)
-                        curves.Add(curCurve);
-                    else
-                    {
-                        curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
-                        curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
-                    }
-                    curCurve = new List<GeoPoint>() { vertices[i - 1], vertices[i] };
-                }
-            }
-            curCurve.Add(vertices[vertices.Count - 1]);
-            if (curCurve.Count < maxsize)
-                curves.Add(curCurve);
-            else
-            {
-                curves.Add(curCurve.GetRange(0, curCurve.Count / 2));
-                curves.Add(curCurve.GetRange(curCurve.Count / 2 - 1, curCurve.Count - curCurve.Count / 2 + 1));
-            }
-
-            //double threshold = (0.75 * curvatures.Average() + 0.25 * curvatures.Min());
-
-            //for (int i = 1; i < vertices.Count - 1; ++i)
-            //{
-            //    if (Math.Abs(curvatures[i - 1]) < threshold)
-            //    {
-            //        if (curCurve.Count > 0)
-            //        {
-            //            if (curCurve.Count < 3)
-            //            {
-            //                straight.AddRange(curCurve);
-            //            }
-            //            else
-            //            {
-            //                curves.Add(curCurve);
-            //            }
-            //            curCurve = new List<GeoPoint>();
-            //            straight.Add(vertices[i - 1]);
-            //        }
-            //        straight.Add(vertices[i]);
-            //    }
-            //    else
-            //    {
-            //        if (straight.Count > 0)
-            //        {
-            //            if (straight.Count < 3)
-            //            {
-            //                curCurve.AddRange(straight);
-            //            }
-            //            else
-            //            {
-            //                curves.Add(straight);
-            //            }
-            //            straight = new List<GeoPoint>();
-            //            curCurve.Add(vertices[i - 1]);
-            //        }
-
-            //        curCurve.Add(vertices[i]);
-            //    }
-            //}
-            //curCurve.AddRange(straight);
-            //curCurve.Add(vertices[vertices.Count - 1]);
-            //curves.Add(curCurve);
-
-            return curves;
         }
 
         /// <summary>
@@ -927,15 +831,16 @@ namespace SatelliteSessions
                 throw new ArgumentException("Coridor length cannot exceed 97km.");
 
             DataFetcher fetcher = new DataFetcher(managerDB);
-            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
-                fetcher, dateTime, az, dist,
+                traj, dateTime, az, dist,
                 rollAngle, pitchAngle,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj[0]);
             kaPos.addRollPitchRot(rollAngle, pitchAngle);
             //LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
             GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
@@ -950,15 +855,16 @@ namespace SatelliteSessions
             out string wktPoly, out double duration, out double dist)
         {
             DataFetcher fetcher = new DataFetcher(managerDB);
-            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
-                fetcher, dateTime, rollAngle, pitchAngle,
+                traj, dateTime, rollAngle, pitchAngle,
                 end,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj[0]);
             kaPos.addRollPitchRot(rollAngle, pitchAngle);
             GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
             GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
@@ -970,14 +876,15 @@ namespace SatelliteSessions
             out string wktPoly, out double duration, out double dist)
         {
             DataFetcher fetcher = new DataFetcher(managerDB);
-            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
             TrajectoryRoutines.GetCoridorParams(
-                fetcher, dateTime, start, end,
+                traj, dateTime, start, end,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj[0]);
             kaPos.addRollPitchRot(roll, pitch);
             GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
             GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
@@ -994,18 +901,18 @@ namespace SatelliteSessions
         /// <param name="wktPoly"></param>
         /// <param name="duration"></param>
         /// <param name="dist"></param>
-        public static void getCustomCoridor(DateTime dateTime, Curve curve, DIOS.Common.SqlManager managerDB,
+        public static void getCustomCoridor(Trajectory traj, DateTime startTime, Curve curve,
             out string wktPoly, out double duration)
         {
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            //DataFetcher fetcher = new DataFetcher(managerDB);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
             TrajectoryRoutines.GetCustomCoridorParams(
-                fetcher, dateTime, curve,
+                traj, startTime, curve,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out roll, out pitch);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
+            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj.GetPoint(startTime));
             kaPos.addRollPitchRot(roll, pitch);
             GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
             GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
