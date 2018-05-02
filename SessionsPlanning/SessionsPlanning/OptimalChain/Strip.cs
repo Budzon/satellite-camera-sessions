@@ -356,6 +356,25 @@ namespace OptimalChain
                 polygons = new List<Polygon>() { comPolygon };
             }
         }
+
+        public RequestParams(RequestParams copyed)
+        {
+            id = copyed.id;
+            priority = copyed.priority;
+            timeFrom = copyed.timeFrom;
+            timeTo = copyed.timeTo;
+            Max_SOEN_anlge = copyed.Max_SOEN_anlge;
+            minCoverPerc = copyed.minCoverPerc;
+            Max_sun_angle = copyed.Max_sun_angle;
+            Min_sun_angle = copyed.Min_sun_angle;
+            wktPolygon = copyed.wktPolygon;
+            albedo = copyed.albedo;
+            compression = copyed.compression;
+            shootingType = copyed.shootingType;
+            requestChannel = copyed.requestChannel;
+            polygonToSubtract = copyed.polygonToSubtract; 
+            polygons = copyed.polygons;            
+        }
          
     }
 

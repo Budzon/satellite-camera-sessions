@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
 using Astronomy;
 using Common;
+using OptimalChain;
 
 namespace SatelliteSessions
 {
@@ -117,6 +118,74 @@ namespace SatelliteSessions
                 return true;
             else
                 return false;
+        }
+
+
+
+        /// <summary>
+        /// распределить маршруты по доступным временным интервалам
+        /// </summary>
+        /// <param name="routesToDrop"></param>
+        /// <param name="freeCompressedIntervals"></param>
+        /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
+        public static Dictionary<TimePeriod, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<TimePeriod> freeCompressedIntervals, int workType, int startId)
+        {
+            Dictionary<TimePeriod, List<RouteParams>> res = new Dictionary<TimePeriod, List<RouteParams>>();
+            List<RouteMPZ> routes = new List<RouteMPZ>(inpRoutes);
+
+            // отсортируем свободные промежутки по продолжительности в порядке возрастания по прищнаку продолжительности
+            freeCompressedIntervals.Sort(delegate(TimePeriod span1, TimePeriod span2)
+            { return (span1.dateTo - span1.dateFrom).CompareTo(span2.dateTo - span2.dateFrom); });
+
+            foreach (var interval in freeCompressedIntervals)
+            {
+                int id = startId + 1;
+                // получим все маршруты, которые могут быть сброшены/удалены в этом промежутке
+                List<RouteMPZ> curRoutes = routes.Where(rout => rout.Parameters.end < interval.dateTo).ToList();
+
+                if (curRoutes.Count == 0)
+                    continue;
+
+                curRoutes.Sort(delegate(RouteMPZ rout1, RouteMPZ rout2) { return rout1.Parameters.end.CompareTo(rout2.Parameters.end); });
+
+                List<RouteParams> curPeriodRoutes = new List<RouteParams>();
+
+                DateTime prevDt = curRoutes[0].Parameters.end > interval.dateFrom ? curRoutes[0].Parameters.end : interval.dateFrom;
+                foreach (var rmpz in curRoutes.ToArray())
+                {
+                    if (prevDt < rmpz.Parameters.end)
+                        prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
+
+                    double actionTime = 0;
+                    if (workType == 1)
+                        actionTime = rmpz.Parameters.getDropTime();
+                    else if (workType == 2)
+                        actionTime = OptimalChain.Constants.routeDeleteTime;
+
+                    DateTime nextDt = prevDt.AddSeconds(actionTime);
+                    if (nextDt > interval.dateTo)
+                        break; // если вышли за пределы текущего интервала, переходим к следующему интервалу
+
+                    nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
+
+                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, Tuple.Create(rmpz.NPZ, rmpz.Nroute));
+                    curParam.id = id;
+                    curParam.ShootingConf = rmpz.Parameters.ShootingConf;
+                    curPeriodRoutes.Add(curParam);
+                    id++;
+                    routes.Remove(rmpz);
+
+                    prevDt = nextDt;
+                }
+
+                if (curPeriodRoutes.Count != 0)
+                {
+                    res[interval] = curPeriodRoutes;
+                }
+
+            }
+
+            return res;
         }
     }
 }
