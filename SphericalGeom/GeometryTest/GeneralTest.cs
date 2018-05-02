@@ -108,35 +108,27 @@ namespace GeometryTest
             //    new GeoPoint(81.9, 60)
             //};    
 
-            // --------------ЮЖНОЕ
-            //DateTime dt1 = new DateTime(2019, 1, 1, 9, 58, 00);
-//            def f(x):
-//    return -81.8 - 0.1*sp.sinc((x + 90) / 3)
-    
-//# lons = np.linspace(-80, -100, 100)
-            //List<string> wkts;
-            //List<GeoPoint> satPos;
-            //List<GeoPoint> verts = new List<GeoPoint>() {
-            //    new GeoPoint(-81.79173007, -100),
-            //    new GeoPoint(-81.8127324, -97.5),
-            //    new GeoPoint(-81.77932517, -94),
-            //    new GeoPoint(-81.9, -90),
-            //    new GeoPoint(-81.77932517, -86),
-            //    new GeoPoint(-81.8127324, -82.5),
-            //    new GeoPoint(-81.79173007, -80)
-            //}; 
-     
-            //Sessions.getPieciwiseCoridor(dt1, verts, manager, out wkts, out satPos);
+            /// --------------ЮЖНОЕ
+            /// DateTime dt1 = new DateTime(2019, 1, 1, 9, 58, 00);
+            /// def f(x):
+            ///    return -81.8 - 0.1*sp.sinc((x + 90) / 3)
+            ///# lons = np.linspace(-80, -100, 100)
 
             /// ---------------- СЕВЕР КАВАЙНЫЙ ПРИМЕР
             /// f(x) = 81.8 + 0.05*np.cos(np.pi/5*x)
+            /// f(x) = 81.8 + 2e-4*(x - 60) * (x - 90)**2
             /// lons = np.linspace(60, 90, 200)
             /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
 
+            /// ---------------- СЕВЕР САМОПЕРЕСЕЧЕНИЯ
+            /// f(x) = 50 + 3*np.cos(np.pi/4*x) + 0.5 * np.sin(x * 3)
+            /// lons = np.linspace(-12, -8, 100)
+            /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+
             // CUSTOM
-            DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
             int steps = 100;
-            double lon0 = -15, lon1 = -5, dlon = lon1 - lon0, step = dlon / steps;
+            double lon0 = 60, lon1 = 90, dlon = lon1 - lon0, step = dlon / steps;
             
             double[] lons = new double[steps];
             for (int i = 0; i < lons.Length; ++i)
@@ -146,9 +138,9 @@ namespace GeometryTest
             double[] lats = new double[steps];
             for (int i = 0; i < lats.Length; ++i)
             {
-                lats[i] = 50 + 3 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+                lats[i] = 81.8 + 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
             }
-            //+ 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
+            //
             List<string> wkts;
             List<GeoPoint> satPos;
             List<GeoPoint> curve = new List<GeoPoint>();

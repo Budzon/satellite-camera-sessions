@@ -1143,6 +1143,10 @@ namespace SatelliteTrajectory
         /// </summary>
         public Vector3D ViewDir { get { return kaY; } }
 
+        public Vector3D RollAxis { get { return kaZ; } }
+
+        public Vector3D PitchAxis { get { return kaX; } }
+
         public void addRollPitchRot(double rollAngle, double pitchAngle)
         {
             addRollRot(rollAngle);
@@ -1387,6 +1391,7 @@ namespace SatelliteTrajectory
                     lastSign *= -1;
                     curves.Add(new Curve(curCurve));
                     curCurve = new List<GeoPoint>() { Vertices[i - 1], Vertices[i] };
+                    //curCurve = new List<GeoPoint>() { Vertices[i] };
                 }
             }
             curCurve.Add(Vertices[Count - 1]);

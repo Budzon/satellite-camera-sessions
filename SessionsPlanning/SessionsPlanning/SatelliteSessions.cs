@@ -840,14 +840,7 @@ namespace SatelliteSessions
                 rollAngle, pitchAngle,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj[0]);
-            kaPos.addRollPitchRot(rollAngle, pitchAngle);
-            //LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
-            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
-            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
-            // @todo доделать учёт kaPos.Top*ViewPoint
-
-            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
+            Polygon pol = GetSecondOrderCoridor(traj, dateTime, rollAngle, pitchAngle, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -864,11 +857,7 @@ namespace SatelliteSessions
                 end,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj[0]);
-            kaPos.addRollPitchRot(rollAngle, pitchAngle);
-            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
-            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
-            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
+            Polygon pol = GetSecondOrderCoridor(traj, dateTime, rollAngle, pitchAngle, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -884,11 +873,7 @@ namespace SatelliteSessions
                 traj, dateTime, start, end,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj[0]);
-            kaPos.addRollPitchRot(roll, pitch);
-            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
-            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
-            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
+            Polygon pol = GetSecondOrderCoridor(traj, dateTime, roll, pitch, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
         }
 
@@ -912,45 +897,160 @@ namespace SatelliteSessions
                 traj, startTime, curve,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out roll, out pitch);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(traj.GetPoint(startTime));
-            kaPos.addRollPitchRot(roll, pitch);
-            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
-            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
-            Polygon pol = GetSecondOrderCoridor(leftFirstPoint, rightFirstPoint, duration, b1, b2, l1, l2, s1, s2, s3);
+            Polygon pol = GetSecondOrderCoridor(traj, startTime, roll, pitch, duration, b1, b2, l1, l2, s1, s2, s3);
             Console.WriteLine(roll + " " + pitch);
             wktPoly = pol.ToWtk();
         }
 
-        private static Polygon GetSecondOrderCoridor(GeoPoint leftFirstPoint, GeoPoint rightFirstPoint, double duration, double b1, double b2, double l1, double l2, double s1, double s2, double s3, int points = 10)
+        private static Polygon GetSecondOrderCoridor(Trajectory traj, DateTime startTime, double startRoll, double startPitch, double duration, double b1, double b2, double l1, double l2, double s1, double s2, double s3, int pointsPerSide = 10)
         {
-            GeoPoint[] leftPoints = new GeoPoint[points];
-            for (int i = 0; i < leftPoints.Length; ++i)
+            int vertNum = pointsPerSide * 2 + 2;
+            Vector3D[] points = new Vector3D[vertNum];
+
+            TrajectoryPoint curTP = traj.GetPoint(startTime);
+            SatelliteCoordinates curKaPos = new SatelliteCoordinates(curTP, startRoll, startPitch);
+            GeoPoint nexCurveGeo = GeoPoint.FromCartesian(curKaPos.MidViewPoint);
+            Vector3D nexCurveVec = GeoPoint.ToCartesian(nexCurveGeo, 1);
+            Parametrized2Curve curve = new Parametrized2Curve(nexCurveGeo, l1, l2, b1, b2, s1, s2, s3);
+
+            GeoPoint curCurveGeo;
+            Vector3D curCurveVec;
+
+            double dt = duration / pointsPerSide;
+            double rollAngle, pitchAngle;
+            for (int i = 0; i < pointsPerSide; i++)
             {
-                double t = duration / leftPoints.Length * (i + 1);
-                double d = t * (s1 + t * (s2 + t * s3));
-                leftPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Longitude) + l1 * d + l2 * d * d)
-                );
-            }
-            GeoPoint[] rightPoints = new GeoPoint[points];
-            for (int i = 0; i < rightPoints.Length; ++i)
-            {
-                double t = duration / rightPoints.Length * (rightPoints.Length - i);
-                double d = t * (s1 + t * (s2 + t * s3));
-                rightPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Longitude) + l1 * d + l2 * d * d)
-                );
+                curCurveVec = nexCurveVec;
+                curCurveGeo = nexCurveGeo;
+
+                double t = dt * i;
+                curTP = traj.GetPoint(startTime.AddSeconds(t));
+                Routines.GetRollPitch(curTP, curCurveGeo, out rollAngle, out pitchAngle);
+                curKaPos = new SatelliteCoordinates(curTP);
+                Vector3D rAxis = curKaPos.RollAxis;
+                Vector3D pAxis = curKaPos.PitchAxis;
+                curKaPos.addRollPitchRot(rollAngle, pitchAngle);
+
+                nexCurveGeo = curve.GetPoint(t + dt);
+                nexCurveVec = GeoPoint.ToCartesian(nexCurveGeo, 1);
+                Vector3D dVec = nexCurveVec - curCurveVec;
+                
+                double along = Vector3D.DotProduct(dVec, rAxis);
+                double perp = Vector3D.DotProduct(dVec, pAxis);
+                bool forward = Comparison.IsPositive(along);
+                bool left = !Comparison.IsPositive(perp);
+
+                if (i == 0)
+                {
+                    // points[0] is an extra beggining point
+                    if (forward && left)
+                    {
+                        points[0] = curKaPos.BotRightViewPoint;
+                        points[1] = curKaPos.BotLeftViewPoint;
+                        points[vertNum - 1] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
+                        points[0] = curKaPos.BotLeftViewPoint;
+                        points[1] = curKaPos.TopLeftViewPoint;
+                        points[vertNum - 1] = curKaPos.BotRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[0] = curKaPos.TopRightViewPoint;
+                        points[1] = curKaPos.BotRightViewPoint;
+                        points[vertNum - 1] = curKaPos.TopLeftViewPoint;
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[0] = curKaPos.TopLeftViewPoint;
+                        points[1] = curKaPos.TopRightViewPoint;
+                        points[vertNum - 1] = curKaPos.BotLeftViewPoint;
+                    }
+                }
+                else if (i == pointsPerSide - 1)
+                {
+                    // points[pointsPerSide + 1] is an extra ending point
+                    if (forward && left)
+                    {
+                        points[pointsPerSide] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.TopLeftViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
+                        points[pointsPerSide] = curKaPos.TopLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.TopRightViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.BotRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[pointsPerSide] = curKaPos.BotRightViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.TopLeftViewPoint;
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[pointsPerSide] = curKaPos.TopRightViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.BotRightViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.BotLeftViewPoint;
+                    }
+                }
+                else
+                {
+                    if (forward && left)
+                    {
+                        points[i + 1] = curKaPos.BotLeftViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
+                        points[i + 1] = curKaPos.TopLeftViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.BotRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[i + 1] = curKaPos.BotRightViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.TopLeftViewPoint;
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[i + 1] = curKaPos.TopRightViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.BotLeftViewPoint;
+                    }
+                }
             }
 
-            List<GeoPoint> vertices = new List<GeoPoint>();
-            vertices.Add(leftFirstPoint);
-            vertices.AddRange(leftPoints);
-            vertices.AddRange(rightPoints);
-            vertices.Add(rightFirstPoint);
+            return new Polygon(points.ToList());
 
-            return new Polygon(vertices);
+            //GeoPoint[] leftPoints = new GeoPoint[points];
+            //for (int i = 0; i < leftPoints.Length; ++i)
+            //{
+            //    double t = duration / leftPoints.Length * (i + 1);
+            //    double d = t * (s1 + t * (s2 + t * s3));
+            //    leftPoints[i] = new GeoPoint(
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Latitude) + b1 * d + b2 * d * d),
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Longitude) + l1 * d + l2 * d * d)
+            //    );
+            //}
+            //GeoPoint[] rightPoints = new GeoPoint[points];
+            //for (int i = 0; i < rightPoints.Length; ++i)
+            //{
+            //    double t = duration / rightPoints.Length * (rightPoints.Length - i);
+            //    double d = t * (s1 + t * (s2 + t * s3));
+            //    rightPoints[i] = new GeoPoint(
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Latitude) + b1 * d + b2 * d * d),
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Longitude) + l1 * d + l2 * d * d)
+            //    );
+            //}
+
+            //List<GeoPoint> vertices = new List<GeoPoint>();
+            //vertices.Add(leftFirstPoint);
+            //vertices.AddRange(leftPoints);
+            //vertices.AddRange(rightPoints);
+            //vertices.Add(rightFirstPoint);
+
+            //return new Polygon(vertices);
         }
 
  /// <summary>
@@ -1712,6 +1812,59 @@ namespace SatelliteSessions
         }
 
 
+    }
+
+    public class Parametrized2Curve
+    {
+        public double L1 { get; private set; }
+        public double L2 { get; private set; }
+        public double B1 { get; private set; }
+        public double B2 { get; private set; }
+        public double S1 { get; private set; }
+        public double S2 { get; private set; }
+        public double S3 { get; private set; }
+        private double begLat, begLon;
+
+        public Parametrized2Curve(GeoPoint start, double l1, double l2, double b1, double b2, double s1, double s2, double s3)
+        {
+            this.begLat = AstronomyMath.ToRad(start.Latitude);
+            this.begLon = AstronomyMath.ToRad(start.Longitude);
+
+            L1 = l1;
+            L2 = l2;
+            B1 = b1;
+            B2 = b2;
+            S1 = s1;
+            S2 = s2;
+            S3 = s3;
+        }
+
+        public double GetDistance(double dt)
+        {
+            return dt * (S1 + dt * (S2 + dt * S3));
+        }
+
+        public double GetLatitude(double dt)
+        {
+            double d = GetDistance(dt);
+            return begLat + d * (B1 + d * B2);
+        }
+
+        public double GetLongitude(double dt)
+        {
+            double d = GetDistance(dt);
+            return begLon + d * (L1 + d * L2);
+        }
+
+        public GeoPoint GetPoint(double dt)
+        {
+            return new GeoPoint(AstronomyMath.ToDegrees(GetLatitude(dt)), AstronomyMath.ToDegrees(GetLongitude(dt)));
+        }
+
+        public Vector3D GetUnitVector(double dt)
+        {
+            return GeoPoint.ToCartesian(GetPoint(dt), 1);
+        }
     }
 
     /*
