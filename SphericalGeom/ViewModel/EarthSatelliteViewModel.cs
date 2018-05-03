@@ -1081,7 +1081,6 @@ namespace ViewModel
 
                 Vector3D surfPoint = LanePos.getSurfacePoint(pp1, rollAngle + rollCor, pitch);
                 rollCorrPitchLine.Add(surfPoint);
-                Console.WriteLine(rollCor);
             }
 
             //GeoPoint p1 = new GeoPoint(-49.01265386395501, -14.562377929687498);
