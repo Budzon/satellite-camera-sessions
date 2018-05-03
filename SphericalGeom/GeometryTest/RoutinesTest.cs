@@ -74,7 +74,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestRollPitch()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
 

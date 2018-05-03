@@ -20,7 +20,7 @@ namespace GeometryTest
         [TestMethod]
         public void Test_GetTrajectorySat()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
             DateTime dt1 = new DateTime(2019, 1, 5, 21, 23, 1);

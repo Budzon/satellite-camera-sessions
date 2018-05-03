@@ -22,7 +22,7 @@ namespace GeometryTest
             DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
             DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
             //DateTime dt2 = DateTime.Parse("01.02.2019 2:39:30");
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
 
@@ -44,7 +44,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestMPZ()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
             List<RouteParams> param = new List<RouteParams>();
@@ -87,7 +87,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestPiecewiseCoridor()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
 
@@ -155,7 +155,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestCoridorPoly()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
             DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
@@ -189,7 +189,7 @@ namespace GeometryTest
                     polygons.Add(randpol);
                 }
                 
-                string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                string cs = System.IO.File.ReadLines("DBstring.conf").First();
                 DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
                 DateTime dt1 = new DateTime(2019, 1, 4);
@@ -252,7 +252,7 @@ namespace GeometryTest
                 polygons.Add(randpol);
             }
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
             DateTime dt1 = new DateTime(2019, 1, 4);
@@ -380,7 +380,7 @@ namespace GeometryTest
                     polygons.Add(randpol);
                 }
 
-                string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                string cs = System.IO.File.ReadLines("DBstring.conf").First();
                 DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
                 DateTime dt1 = new DateTime(2019, 1, 5);
