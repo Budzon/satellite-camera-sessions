@@ -22,7 +22,7 @@ namespace GeometryTest
             sZone.CentreLon = 31.690301;
             sZone.CentreLat = 30.185089;
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
 
