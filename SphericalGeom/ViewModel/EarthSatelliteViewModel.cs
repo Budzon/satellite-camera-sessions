@@ -558,7 +558,7 @@ namespace ViewModel
 
         void testbd()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
 
@@ -597,7 +597,7 @@ namespace ViewModel
 
         public void testGetSoenPolygon()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
@@ -615,7 +615,7 @@ namespace ViewModel
 
         public void sdfsdf()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("01.01.2019 0:57:00");
@@ -731,7 +731,7 @@ namespace ViewModel
             reqparams.wktPolygon = "POLYGON((78.58566289767623 17.130947926520477, 78.74633794650434 17.252957595077618, 78.8424683175981 17.44302666622589, 78.70376592501998 17.59363047055203, 78.52249151095748 17.639441559013832, 78.32611089572309 17.61195630153543, 78.29589849337934 17.602793618503057, 78.27941900119185 17.304098970796602, 78.58566289767623 17.130947926520477))";// pol.ToWtk();            
             reqparams.Max_SOEN_anlge = AstronomyMath.ToRad(45);
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
             double isfes;
@@ -742,7 +742,7 @@ namespace ViewModel
 
         public void testPMI()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
 
@@ -768,7 +768,7 @@ namespace ViewModel
             DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
             DateTime dt2 = new DateTime(2019, 2, 8, 0, 00, 00);
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
  
             DateTime start = DateTime.Now;
