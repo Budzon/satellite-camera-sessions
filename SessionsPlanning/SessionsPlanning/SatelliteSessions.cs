@@ -78,8 +78,8 @@ namespace SatelliteSessions
         /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
         public static void isRequestFeasible(RequestParams request, DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, out double coverage, out List<CaptureConf> possibleConfs)
         {
-            // string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";     
-            // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно      
+            // string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "trajectory_1day.dat";
+            // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно
             DataFetcher fetcher = new DataFetcher(managerDB);
 
             List<TimePeriod> shadowPeriods;
@@ -195,11 +195,11 @@ namespace SatelliteSessions
             {
                 double rollAngle = min_roll_angle + index * angleStep;
 #else
-                for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {        
+                for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {
 #endif
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // конфигурации захвата для текущий полосы захвата
                 SatLane viewLane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
-                    
+
                 foreach (var requestGroup in breakingRequests)
                 {
                     List<CaptureConf> groupConfs = new List<CaptureConf>();
@@ -329,7 +329,7 @@ namespace SatelliteSessions
             , DateTime timeFrom
             , DateTime timeTo
             , List<Tuple<DateTime, DateTime>> silentRanges
-            , List<Tuple<DateTime, DateTime>> inactivityRanges 
+            , List<Tuple<DateTime, DateTime>> inactivityRanges
             , List<RouteMPZ> routesToDrop
             , List<RouteMPZ> routesToDelete
             , DIOS.Common.SqlManager managerDB
@@ -389,9 +389,9 @@ namespace SatelliteSessions
 
             int maxRouteDropId = routesToDrop.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
             int maxRouteDeleteId = routesToDelete.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
-            int maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max(); 
+            int maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             int maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
-            
+
             Dictionary<TimePeriod, List<RouteParams>> dropRoutesParamsByIntervals = TimePeriod.getRoutesParamsInIntervals(allRoutesToDrop, freeRangesForDrop, workType: 1, startId: maxRoutesNumber);
 
             foreach (var intervalRoutes in dropRoutesParamsByIntervals)
@@ -427,7 +427,7 @@ namespace SatelliteSessions
                     dropMpzParams.AddRange(curMPZ);
                 }
             }
-             
+
             List<TimePeriod> dropIntervals = dropMpzParams.Select(mpzparams => new TimePeriod(mpzparams.start, mpzparams.end)).ToList();
             List<TimePeriod> inactivityDropCaptureIntervals = new List<TimePeriod>();
             inactivityDropCaptureIntervals.AddRange(captureIntervals);
@@ -439,7 +439,7 @@ namespace SatelliteSessions
 
             maxRouteDropId = dropMpzParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
-     
+
             maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
             Dictionary<TimePeriod, List<RouteParams>> deleteRoutesParamsByIntervals = TimePeriod.getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2, startId: maxRoutesNumber);
 
@@ -501,7 +501,7 @@ namespace SatelliteSessions
             }
 
         }
-            
+
 
         public static List<CaptureConf> getConfsToDrop(List<RouteMPZ> routesToDrop, List<TimePeriod> freeRanges)
         {
@@ -547,7 +547,7 @@ namespace SatelliteSessions
             }
             return res;
         }
-                        
+
         /// <summary>
         /// Создание ПНб по набору маршрутов
         /// </summary>
@@ -566,6 +566,54 @@ namespace SatelliteSessions
             return res;
         }
 
+        public static Trajectory getMaxTrajectory(DIOS.Common.SqlManager managerDB, DateTime start)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            return fetcher.GetTrajectorySat(start, start.AddSeconds(1000)); // максимальная длительность маршрута
+        }
+
+        public static void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, out List<GeoPoint> satPos, bool custom = false)
+        {
+            wkts = new List<string>();
+            satPos = new List<GeoPoint>();
+
+            GeoPoint curr, next;
+            TrajectoryPoint tp;
+            double roll, pitch, duration, dist;
+            DateTime now = dateTime;
+            string wkt;
+
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+
+            var curves = new Curve(vertices).BreakByCurvatureAndDistance(1.5e5);
+            if (!custom)
+            {
+                for (int i = 0; i < curves.Count; ++i)
+                {
+                    curr = curves[i][0];
+                    next = curves[i][curves[i].Count - 1];
+                    tp = traj.GetPoint(now);
+
+                    //Routines.GetRollPitch(tp, curr, out roll, out pitch);
+                    //getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                    getCoridorPoly(now, curr, next, managerDB, out wkt, out duration, out dist);
+                    wkts.Add(wkt);
+                    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
+                    now = now.AddSeconds(duration); // + 12
+                }
+            }
+            else
+            {
+                for (int i = 0; i < curves.Count; ++i)
+                {
+                    tp = traj.GetPoint(now);
+                    getCustomCoridor(traj, now, curves[i], out wkt, out duration);
+                    wkts.Add(wkt);
+                    satPos.Add(GeoPoint.FromCartesian(tp.Position.ToVector()));
+                    now = now.AddSeconds(duration);
+                }
+            }
+        }
 
         /// <summary>
         /// Рассчитать коридор съемки/видимости для заданной конфигурации СОЭНc
@@ -586,48 +634,226 @@ namespace SatelliteSessions
                 throw new ArgumentException("Coridor length cannot exceed 97km.");
 
             DataFetcher fetcher = new DataFetcher(managerDB);
-            TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
-                fetcher, dateTime, az, dist,
+                traj, dateTime, az, dist,
                 rollAngle, pitchAngle,
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
 
-            SatelliteCoordinates kaPos = new SatelliteCoordinates(p0_.Value);
-            kaPos.addRollPitchRot(rollAngle, pitchAngle);
-            //LanePos lpBegin = new LanePos(p0_.Value, OptimalChain.Constants.camera_angle, rollAngle, pitchAngle);
-            GeoPoint leftFirstPoint = GeoPoint.FromCartesian(kaPos.BotLeftViewPoint);
-            GeoPoint rightFirstPoint = GeoPoint.FromCartesian(kaPos.BotRightViewPoint);
-            // @todo доделать учёт kaPos.Top*ViewPoint
-
-            GeoPoint[] leftPoints = new GeoPoint[10];
-            for (int i = 0; i < leftPoints.Length; ++i)
-            {
-                double d = dist / leftPoints.Length * (i + 1);
-                leftPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Longitude) + l1 * d + l2 * d * d)
-                );
-            }
-            GeoPoint[] rightPoints = new GeoPoint[10];
-            for (int i = 0; i < rightPoints.Length; ++i)
-            {
-                double d = dist / rightPoints.Length * (rightPoints.Length - i);
-                rightPoints[i] = new GeoPoint(
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Latitude) + b1 * d + b2 * d * d),
-                    AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Longitude) + l1 * d + l2 * d * d)
-                );
-            }
-
-            List<GeoPoint> vertices = new List<GeoPoint>();
-            vertices.Add(leftFirstPoint);
-            vertices.AddRange(leftPoints);
-            vertices.AddRange(rightPoints);
-            vertices.Add(rightFirstPoint);
-
-            Polygon pol = new Polygon(vertices);
+            Polygon pol = GetSecondOrderCoridor(traj, dateTime, rollAngle, pitchAngle, duration, b1, b2, l1, l2, s1, s2, s3);
             wktPoly = pol.ToWtk();
+        }
+
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, GeoPoint end, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration, out double dist)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3;
+            TrajectoryRoutines.GetCoridorParams(
+                traj, dateTime, rollAngle, pitchAngle,
+                end,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist);
+
+            Polygon pol = GetSecondOrderCoridor(traj, dateTime, rollAngle, pitchAngle, duration, b1, b2, l1, l2, s1, s2, s3);
+            wktPoly = pol.ToWtk();
+        }
+
+        public static void getCoridorPoly(DateTime dateTime, GeoPoint start, GeoPoint end, DIOS.Common.SqlManager managerDB,
+            out string wktPoly, out double duration, out double dist)
+        {
+            DataFetcher fetcher = new DataFetcher(managerDB);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
+            TrajectoryRoutines.GetCoridorParams(
+                traj, dateTime, start, end,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out dist, out roll, out pitch);
+
+            Polygon pol = GetSecondOrderCoridor(traj, dateTime, roll, pitch, duration, b1, b2, l1, l2, s1, s2, s3);
+            wktPoly = pol.ToWtk();
+        }
+
+        /// <summary>
+        /// Assumes positive(negative) curvature of the curve
+        /// </summary>
+        /// <param name="dateTime"></param>
+        /// <param name="curve"></param>
+        /// <param name="managerDB"></param>
+        /// <param name="wktPoly"></param>
+        /// <param name="duration"></param>
+        /// <param name="dist"></param>
+        public static void getCustomCoridor(Trajectory traj, DateTime startTime, Curve curve,
+            out string wktPoly, out double duration)
+        {
+            //DataFetcher fetcher = new DataFetcher(managerDB);
+            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
+
+            double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
+            TrajectoryRoutines.GetCustomCoridorParams(
+                traj, startTime, curve,
+                out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration, out roll, out pitch);
+
+            Polygon pol = GetSecondOrderCoridor(traj, startTime, roll, pitch, duration, b1, b2, l1, l2, s1, s2, s3);
+            Console.WriteLine(roll + " " + pitch);
+            wktPoly = pol.ToWtk();
+        }
+
+        private static Polygon GetSecondOrderCoridor(Trajectory traj, DateTime startTime, double startRoll, double startPitch, double duration, double b1, double b2, double l1, double l2, double s1, double s2, double s3, int pointsPerSide = 10)
+        {
+            int vertNum = pointsPerSide * 2 + 2;
+            Vector3D[] points = new Vector3D[vertNum];
+
+            TrajectoryPoint curTP = traj.GetPoint(startTime);
+            SatelliteCoordinates curKaPos = new SatelliteCoordinates(curTP, startRoll, startPitch);
+            GeoPoint nexCurveGeo = GeoPoint.FromCartesian(curKaPos.MidViewPoint);
+            Vector3D nexCurveVec = GeoPoint.ToCartesian(nexCurveGeo, 1);
+            Parametrized2Curve curve = new Parametrized2Curve(nexCurveGeo, l1, l2, b1, b2, s1, s2, s3);
+
+            GeoPoint curCurveGeo;
+            Vector3D curCurveVec;
+
+            double dt = duration / pointsPerSide;
+            double rollAngle, pitchAngle;
+            for (int i = 0; i < pointsPerSide; i++)
+            {
+                curCurveVec = nexCurveVec;
+                curCurveGeo = nexCurveGeo;
+
+                double t = dt * i;
+                curTP = traj.GetPoint(startTime.AddSeconds(t));
+                Routines.GetRollPitch(curTP, curCurveGeo, out rollAngle, out pitchAngle);
+                curKaPos = new SatelliteCoordinates(curTP);
+                Vector3D rAxis = curKaPos.RollAxis;
+                Vector3D pAxis = curKaPos.PitchAxis;
+                curKaPos.addRollPitchRot(rollAngle, pitchAngle);
+
+                nexCurveGeo = curve.GetPoint(t + dt);
+                nexCurveVec = GeoPoint.ToCartesian(nexCurveGeo, 1);
+                Vector3D dVec = nexCurveVec - curCurveVec;
+
+                double along = Vector3D.DotProduct(dVec, rAxis);
+                double perp = Vector3D.DotProduct(dVec, pAxis);
+                bool forward = Comparison.IsPositive(along);
+                bool left = !Comparison.IsPositive(perp);
+
+                if (i == 0)
+                {
+                    // points[0] is an extra beggining point
+                    if (forward && left)
+                    {
+                        points[0] = curKaPos.BotRightViewPoint;
+                        points[1] = curKaPos.BotLeftViewPoint;
+                        points[vertNum - 1] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
+                        points[0] = curKaPos.BotLeftViewPoint;
+                        points[1] = curKaPos.TopLeftViewPoint;
+                        points[vertNum - 1] = curKaPos.BotRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[0] = curKaPos.TopRightViewPoint;
+                        points[1] = curKaPos.BotRightViewPoint;
+                        points[vertNum - 1] = curKaPos.TopLeftViewPoint;
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[0] = curKaPos.TopLeftViewPoint;
+                        points[1] = curKaPos.TopRightViewPoint;
+                        points[vertNum - 1] = curKaPos.BotLeftViewPoint;
+                    }
+                }
+                else if (i == pointsPerSide - 1)
+                {
+                    // points[pointsPerSide + 1] is an extra ending point
+                    if (forward && left)
+                    {
+                        points[pointsPerSide] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.TopLeftViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
+                        points[pointsPerSide] = curKaPos.TopLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.TopRightViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.BotRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[pointsPerSide] = curKaPos.BotRightViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.TopLeftViewPoint;
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[pointsPerSide] = curKaPos.TopRightViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.BotRightViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.BotLeftViewPoint;
+                    }
+                }
+                else
+                {
+                    if (forward && left)
+                    {
+                        points[i + 1] = curKaPos.BotLeftViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
+                        points[i + 1] = curKaPos.TopLeftViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.BotRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[i + 1] = curKaPos.BotRightViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.TopLeftViewPoint;
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[i + 1] = curKaPos.TopRightViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.BotLeftViewPoint;
+                    }
+                }
+            }
+
+            return new Polygon(points.ToList());
+
+            //GeoPoint[] leftPoints = new GeoPoint[points];
+            //for (int i = 0; i < leftPoints.Length; ++i)
+            //{
+            //    double t = duration / leftPoints.Length * (i + 1);
+            //    double d = t * (s1 + t * (s2 + t * s3));
+            //    leftPoints[i] = new GeoPoint(
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Latitude) + b1 * d + b2 * d * d),
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(leftFirstPoint.Longitude) + l1 * d + l2 * d * d)
+            //    );
+            //}
+            //GeoPoint[] rightPoints = new GeoPoint[points];
+            //for (int i = 0; i < rightPoints.Length; ++i)
+            //{
+            //    double t = duration / rightPoints.Length * (rightPoints.Length - i);
+            //    double d = t * (s1 + t * (s2 + t * s3));
+            //    rightPoints[i] = new GeoPoint(
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Latitude) + b1 * d + b2 * d * d),
+            //        AstronomyMath.ToDegrees(AstronomyMath.ToRad(rightFirstPoint.Longitude) + l1 * d + l2 * d * d)
+            //    );
+            //}
+
+            //List<GeoPoint> vertices = new List<GeoPoint>();
+            //vertices.Add(leftFirstPoint);
+            //vertices.AddRange(leftPoints);
+            //vertices.AddRange(rightPoints);
+            //vertices.Add(rightFirstPoint);
+
+            //return new Polygon(vertices);
         }
 
         /// <summary>
@@ -655,7 +881,7 @@ namespace SatelliteSessions
                     {
                         return wtk;
                     }
-                    SatelliteCoordinates kaPos = new SatelliteCoordinates((TrajectoryPoint)point, rollAngle, pitchAngle);                    
+                    SatelliteCoordinates kaPos = new SatelliteCoordinates((TrajectoryPoint)point, rollAngle, pitchAngle);
                     wtk = kaPos.ViewPolygon.ToWtk();
                 }
                 else
@@ -883,7 +1109,11 @@ namespace SatelliteSessions
                 {
                     while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
                         curSunPositionIndex++;
-
+                    if (i == 4)
+                    {
+                        int a = 2;
+                        a += 3;
+                    }
                     // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
@@ -933,7 +1163,7 @@ namespace SatelliteSessions
                         streakBegin = i;
                     }
                     else
-                    { 
+                    {
                         foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
                             foreach (Polygon piece in p.BreakIntoLobes())
                                 turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
@@ -964,7 +1194,7 @@ namespace SatelliteSessions
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
             }
         }
-         
+
 
         /// @todo перенести в мат библиотеку
         private static void calculatePitchArrays(CaptureConf conf, TrajectoryPoint pointFrom)
@@ -976,7 +1206,7 @@ namespace SatelliteSessions
 
             double maxPitchAngle = Math.Abs(pitchAngleLimit) - Math.Abs(conf.rollAngle);
 
-            if (maxPitchAngle < 0) // такое возможно, если rollAngle больше (по модулю) 30 градусов (максимальны тангаж) 
+            if (maxPitchAngle < 0) // такое возможно, если rollAngle больше (по модулю) 30 градусов (максимальны тангаж)
                 maxPitchAngle = 0;
 
             double timeDelta;
@@ -991,7 +1221,7 @@ namespace SatelliteSessions
             angleTimeArray[0] = 0;
 
             Vector3D dirRollPoint = LanePos.getSurfacePoint(pointFrom, conf.rollAngle, 0);
-            int pitchStep = 1; // угол изменения тангажа в градусах.  
+            int pitchStep = 1; // угол изменения тангажа в градусах.
             for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
             {
                 double pitch = AstronomyMath.ToRad(pitch_degr);
@@ -1016,7 +1246,7 @@ namespace SatelliteSessions
 
             conf.setPitchDependency(timeAngleArray, timeDelta);
         }
-        
+
 
         public static double getTimeDeltaFromPitch(TrajectoryPoint pointFrom, double rollAngle, double pitchAngle)
         {
@@ -1032,7 +1262,7 @@ namespace SatelliteSessions
 
 
         /// <summary>
-        /// расчёт поправки по крену 
+        /// расчёт поправки по крену
         /// </summary>
         /// <param name="height">высота ка в км</param>
         /// <param name="velo">скорость подспутниковой точки в радианах</param>
@@ -1049,14 +1279,104 @@ namespace SatelliteSessions
             double b2 = Math.Acos(Math.Sqrt(1 - Math.Pow((R + height) / R * Math.Sin(pitch), 2))) - Math.Abs(pitch);
             double d = Math.Cos(bm) * wEarth / velo * b2 * Math.Sin(I);
             double sinRoll = R * Math.Sin(d) / Math.Sqrt(Math.Pow(R, 2) + Math.Pow(R + height, 2) - 2 * R * (R + height) * Math.Cos(d));
-            return Math.Asin(sinRoll); 
+            return Math.Asin(sinRoll);
         }
-        
+
+
+    }
+
+    public class Parametrized2Curve
+    {
+        public double L1 { get; private set; }
+        public double L2 { get; private set; }
+        public double B1 { get; private set; }
+        public double B2 { get; private set; }
+        public double S1 { get; private set; }
+        public double S2 { get; private set; }
+        public double S3 { get; private set; }
+        private double begLat, begLon;
+
+        public Parametrized2Curve(GeoPoint start, double l1, double l2, double b1, double b2, double s1, double s2, double s3)
+        {
+            this.begLat = AstronomyMath.ToRad(start.Latitude);
+            this.begLon = AstronomyMath.ToRad(start.Longitude);
+
+            L1 = l1;
+            L2 = l2;
+            B1 = b1;
+            B2 = b2;
+            S1 = s1;
+            S2 = s2;
+            S3 = s3;
+        }
+
+        public double GetDistance(double dt)
+        {
+            return dt * (S1 + dt * (S2 + dt * S3));
+        }
+
+        public double GetLatitude(double dt)
+        {
+            double d = GetDistance(dt);
+            return begLat + d * (B1 + d * B2);
+        }
+
+        public double GetLongitude(double dt)
+        {
+            double d = GetDistance(dt);
+            return begLon + d * (L1 + d * L2);
+        }
+
+        public GeoPoint GetPoint(double dt)
+        {
+            return new GeoPoint(AstronomyMath.ToDegrees(GetLatitude(dt)), AstronomyMath.ToDegrees(GetLongitude(dt)));
+        }
+
+        public Vector3D GetUnitVector(double dt)
+        {
+            return GeoPoint.ToCartesian(GetPoint(dt), 1);
+        }
+    }
+
+    /*
+    public class SessionServices
+    {
+        public static SatelliteSessions.MPZ getdfsdf()
+        {
+            return new SatelliteSessions.MPZ(new List<RouteMPZ>());
+        }
+        public static List<MPZ> MakePlans(
+            DateTime dateBegin,
+            DateTime dateEnd,
+            IList<RequestParams> requests,
+            IList<TimeInterval> dumpProhibited,
+            IList<TimeInterval> filmProhibited,
+            IList<RouteMPZ> dumpRoutes,
+            IList<RouteMPZ> deleteRoutes,
+            DIOS.Common.SqlManager dbManager)
+        {
+            List<MPZ> bolvanka = new List<MPZ>
+            {
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.SI),
+                                            new RouteMPZ(RegimeTypes.ZI),
+                                            new RouteMPZ(RegimeTypes.VI),
+                                            new RouteMPZ(RegimeTypes.NP)} ),
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.ZI_cal),
+                                            new RouteMPZ(RegimeTypes.ZI_fok_yust),
+                                            new RouteMPZ(RegimeTypes.NP_fok_yust)}),
+                new MPZ(new List<RouteMPZ> {new RouteMPZ(RegimeTypes.KPI_load),
+                                            new RouteMPZ(RegimeTypes.KPI_unload),
+                                            new RouteMPZ(RegimeTypes.PUF_control),
+                                            new RouteMPZ(RegimeTypes.BBZU_control),
+                                            new RouteMPZ(RegimeTypes.Special)})
+            };
+            return bolvanka;
+        }
     }
 
     public class wktPolygonLit
     {
         public string wktPolygon { get; set; }
         public bool sun { get; set; }
-    }    
+    }
 }

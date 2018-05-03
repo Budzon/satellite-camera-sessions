@@ -12,23 +12,64 @@ namespace SphericalGeom
 {
     public static class Routines
     {
-        public static GeoPoint IntersectOpticalAxisAndEarth(TrajectoryPoint p, double roll, double pitch)
+        public static void GetRollPitch(TrajectoryPoint p, GeoPoint q, out double roll, out double pitch)
         {
             Vector3D eDirVect = -p.Position.ToVector();
-            RotateTransform3D rollTransform = new RotateTransform3D(
-                new AxisAngleRotation3D(
-                    p.Velocity, 
-                    AstronomyMath.ToDegrees(-roll)
-                )
-            );
-            RotateTransform3D pitchTransform = new RotateTransform3D(
-                new AxisAngleRotation3D(
-                    Vector3D.CrossProduct(p.Velocity, eDirVect), 
-                    AstronomyMath.ToDegrees(-pitch)
-                )
-            );
-            Vector3D lookAt = rollTransform.Transform(pitchTransform.Transform(eDirVect));
-            return Common.GeoPoint.FromCartesian(SphericalGeom.Routines.SphereVectIntersect(lookAt, p.Position, Astronomy.Constants.EarthRadius));
+            Vector3D rollAxis = p.Velocity;
+            rollAxis.Normalize();
+            Vector3D pitchAxis = Vector3D.CrossProduct(eDirVect, rollAxis);
+            pitchAxis.Normalize();
+
+            Vector3D qv = GeoPoint.ToCartesian(q, Astronomy.Constants.EarthRadius);
+            Vector3D lookAt = eDirVect + qv;
+            lookAt.Normalize();
+            eDirVect.Normalize();
+
+            ReferenceFrame kaFrame = new ReferenceFrame(eDirVect, pitchAxis, rollAxis);
+            Vector3D kaLookAt = kaFrame.ToThisFrame(lookAt);
+            //roll = Math.Asin(kaLookAt.Y);
+            //pitch = Math.Atan2(kaLookAt.Z, kaLookAt.X);
+            pitch = Math.Asin(kaLookAt.Z) + 0.0003814;
+            roll = Math.Atan2(kaLookAt.Y, kaLookAt.X);
+            return;
+            //RotateTransform3D transform = new RotateTransform3D(
+            //    new AxisAngleRotation3D(
+            //        rollAxis,
+            //        AstronomyMath.ToDegrees(roll)
+            //    )
+            //);
+            //Vector3D newPitchAxis = transform.Transform(pitchAxis);
+
+            //for (int i = 0; i < 10; ++i)
+            //{
+            //    Vector3D newLookAt = LookAt(p, roll, pitch);
+            //    //Vector3D kaNewLookAt = kaFrame.ToThisFrame(newLookAt);
+            //    //Vector3D diff = lookAt - kaNewLookAt;
+            //    //pitch -= 0.5 * diff.LengthSquared / (diff.X * Math.Sin(pitch) - diff.Z * Math.Cos(pitch) + 1e-1);
+            //    pitch += Vector3D.DotProduct(Vector3D.CrossProduct(newLookAt, lookAt), newPitchAxis) / Math.Cos(roll);
+            //}
+
+            //return;
+
+            //double leftSign = Math.Sign(Vector3D.DotProduct(lookAt, pitchAxis));
+            //double frontSign = Math.Sign(Vector3D.DotProduct(lookAt, rollAxis));
+            //Vector3D newRollAxis = Vector3D.CrossProduct(lookAt, pitchAxis);
+            //pitch = frontSign*Math.Acos(Math.Abs(Vector3D.DotProduct(newRollAxis, rollAxis)));
+            //Vector3D newEDirVect = Vector3D.CrossProduct(pitchAxis, newRollAxis);
+            //roll = leftSign * Math.Acos(Math.Abs(Vector3D.DotProduct(newEDirVect, lookAt)));
+            //return;
+            //roll = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(pitchAxis, lookAt));
+            //pitch = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(rollAxis, lookAt - Project(lookAt, pitchAxis)));
+            //return;
+            //double x = Vector3D.DotProduct(Vector3D.CrossProduct(rollAxis, pitchAxis), lookAt);
+            //double y = Vector3D.DotProduct(pitchAxis, lookAt);
+            //double z = Vector3D.DotProduct(rollAxis, lookAt);
+            //GeoPoint gp = GeoPoint.FromCartesian(x, y, z);
+            //roll = AstronomyMath.ToRad(gp.Longitude);
+            //pitch = AstronomyMath.ToRad(gp.Latitude);
+            //pitch += pitch > 0 ? -delta_fix : delta_fix - extra_fix_pos;
+            //roll = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(pitchAxis, lookAt - Project(lookAt, rollAxis)));
+            //pitch = AstronomyMath.ToRad(90 - Vector3D.AngleBetween(rollAxis, lookAt - Project(lookAt, pitchAxis)));
         }
 
         public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)

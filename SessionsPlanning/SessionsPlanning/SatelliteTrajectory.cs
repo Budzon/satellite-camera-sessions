@@ -624,8 +624,6 @@ namespace SatelliteTrajectory
             }
         }
 
-       
-
         private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
         {
             Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
@@ -772,8 +770,8 @@ namespace SatelliteTrajectory
         /// <summary>
         /// Подсчёт коэффициентов полиномов для коридоров.
         /// </summary>
-        /// <param name="fetcher"></param>
-        /// <param name="start"></param>
+        /// <param name="traj">Часть траектории, заведомо покрывающая время съемки</param>
+        /// <param name="startTime">Момент начала съемкиН</param>
         /// <param name="az">Азимут [рад]</param>
         /// <param name="dist">Длина [мъ</param>
         /// <param name="roll">Крен [рад]</param>
@@ -786,28 +784,157 @@ namespace SatelliteTrajectory
         /// <param name="S2"></param>
         /// <param name="S3"></param>
         /// <param name="duration">Длительность [с]</param>
-        public static void GetCoridorParams(DBTables.DataFetcher fetcher, DateTime start, double az, double dist, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration)
+        public static void GetCoridorParams(Trajectory traj, DateTime startTime, double az, double dist, double roll, double pitch, out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration)
         {
             dist = Math.Min(dist, 97e3);
-            Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
-            GeoPoint startPoint = Routines.IntersectOpticalAxisAndEarth(traj[0], roll, pitch);
+            //Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
+            SatelliteCoordinates satCoord = new SatelliteCoordinates(traj.GetPoint(startTime), roll, pitch);
+            GeoPoint startPoint = GeoPoint.FromCartesian(satCoord.MidViewPoint);
 
             getGeodesicLine(startPoint, az, dist, out B1, out B2, out L1, out L2);
-            getDistanceCoef(traj, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+            getDistanceCoef(traj, startTime, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
-        private static void getDistanceCoef(Trajectory traj, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
+        public static void GetCoridorParams(Trajectory traj, DateTime startTime, double start_roll, double start_pitch,
+            GeoPoint end,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist)
+        {
+            // Trajectory traj = fetcher.GetTrajectorySat(start, start.AddMinutes(1)); // должно хватить на коридор
+            SatelliteCoordinates satCoord = new SatelliteCoordinates(traj.GetPoint(startTime), start_roll, start_pitch);
+            GeoPoint startPoint = GeoPoint.FromCartesian(satCoord.MidViewPoint);
+            dist = GeoPoint.DistanceOverSurface(startPoint, end) * Astronomy.Constants.EarthRadius * 1e3;
+
+            getGeodesicLineEndPoints(startPoint, end, out B1, out B2, out L1, out L2);
+            getDistanceCoef(traj, startTime, dist, start_roll, start_pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
+        public static void GetCoridorParams(Trajectory traj, DateTime startTime, GeoPoint startPoint,
+            GeoPoint end,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double dist, out double roll, out double pitch)
+        {
+            //Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1)); // должно хватить на коридор
+            dist = GeoPoint.DistanceOverSurface(startPoint, end) * Astronomy.Constants.EarthRadius * 1e3;
+
+            Routines.GetRollPitch(traj.GetPoint(startTime), startPoint, out roll, out pitch);
+
+            getGeodesicLineEndPoints(startPoint, end, out B1, out B2, out L1, out L2);
+            getDistanceCoef(traj, startTime, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
+        public static void GetCustomCoridorParams(Trajectory traj, DateTime startTime, Curve curve,
+            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double roll, out double pitch)
+        {
+            //Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1));
+            Routines.GetRollPitch(traj.GetPoint(startTime), curve[0], out roll, out pitch);
+
+            // Find maximum curvature
+            int ind_curv = 0;
+            for (int i = 1; i < curve.Count - 1; ++i)
+            {
+                if (Math.Abs(curve.Curvatures[i]) > Math.Abs(curve.Curvatures[ind_curv]))
+                {
+                    ind_curv = i;
+                }
+            }
+            if (ind_curv == 0 || ind_curv == curve.Count - 1)
+                ind_curv = curve.Count / 2;
+
+            ///// Solve lat(s) = A + Bs + Css at s=0 and s=dist.
+            ///// Get a solution ABC0 and a kernel V, so that ABC = ABC0 + t * V
+            //Vector3D zero_dist = new Vector3D(1, 0, 0);
+            //Vector3D midl_dist = new Vector3D(1, dist / 2, dist * dist / 4);
+            //Vector3D full_dist = new Vector3D(1, dist, dist * dist);
+            //Vector3D ABC0 = Routines.SolveSLE2x3(zero_dist, full_dist, curve[0].Latitude, curve[curve.Count - 1].Latitude);
+            //Vector3D V = new Vector3D(0, dist, -1);//Vector3D.CrossProduct(zero_dist, full_dist);
+            ///// Let X = (1, x, x*x).
+            ///// G(x) is the latitude curve, 
+            ///// P2(x) = <V,X>/<V,mid_dist>,
+            ///// K(x) = G(x) - <ABC0,X> + <ABC0,mid_dist>P2(x)
+            ///// g = <K, P2> / <P2, P2> in L2 sense
+            ///// t = (g - <ABC0,mid_dist>) / <V, mid_dist>
+            //double KP2 = 0, P2P2 = 0;
+            //for (int i = 0; i < curve.Count - 1; ++i)
+            //{
+            //    Vector3D cur_dist = new Vector3D(1, dists[i], dists[i] * dists[i]);
+            //    double P2 = Vector3D.DotProduct(V, cur_dist) / Vector3D.DotProduct(V, midl_dist);
+            //    double K = curve[i].Latitude - Vector3D.DotProduct(ABC0, cur_dist);
+            //    KP2 += K * P2 * (dists[i + 1] - dists[i]);
+            //    P2P2 += P2 * P2 * (dists[i + 1] - dists[i]);
+            //}
+            ////double g = Vector3D.DotProduct(ABC0, midl_dist) + KP2 / P2P2;
+            //double t = (KP2 / P2P2) / Vector3D.DotProduct(V, midl_dist);
+            //Vector3D ABC = ABC0 + t * V;
+            //B1 = ABC.Y;
+            //B2 = ABC.Z;
+
+            // Solve for longitude
+            //ind_curv = curve.Count / 2;
+            GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
+            double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
+            double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
+            Vector Bm = new Vector(lats);
+            Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
+
+            // Find lats based on lons
+            Matrix A_for_preB = new Matrix(new double[][]
+            { 
+                new double[] { 1, lons[0], lons[0] * lons[0] },
+                new double[] { 1, lons[1], lons[1] * lons[1] },
+                new double[] { 1, lons[2], lons[2] * lons[2] }
+            });
+            Vector preB = Gauss.Solve(A_for_preB, Bm);
+
+            // Find lons based on dist
+            double d1 = curve.Meters * (double)ind_curv / (curve.Count - 1);
+            double d2 = curve.Meters;
+            Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
+            //Vector B = Gauss.Solve(A, Bm);
+            //B1 = B[0];
+            //B2 = B[1];
+            Vector L = Gauss.Solve(A, Lm);
+            L1 = L[0];
+            L2 = L[1];
+
+            // Plug to find B
+            B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
+            B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
+
+            // Find average curvature
+            //double curv = 0;
+            //for (int i = 1; i < curve.Count - 1; ++i)
+            //{
+            //    curv += (curve[i + 1].Latitude - 2 * curve[i].Latitude + curve[i - 1].Latitude)
+            //        / Math.Pow((dists[i + 1] - dists[i - 1]) / 2, 2);
+            //}
+            //curv /= (curve.Count - 2) * 2;
+
+            //B2 = curv / 2;
+            //B1 = (curve[curve.Count - 1].Latitude - curve[0].Latitude - B2 * dist * dist) / dist;
+
+
+            // Find latitude through longitude and curve lat = F(lon)
+            //double dlon1 = curve[1].Longitude - curve[0].Longitude;
+            //double dlon2 = curve[2].Longitude - curve[1].Longitude;
+            //double F_prime = (curve[1].Latitude - curve[0].Latitude) / dlon1;
+            //double F_2prime = (curve[2].Latitude - 2 * curve[1].Latitude + curve[0].Latitude) * 2 / (dlon1 + dlon2);
+            //B1 = F_prime * L1;
+            //B2 = F_prime * L2 + F_2prime * L1 * L1 / 2;
+            getDistanceCoef(traj, startTime, curve.Meters, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+        }
+
+        private static void getDistanceCoef(Trajectory traj, DateTime startTime, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
         {
             double WD = OptimalChain.RouteParams.WD(roll, pitch);
             List<double> dists = new List<double> { 0 };
             double dt = 1e-1;
 
-            TrajectoryPoint curTP = traj[0];
-            GeoPoint curP = Routines.IntersectOpticalAxisAndEarth(curTP, roll, pitch);
+            TrajectoryPoint curTP = traj.GetPoint(startTime);
+            SatelliteCoordinates satCoord = new SatelliteCoordinates(curTP, roll, pitch);
+            GeoPoint curP = GeoPoint.FromCartesian(satCoord.MidViewPoint);
             double startLat = AstronomyMath.ToRad(curP.Latitude);
             double startLon = AstronomyMath.ToRad(curP.Longitude);
 
-            while (dists[dists.Count - 1] < dist)
+            while (dists[dists.Count - 1] < dist * 1.1)
             {
                 double s = dists[dists.Count - 1];
                 double D = 1e3 * (curTP.Position - GeoPoint.ToCartesian(curP, Astronomy.Constants.EarthRadius)).ToVector().Length;
@@ -852,26 +979,30 @@ namespace SatelliteTrajectory
         public static void getGeodesicLineEndPoints(GeoPoint p, GeoPoint pEnd,
                                                     out double B1, out double B2, out double L1, out double L2)
         {
-            //Vector3D v0 = GeoPoint.ToCartesian(p, 1);
-            //Vector3D v00 = GeoPoint.ToCartesian(pEnd, 1);
-            //Arc geodesic = new Arc(v0, v00);
-            //Arc meridian = new Arc(v0, new Vector3D(0, 0, 1));
-            //double az = Math.Asin(Vector3D.DotProduct(v0, Vector3D.CrossProduct(meridian.TangentA, geodesic.TangentA)));
-            //double dist = geodesic.CentralAngle * Constants.EarthRadius * 1e3;
+            Vector3D v0 = GeoPoint.ToCartesian(p, 1);
+            Vector3D v00 = GeoPoint.ToCartesian(pEnd, 1);
+            Arc geodesic = new Arc(v0, v00);
+            Arc meridian = new Arc(v0, new Vector3D(0, 0, 1));
+            double sin = Vector3D.DotProduct(v0, Vector3D.CrossProduct(meridian.TangentA, geodesic.TangentA));
+            double cos = Vector3D.DotProduct(meridian.TangentA, geodesic.TangentA);
+            double az = Math.Atan2(sin, cos);
+            double dist = geodesic.CentralAngle * Astronomy.Constants.EarthRadius * 1e3;
 
-            double dB = AstronomyMath.ToRad(pEnd.Latitude - p.Latitude);
-            double dL = AstronomyMath.ToRad(pEnd.Longitude - p.Longitude);
-            double midB = AstronomyMath.ToRad(pEnd.Latitude + p.Latitude) / 2;
-            double mSin = Math.Sin(midB), mCos = Math.Cos(midB);
+            getGeodesicLine(p, -az, dist, out B1, out B2, out L1, out L2);
 
-            double P = dB * (1 - dL * dL / 12 - (dL * mSin) * (dL * mSin) / 24);
-            double Q = dL * mCos * (1 + dB * dB / 12 - (dL * mSin) * (dL * mSin) / 24);
-            double dist = Math.Sqrt(P * P + Q * Q) * Astronomy.Constants.EarthRadius * 1e3;
-            double mA = Math.Atan2(P, Q);
-            double dA = dL * mSin * (1 + (dB * dB + dL * dL) / 12 - (dL * mSin) * (dL * mSin) / 24);
-            double az = mA - dA / 2;
+            //double dB = AstronomyMath.ToRad(pEnd.Latitude - p.Latitude);
+            //double dL = AstronomyMath.ToRad(pEnd.Longitude - p.Longitude);
+            //double midB = AstronomyMath.ToRad(pEnd.Latitude + p.Latitude) / 2;
+            //double mSin = Math.Sin(midB), mCos = Math.Cos(midB);
 
-            getGeodesicLine(p, az, dist, out B1, out B2, out L1, out L2);
+            //double P = dB * (1 - dL * dL / 12 - (dL * mSin) * (dL * mSin) / 24);
+            //double Q = dL * mCos * (1 + dB * dB / 12 - (dL * mSin) * (dL * mSin) / 24);
+            //double dist = Math.Sqrt(P * P + Q * Q) * Astronomy.Constants.EarthRadius * 1e3;
+            //double mA = Math.Atan2(P, Q);
+            //double dA = dL * mSin * (1 + (dB * dB + dL * dL) / 12 - (dL * mSin) * (dL * mSin) / 24);
+            //double az = mA - dA / 2;
+
+            //getGeodesicLine(p, Math.PI / 2 - az, dist, out B1, out B2, out L1, out L2);
         }
 
         /// <summary>
@@ -913,27 +1044,32 @@ namespace SatelliteTrajectory
             //}
             //else
             //{
+            int steps = 2;
+            double step = dist / steps;
             var arr = Ode.RK547M(0,
              new Vector(AstronomyMath.ToRad(p.Latitude), AstronomyMath.ToRad(p.Longitude), az),
              (t, x) => new Vector(
                  Math.Cos(x[2]) / Astronomy.Constants.EarthRadius / 1e3,
                  Math.Sin(x[2]) / Math.Cos(x[0]) / Astronomy.Constants.EarthRadius / 1e3,
                  Math.Sin(x[2]) / Astronomy.Constants.EarthRadius / 1e3 * Math.Tan(x[0])),
-             new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, 0.5 * dist).ToArray();
+             new Options { RelativeTolerance = 1e-3 }).SolveFromToStep(0.0, dist, step).ToArray();
 
             var p0 = arr[0].X;
             var s0 = arr[0].T;
-
-            var p1 = arr[1].X;
-            var s1 = arr[1].T;
-
-            var p2 = arr[2].X;
-            var s2 = arr[2].T;
+            int mid = steps / 2;
+            var p1 = arr[mid].X;
+            var s1 = arr[mid].T;
+            int end = arr.Length - 1;
+            var p2 = arr[end].X;
+            var s2 = arr[end].T;
 
             Bm = new Vector(p1[0] - p0[0], p2[0] - p0[0]);
             Lm = new Vector(p1[1] - p0[1], p2[1] - p0[1]);
 
-            Matrix A = new Matrix(new double[][] { new double[] { 0.5 * dist, 0.25 * dist * dist }, new double[] { dist, dist * dist } });
+            double d1 = mid * step;
+            double d2 = end * step;
+
+            Matrix A = new Matrix(new double[][] { new double[] { d1, d1*d1 }, new double[] { d2, d2*d2 } });
             Vector B = Gauss.Solve(A, Bm);
             B1 = B[0];
             B2 = B[1];
@@ -973,6 +1109,7 @@ namespace SatelliteTrajectory
         private Vector3D topLeftViewPoint;
         private Vector3D botRightViewPoint;
         private Vector3D botLeftViewPoint;
+        private Vector3D midViewPoint;
         private Polygon viewPolygon;
         private bool knowViewPolygon;
 
@@ -1011,6 +1148,10 @@ namespace SatelliteTrajectory
         /// направление на объект съемки 
         /// </summary>
         public Vector3D ViewDir { get { return kaY; } }
+
+        public Vector3D RollAxis { get { return kaZ; } }
+
+        public Vector3D PitchAxis { get { return kaX; } }
 
         public void addRollPitchRot(double rollAngle, double pitchAngle)
         {
@@ -1105,6 +1246,21 @@ namespace SatelliteTrajectory
             }
         }
 
+        /// <summary>
+        /// получить центр полигона видимости
+        /// </summary>
+        public Vector3D MidViewPoint
+        {
+            get
+            {
+                if (!knowViewPolygon)
+                {
+                    calculateViewPolygon();
+                    knowViewPolygon = true;
+                }
+                return midViewPoint;
+            }
+        }
 
         public Polygon ViewPolygon
         {
@@ -1134,9 +1290,174 @@ namespace SatelliteTrajectory
             botRightViewPoint = Routines.SphereVectIntersect(botRight, trajPos.Position, Astronomy.Constants.EarthRadius);
             botLeftViewPoint = Routines.SphereVectIntersect(botLeft, trajPos.Position, Astronomy.Constants.EarthRadius);
             viewPolygon = new Polygon(new List<Vector3D>() { topRightViewPoint, topLeftViewPoint, botLeftViewPoint, botRightViewPoint });
+            midViewPoint = Routines.SphereVectIntersect(kaY, trajPos.Position, Astronomy.Constants.EarthRadius);
             knowViewPolygon = true;
         }
 
     }
-}
 
+    public class Curve
+    {
+        public GeoPoint[] Vertices { get; private set; }
+        public double[] Distances { get; private set; }
+        public double Meters { get; private set; }
+        public int Count { get { return Vertices.Length;} }
+        public double[] Derivatives { get; private set; }
+        public double[] SndDerivatives { get; private set; }
+        public double[] Curvatures { get; private set; }
+        public GeoPoint this[int index] { get{ return Vertices[index]; } }
+
+        public Curve(IEnumerable<GeoPoint> vertices)
+        {
+            Vertices = vertices.ToArray();
+            Distances = new double[Count];
+
+            Distances[0] = 0;
+            for (int i = 0; i < Count - 1; ++i)
+                Distances[i + 1] = GeoPoint.DistanceOverSurface(Vertices[i], Vertices[i + 1]) * Astronomy.Constants.EarthRadius * 1e3;
+
+            Meters = Distances.Sum();
+
+            Derivatives = new double[Count];
+            SndDerivatives = new double[Count];
+            Derivatives[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
+            for (int i = 1; i < Count - 1; ++i)
+            {
+                double dlon = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / 2;
+                SndDerivatives[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
+                    / (dlon * dlon);
+                Derivatives[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
+            }
+            Derivatives[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
+            SndDerivatives[0] = SndDerivatives[1];
+            SndDerivatives[Count - 1] = SndDerivatives[Count - 2];
+
+            Curvatures = new double[Count];
+            for (int i = 0; i < Count; ++i)
+                Curvatures[i] = SndDerivatives[i] / Math.Pow(1 + Derivatives[i] * Derivatives[i], 1.5);
+        }
+
+        public List<Curve> BreakIntoShorterParts(double maxDist)
+        {
+            List<Curve> parts = new List<Curve>();
+            double curDist = 0;
+            int begInd = 0, endInd = 0;
+            
+            while (endInd < Count - 1)
+            {
+                curDist += Distances[endInd];
+                if (curDist < maxDist)
+                {
+                    endInd++;
+                    continue;
+                }
+                else
+                {
+                    //parts.Add(new Curve(SubArray(this.Vertices, begInd, endInd - begInd + 1)));
+                    if (Count - endInd < 3)
+                        endInd = Count - 1;
+                    parts.Add(new Curve(Vertices.Where((gp, ind) => (ind >= begInd) && (ind <= endInd))));
+                    begInd = endInd;
+                    curDist = 0;
+                }
+            }
+            if (begInd != endInd)
+            {
+                parts.Add(new Curve(Vertices.Where((gp, ind) => (ind >= begInd) && (ind <= endInd))));
+            }
+
+            if (parts.Any(curve => curve.Count < 3))
+                throw new ArgumentException("Add more intermediate points to the curve.");
+            return parts;
+        }
+
+        public List<Curve> BreakByCurvature()
+        {
+            List<Curve> curves = new List<Curve>();
+            List<GeoPoint> curCurve = new List<GeoPoint>();
+            //List<GeoPoint> straight = new List<GeoPoint>() { Vertices[0] };
+
+            int lastSign = 1, curSign = 1;
+            for (int i = 1; i < Count - 1; ++i)
+            {
+                if (i == 1)
+                {
+                    lastSign = Math.Sign(Curvatures[1]);
+                    curCurve.Add(Vertices[0]);
+                    curCurve.Add(Vertices[1]);
+                    continue;
+                }
+                curSign = Math.Sign(Curvatures[i]);
+                if (curSign * lastSign == 1)
+                {
+                    curCurve.Add(Vertices[i]);
+                }
+                else
+                {
+                    lastSign *= -1;
+                    curves.Add(new Curve(curCurve));
+                    curCurve = new List<GeoPoint>() { Vertices[i - 1], Vertices[i] };
+                    //curCurve = new List<GeoPoint>() { Vertices[i] };
+                }
+            }
+            curCurve.Add(Vertices[Count - 1]);
+            curves.Add(new Curve(curCurve));
+
+            //double threshold = (0.75 * curvatures.Average() + 0.25 * curvatures.Min());
+
+            //for (int i = 1; i < vertices.Count - 1; ++i)
+            //{
+            //    if (Math.Abs(curvatures[i - 1]) < threshold)
+            //    {
+            //        if (curCurve.Count > 0)
+            //        {
+            //            if (curCurve.Count < 3)
+            //            {
+            //                straight.AddRange(curCurve);
+            //            }
+            //            else
+            //            {
+            //                curves.Add(curCurve);
+            //            }
+            //            curCurve = new List<GeoPoint>();
+            //            straight.Add(vertices[i - 1]);
+            //        }
+            //        straight.Add(vertices[i]);
+            //    }
+            //    else
+            //    {
+            //        if (straight.Count > 0)
+            //        {
+            //            if (straight.Count < 3)
+            //            {
+            //                curCurve.AddRange(straight);
+            //            }
+            //            else
+            //            {
+            //                curves.Add(straight);
+            //            }
+            //            straight = new List<GeoPoint>();
+            //            curCurve.Add(vertices[i - 1]);
+            //        }
+
+            //        curCurve.Add(vertices[i]);
+            //    }
+            //}
+            //curCurve.AddRange(straight);
+            //curCurve.Add(vertices[vertices.Count - 1]);
+            //curves.Add(curCurve);
+
+            return curves;
+        }
+
+        public List<Curve> BreakByCurvatureAndDistance(double maxDist)
+        {
+            var parts = BreakByCurvature();
+            List<Curve> res = new List<Curve>();
+            foreach (var part in parts)
+                res.AddRange(part.BreakIntoShorterParts(maxDist));
+            return res;
+        }
+    }
+
+}

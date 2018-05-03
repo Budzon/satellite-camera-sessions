@@ -85,15 +85,95 @@ namespace GeometryTest
         }
 
         [TestMethod]
+        public void TestPiecewiseCoridor()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+
+
+            // -------------------------------- СЕВЕРНОЕ ПОЛУШАРИЕ ПРИМЕР
+            // def f(x): return 81.8 + 0.1*np.cos(np.pi/10*x)
+            //lons = np.linspace(60, 90, 100)
+            //DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+            
+            //List<string> wkts;
+            //List<GeoPoint> satPos;
+            //List<GeoPoint> verts = new List<GeoPoint>() {
+            //    new GeoPoint(81.7, 90),
+            //    //new GeoPoint(81.8, 85),
+            //    new GeoPoint(81.9, 80),
+            //    //new GeoPoint(81.8, 75),
+            //    new GeoPoint(81.7, 70),
+            //    //new GeoPoint(81.8, 65),
+            //    new GeoPoint(81.9, 60)
+            //};    
+
+            /// --------------ЮЖНОЕ
+            /// DateTime dt1 = new DateTime(2019, 1, 1, 9, 58, 00);
+            /// def f(x):
+            ///    return -81.8 - 0.1*sp.sinc((x + 90) / 3)
+            ///# lons = np.linspace(-80, -100, 100)
+
+            /// ---------------- СЕВЕР КАВАЙНЫЙ ПРИМЕР
+            /// f(x) = 81.8 + 0.05*np.cos(np.pi/5*x)
+            /// f(x) = 81.8 + 2e-4*(x - 60) * (x - 90)**2
+            /// lons = np.linspace(60, 90, 200)
+            /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+
+            /// ---------------- СЕВЕР САМОПЕРЕСЕЧЕНИЯ
+            /// f(x) = 50 + 3*np.cos(np.pi/4*x) + 0.5 * np.sin(x * 3)
+            /// lons = np.linspace(-12, -8, 100)
+            /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+
+            // CUSTOM
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+            int steps = 100;
+            double lon0 = -13, lon1 = -7, dlon = lon1 - lon0, step = dlon / steps;
+            
+            double[] lons = new double[steps];
+            for (int i = 0; i < lons.Length; ++i)
+            {
+                lons[i] = lon0 + step * (lons.Length - i - 1);
+            }
+            double[] lats = new double[steps];
+            for (int i = 0; i < lats.Length; ++i)
+            {
+                lats[i] = 50 + 3 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+            }
+            //
+            List<string> wkts;
+            List<GeoPoint> satPos;
+            List<GeoPoint> curve = new List<GeoPoint>();
+            for (int i = 0; i < lons.Length; ++i)
+                curve.Add(new GeoPoint(lats[i], lons[i]));
+
+            Sessions.getPieciwiseCoridor(dt1, curve, manager, out wkts, out satPos, custom: true);
+            Console.WriteLine(wkts.Aggregate("[", (tail, wkt) => tail + ", '" + wkt + "'") + "]");
+            Console.WriteLine(satPos.Aggregate("[", (tail, pos) => tail + ", (" + pos + ")") + "]");
+        }
+
+        [TestMethod]
         public void TestCoridorPoly()
         {
             string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-            DateTime dt1 = new DateTime(2019, 2, 3);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
             string wkt;
-            double dur;
-            SatelliteSessions.Sessions.getCoridorPoly(dt1, AstronomyMath.ToRad(0), AstronomyMath.ToRad(0), 70e3, AstronomyMath.ToRad(-20), manager, out wkt, out dur);
+            double dur, dist = 50e3;
+            double roll = 0, pitch = 0, az = 0;
+            SatelliteSessions.Sessions.getCoridorPoly(
+                dt1,
+                AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
+                dist, AstronomyMath.ToRad(az),
+                manager, out wkt, out dur);
+            Console.WriteLine(wkt);
+            //SatelliteSessions.Sessions.getCoridorPoly(
+            //    dt1,
+            //    AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
+            //    new GeoPoint(6.32, 143.55),
+            //    manager, out wkt, out dur, out dist);
+            //Console.WriteLine(wkt);
         }
 
         [TestMethod]

@@ -72,6 +72,48 @@ namespace GeometryTest
         //}
 
         [TestMethod]
+        public void TestRollPitch()
+        {
+            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+
+            double[] rolls = new double[91];
+            for (int i = 0; i < rolls.Length; ++i)
+                rolls[i] = i - 45;
+            double[] pitches = new double[91];
+            for (int i = 0; i < pitches.Length; ++i)
+                pitches[i] = i - 45;
+
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 55, 30);
+            TrajectoryPoint tp = fetcher.GetPositionSat(dt1).Value;
+
+            double roll, pitch;
+            double roll1, pitch1;
+            bool ok = true, equal;
+            for (int i = 0; i < rolls.Length; ++i)
+            {
+                roll = AstronomyMath.ToRad(rolls[i]);
+                for (int j = 0; j < pitches.Length; ++j)
+                {
+                    pitch = AstronomyMath.ToRad(pitches[j]);
+                    //GeoPoint q = Routines.IntersectOpticalAxisAndEarth(tp, roll, pitch);
+                    SatelliteCoordinates satCoord = new SatelliteCoordinates(tp, roll, pitch);
+                    GeoPoint q = GeoPoint.FromCartesian(satCoord.MidViewPoint);
+                    Routines.GetRollPitch(tp, q, out roll1, out pitch1);
+                    equal = Comparison.IsZero(Math.Pow(roll - roll1, 3)) && Comparison.IsZero(Math.Pow(pitch - pitch1, 3));
+                    ok = ok && equal;
+                    if (!equal)
+                    {
+                        Console.WriteLine(i + " " + j + " : " + (roll-roll1) + " " + (pitch-pitch1));
+                    }
+                }
+            }
+
+            Assert.IsTrue(ok);
+        }
+
+        [TestMethod]
         public void TestSolveSLE2x3_XY()
         {
             double b1 = 1, b2 = 1;
