@@ -559,7 +559,7 @@ namespace ViewModel
 
         void testbd()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
 
@@ -598,7 +598,7 @@ namespace ViewModel
 
         public void testGetSoenPolygon()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
@@ -616,7 +616,7 @@ namespace ViewModel
 
         public void sdfsdf()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
             DateTime dtx = DateTime.Parse("01.01.2019 0:57:00");
@@ -704,59 +704,169 @@ namespace ViewModel
             captureLanes.Add(strip15);
         }
 
+
+
+
+        /// <summary>
+        /// генерируем случайный полигон
+        /// </summary>
+        /// <param name="minVertNumb"> минимальное колво вершин </param>
+        /// <param name="maxVertNumb"> максимальное колво вершин </param>
+        /// <param name="minBoundSize"> минимальный размер полигона (коробочный) в градусах</param>
+        /// <param name="maxBoundSize"> максимальный размер полигона (коробочный) в градусах</param>
+        /// <returns>полигон</returns>
+        public Polygon getRandomPolygon(Random rand, int minVertNumb, int maxVertNumb, double minBoundSize, double maxBoundSize)
+        {
+            double lat0 = (double)rand.Next(-90, 90);
+            double lon0 = (double)rand.Next(-179, 180);
+
+            double a = (double)rand.Next((int)(minBoundSize) * 10, (int)(maxBoundSize * 10)) / 10;
+            double b = (double)rand.Next((int)(minBoundSize) * 10, (int)(maxBoundSize * 10)) / 10;
+
+            int vertNum = rand.Next(minVertNumb, maxVertNumb);
+
+            SortedDictionary<double, Vector3D> verts = new SortedDictionary<double, Vector3D>();
+
+            double minDist = AstronomyMath.ToRad(0.1);// Math.Min(Math.PI / 10, Math.PI * 2 / vertNum); // не дадим генерировать точки слишком близко к друг другу.
+
+            for (int i = 0; i < vertNum; i++)
+            {
+            Begin:
+                double t = (double)(rand.Next(0, (int)(2 * Math.PI * 100))) / 100;
+                double lat = lat0 + a * Math.Cos(t);
+                double lon = lon0 + b * Math.Sin(t);
+                Vector3D vert = GeoPoint.ToCartesian(new GeoPoint(lat, lon), 1);
+                foreach (var item in verts) // проверим, нету ли слишком близкой точки
+                {
+                    if (GeoPoint.DistanceOverSurface(item.Value, vert) < minDist)
+                        goto Begin; // да, это goto.
+                }
+                verts[t] = vert;
+            }
+
+            return new Polygon(verts.Values.ToList<Vector3D>());
+        }
+
+
+
+
+        void tedfdfst()
+        {
+            Vector3D sun = new Vector3D(-125889950.019308,50789227.1698602,-56664005.2550829);
+            List<Vector3D> Apexes = new List<Vector3D>()
+            {
+                 new Vector3D(0.0922945601729868,0.0588161960823579,0.0217377326659687),
+                 new Vector3D(0,0,0),
+                 new Vector3D(-0.0923087184673386,-0.0588331312144336,-0.0217268204343814),
+                 new Vector3D(0,0,0)
+            };
+
+
+            List<Vector3D> Verts = new List<Vector3D>()
+            {
+                 new Vector3D(-0.462356449436716,0.78441115091137,0.413431566272067),
+                 new Vector3D(-0.463011646780311,0.789028386938173,0.403799974679951),
+                 new Vector3D(-0.647633788493741,0.671395998770318,0.360274740769391),
+                 new Vector3D(-0.646940323001679,0.66674411493871,0.370027706623543)
+            };
+            Polygon sector = new Polygon(Verts,Apexes);
+            var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
+            //Console.WriteLine(sector.ToWtk());
+
+
+            foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
+                foreach (Polygon piece in p.BreakIntoLobes())
+                    Console.WriteLine(piece.ToWtk());
+        }
+
+
         public void test_isRequestFeasible()
         {
-            for (int i = 0; i < 100; i++)
+            //tedfdfst();
+            //return;
+
+            for (int testi = 0; testi < 2; testi++)
             {
-                SphericalGeom.Polygon sector = new Polygon(new List<Vector3D>() {
-                new Vector3D(0.377573833490957, 0.922761252468241, 0.0771341118195231),
-                new Vector3D(0.379851145710918, 0.922644879310016, 0.0666298265426828 ),
-                new Vector3D(0.169270319441646, 0.985353928121185, 0.0206202641174651 ),
-                new Vector3D(0.16701882667324, 0.985461134194833, 0.0311619082876383 )
-            
-                });
 
-                Vector3D sun = new Vector3D(-41490325.0463309, 129269251.466637, -56627681.0492869);
+                List<Polygon> polygons = new List<Polygon>();
+                Random rand = new Random((int)DateTime.Now.Ticks);
+                for (int i = 0; i < 20; i++)
+                {
+                    Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
+                    polygons.Add(randpol);
+                }
 
-                var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
+                string cs = System.IO.File.ReadLines("DBstring.conf").First();
+                DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-                Console.WriteLine("LitAndNot.Item1.Count = {0}, pol = {1}", LitAndNot.Item1.Count,  LitAndNot.Item1[0].ToWtk()); 
-                
+                DateTime dt1 = new DateTime(2019, 1, 5);
+                DateTime dt2 = new DateTime(2019, 1, 6);
+
+                DataFetcher fetcher = new DataFetcher(manager);
+                Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+                if (trajectory.Count == 0)
+                    throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+
+
+                foreach (var pol in polygons)
+                {
+                    //try
+                    //{
+                    RequestParams reqparams = new RequestParams(0, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
+
+                    double cover;
+                    List<CaptureConf> output;
+                    Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
+                    //}
+                    //catch (Exception ex)
+                    //{
+                    //    List<string> lines = new List<string>();
+                    //    Console.WriteLine("Ошибка обнаружена на следующем полигонt:");
+                    //    Console.WriteLine(pol.ToWtk());
+                    //    lines.Add(pol.ToWtk());                        
+                    //    System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
+                    //    throw ex;
+                    //}
+
+                }
             }
-           //// if (curRequest == null)
-               // return;
+
+
+           ////// if (curRequest == null)
+           //    // return;
        
-            ///12.03.2015
-            //  по 
-            //14.03.2015
+           // ///12.03.2015
+           // //  по 
+           // //14.03.2015
 
-            DateTime dt1 = new DateTime(2019, 1, 5);
-            DateTime dt2 = new DateTime(2019, 1, 6);
+           // DateTime dt1 = new DateTime(2019, 1, 5);
+           // DateTime dt2 = new DateTime(2019, 1, 6);
 
-            //DateTime dt1 = new DateTime(2019, 1, 4);
-            //DateTime dt2 = new DateTime(2025, 3, 14);
+           // //DateTime dt1 = new DateTime(2019, 1, 4);
+           // //DateTime dt2 = new DateTime(2025, 3, 14);
 
 
-            //Polygon pol = new Polygon("POLYGON ((-126.734018422276 -22.0749545024952,-130.817004196723 -24.9951369749654,-127.160780596832 -29.8248985732365,-120.731159883255 -28.8811236147716,-119.107074097174 -26.7711150394608,-119.002845016367 -25.8737550177619,-119.34506718841 -24.6296253187895,-119.70825315869 -24.0675537068877,-122.608344032093 -22.2398046264519,-126.734018422276 -22.0749545024952))");
+           // //Polygon pol = new Polygon("POLYGON ((-126.734018422276 -22.0749545024952,-130.817004196723 -24.9951369749654,-127.160780596832 -29.8248985732365,-120.731159883255 -28.8811236147716,-119.107074097174 -26.7711150394608,-119.002845016367 -25.8737550177619,-119.34506718841 -24.6296253187895,-119.70825315869 -24.0675537068877,-122.608344032093 -22.2398046264519,-126.734018422276 -22.0749545024952))");
 
-            RequestParams reqparams = new RequestParams(0, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, 
-                "POLYGON ((-151.392459628474 45.4924697572034,-139.546126267888 46.6789117628991,-139.7918444387 47.7999583568984,-140.750872347367 48.592427667584,-141.382703729286 48.900382352261,-142.276361509347 49.2130496481828,-151.392459628474 45.4924697572034))"
-                );
+           // RequestParams reqparams = new RequestParams(0, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, 
+           //     "POLYGON ((-151.392459628474 45.4924697572034,-139.546126267888 46.6789117628991,-139.7918444387 47.7999583568984,-140.750872347367 48.592427667584,-141.382703729286 48.900382352261,-142.276361509347 49.2130496481828,-151.392459628474 45.4924697572034))"
+           //     );
                
             
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+           //                 string cs = System.IO.File.ReadLines("DBstring.conf").First();
+           // DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
  
-            double isfes;
-            List<CaptureConf> possibleConfs;
-            Sessions.isRequestFeasible(reqparams, dt1, dt2, managerDB, out isfes, out possibleConfs);
-            Console.WriteLine(isfes);
+           // double isfes;
+           // List<CaptureConf> possibleConfs;
+           // Sessions.isRequestFeasible(reqparams, dt1, dt2, managerDB, out isfes, out possibleConfs);
+           // Console.WriteLine(isfes);
         }
 
         public void testPMI()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
 
@@ -923,7 +1033,7 @@ namespace ViewModel
         public void test_PlotTrajectoryAndSeveralViewPolygons()
         {
             var allPols = new List<Polygon>();
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
             double rollAngle = AstronomyMath.ToRad(45);
@@ -1021,7 +1131,7 @@ namespace ViewModel
 
         public void testTrajectoryInterpolation()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
             DateTime dt1 = new DateTime(2019, 2, 1, 0, 00, 00);
@@ -1057,7 +1167,7 @@ namespace ViewModel
             DateTime dtMid = DateTime.Parse("01.02.2019 00:05:00");
             DateTime dt2 = DateTime.Parse("01.02.2019 00:10:00");
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
             DataFetcher fetcher = new DataFetcher(managerDB);
@@ -1126,7 +1236,7 @@ namespace ViewModel
         {
 
             var allPols = new List<Polygon>();
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
             double rollAngle = AstronomyMath.ToRad(45);
@@ -1172,7 +1282,7 @@ namespace ViewModel
         public void testGetSegmentStrip()
         {
             var allPols = new List<Polygon>();
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
             double rollAngle = AstronomyMath.ToRad(45);
@@ -1223,7 +1333,7 @@ namespace ViewModel
             //test_plotTrajectoryAndSeveralViewPolygons();
                     
             var allPols = new List<Polygon>();
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
             double rollAngle = -AstronomyMath.ToRad(45);
@@ -1286,7 +1396,7 @@ namespace ViewModel
             DateTime dt1 = DateTime.Parse("01.02.2019 00:00:00");
             DateTime dt2 = DateTime.Parse("01.02.2019 00:59:00");
 
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
 
@@ -1391,7 +1501,7 @@ namespace ViewModel
             DateTime dt1 = DateTime.Parse("01.02.2019 00:00:00");
             DateTime dt2 = DateTime.Parse("01.02.2019 00:59:00");
             
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DataFetcher fetcher = new DataFetcher(managerDB);
 
@@ -1425,8 +1535,13 @@ namespace ViewModel
            
            // List<RequestParams> lst = wktl.Select(str =>   new RequestParams(0, 1, dt1, dt2, 99999, 1, 99999, 9999, str)).ToList();
 
+            DateTime start = DateTime.Now;
 
             var res = Sessions.getCaptureConfArray(lst, dt1, dt2, managerDB, new List<TimePeriod>(), new List<TimePeriod>());
+
+            DateTime end = DateTime.Now;
+            Console.WriteLine("total time = " + (end - start).TotalSeconds.ToString());
+
 
             Trajectory traj = fetcher.GetTrajectorySat(dt1, dt2);
 
@@ -1448,6 +1563,8 @@ namespace ViewModel
         }
 
 
+        
+
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
@@ -1459,7 +1576,7 @@ namespace ViewModel
 
             DateTime dt1 = new DateTime(2019, 1, 6);
             DateTime dt2 = new DateTime(2019, 1, 8);
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+                            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
              //for (int i = 0; i < 10; i++)

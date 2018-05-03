@@ -74,7 +74,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestRollPitch()
         {
-            string cs = "Server=188.44.42.188;Database=MCCDB;user=CuksTest;password=qwer1234QWER";
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
 
@@ -105,7 +105,7 @@ namespace GeometryTest
                     ok = ok && equal;
                     if (!equal)
                     {
-                        Console.WriteLine(i + " " + j + " : " + (roll-roll1) + " " + (pitch-pitch1));
+                        Console.WriteLine(i + " " + j + " : " + (roll - roll1) + " " + (pitch - pitch1));
                     }
                 }
             }
@@ -192,7 +192,7 @@ namespace GeometryTest
         {
             bool sameMaxInside = Math.Abs(Routines.FindMax(Math.Sin, 0, Math.PI) - 1) < 1e-3;
             bool sameMaxBorder = Math.Abs(Routines.FindMax(Math.Cos, 0, Math.PI) - 1) < 1e-3;
-            bool sameMinInside = Math.Abs(Routines.FindMin(Math.Sin, -Math.PI, 0) + 1)< 1e-3;
+            bool sameMinInside = Math.Abs(Routines.FindMin(Math.Sin, -Math.PI, 0) + 1) < 1e-3;
             bool sameMinBorder = Math.Abs(Routines.FindMin(Math.Cos, 0, Math.PI) + 1) < 1e-3;
             Assert.IsTrue(sameMaxBorder && sameMaxInside && sameMinBorder && sameMinInside);
         }
@@ -253,7 +253,7 @@ namespace GeometryTest
         public void TestSliceIntoSquaresRect()
         {
             GeoRect rect = new GeoRect(-10, 10, -10, 10);
-            
+
             // No crop
             List<GeoRect> squares = Routines.SliceIntoSquares(rect, 10);
             bool noCrop = (squares.Count == 4)
@@ -292,7 +292,7 @@ namespace GeometryTest
             Polygon p = new Polygon(new List<Vector3D> { a, b, c, d });
 
             List<Polygon> squares = Routines.SliceIntoSquares(p,
-                a, Astronomy.AstronomyMath.ToDegrees(Math.Acos(Math.Sqrt(2.0/3))), 35.3);
+                a, Astronomy.AstronomyMath.ToDegrees(Math.Acos(Math.Sqrt(2.0 / 3))), 35.3);
             Assert.IsTrue(squares.Count == 4);
         }
     }
