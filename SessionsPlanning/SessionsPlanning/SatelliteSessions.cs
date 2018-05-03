@@ -782,7 +782,7 @@ namespace SatelliteSessions
 
             Trajectory traj = getMaxTrajectory(managerDB, dateTime);
 
-            var curves = new Curve(vertices).BreakByCurvatureAndDistance(2e5);
+            var curves = new Curve(vertices).BreakByCurvatureAndDistance(1.5e5);
             if (!custom)
             {
                 for (int i = 0; i < curves.Count; ++i)

@@ -928,7 +928,7 @@ namespace SatelliteTrajectory
             double startLat = AstronomyMath.ToRad(curP.Latitude);
             double startLon = AstronomyMath.ToRad(curP.Longitude);
 
-            while (dists[dists.Count - 1] < dist + 10)
+            while (dists[dists.Count - 1] < dist * 1.1)
             {
                 double s = dists[dists.Count - 1];
                 double D = 1e3 * (curTP.Position - GeoPoint.ToCartesian(curP, Astronomy.Constants.EarthRadius)).ToVector().Length;

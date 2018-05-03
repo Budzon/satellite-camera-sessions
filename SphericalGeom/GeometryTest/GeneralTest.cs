@@ -126,9 +126,9 @@ namespace GeometryTest
             /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
 
             // CUSTOM
-            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
             int steps = 100;
-            double lon0 = 60, lon1 = 90, dlon = lon1 - lon0, step = dlon / steps;
+            double lon0 = -13, lon1 = -7, dlon = lon1 - lon0, step = dlon / steps;
             
             double[] lons = new double[steps];
             for (int i = 0; i < lons.Length; ++i)
@@ -138,7 +138,7 @@ namespace GeometryTest
             double[] lats = new double[steps];
             for (int i = 0; i < lats.Length; ++i)
             {
-                lats[i] = 81.8 + 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
+                lats[i] = 50 + 3 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
             }
             //
             List<string> wkts;
