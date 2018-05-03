@@ -1372,7 +1372,7 @@ namespace SatelliteSessions
             };
             return bolvanka;
         }
-    }
+    } */
 
     public class wktPolygonLit
     {
