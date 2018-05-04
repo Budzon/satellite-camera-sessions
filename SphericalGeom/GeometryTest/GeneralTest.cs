@@ -28,7 +28,7 @@ namespace GeometryTest
 
             for (int i = 0; i < 50; i++)
             {
-                List<TimePeriod> shadowPeriods;
+                List<Tuple<DateTime, DateTime>> shadowPeriods;
                 List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
                 Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
 
@@ -37,7 +37,7 @@ namespace GeometryTest
                     foreach (var loop_wkts in partsLitAndNot)
                         Console.WriteLine(Polygon.getMultipolFromWkts(loop_wkts.Item2.Select(wktlit => wktlit.wktPolygon).ToList()));
                 foreach (var period in shadowPeriods)
-                    Console.WriteLine(period.dateFrom + " " + period.dateTo);
+                    Console.WriteLine(period.Item1 + " " + period.Item2);
             }
         }
 
@@ -56,11 +56,11 @@ namespace GeometryTest
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
             DateTime to = from.AddSeconds(5);
-
+            
             int k = 0;
-            foreach (string ch in chan)
-                foreach (int r in regime)
-                    foreach (int s in shooting)
+            foreach(string ch in chan)
+                foreach(int r in regime)
+                    foreach(int s in shooting)
                         foreach (int c in compression)
                         {
                             conf = new StaticConf(k, from, to, 0, 0, 0, null, "", c, 0.3, r, ch, s);
@@ -95,7 +95,7 @@ namespace GeometryTest
             // def f(x): return 81.8 + 0.1*np.cos(np.pi/10*x)
             //lons = np.linspace(60, 90, 100)
             //DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
-
+            
             //List<string> wkts;
             //List<GeoPoint> satPos;
             //List<GeoPoint> verts = new List<GeoPoint>() {
@@ -126,10 +126,10 @@ namespace GeometryTest
             /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
 
             // CUSTOM
-            DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
             int steps = 100;
-            double lon0 = -13, lon1 = -7, dlon = lon1 - lon0, step = dlon / steps;
-
+            double lon0 = 60, lon1 = 90, dlon = lon1 - lon0, step = dlon / steps;
+            
             double[] lons = new double[steps];
             for (int i = 0; i < lons.Length; ++i)
             {
@@ -138,7 +138,7 @@ namespace GeometryTest
             double[] lats = new double[steps];
             for (int i = 0; i < lats.Length; ++i)
             {
-                lats[i] = 50 + 3 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+                lats[i] = 81.8 + 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
             }
             //
             List<string> wkts;
@@ -179,16 +179,16 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 10; testi++)
-            {
+            for (int testi = 0; testi < 20; testi++)
+           {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 20; i++)
+                for (int i = 0; i < 30; i++)
                 {
                     Polygon randpol = getRandomPolygon(rand, 3, 8, 2, 8);
                     polygons.Add(randpol);
                 }
-
+                
                 string cs = System.IO.File.ReadLines("DBstring.conf").First();
                 DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
@@ -196,7 +196,7 @@ namespace GeometryTest
                 DateTime dt2 = new DateTime(2019, 1, 8);
 
                 var inactivityRanges = new List<TimePeriod>();
-                inactivityRanges.Add(new TimePeriod(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6)));
+                inactivityRanges.Add(new TimePeriod(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
 
 
                 DataFetcher fetcher = new DataFetcher(manager);
@@ -211,7 +211,7 @@ namespace GeometryTest
                     List<RequestParams> requests = new List<RequestParams>();
                     foreach (var pol in polygons)
                     {
-                        RequestParams reqparams = new RequestParams(1, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
+                        RequestParams reqparams =  new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
                         requests.Add(reqparams);
                         id++;
                     }
@@ -239,7 +239,7 @@ namespace GeometryTest
         {
             List<Polygon> polygons = new List<Polygon>();
             Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 2; i++) 
             {
                 Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
                 polygons.Add(randpol);
@@ -249,7 +249,7 @@ namespace GeometryTest
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
             DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 4, 20, 0, 0);
+            DateTime dt2 = new DateTime(2019, 1, 4, 20,0,0);
 
             DataFetcher fetcher = new DataFetcher(manager);
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
@@ -263,16 +263,17 @@ namespace GeometryTest
                 List<RequestParams> requests = new List<RequestParams>();
                 foreach (var pol in polygons)
                 {
-                    RequestParams reqparams = new RequestParams(1, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk(), _compression: 10);
+                    RequestParams reqparams = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
                     requests.Add(reqparams);
                     id++;
                 }
-                //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
+              //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
 
                 Order order = new Order();
                 order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
                 order.intersection_coeff = 0.1;
-                order.request = new RequestParams(1, 1, new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+                order.request = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+                 
                 List<Order> orders = new List<Order>() { order };
 
                 CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
@@ -305,14 +306,14 @@ namespace GeometryTest
                 routesToDelete.Add(routempzToDelete);
 
                 List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-                // silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
+               // silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 9)));
                 //silenceRanges.Add(Tuple.Create(new DateTime(2019, 1, 6), new DateTime(2019, 1, 6)));
-
+                 
 
                 var inactivityRanges = new List<Tuple<DateTime, DateTime>>();
-                // inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
+               // inactivityRanges.Add(Tuple.Create(new DateTime(2019, 1, 5), new DateTime(2019, 1, 6))); 
 
-
+                 
                 List<MPZ> mpzArray;
                 List<CommunicationSession> sessions;
 
@@ -322,7 +323,7 @@ namespace GeometryTest
                                                      , routesToDrop
                                                      , routesToDelete
                                                       , manager
-                                                      , 0
+                                                      ,0
                                                      , out mpzArray
                                                      , out sessions);
             }
@@ -341,7 +342,7 @@ namespace GeometryTest
             }
 
         }
-
+         
 
 
         [TestMethod]
@@ -353,7 +354,7 @@ namespace GeometryTest
 
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 20; i++)
+                for (int i = 0; i < 10; i++)
                 {
                     Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
                     polygons.Add(randpol);
@@ -374,49 +375,49 @@ namespace GeometryTest
 
                 foreach (var pol in polygons)
                 {
-                    //try
-                    //{
-                    RequestParams reqparams = new RequestParams(0, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
-
-                    double cover;
-                    List<CaptureConf> output;
-                    Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
-                    //}
-                    //catch (Exception ex)
-                    //{
-                    //    List<string> lines = new List<string>();
-                    //    Console.WriteLine("Ошибка обнаружена на следующем полигонt:");
-                    //    Console.WriteLine(pol.ToWtk());
-                    //    lines.Add(pol.ToWtk());                        
-                    //    System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
-                    //    throw ex;
-                    //}
-
+                    try
+                    {
+                        RequestParams reqparams = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
+                      
+                        double cover;
+                        List<CaptureConf> output;
+                        Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
+                    }
+                    catch (Exception ex)
+                    {
+                        List<string> lines = new List<string>();
+                        Console.WriteLine("Ошибка обнаружена на следующем полигонt:");
+                        Console.WriteLine(pol.ToWtk());
+                        lines.Add(pol.ToWtk());                        
+                        System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
+                        throw ex;
+                    }
+                    
                 }
             }
 
         }
 
+           
 
 
 
+            //    DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
 
-        //    DBTables.DataFetcher fetcher = new DBTables.DataFetcher(manager);
+            //    DateTime from = new DateTime(2019, 01, 01, 1, 0, 0);
+            //    DateTime to = new DateTime(2019, 01, 05, 12, 0, 0);
 
-        //    DateTime from = new DateTime(2019, 01, 01, 1, 0, 0);
-        //    DateTime to = new DateTime(2019, 01, 05, 12, 0, 0);
-
-        //    //var sun = fetcher.GetPositionSun(from, to);
-        //    //sun.Clear();
-        //    //var sat = fetcher.GetPositionSat(from, to);
-        //    //sat.Clear();
-        //    //var traj = fetcher.GetTrajectorySat(from, to);
-        //    var viewLane = fetcher.GetViewLane(from, to);
-        //    //var orbit = fetcher.GetDataBetweenDates(OrbitTable.Name, OrbitTable.TimeEquator, from, to);
-        //    //List<Tuple<int, DateTime>> orbit_turns = orbit.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
-        //    //var turns = fetcher.GetViewLaneBrokenIntoTurns(from, to);
-        //
-
+            //    //var sun = fetcher.GetPositionSun(from, to);
+            //    //sun.Clear();
+            //    //var sat = fetcher.GetPositionSat(from, to);
+            //    //sat.Clear();
+            //    //var traj = fetcher.GetTrajectorySat(from, to);
+            //    var viewLane = fetcher.GetViewLane(from, to);
+            //    //var orbit = fetcher.GetDataBetweenDates(OrbitTable.Name, OrbitTable.TimeEquator, from, to);
+            //    //List<Tuple<int, DateTime>> orbit_turns = orbit.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
+            //    //var turns = fetcher.GetViewLaneBrokenIntoTurns(from, to);
+            //
+      
 
 
         /// <summary>

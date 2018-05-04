@@ -230,9 +230,10 @@ namespace SatelliteSessions
                                 confs[i].converToStereoTriplet(pointFrom, capturePeriods);
                             }
                         }
-
                         groupConfs.AddRange(confs);
                     }
+
+
                     laneCaptureConfs.AddRange(CaptureConf.compressCConfArray(groupConfs));
                 }
 
@@ -435,8 +436,7 @@ namespace SatelliteSessions
             inactivityDropCaptureIntervals.AddRange(inactivityTimePeriods);
             inactivityDropCaptureIntervals = TimePeriod.compressTimePeriods(inactivityDropCaptureIntervals);
             List<TimePeriod> freeRangesForDelete = TimePeriod.getFreeIntervals(inactivityDropCaptureIntervals, timeFrom, timeTo);
-
-
+            
             maxRouteDropId = dropMpzParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
 
@@ -455,8 +455,7 @@ namespace SatelliteSessions
                 List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, curMaxMpzNum);
                 deleteMpzParams.AddRange(curMPZ);
             }
-
-
+            
             List<MPZParams> allMPZParams = new List<MPZParams>();
             //            allMPZParams.AddRange(captureMPZParams);
             allMPZParams.AddRange(dropMpzParams);
