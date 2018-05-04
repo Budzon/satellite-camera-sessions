@@ -525,12 +525,12 @@ namespace SatelliteSessions
                         Parameters.start, Parameters.coridorAzimuth, Parameters.coridorLength,
                         Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
                         out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
-                    Polinomial_Coeff = new PolinomCoef { L1 = l1, L2 = l2, B1 = b1, B2 = b2, S1 = s1, S2 = s2, S3 = s3, WD_K = 0 };
+                    Polinomial_Coeff = new PolinomCoef(l1, l2, b1, b2, s1, s2, s3, 0);
                     Parameters.duration = duration * 1e3;
                     Parameters.end = Parameters.start.AddMilliseconds(Parameters.duration);
                 }
                 else
-                    Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };
+                    Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0, 0);
             }
 
             /* ---------- N_PK -----------*/

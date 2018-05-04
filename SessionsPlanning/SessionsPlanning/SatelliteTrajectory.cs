@@ -922,14 +922,14 @@ namespace SatelliteTrajectory
             double S1, S2, S3, duration;
             getDistanceCoef(traj, startTime, curve.Meters, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
 
-            coridorParams = new CoridorParams
-            {
-                StartTime = startTime,
-                EndTime = startTime.AddSeconds(duration),
-                StartRoll = roll,
-                StartPitch = pitch,
-                CoridorCoefs = new PolinomCoef { B1 = B1, B2 = B2, L1 = L1, L2 = L2, S1 = S1, S2 = S2, S3 = S3, WD_K = 0 }
-            };
+            coridorParams = new CoridorParams(L1, L2, B1, B2, S1, S2, S3, 0, roll, pitch, startTime, startTime.AddSeconds(duration));
+            //{
+            //    StartTime = startTime,
+            //    EndTime = startTime.AddSeconds(duration),
+            //    StartRoll = roll,
+            //    StartPitch = pitch,
+            //    CoridorCoefs = new PolinomCoef { B1 = B1, B2 = B2, L1 = L1, L2 = L2, S1 = S1, S2 = S2, S3 = S3, WD_K = 0 }
+            //};
         }
 
         private static void getDistanceCoef(Trajectory traj, DateTime startTime, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
