@@ -162,11 +162,11 @@ namespace GeometryTest
             string wkt;
             double dur, dist = 50e3;
             double roll = 0, pitch = 0, az = 0;
-            SatelliteSessions.Sessions.getCoridorPoly(
-                dt1,
-                AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
-                dist, AstronomyMath.ToRad(az),
-                manager, out wkt, out dur);
+            //SatelliteSessions.Sessions.getCoridorPoly(
+            //    dt1,
+            //    AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
+            //    dist, AstronomyMath.ToRad(az),
+            //    manager, out wkt, out dur);
             Console.WriteLine(wkt);
             //SatelliteSessions.Sessions.getCoridorPoly(
             //    dt1,

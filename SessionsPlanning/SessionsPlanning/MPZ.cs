@@ -1137,19 +1137,6 @@ namespace SatelliteSessions
         public int TNPos { get; set; }
     }
 
-    public class PolinomCoef
-    {
-        public double L1 { get; set; }
-        public double L2 { get; set; }
-        public double B1 { get; set; }
-        public double B2 { get; set; }
-        public double WD_K { get; set; }
-        public double S1 { get; set; }
-        public double S2 { get; set; }
-        public double S3 { get; set; }
-    }
-
-
     public static class ByteRoutines
     {
         public static int ToInt(byte[] data)

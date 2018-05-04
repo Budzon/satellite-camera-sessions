@@ -821,10 +821,10 @@ namespace SatelliteTrajectory
             getDistanceCoef(traj, startTime, dist, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
         }
 
-        public static void GetCustomCoridorParams(Trajectory traj, DateTime startTime, Curve curve,
-            out double B1, out double B2, out double L1, out double L2, out double S1, out double S2, out double S3, out double duration, out double roll, out double pitch)
+        public static void GetCustomCoridorParams(Trajectory traj, DateTime startTime, Curve curve, out CoridorParams coridorParams)
         {
             //Trajectory traj = fetcher.GetTrajectorySat(startTime, startTime.AddMinutes(1));
+            double roll, pitch;
             Routines.GetRollPitch(traj.GetPoint(startTime), curve[0], out roll, out pitch);
 
             // Find maximum curvature
@@ -892,12 +892,12 @@ namespace SatelliteTrajectory
             //B1 = B[0];
             //B2 = B[1];
             Vector L = Gauss.Solve(A, Lm);
-            L1 = L[0];
-            L2 = L[1];
+            double L1 = L[0];
+            double L2 = L[1];
 
             // Plug to find B
-            B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
-            B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
+            double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
+            double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
 
             // Find average curvature
             //double curv = 0;
@@ -919,7 +919,17 @@ namespace SatelliteTrajectory
             //double F_2prime = (curve[2].Latitude - 2 * curve[1].Latitude + curve[0].Latitude) * 2 / (dlon1 + dlon2);
             //B1 = F_prime * L1;
             //B2 = F_prime * L2 + F_2prime * L1 * L1 / 2;
+            double S1, S2, S3, duration;
             getDistanceCoef(traj, startTime, curve.Meters, roll, pitch, B1, B2, L1, L2, out S1, out S2, out S3, out duration);
+
+            coridorParams = new CoridorParams
+            {
+                StartTime = startTime,
+                EndTime = startTime.AddSeconds(duration),
+                StartRoll = roll,
+                StartPitch = pitch,
+                CoridorCoefs = new PolinomCoef { B1 = B1, B2 = B2, L1 = L1, L2 = L2, S1 = S1, S2 = S2, S3 = S3, WD_K = 0 }
+            };
         }
 
         private static void getDistanceCoef(Trajectory traj, DateTime startTime, double dist, double roll, double pitch, double b1, double b2, double l1, double l2, out double s1, out double s2, out double s3, out double duration)
