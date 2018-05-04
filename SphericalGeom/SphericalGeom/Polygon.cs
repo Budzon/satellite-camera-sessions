@@ -188,7 +188,7 @@ namespace SphericalGeom
         {
             foreach (Vector3D vertex in vertices.Select(v => { v.Normalize(); return v; }))
                 this.vertices.Add(vertex);
-            foreach (Vector3D apex in apexes.Select(v => { v.Normalize(); return v; }))
+            foreach (Vector3D apex in apexes)
                 this.apexes.Add(apex);
 
             if (this.vertices.Count != this.apexes.Count)
