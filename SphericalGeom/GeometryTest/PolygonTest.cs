@@ -28,6 +28,42 @@ namespace GeometryTest
         //}
 
         [TestMethod]
+        public void JustTest()
+        {
+            List<Vector3D> verts = new List<Vector3D>
+            {
+                new Vector3D(-3510.84901982254, 2359.31802630575, 4764.55887787735),
+                new Vector3D(-3517.73398705391,2368.94874544631,4754.69169639569),
+                new Vector3D(-3521.30591868274,2385.89468552929,4743.56141170461),
+                new Vector3D(-3525.18541989088,2401.81304896715,4732.63409986446),
+                new Vector3D(-3529.38476882757,2416.70609497005,4721.91047078432),
+                new Vector3D(-3533.91529957537,2430.57598758813,4711.39116546134),
+                new Vector3D(-3538.78741484062,2443.42477427707,4701.07675910686),
+                new Vector3D(-3544.01059900414,2455.25436653388,4690.96776366696),
+                new Vector3D(-3549.5934314627,2466.06652257568,4681.06462971281),
+                new Vector3D(-3549.00195957781,2466.47868069662,4681.29594221322),
+                new Vector3D(-3555.37879273055,2475.31231086993,4671.78491519651),
+                new Vector3D(-3561.8679154135,2484.64470242974,4661.87744860755),
+                new Vector3D(-3550.48918474364,2492.4162229667,4666.4067129335),
+                new Vector3D(-3544.13405538794,2483.63138821884,4675.91195542577),
+                new Vector3D(-3531.71119162079,2464.40028199154,4695.44577213926),
+                new Vector3D(-3526.03737466925,2453.54841804236,4705.38247996456),
+                new Vector3D(-3520.71867916329,2441.68710128458,4715.52412480428),
+                new Vector3D(-3515.74654217448,2428.81488901234,4725.87009725195),
+                new Vector3D(-3511.11140327418,2414.93027607774,4736.41976238182),
+                new Vector3D(-3506.80269328301,2400.0317093898,4747.17245887555),
+                new Vector3D(-3502.8088228672,2384.11760385366,4758.12749844293),
+                new Vector3D(-3499.11717106332,2367.18635986284,4769.28416545388)
+            };
+
+            Polygon p = new Polygon(verts);
+            //p.SetAreaOrientation();
+            Console.WriteLine(p.Area + " " + p.IsCounterclockwise);
+            Console.WriteLine(p.ToWtk());
+            Console.WriteLine(verts[0]);
+        }
+
+        [TestMethod]
         public void TestContains_Yes()
         {
             // 1km on the equator corresponds to 1e-2 degrees
@@ -87,6 +123,9 @@ namespace GeometryTest
             Polygon p = new Polygon(new List<Vector3D> { a, b, c, d });
             Polygon q = new Polygon(new List<Vector3D> { c, b, a, d });
 
+            //p.SetAreaOrientation();
+            //q.SetAreaOrientation();
+
             Assert.IsTrue(!p.IsCounterclockwise && q.IsCounterclockwise);
         }
 
@@ -107,7 +146,8 @@ namespace GeometryTest
             Polygon lanepol = new Polygon(verts);
             try
             {
-                Polygon pp = new Polygon(lanepol.ToWtk());
+                //Polygon pp = new Polygon(lanepol.ToWtk());
+                lanepol.ToWtk();
                 Assert.IsTrue(true);
             }
             catch

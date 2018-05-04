@@ -520,10 +520,10 @@ namespace SatelliteSessions
             /* ---------- Polinomial_coeff -----------*/
                 if (Parameters.shooting_type == 2) // коридорная
                 {
-                    Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
+					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
                 }
                 else
-                    Polinomial_Coeff = new PolinomCoef { L1 = 0, L2 = 0, B1 = 0, B2 = 0, S1 = 0, S2 = 0, S3 = 0, WD_K = 0 };
+                    Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0, 0);
             }
 
             /* ---------- N_PK -----------*/
