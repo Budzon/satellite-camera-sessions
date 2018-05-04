@@ -19,6 +19,7 @@ namespace OptimalChain
 
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
+        public SatelliteSessions.PolinomCoef poliCoef { get; set; }
 
         /// <summary>
         /// В радианах.
@@ -102,7 +103,8 @@ namespace OptimalChain
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа        
         public int MinCompression {  get; private set; }
         public double AverAlbedo {  get; private set;}
- 
+        public SatelliteSessions.PolinomCoef poliCoef { get; private set; }
+
         public void setPolygon(SphericalGeom.Polygon pol)
         {
             square = pol.Area;
@@ -130,7 +132,8 @@ namespace OptimalChain
             double _rollAngle,
             List<Order> _orders,
             int _confType,
-            Tuple<int, int> _connectedRoute)
+            Tuple<int, int> _connectedRoute,
+            SatelliteSessions.PolinomCoef _poliCoef  = null)
             : base(_dateFrom, _dateTo)
         {
             if (_dateFrom >= _dateTo)
@@ -161,6 +164,7 @@ namespace OptimalChain
             timeDelta = 0;
             MinCompression = orders.Min(order => order.request.compression);
             AverAlbedo = orders.Average(order => order.request.albedo);
+            poliCoef = _poliCoef;
         }
 
 

@@ -783,7 +783,7 @@ namespace SphericalGeom
                 }
         }
 
-        public static string getMultipolFromPolygons(List<Polygon> polygons)
+        public static string getMultipolFromPolygons(ICollection<Polygon> polygons)
         {
             string res = "";
 
