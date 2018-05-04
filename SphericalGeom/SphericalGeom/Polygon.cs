@@ -186,9 +186,9 @@ namespace SphericalGeom
         public Polygon(IEnumerable<Vector3D> vertices, IEnumerable<Vector3D> apexes)
             : this()
         {
-            foreach (Vector3D vertex in vertices)
+            foreach (Vector3D vertex in vertices.Select(v => { v.Normalize(); return v; }))
                 this.vertices.Add(vertex);
-            foreach (Vector3D apex in apexes)
+            foreach (Vector3D apex in apexes.Select(v => { v.Normalize(); return v; }))
                 this.apexes.Add(apex);
 
             if (this.vertices.Count != this.apexes.Count)
@@ -197,7 +197,7 @@ namespace SphericalGeom
         public Polygon(IEnumerable<Vector3D> vertices, Vector3D apex)
             : this()
         {
-            foreach (Vector3D vertex in vertices)
+            foreach (Vector3D vertex in vertices.Select(v => { v.Normalize(); return v; }))
                 this.vertices.Add(vertex);
             for (int i = 0; i < this.vertices.Count; ++i)
                 apexes.Add(apex);
