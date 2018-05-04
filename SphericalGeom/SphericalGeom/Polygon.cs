@@ -570,6 +570,27 @@ namespace SphericalGeom
             return res;
         }
 
+        public List<GeoPoint> getCenterLine()
+        {
+            //@todo здесь нужно делать поиск прямолинейного скелета (straight skeleton) или типо того
+            
+            int size = Vertices.Count / 2;
+            List<GeoPoint> left = Vertices.Take(size).Select(vert => GeoPoint.FromCartesian(vert)).ToList();
+            List<GeoPoint> Right = Vertices.Skip(size).Select(vert => GeoPoint.FromCartesian(vert)).Reverse().ToList();
+
+            List<GeoPoint> res = new List<GeoPoint>(size);
+            foreach (var pair in left.Zip(Right, Tuple.Create))
+            { 
+                GeoPoint a = pair.Item1;
+                GeoPoint b = pair.Item2;
+                double dlat = b.Latitude - a.Latitude;
+                double dlon = b.Longitude - a.Longitude;
+                GeoPoint c = new GeoPoint( a.Latitude + dlat/2, a.Longitude + dlon/2);
+                res.Add(c);
+            }
+            return res;            
+        }
+
         #region Polygon private methods
         private void SetAreaOrientation()
         {

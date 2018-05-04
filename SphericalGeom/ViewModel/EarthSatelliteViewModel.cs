@@ -779,11 +779,92 @@ namespace ViewModel
                     Console.WriteLine(piece.ToWtk());
         }
 
+        string getLineSringStr(List<GeoPoint> line)
+        {
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            string res = "LINESTRING (";
+            for(int i = 0 ; i < line.Count; i++)
+            {
+                var p = line[i];
+                res += string.Format("{0}  {1}", p.Longitude.ToString().Replace(separator, '.'), p.Latitude.ToString().Replace(separator, '.'));
+                if (i < line.Count-1)
+                    res += string.Format(" , ");
+            }
+            res += string.Format(")");
+            return res;
+        }
+
+        string getPointsStr(List<GeoPoint> points)
+        {
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            string res = "GEOMETRYCOLLECTION(";
+            for (int i = 0; i < points.Count; i++)
+            {
+                var p = points[i];
+                res += string.Format("POINT ({0}  {1})", p.Longitude.ToString().Replace(separator, '.'), p.Latitude.ToString().Replace(separator, '.'));
+                if (i < points.Count - 1)
+                    res += string.Format(" , ");
+            }
+            res += string.Format(")");
+            return res;
+        }
+
+
+        void tedfdfsdfdfst()
+        {
+            Polygon test = new Polygon("POLYGON((-30.7177734375 -62.99515845212052,-29.443359375 -61.037012232401864,-27.4658203125 -59.445075099047145,-25.576171875 -58.90464570301999,-22.939453125 -58.63121664342478,-18.984375 -58.85922354706658,-15.2490234375 -59.7120971733229,-11.0302734375 -60.17430626192603,-7.5585937500000036 -59.7120971733229,-6.459960937499999 -58.539594766640484,-5.844726562499999 -56.944974180851595,-6.152343749999999 -55.70235509327092,-6.459960937499999 -55.22902305740633,-7.03125 -54.826007999094955,-6.943359374999999 -54.79435160392048,-6.361083984375 -55.200818422433024,-6.064453124999999 -55.68377855290112,-5.77056884765625 -56.93298739609703,-6.306152343749999 -58.58543569119917,-7.426757812499998 -59.833775202184206,-11.0302734375 -60.31606836555202,-15.314941406249998 -59.86688319521021,-19.00634765625 -58.97266715450152,-22.91748046875 -58.722598828043374,-25.510253906250007 -58.995311187950925,-27.312011718750004 -59.51202938650269,-29.24560546875 -61.06891658627741,-30.454101562499993 -63.0450010154201,-30.7177734375 -62.99515845212052))");
+            var line = test.getCenterLine();
+         
+            Console.WriteLine("GEOMETRYCOLLECTION(");            
+            Console.WriteLine(getLineSringStr(line));
+            Console.WriteLine(",");
+            Console.WriteLine(test.ToWtk());
+            Console.WriteLine(")");
+        }
+
+        void tedfdfssdfsdfsdfdfdfst()
+        {
+            //Polygon test = new Polygon("POLYGON((-30.7177734375 -62.99515845212052,-29.443359375 -61.037012232401864,-27.4658203125 -59.445075099047145,-25.576171875 -58.90464570301999,-22.939453125 -58.63121664342478,-18.984375 -58.85922354706658,-15.2490234375 -59.7120971733229,-11.0302734375 -60.17430626192603,-7.5585937500000036 -59.7120971733229,-6.459960937499999 -58.539594766640484,-5.844726562499999 -56.944974180851595,-6.152343749999999 -55.70235509327092,-6.459960937499999 -55.22902305740633,-7.03125 -54.826007999094955,-6.943359374999999 -54.79435160392048,-6.361083984375 -55.200818422433024,-6.064453124999999 -55.68377855290112,-5.77056884765625 -56.93298739609703,-6.306152343749999 -58.58543569119917,-7.426757812499998 -59.833775202184206,-11.0302734375 -60.31606836555202,-15.314941406249998 -59.86688319521021,-19.00634765625 -58.97266715450152,-22.91748046875 -58.722598828043374,-25.510253906250007 -58.995311187950925,-27.312011718750004 -59.51202938650269,-29.24560546875 -61.06891658627741,-30.454101562499993 -63.0450010154201,-30.7177734375 -62.99515845212052))");
+            Polygon test = new Polygon("POLYGON((157.36679077148438 -6.858258512427739,157.54600524902347 -6.805762241482228,157.8865814208984 -6.931198262659578,157.80487060546872 -7.07568095750247,157.7080535888672 -7.091353264512179,157.47390747070312 -7.0927160486314165,157.4677276611328 -7.03683860125858,157.48558044433594 -7.032068262865209,157.50274658203128 -7.035475652433021,157.51441955566406 -7.039564486902762,157.54188537597656 -7.042971821437291,157.56385803222656 -7.047742047725649,157.58651733398438 -7.048423504616636,157.6373291015625 -7.049786415392134,157.6558685302734 -7.048423504616636,157.67852783203125 -7.046379130937709,157.6984405517578 -7.041608890626904,157.71835327148438 -7.0327497427788614,157.7355194091797 -7.021845944232467,157.74032592773435 -7.008897351515117,157.7423858642578 -6.993222257973443,157.7362060546875 -6.980272870827221,157.7197265625 -6.965278395972945,157.70118713378906 -6.96050732611333,157.67166137695312 -6.955736207749922,157.64144897460938 -6.946875430788481,157.5933837890625 -6.935288009015181,157.5652313232422 -6.930516634816186,157.54188537597656 -6.90461404723807,157.52197265624997 -6.895070630903007,157.49313354492188 -6.887572097488075,157.45811462402347 -6.8889354760209045,157.43064880371094 -6.89166222132711,157.40180969238278 -6.89166222132711,157.38052368164062 -6.8889354760209045,157.3681640625 -6.880073445529206,157.36473083496094 -6.8705295354242395,157.36679077148438 -6.858258512427739))");
+            
+
+            GeoPoint[] gPoints = test.Vertices.Select(vert => GeoPoint.FromCartesian(vert)).ToArray();
+
+            TriangleNet.Geometry.Contour contour = new TriangleNet.Geometry.Contour(gPoints.Select(gp => new TriangleNet.Geometry.Vertex(gp.Latitude, gp.Longitude)));
+            TriangleNet.Geometry.IPolygon rtiPol = new TriangleNet.Geometry.Polygon();
+            rtiPol.Add(contour);
+            var options = new TriangleNet.Meshing.ConstraintOptions();
+            var quality = new TriangleNet.Meshing.QualityOptions();
+            quality.MaximumAngle = 20;
+            TriangleNet.Mesh mesh = (TriangleNet.Mesh)TriangleNet.Geometry.ExtensionMethods.Triangulate(rtiPol, options, quality);
+
+            List<GeoPoint> centres = new List<GeoPoint>(mesh.NumberOfEdges);
+
+            foreach (var edge in mesh.Edges)
+            {
+                if (Math.Abs(edge.P0 - edge.P1) == 1)
+                    continue;
+                GeoPoint a = gPoints[edge.P0];
+                GeoPoint b = gPoints[edge.P1];
+                double dlat = b.Latitude - a.Latitude;
+                double dlon = b.Longitude - a.Longitude;
+                GeoPoint c = new GeoPoint(a.Latitude + dlat / 2, a.Longitude + dlon / 2);
+                centres.Add(c);
+            }
+            
+
+            Console.WriteLine("GEOMETRYCOLLECTION(");
+            Console.WriteLine(getPointsStr(centres));   
+            Console.WriteLine(",");
+            Console.WriteLine(test.ToWtk());
+            Console.WriteLine(")");
+                        
+        }
 
         public void test_isRequestFeasible()
         {
-            //tedfdfst();
-            //return;
+            tedfdfssdfsdfsdfdfdfst();
+            return;
 
             for (int testi = 0; testi < 2; testi++)
             {

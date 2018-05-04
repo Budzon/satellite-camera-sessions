@@ -164,32 +164,90 @@ namespace SatelliteSessions
                 coverage = summ;
         }
 
-        private static void getCaptureConfArrayForTrajectory(
-            List<RequestParams> requests,
-            Trajectory trajectory,
-            List<CaptureConf> captureConfs,
-            List<TimePeriod> freeSessionPeriodsForDrop,
-            List<TimePeriod> capturePeriods)
-        {
-            //
-            List<List<RequestParams>> breakingRequests = RequestParams.breakRequestsIntoGroups(requests);
 
-            double Max_SOEN_anlge = requests[0].Max_SOEN_anlge;
+
+        private static void getCaptureConfArrayForTrajectoryForCorydor(
+           List<RequestParams> requests,
+           Trajectory trajectory,
+           List<CaptureConf> captureConfs,
+           List<TimePeriod> freeSessionPeriodsForDrop,
+           List<TimePeriod> capturePeriods)
+        {
+
             foreach (var req in requests)
             {
-                if (req.Max_SOEN_anlge > Max_SOEN_anlge)
-                    Max_SOEN_anlge = req.Max_SOEN_anlge;
+                if (req.polygons.Count != 1)
+                    throw new System.ArgumentException("Corydor request can have only one polygon");
+
+                double maxpitch = Math.Min(OptimalChain.Constants.max_pitch_angle, req.Max_SOEN_anlge);
+
+                Polygon reqpol = req.polygons.First();
+
+                double viewAngle = Math.Min(req.Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
+                SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
+
+                List<CaptureConf> confs = viewLane.getCaptureConfs(req);
+
+                confs = TimePeriod.compressTimePeriods<CaptureConf>(confs, 0);
+
+                int eps = 1; // немного удлинним сегмент полосы для того, чтобы точно замести полигон закакза целиком
+                foreach (var conf in confs)
+                {
+                    Polygon segment = viewLane.getSegment(conf.dateFrom.AddSeconds(-eps), conf.dateTo.AddSeconds(eps));
+
+                    IList<Polygon> interpols = Polygon.Intersect(segment, reqpol);
+
+                    foreach (var p in interpols)
+                    {
+                        List<GeoPoint> line = p.getCenterLine();
+                        double deltaPitchTime = getTimeDeltaFromPitch(trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
+                        DateTime start = conf.dateFrom.AddSeconds(-deltaPitchTime);
+                        
+                        while (start < conf.dateTo.AddSeconds(deltaPitchTime))
+                        {
+
+                            //start = 
+                        }
+
+
+                        //    void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, out List<GeoPoint> satPos, bool custom = false);
+                    }
+                }
+
+                //List<Polygon> breakingRequset = new List<Polygon>();
+
+                //foreach (var sect in viewLane.Sectors)                
+                //    breakingRequset.AddRange(Polygon.Intersect(sect.polygon, reqpol));
+                
+                //foreach (var rpol in breakingRequset)
+                //{
+                //    // void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, out List<GeoPoint> satPos, bool custom = false)
+                //    //getPieciwiseCoridor
+                //}
             }
 
+        }
+
+
+        private static void getCaptureConfArrayForTrajectoryForPlainReq(
+        List<RequestParams> requests,
+        Trajectory trajectory,
+        List<CaptureConf> captureConfs,
+        List<TimePeriod> freeSessionPeriodsForDrop,
+        List<TimePeriod> capturePeriods)
+        {
+            List<List<RequestParams>> breakingRequests = RequestParams.breakRequestsIntoGroups(requests); // разделим заказы на несовместимые подгруппы 
+
+            double Max_SOEN_anlge = requests.Max(req => req.Max_SOEN_anlge); // не будем генерировать полос для угла, превышающего это значение
+ 
             double max_roll_angle = Math.Min(Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
-            double min_roll_angle = Math.Max(-Max_SOEN_anlge, -OptimalChain.Constants.max_roll_angle);
+            double min_roll_angle = -max_roll_angle;
 
             double angleStep = OptimalChain.Constants.camera_angle; // шаг равен углу обзора
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
 
             ConcurrentBag<CaptureConf> concurrentlist = new ConcurrentBag<CaptureConf>();
-
-
+            
 #if _PARALLEL_
             Parallel.For(0, num_steps + 1, index =>
             {
@@ -233,7 +291,6 @@ namespace SatelliteSessions
                         groupConfs.AddRange(confs);
                     }
 
-
                     laneCaptureConfs.AddRange(CaptureConf.compressCConfArray(groupConfs));
                 }
 
@@ -251,12 +308,13 @@ namespace SatelliteSessions
                     concurrentlist.Add(conf);
             }
 #if _PARALLEL_
-            );
+);
 #endif
-
+            
             captureConfs.AddRange(concurrentlist.ToList());
         }
 
+ 
 
         public static List<Trajectory> getLitTrajectoryParts(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<TimePeriod> shadowPeriods)
         {
@@ -295,13 +353,22 @@ namespace SatelliteSessions
 
             List<Trajectory> trajSpans = getLitTrajectoryParts(timeFrom, timeTo, managerDB, inactivityRanges);
 
-            List<CaptureConf> captureConfs = new List<CaptureConf>();
-
             // периоды, во время которых можно проводить съемку.
             List<TimePeriod> capturePeriods = TimePeriod.getFreeIntervals(inactivityRanges, timeFrom, timeTo);
+                         
+            var requestCorydor = requests.Where(req => req.shootingType == 2).ToList();
+            var requestNOTCorydor = requests.Where(req => req.shootingType != 2).ToList();
 
+            List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectory(requests, trajectory, captureConfs, freeSessionPeriodsForDrop, capturePeriods);
+                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCorydor, trajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods);
+
+            List<CaptureConf> captureConfsCorydor = new List<CaptureConf>();
+            foreach (var trajectory in trajSpans)
+                getCaptureConfArrayForTrajectoryForCorydor(requestCorydor, trajectory, captureConfsCorydor, freeSessionPeriodsForDrop, capturePeriods);
+
+            List<CaptureConf> captureConfs = new List<CaptureConf>(captureConfsPlain);
+            captureConfs.AddRange(captureConfsCorydor);
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
                 captureConfs[ci].id = ci;

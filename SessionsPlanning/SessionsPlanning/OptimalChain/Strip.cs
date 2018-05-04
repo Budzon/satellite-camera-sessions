@@ -314,6 +314,7 @@ namespace OptimalChain
         /// <param name="_Min_sun_angle">Минимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="_wktPolygon">Полигон заказа в формае WKT</param>
         /// <param name="_albedo">  характеристика отражательной способности поверхности. </param>
+        ///  <param name="_shootingType"> 0 -- обычная съемка, 1-- стерео, 2- коридор </param>
         /// <param name="_compression"> коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями</param>
         public RequestParams(int _id,
             int _priority,
