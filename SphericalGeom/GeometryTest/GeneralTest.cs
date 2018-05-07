@@ -84,7 +84,7 @@ namespace GeometryTest
             System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
         }
 
-        [TestMethod]
+      [TestMethod]
         public void TestPiecewiseCoridor()
         {
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
@@ -95,7 +95,7 @@ namespace GeometryTest
             // def f(x): return 81.8 + 0.1*np.cos(np.pi/10*x)
             //lons = np.linspace(60, 90, 100)
             //DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
-            
+
             //List<string> wkts;
             //List<GeoPoint> satPos;
             //List<GeoPoint> verts = new List<GeoPoint>() {
@@ -126,20 +126,28 @@ namespace GeometryTest
             /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
 
             // CUSTOM
-            DateTime dt1 = new DateTime(2019, 1, 1, 10, 47, 30);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
             int steps = 100;
-            double lon0 = 60, lon1 = 90, dlon = lon1 - lon0, step = dlon / steps;
-            
+            double ang0 = Math.PI, ang1 = 4 * Math.PI, dang = ang1 - ang0, step = dang / steps;
+
+            //double lon0 = 48, lon1 = 52, dlon = lon1 - lon0, step = dlon / steps;
+
             double[] lons = new double[steps];
-            for (int i = 0; i < lons.Length; ++i)
-            {
-                lons[i] = lon0 + step * (lons.Length - i - 1);
-            }
+            //for (int i = 0; i < lons.Length; ++i)
+            //{
+            //    lons[i] = lon0 + step * (lons.Length - i - 1);
+            //}
             double[] lats = new double[steps];
-            for (int i = 0; i < lats.Length; ++i)
+            for (int i = 0; i < steps; ++i)
             {
-                lats[i] = 81.8 + 2e-4 * (lons[i] - 60) * Math.Pow(lons[i] - 90, 2);
+                double t = ang0 + step * i;
+                lats[i] = 50 + 0.1 * t * Math.Sin(t);
+                lons[i] = -9.5 + 0.1 * t * Math.Cos(t);
             }
+            //for (int i = 0; i < lats.Length; ++i)
+            //{
+            //    lats[i] = -9 + 1 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+            //}
             //
             List<string> wkts;
             List<GeoPoint> satPos;
@@ -151,6 +159,7 @@ namespace GeometryTest
             Console.WriteLine(wkts.Aggregate("[", (tail, wkt) => tail + ", '" + wkt + "'") + "]");
             //Console.WriteLine(satPos.Aggregate("[", (tail, pos) => tail + ", (" + pos + ")") + "]");
         }
+
 
         [TestMethod]
         public void TestCoridorPoly()

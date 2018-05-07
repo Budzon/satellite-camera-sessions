@@ -131,7 +131,7 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="traj">Отрезок траектории КА покрывающий время съемки коридора</param>
         /// <param name="pointsPerSide">Число точек на боковинах коридора</param>
-        public void ComputeCoridorPolygon(Trajectory traj, int pointsPerSide = 10)
+        public void ComputeCoridorPolygon(Trajectory traj, int pointsPerSide = 20)
         {
             int vertNum = pointsPerSide * 2 + 2;
             Vector3D[] points = new Vector3D[vertNum];
@@ -149,6 +149,7 @@ namespace SatelliteSessions
             double rollAngle, pitchAngle;
             AbsMaxRequiredRoll = 0;
             AbsMaxRequiredPitch = 0;
+            bool left = false, forward = false, preLeft, preForward;
             for (int i = 0; i < pointsPerSide; i++)
             {
                 curCurveVec = nexCurveVec;
@@ -172,8 +173,13 @@ namespace SatelliteSessions
 
                 double along = Vector3D.DotProduct(dVec, rAxis);
                 double perp = Vector3D.DotProduct(dVec, pAxis);
-                bool forward = Comparison.IsPositive(along);
-                bool left = !Comparison.IsPositive(perp);
+
+                preForward = forward;
+                preLeft = left;
+                bool straightLeft = Comparison.IsZero(perp);
+                bool straightForw = Comparison.IsZero(along);
+                forward = Comparison.IsPositive(along);
+                left = !Comparison.IsPositive(perp);
 
                 if (i == 0)
                 {
@@ -233,7 +239,39 @@ namespace SatelliteSessions
                 }
                 else
                 {
-                    if (forward && left)
+                    if (forward != preForward)
+                    {
+                        Vector3D botMid = curKaPos.BotLeftViewPoint + curKaPos.BotRightViewPoint;
+                        Vector3D topMid = curKaPos.TopLeftViewPoint + curKaPos.TopRightViewPoint;
+                        
+                        if (left)
+                        {
+                            points[i + 1] = botMid;
+                            points[vertNum - 1 - i] = topMid;
+                        }
+                        else
+                        {
+                            points[i + 1] = topMid;
+                            points[vertNum - 1 - i] = botMid;
+                        }
+                    }
+                    else if (left != preLeft)
+                    {
+                        Vector3D leftMid = curKaPos.BotLeftViewPoint + curKaPos.TopLeftViewPoint;
+                        Vector3D rightMid = curKaPos.BotRightViewPoint + curKaPos.TopRightViewPoint;
+
+                        if (forward)
+                        {
+                            points[i + 1] = leftMid;
+                            points[vertNum - 1 - i] = rightMid;
+                        }
+                        else
+                        {
+                            points[i + 1] = rightMid;
+                            points[vertNum - 1 - i] = leftMid;
+                        }
+                    }
+                    else if (forward && left)
                     {
                         points[i + 1] = curKaPos.BotLeftViewPoint;
                         points[vertNum - 1 - i] = curKaPos.TopRightViewPoint;

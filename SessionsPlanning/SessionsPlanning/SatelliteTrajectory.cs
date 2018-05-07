@@ -872,32 +872,33 @@ namespace SatelliteTrajectory
             GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
             double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
             double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
-            Vector Bm = new Vector(lats);
+            //Vector Bm = new Vector(lats);
+            Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
             Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
 
-            // Find lats based on lons
-            Matrix A_for_preB = new Matrix(new double[][]
-            { 
-                new double[] { 1, lons[0], lons[0] * lons[0] },
-                new double[] { 1, lons[1], lons[1] * lons[1] },
-                new double[] { 1, lons[2], lons[2] * lons[2] }
-            });
-            Vector preB = Gauss.Solve(A_for_preB, Bm);
+            //// Find lats based on lons
+            //Matrix A_for_preB = new Matrix(new double[][]
+            //{ 
+            //    new double[] { 1, lons[0], lons[0] * lons[0] },
+            //    new double[] { 1, lons[1], lons[1] * lons[1] },
+            //    new double[] { 1, lons[2], lons[2] * lons[2] }
+            //});
+            //Vector preB = Gauss.Solve(A_for_preB, Bm);
 
             // Find lons based on dist
             double d1 = curve.Meters * (double)ind_curv / (curve.Count - 1);
             double d2 = curve.Meters;
             Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
-            //Vector B = Gauss.Solve(A, Bm);
-            //B1 = B[0];
-            //B2 = B[1];
+            Vector B = Gauss.Solve(A, Bm);
+            double B1 = B[0];
+            double B2 = B[1];
             Vector L = Gauss.Solve(A, Lm);
             double L1 = L[0];
             double L2 = L[1];
 
             // Plug to find B
-            double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
-            double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
+            //double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
+            //double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
 
             // Find average curvature
             //double curv = 0;
@@ -1312,8 +1313,10 @@ namespace SatelliteTrajectory
         public double[] Distances { get; private set; }
         public double Meters { get; private set; }
         public int Count { get { return Vertices.Length;} }
-        public double[] Derivatives { get; private set; }
-        public double[] SndDerivatives { get; private set; }
+        public double[] DerivativesLat { get; private set; }
+        public double[] DerivativesLon { get; private set; }
+        public double[] SndDerivativesLat { get; private set; }
+        public double[] SndDerivativesLon { get; private set; }
         public double[] Curvatures { get; private set; }
         public GeoPoint this[int index] { get{ return Vertices[index]; } }
 
@@ -1328,23 +1331,31 @@ namespace SatelliteTrajectory
 
             Meters = Distances.Sum();
 
-            Derivatives = new double[Count];
-            SndDerivatives = new double[Count];
-            Derivatives[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
+            DerivativesLat = new double[Count];
+            DerivativesLon = new double[Count];
+            SndDerivativesLat = new double[Count];
+            SndDerivativesLon = new double[Count];
+            DerivativesLat[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / Distances[1];
+            DerivativesLon[0] = (Vertices[1].Longitude - Vertices[0].Longitude) / Distances[1];
             for (int i = 1; i < Count - 1; ++i)
             {
-                double dlon = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / 2;
-                SndDerivatives[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
-                    / (dlon * dlon);
-                Derivatives[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
+                double ds = (Distances[i + 1] + Distances[i]) / 2;
+                SndDerivativesLat[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude) / (ds * ds);
+                SndDerivativesLon[i] = (Vertices[i - 1].Longitude - 2 * Vertices[i].Longitude + Vertices[i + 1].Longitude) / (ds * ds);
+                DerivativesLat[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * ds);
+                DerivativesLon[i] = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / (2 * ds);
             }
-            Derivatives[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
-            SndDerivatives[0] = SndDerivatives[1];
-            SndDerivatives[Count - 1] = SndDerivatives[Count - 2];
+            DerivativesLat[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / Distances[Count - 1];
+            DerivativesLon[Count - 1] = (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude) / Distances[Count - 1];
+            SndDerivativesLat[0] = SndDerivativesLat[1];
+            SndDerivativesLat[Count - 1] = SndDerivativesLat[Count - 2];
+            SndDerivativesLon[0] = SndDerivativesLon[1];
+            SndDerivativesLon[Count - 1] = SndDerivativesLon[Count - 2];
 
             Curvatures = new double[Count];
             for (int i = 0; i < Count; ++i)
-                Curvatures[i] = SndDerivatives[i] / Math.Pow(1 + Derivatives[i] * Derivatives[i], 1.5);
+                Curvatures[i] = (DerivativesLat[i]*SndDerivativesLon[i] - DerivativesLon[i]*SndDerivativesLat[i]) /
+                    Math.Sqrt(DerivativesLat[i] * DerivativesLat[i] + DerivativesLon[i] * DerivativesLon[i]);
         }
 
         public List<Curve> BreakIntoShorterParts(double maxDist)
@@ -1466,6 +1477,7 @@ namespace SatelliteTrajectory
             List<Curve> res = new List<Curve>();
             foreach (var part in parts)
                 res.AddRange(part.BreakIntoShorterParts(maxDist));
+
             return res;
         }
     }
