@@ -831,7 +831,7 @@ namespace SatelliteTrajectory
             int ind_curv = 0;
             for (int i = 1; i < curve.Count - 1; ++i)
             {
-                if (Math.Abs(curve.Curvatures[i]) > Math.Abs(curve.Curvatures[ind_curv]))
+                if (Math.Abs(curve.CurvaturesWRTdist[i]) > Math.Abs(curve.CurvaturesWRTdist[ind_curv]))
                 {
                     ind_curv = i;
                 }
@@ -1371,6 +1371,7 @@ namespace SatelliteTrajectory
             SndDerivativesWRTdist[Count - 1] = SndDerivativesWRTdist[Count - 2];
 
             Curvatures = new double[Count];
+            CurvaturesWRTdist = new double[Count];
             for (int i = 0; i < Count; ++i)
             {
                 CurvaturesWRTdist[i] = SndDerivativesWRTdist[i] / Math.Pow(1 + DerivativesWRTdist[i] * DerivativesWRTdist[i], 1.5);
