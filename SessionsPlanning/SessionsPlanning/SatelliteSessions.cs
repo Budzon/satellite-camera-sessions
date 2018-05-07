@@ -131,7 +131,8 @@ namespace SatelliteSessions
                         }
                         catch (Exception ex)
                         {
-                            // Часть непокрытого региона -- слишком тонкая. Выкинем ее из рассмотрения.
+                            // @todo  по человечески нало бы...
+                            // Часть непокрытого региона -- слишком тонкая/некорректная. Пропускаем....
                             region.RemoveAt(i);
                             i--;
                         }
@@ -164,32 +165,118 @@ namespace SatelliteSessions
                 coverage = summ;
         }
 
-        private static void getCaptureConfArrayForTrajectory(
-            List<RequestParams> requests,
-            Trajectory trajectory,
-            List<CaptureConf> captureConfs,
-            List<TimePeriod> freeSessionPeriodsForDrop,
-            List<TimePeriod> capturePeriods)
-        {
-            //
-            List<List<RequestParams>> breakingRequests = RequestParams.breakRequestsIntoGroups(requests);
+         
 
-            double Max_SOEN_anlge = requests[0].Max_SOEN_anlge;
+
+        private static void getCaptureConfArrayForTrajectoryForCoridor(
+           DIOS.Common.SqlManager managerDB,
+           List<RequestParams> requests,
+           Trajectory trajectory,
+           List<CaptureConf> captureConfs,
+           List<TimePeriod> freeSessionPeriodsForDrop,
+           List<TimePeriod> capturePeriods)
+        {
+            if (requests.Count == 0)
+                return;
+
+            
+
             foreach (var req in requests)
             {
-                if (req.Max_SOEN_anlge > Max_SOEN_anlge)
-                    Max_SOEN_anlge = req.Max_SOEN_anlge;
-            }
+                if (req.polygons.Count != 1)
+                    throw new System.ArgumentException("Coridor request can have only one polygon");
 
+                double maxpitch = Math.Min(OptimalChain.Constants.max_pitch_angle, req.Max_SOEN_anlge);
+                double maxroll = Math.Min(OptimalChain.Constants.max_roll_angle, req.Max_SOEN_anlge);
+
+                Polygon reqpol = req.polygons.First();
+
+                double viewAngle = Math.Min(req.Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
+                SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
+
+                List<CaptureConf> confs = viewLane.getCaptureConfs(req);
+
+                confs = TimePeriod.compressTimePeriods<CaptureConf>(confs, 0);
+
+                List<CoridorParams> allCoridors = new List<CoridorParams>();
+                int eps = 1; // немного удлинним сегмент полосы для того, чтобы точно замести полигон закакза целиком
+                foreach (var conf in confs)
+                {
+                    Polygon segment = viewLane.getSegment(conf.dateFrom.AddSeconds(-eps), conf.dateTo.AddSeconds(eps));
+
+                    IList<Polygon> interpols = Polygon.Intersect(segment, reqpol);
+
+                    foreach (var p in interpols)
+                    {
+                        List<GeoPoint> line = p.getCenterLine();                         
+                        double deltaPitchTime = getTimeDeltaFromPitch(trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
+                        DateTime start = conf.dateFrom.AddSeconds(-deltaPitchTime);
+                                                
+                        while (start < conf.dateTo.AddSeconds(deltaPitchTime))
+                        {
+                            List<CoridorParams> coridorParams;
+                            try
+                            {
+                                getPiecewiseCoridorParams(start, line, managerDB, out coridorParams, 0.5e5);
+                                start = coridorParams.Max(cor => cor.EndTime);
+                                allCoridors.AddRange(coridorParams);
+                            }
+                            catch(Exception e)
+                            {
+                            //    Console.WriteLine(e.Message);       
+                                start = start.AddSeconds(20);
+                            }
+                            
+                        }
+                    }
+
+                }
+
+                allCoridors.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
+                allCoridors.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
+                
+                //allCoridors.RemoveAll(cor => SatelliteCoordinates ka = new SatelliteCoordinates(cor.AbsMaxRequiredRoll, cor.AbsMaxRequiredPitch);  Vector3D.AngleBetween(ka.ViewDir, ka.)   > req.Max_SOEN_anlge);
+
+                foreach (var cp in allCoridors)
+                { 
+                    double interCoeff = cp.Coridor.Area / req.polygons.First().Area;
+                    
+                    var orders = new List<Order>() { new Order() { request = req, captured = cp.Coridor, intersection_coeff = interCoeff } };
+                    int confType = 0;
+                    if (req.compression == OptimalChain.Constants.compressionDropCapture)
+                        confType = 3;
+                    CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders, confType, null, _poliCoef: cp.CoridorCoefs);
+                    cc.setPolygon(cp.Coridor);
+                    captureConfs.Add(cc);
+                }
+
+            }
+ 
+        }
+ 
+
+        private static void getCaptureConfArrayForTrajectoryForPlainReq(
+        List<RequestParams> requests,
+        Trajectory trajectory,
+        List<CaptureConf> captureConfs,
+        List<TimePeriod> freeSessionPeriodsForDrop,
+        List<TimePeriod> capturePeriods)
+        {
+            if (requests.Count == 0)
+                return;
+
+            List<List<RequestParams>> breakingRequests = RequestParams.breakRequestsIntoGroups(requests); // разделим заказы на несовместимые подгруппы 
+
+            double Max_SOEN_anlge = requests.Max(req => req.Max_SOEN_anlge); // не будем генерировать полос для угла, превышающего это значение
+ 
             double max_roll_angle = Math.Min(Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
-            double min_roll_angle = Math.Max(-Max_SOEN_anlge, -OptimalChain.Constants.max_roll_angle);
+            double min_roll_angle = -max_roll_angle;
 
             double angleStep = OptimalChain.Constants.camera_angle; // шаг равен углу обзора
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
 
             ConcurrentBag<CaptureConf> concurrentlist = new ConcurrentBag<CaptureConf>();
-
-
+            
 #if _PARALLEL_
             Parallel.For(0, num_steps + 1, index =>
             {
@@ -230,9 +317,9 @@ namespace SatelliteSessions
                                 confs[i].converToStereoTriplet(pointFrom, capturePeriods);
                             }
                         }
-
                         groupConfs.AddRange(confs);
                     }
+
                     laneCaptureConfs.AddRange(CaptureConf.compressCConfArray(groupConfs));
                 }
 
@@ -250,12 +337,13 @@ namespace SatelliteSessions
                     concurrentlist.Add(conf);
             }
 #if _PARALLEL_
-            );
+);
 #endif
-
+            
             captureConfs.AddRange(concurrentlist.ToList());
         }
 
+ 
 
         public static List<Trajectory> getLitTrajectoryParts(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, List<TimePeriod> shadowPeriods)
         {
@@ -294,13 +382,22 @@ namespace SatelliteSessions
 
             List<Trajectory> trajSpans = getLitTrajectoryParts(timeFrom, timeTo, managerDB, inactivityRanges);
 
-            List<CaptureConf> captureConfs = new List<CaptureConf>();
-
             // периоды, во время которых можно проводить съемку.
             List<TimePeriod> capturePeriods = TimePeriod.getFreeIntervals(inactivityRanges, timeFrom, timeTo);
+                         
+            var requestCoridor = requests.Where(req => req.shootingType == 2).ToList();
+            var requestNOTCoridor = requests.Where(req => req.shootingType != 2).ToList();
 
+            List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectory(requests, trajectory, captureConfs, freeSessionPeriodsForDrop, capturePeriods);
+                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods);
+
+            List<CaptureConf> captureConfsCoridor = new List<CaptureConf>();
+            foreach (var trajectory in trajSpans)
+                getCaptureConfArrayForTrajectoryForCoridor(managerDB, requestCoridor, trajectory, captureConfsCoridor, freeSessionPeriodsForDrop, capturePeriods);
+
+            List<CaptureConf> captureConfs = new List<CaptureConf>(captureConfsPlain);
+            captureConfs.AddRange(captureConfsCoridor);
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
                 captureConfs[ci].id = ci;
@@ -435,8 +532,7 @@ namespace SatelliteSessions
             inactivityDropCaptureIntervals.AddRange(inactivityTimePeriods);
             inactivityDropCaptureIntervals = TimePeriod.compressTimePeriods(inactivityDropCaptureIntervals);
             List<TimePeriod> freeRangesForDelete = TimePeriod.getFreeIntervals(inactivityDropCaptureIntervals, timeFrom, timeTo);
-
-
+            
             maxRouteDropId = dropMpzParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
 
@@ -455,8 +551,7 @@ namespace SatelliteSessions
                 List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, curMaxMpzNum);
                 deleteMpzParams.AddRange(curMPZ);
             }
-
-
+            
             List<MPZParams> allMPZParams = new List<MPZParams>();
             //            allMPZParams.AddRange(captureMPZParams);
             allMPZParams.AddRange(dropMpzParams);

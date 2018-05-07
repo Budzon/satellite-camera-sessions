@@ -520,14 +520,7 @@ namespace SatelliteSessions
             /* ---------- Polinomial_coeff -----------*/
                 if (Parameters.shooting_type == 2) // коридорная
                 {
-                    double l1, l2, b1, b2, s1, s2, s3, duration;
-                    SatelliteTrajectory.TrajectoryRoutines.GetCoridorParams(Sessions.getMaxTrajectory(DBmanager, Parameters.start),
-                        Parameters.start, Parameters.coridorAzimuth, Parameters.coridorLength,
-                        Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
-                        out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
-                    Polinomial_Coeff = new PolinomCoef(l1, l2, b1, b2, s1, s2, s3, 0);
-                    Parameters.duration = duration * 1e3;
-                    Parameters.end = Parameters.start.AddMilliseconds(Parameters.duration);
+					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
                 }
                 else
                     Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0, 0);
