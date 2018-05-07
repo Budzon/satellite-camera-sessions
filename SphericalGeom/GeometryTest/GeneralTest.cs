@@ -128,18 +128,26 @@ namespace GeometryTest
             // CUSTOM
             DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
             int steps = 100;
-            double lon0 = -13, lon1 = -7, dlon = lon1 - lon0, step = dlon / steps;
+            double ang0 = Math.PI, ang1 = 4 * Math.PI, dang = ang1 - ang0, step = dang / steps;
+
+            //double lon0 = 48, lon1 = 52, dlon = lon1 - lon0, step = dlon / steps;
 
             double[] lons = new double[steps];
-            for (int i = 0; i < lons.Length; ++i)
-            {
-                lons[i] = lon0 + step * (lons.Length - i - 1);
-            }
+            //for (int i = 0; i < lons.Length; ++i)
+            //{
+            //    lons[i] = lon0 + step * (lons.Length - i - 1);
+            //}
             double[] lats = new double[steps];
-            for (int i = 0; i < lats.Length; ++i)
+            for (int i = 0; i < steps; ++i)
             {
-                lats[i] = 50 + 3 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+                double t = ang0 + step * i;
+                lats[i] = 50 + 0.1 * t * Math.Sin(t);
+                lons[i] = -9.5 + 0.1 * t * Math.Cos(t);
             }
+            //for (int i = 0; i < lats.Length; ++i)
+            //{
+            //    lats[i] = -9 + 1 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+            //}
             //
             List<string> wkts;
             List<GeoPoint> satPos;
