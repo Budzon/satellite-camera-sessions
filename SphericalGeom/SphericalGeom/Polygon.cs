@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
 using Microsoft.SqlServer.Types;
 using System.Data.SqlTypes;
-
 using Common;
+using System.Runtime.InteropServices;
+
+using MNCbicSplne = MathNet.Numerics.Interpolation.CubicSpline; // пересечения с Astronomy CubicSpline
 
 namespace SphericalGeom
 {
@@ -570,24 +572,66 @@ namespace SphericalGeom
             return res;
         }
 
+        /// <summary>
+        ///  Обёртка над  CGAL
+        /// </summary>
+        /// <param name="wktPolygon"> скелетируемый полигон</param>
+        /// <returns>линия скелета в wkt</returns>
+        [DllImport("CGALWrapperCPP", EntryPoint = "getStraightSkeleton", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern IntPtr getStraightSkeleton(string wktPolygon);
+        
+        /// <summary>
+        /// Построения интерполироанного скелета полигона (алгоритм Straight Skeleton)
+        /// </summary>
+        /// <returns></returns>
         public List<GeoPoint> getCenterLine()
         {
             //@todo здесь нужно делать поиск прямолинейного скелета (straight skeleton) или типо того
             
-            int size = Vertices.Count / 2;
-            List<GeoPoint> left = Vertices.Take(size).Select(vert => GeoPoint.FromCartesian(vert)).ToList();
-            List<GeoPoint> Right = Vertices.Skip(size).Select(vert => GeoPoint.FromCartesian(vert)).Reverse().ToList();
+           // int size = Vertices.Count / 2;
 
-            List<GeoPoint> res = new List<GeoPoint>(size);
-            foreach (var pair in left.Zip(Right, Tuple.Create))
-            { 
-                GeoPoint a = pair.Item1;
-                GeoPoint b = pair.Item2;
-                double dlat = b.Latitude - a.Latitude;
-                double dlon = b.Longitude - a.Longitude;
-                GeoPoint c = new GeoPoint( a.Latitude + dlat/2, a.Longitude + dlon/2);
+            IntPtr pstr = getStraightSkeleton(this.ToWtk());
+            string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
+             
+            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
+
+            List<GeoPoint> points = new List<GeoPoint>();
+              
+            for (int i = 1; i < geom.STNumPoints(); i++)
+            {
+                double lat = (double)geom.STPointN(i).Lat;
+                double lon = (double)geom.STPointN(i).Long;
+                points.Add(new GeoPoint(lat, lon));
+            }
+
+            List<GeoPoint> res = new List<GeoPoint>();
+             
+            // добавим дополнительные точки
+            const int coef = 10; // 10 дополнителных точек на отрезок скелета
+
+            int size = points.Count;
+
+            if (size < 5)
+                throw new ArgumentException("Not enough points in polygon");
+
+            double[] timeArray = new double[size];
+            for (int k = 0; k < size; k++)
+            {
+                timeArray[k] = k;
+            }
+            
+            MNCbicSplne longSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Longitude).ToArray());
+            MNCbicSplne latSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Latitude).ToArray());
+
+            int newsize = coef * size;
+            double h = 1.0 / coef;
+            for (int i = 0; i < newsize; i++)
+            {
+                double t = h * i;
+                GeoPoint c = new GeoPoint(latSpline.Interpolate(t), longSpline.Interpolate(t));
                 res.Add(c);
             }
+ 
             return res;            
         }
 

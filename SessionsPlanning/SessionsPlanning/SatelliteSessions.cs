@@ -131,7 +131,8 @@ namespace SatelliteSessions
                         }
                         catch (Exception ex)
                         {
-                            // Часть непокрытого региона -- слишком тонкая. Выкинем ее из рассмотрения.
+                            // @todo  по человечески нало бы...
+                            // Часть непокрытого региона -- слишком тонкая/некорректная. Пропускаем....
                             region.RemoveAt(i);
                             i--;
                         }
@@ -164,6 +165,7 @@ namespace SatelliteSessions
                 coverage = summ;
         }
 
+         
 
 
         private static void getCaptureConfArrayForTrajectoryForCoridor(
@@ -206,16 +208,25 @@ namespace SatelliteSessions
 
                     foreach (var p in interpols)
                     {
-                        List<GeoPoint> line = p.getCenterLine();
+                        List<GeoPoint> line = p.getCenterLine();                         
                         double deltaPitchTime = getTimeDeltaFromPitch(trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
                         DateTime start = conf.dateFrom.AddSeconds(-deltaPitchTime);
                                                 
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
                         {
                             List<CoridorParams> coridorParams;
-                            getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
-                            start = coridorParams.Max(cor => cor.EndTime);
-                            allCoridors.AddRange(coridorParams);
+                            try
+                            {
+                                getPiecewiseCoridorParams(start, line, managerDB, out coridorParams, 0.5e5);
+                                start = coridorParams.Max(cor => cor.EndTime);
+                                allCoridors.AddRange(coridorParams);
+                            }
+                            catch(Exception e)
+                            {
+                            //    Console.WriteLine(e.Message);       
+                                start = start.AddSeconds(20);
+                            }
+                            
                         }
                     }
 
@@ -234,7 +245,9 @@ namespace SatelliteSessions
                     int confType = 0;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
                         confType = 3;
-                    captureConfs.Add(new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders, confType, null, _poliCoef : cp.CoridorCoefs ));
+                    CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders, confType, null, _poliCoef: cp.CoridorCoefs);
+                    cc.setPolygon(cp.Coridor);
+                    captureConfs.Add(cc);
                 }
 
             }
