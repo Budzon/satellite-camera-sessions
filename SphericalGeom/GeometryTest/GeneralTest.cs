@@ -16,30 +16,30 @@ namespace GeometryTest
     [TestClass]
     public class GeneralTest
     {
-        [TestMethod]
-        public void TestLitSpans()
-        {
-            DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
-            DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
-            //DateTime dt2 = DateTime.Parse("01.02.2019 2:39:30");
-            string cs = System.IO.File.ReadLines("DBstring.conf").First();
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+        //[TestMethod]
+        //public void TestLitSpans()
+        //{
+        //    DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
+        //    DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
+        //    //DateTime dt2 = DateTime.Parse("01.02.2019 2:39:30");
+        //    string cs = System.IO.File.ReadLines("DBstring.conf").First();
+        //    DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
 
-            for (int i = 0; i < 50; i++)
-            {
-                List<Tuple<DateTime, DateTime>> shadowPeriods;
-                List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-                Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+        //    for (int i = 0; i < 50; i++)
+        //    {
+        //        List<Tuple<DateTime, DateTime>> shadowPeriods;
+        //        List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+        //        Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
 
-                Console.WriteLine(i + " count=" + shadowPeriods.Count);
-                if (shadowPeriods.Count != 0)
-                    foreach (var loop_wkts in partsLitAndNot)
-                        Console.WriteLine(Polygon.getMultipolFromWkts(loop_wkts.Item2.Select(wktlit => wktlit.wktPolygon).ToList()));
-                foreach (var period in shadowPeriods)
-                    Console.WriteLine(period.Item1 + " " + period.Item2);
-            }
-        }
+        //        Console.WriteLine(i + " count=" + shadowPeriods.Count);
+        //        if (shadowPeriods.Count != 0)
+        //            foreach (var loop_wkts in partsLitAndNot)
+        //                Console.WriteLine(Polygon.getMultipolFromWkts(loop_wkts.Item2.Select(wktlit => wktlit.wktPolygon).ToList()));
+        //        foreach (var period in shadowPeriods)
+        //            Console.WriteLine(period.Item1 + " " + period.Item2);
+        //    }
+        //}
 
         [TestMethod]
         public void TestMPZ()
@@ -82,6 +82,47 @@ namespace GeometryTest
             var mpzs = mpzParams.Select(p => new MPZ(p, manager, flags));
             string mpz_string = mpzs.Aggregate("", (s, mpz) => s + mpz.ToString() + "\n");
             System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
+        }
+
+        [TestMethod]
+        public void Test123()
+        {
+            List<GeoPoint> vs = new List<GeoPoint>
+            {
+             new GeoPoint(32.6788,27.8779),
+             new GeoPoint(32.6806,   27.9251) ,
+             new GeoPoint(32.6388,   27.9435) ,
+             new GeoPoint(32.5339,   27.9811) ,
+             new GeoPoint(32.4942,   27.9981) ,
+             new GeoPoint(32.3849,   28.0519) ,
+             new GeoPoint(32.3659,   28.0622) ,
+             new GeoPoint(32.2791,   28.1183) ,
+             new GeoPoint(32.2453,    28.147)  ,
+             new GeoPoint(32.2062,   28.1895) ,
+             new GeoPoint(32.151,    28.2626) ,
+             new GeoPoint(32.1468,   28.2694) ,
+             new GeoPoint(32.1028,   28.3591) ,
+             new GeoPoint(32.0928,   28.3857) ,
+             new GeoPoint(32.0605,   28.4934) ,
+             new GeoPoint(32.0521,   28.5253) ,
+             new GeoPoint(32.0328,   28.6181) ,
+             new GeoPoint(32.0281,   28.6533) ,
+             new GeoPoint(32.0235,   28.7441) ,
+             new GeoPoint(32.0217,   28.8056) ,
+             new GeoPoint(32.0216,   28.8583) ,
+             new GeoPoint(32.0274,   28.9448) ,
+             new GeoPoint(32.0278,    28.947)  ,
+             new GeoPoint(32.0448,   29.0364) ,
+             new GeoPoint(32.0633,   29.1407) ,
+             new GeoPoint(32.064 ,   29.1441) ,
+             new GeoPoint(32.0893,   29.2414) ,
+             new GeoPoint(32.0966,   29.2657) ,
+             new GeoPoint(32.1019,    29.297)  ,
+             new GeoPoint(32.1049,   29.3016) 
+            };
+
+            SatelliteTrajectory.Curve cv = new SatelliteTrajectory.Curve(vs);
+            var parts = cv.BreakByCurvature();
         }
 
       [TestMethod]
