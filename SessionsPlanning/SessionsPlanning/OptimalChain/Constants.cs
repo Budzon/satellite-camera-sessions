@@ -41,7 +41,7 @@ namespace OptimalChain
         public const int stripStepPassing = 1; // шаг по колву точек. Значение 1, если используем все точки, без оптимизации
         public const int stripPolygonStep = 10000; // расстояние между точками в метрах
         public const int minTrajectoryStep = 10; // минимальный шаг траектории в секундах. Если в БД лежит траектория с худшим шагом, то интерполируем точки.
-
+        public const double stripOverlap = 0.05; // перекрытие соседних полос.
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
 
         public static int CountMinPause(int t1, int st1, string channel1, int t2, int st2, string channel2)
