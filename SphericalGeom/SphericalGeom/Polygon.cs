@@ -603,36 +603,36 @@ namespace SphericalGeom
                 double lon = (double)geom.STPointN(i).Long;
                 points.Add(new GeoPoint(lat, lon));
             }
-
-            List<GeoPoint> res = new List<GeoPoint>();
+            return points;
+            //List<GeoPoint> res = new List<GeoPoint>();
              
-            // добавим дополнительные точки
-            const int coef = 10; // 10 дополнителных точек на отрезок скелета
+            //// добавим дополнительные точки
+            //const int coef = 10; // 10 дополнителных точек на отрезок скелета
 
-            int size = points.Count;
+            //int size = points.Count;
 
-            if (size < 5)
-                throw new ArgumentException("Not enough points in polygon");
+            //if (size < 5)
+            //    throw new ArgumentException("Not enough points in polygon");
 
-            double[] timeArray = new double[size];
-            for (int k = 0; k < size; k++)
-            {
-                timeArray[k] = k;
-            }
+            //double[] timeArray = new double[size];
+            //for (int k = 0; k < size; k++)
+            //{
+            //    timeArray[k] = k;
+            //}
             
-            MNCbicSplne longSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Longitude).ToArray());
-            MNCbicSplne latSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Latitude).ToArray());
+            //MNCbicSplne longSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Longitude).ToArray());
+            //MNCbicSplne latSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Latitude).ToArray());
 
-            int newsize = coef * size;
-            double h = 1.0 / coef;
-            for (int i = 0; i < newsize; i++)
-            {
-                double t = h * i;
-                GeoPoint c = new GeoPoint(latSpline.Interpolate(t), longSpline.Interpolate(t));
-                res.Add(c);
-            }
+            //int newsize = coef * size;
+            //double h = 1.0 / coef;
+            //for (int i = 0; i < newsize; i++)
+            //{
+            //    double t = h * i;
+            //    GeoPoint c = new GeoPoint(latSpline.Interpolate(t), longSpline.Interpolate(t));
+            //    res.Add(c);
+            //}
  
-            return res;            
+            //return res;            
         }
 
         #region Polygon private methods
