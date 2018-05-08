@@ -10,6 +10,8 @@ using Common;
 using OptimalChain;
 using SatelliteSessions;
 using DBTables;
+using Microsoft.SqlServer.Types;
+using System.Data.SqlTypes;
 
 namespace GeometryTest
 {
@@ -89,7 +91,6 @@ namespace GeometryTest
         {
             List<GeoPoint> vs = new List<GeoPoint>
             {
-             new GeoPoint(32.6788,27.8779),
              new GeoPoint(32.6806,   27.9251) ,
              new GeoPoint(32.6388,   27.9435) ,
              new GeoPoint(32.5339,   27.9811) ,
@@ -167,34 +168,70 @@ namespace GeometryTest
             /// DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
 
             // CUSTOM
-            DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+            //DateTime dt1 = new DateTime(2019, 1, 1, 10, 56, 30);
+            DateTime dt1 = new DateTime(2019, 2, 2, 8, 0, 0);
             int steps = 100;
-            double ang0 = Math.PI, ang1 = 4 * Math.PI, dang = ang1 - ang0, step = dang / steps;
+            //double ang0 = Math.PI, ang1 = 4 * Math.PI, dang = ang1 - ang0, step = dang / steps;
 
-            //double lon0 = 48, lon1 = 52, dlon = lon1 - lon0, step = dlon / steps;
+            double lon0 = 28, lon1 = 32, dlon = lon1 - lon0, step = dlon / steps;
 
             double[] lons = new double[steps];
-            //for (int i = 0; i < lons.Length; ++i)
-            //{
-            //    lons[i] = lon0 + step * (lons.Length - i - 1);
-            //}
-            double[] lats = new double[steps];
-            for (int i = 0; i < steps; ++i)
+            for (int i = 0; i < lons.Length; ++i)
             {
-                double t = ang0 + step * i;
-                lats[i] = 50 + 0.1 * t * Math.Sin(t);
-                lons[i] = -9.5 + 0.1 * t * Math.Cos(t);
+                lons[i] = lon0 + step * (lons.Length - i - 1);
             }
+            double[] lats = new double[steps];
+            //for (int i = 0; i < steps; ++i)
+            //{
+            //    double t = ang0 + step * i;
+            //    lats[i] = 50 + 0.1 * t * Math.Sin(t);
+            //    lons[i] = -9.5 + 0.1 * t * Math.Cos(t);
+            //}
+
             //for (int i = 0; i < lats.Length; ++i)
             //{
-            //    lats[i] = -9 + 1 * Math.Cos(Math.PI / 4 * lons[i]) + 0.5 * Math.Sin(lons[i] * 3);
+            //    lats[i] = 30.5 + 0.1 * Math.Cos(Math.PI / 4 * lons[i]) + 0.2 * Math.Sin(lons[i] * 3);
             //}
-            //
+
+            for (int i = 0; i < 50; ++i)
+            {
+                lats[i] = 30.5 + 9e-2 * (lons[i] - lons[0]);
+            }
+            for (int i = 50; i < 75; ++i)
+            {
+                lats[i] = lats[49] - 15e-2 * (lons[i] - lons[49]);
+            }
+            for (int i = 75; i < 100; ++i)
+            {
+                lats[i] = lats[74] + 15e-2 * (lons[i] - lons[74]);
+            }
+          
             List<string> wkts;
-            List<GeoPoint> satPos;
+            //List<GeoPoint> satPos;
             List<GeoPoint> curve = new List<GeoPoint>();
             for (int i = 0; i < lons.Length; ++i)
-                curve.Add(new GeoPoint(lats[i], lons[i]));
+                curve.Add(new GeoPoint(lons[i], lats[i]));
+            //List<GeoPoint> curve2 = new List<GeoPoint>();
+            //for (int i = 0; i < lons.Length; ++i)
+            //    curve2.Add(new GeoPoint(lons[i], lats[i] + 3e-2));
+            //curve2.Reverse();
+            //curve.AddRange(curve2);
+            //Polygon p = new Polygon(curve);
+            //Console.WriteLine(p.ToWtk());
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
+            //string s = "LINESTRING(31.6680908203125 31.386468269542306,31.580200195312496 31.33487103395059,31.5032958984375 31.273855991548857,31.44287109375 31.198706347135243,31.415405273437496 31.104685293758493,31.398925781249996 31.01057105944173,31.409912109375 30.91636380602182,31.4483642578125 30.84564742018263,31.5087890625 30.755998458321656,31.6021728515625 30.685163937659567,31.7120361328125 30.63318556699761,31.7889404296875 30.581179257386978,31.838378906250004 30.524413269923983,31.8438720703125 30.453409130203596,31.8438720703125 30.372875188118044,31.799926757812496 30.311245603935006,31.728515625 30.25906720321302,31.6461181640625 30.230594564932204,31.563720703125 30.211608223816924,31.4483642578125 30.206861065952637,31.3494873046875 30.225848323247703)";
+            //SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(s), 4326);
+            string wktp = "POLYGON((31.681823730468746 31.431006719178512,31.604919433593743 31.41460027631321,31.525268554687493 31.38177878211097,31.459350585937496 31.330178972184655,31.420898437499993 31.266813252320688,31.404418945312493 31.191658003929007,31.409912109374996 31.11644302456945,31.445617675781243 31.04352163068421,31.500549316406243 30.98702796028033,31.585693359374993 30.93756853975414,31.657104492187496 30.885726447651578,31.712036132812496 30.800833391884055,31.744995117187493 30.708781226254104,31.753234863281246 30.6260954420505,31.739501953124996 30.557530797259176,31.698303222656246 30.50075098029069,31.640624999999996 30.453409130203596,31.558227539062496 30.427361303226718,31.48956298828125 30.413150465068867,31.46759033203125 30.453409130203596,31.552734375000004 30.47234863264083,31.610412597656246 30.49601783134129,31.651611328124996 30.53624225473493,31.676330566406246 30.57408532473883,31.6900634765625 30.6260954420505,31.684570312499993 30.699335004371974,31.657104492187496 30.786677249436934,31.618652343749996 30.857437108750233,31.539001464843746 30.918720119722195,31.470336914062496 30.9611238394114,31.409912109375 31.019986671412497,31.374206542968746 31.097629956393973,31.360473632812493 31.186958816798736,31.37420654296874 31.25037814985572,31.390686035156246 31.29263405889955,31.42639160156249 31.34894581557998,31.500549316406243 31.405223877581335,31.582946777343743 31.44506709974827,31.67083740234374 31.475524020001814,31.681823730468746 31.431006719178512))";
+            Polygon p = new Polygon(wktp);
+            curve = p.getCenterLine();
+            //curve = new List<GeoPoint>();
+
+            //for (int i = 1; i < geom.STNumPoints(); i++)
+            //{
+            //    double lat = (double)geom.STPointN(i).Lat;
+            //    double lon = (double)geom.STPointN(i).Long;
+            //    curve.Add(new GeoPoint(lat, lon));
+            //}
 
             Sessions.getPieciwiseCoridor(dt1, curve, manager, out wkts);//, out satPos, custom: true);
             Console.WriteLine(wkts.Aggregate("[", (tail, wkt) => tail + ", '" + wkt + "'") + "]");
@@ -395,58 +432,58 @@ namespace GeometryTest
          
 
 
-        [TestMethod]
-        public void TestIsRequestFeasible()
-        {
+        //[TestMethod]
+        //public void TestIsRequestFeasible()
+        //{
 
-            for (int testi = 0; testi < 2; testi++)
-            {
+        //    for (int testi = 0; testi < 2; testi++)
+        //    {
 
-                List<Polygon> polygons = new List<Polygon>();
-                Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 10; i++)
-                {
-                    Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
-                    polygons.Add(randpol);
-                }
+        //        List<Polygon> polygons = new List<Polygon>();
+        //        Random rand = new Random((int)DateTime.Now.Ticks);
+        //        for (int i = 0; i < 10; i++)
+        //        {
+        //            Polygon randpol = getRandomPolygon(rand, 3, 12, 2, 8);
+        //            polygons.Add(randpol);
+        //        }
 
-                string cs = System.IO.File.ReadLines("DBstring.conf").First();
-                DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+        //        string cs = System.IO.File.ReadLines("DBstring.conf").First();
+        //        DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
-                DateTime dt1 = new DateTime(2019, 1, 5);
-                DateTime dt2 = new DateTime(2019, 1, 6);
+        //        DateTime dt1 = new DateTime(2019, 1, 5);
+        //        DateTime dt2 = new DateTime(2019, 1, 6);
 
-                DataFetcher fetcher = new DataFetcher(manager);
-                Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+        //        DataFetcher fetcher = new DataFetcher(manager);
+        //        Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
 
-                if (trajectory.Count == 0)
-                    throw new Exception("На эти даты нет траектории в БД, тест некорректный");
+        //        if (trajectory.Count == 0)
+        //            throw new Exception("На эти даты нет траектории в БД, тест некорректный");
 
 
-                foreach (var pol in polygons)
-                {
-                    try
-                    {
-                        RequestParams reqparams = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
+        //        foreach (var pol in polygons)
+        //        {
+        //            try
+        //            {
+        //                RequestParams reqparams = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
                       
-                        double cover;
-                        List<CaptureConf> output;
-                        Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
-                    }
-                    catch (Exception ex)
-                    {
-                        List<string> lines = new List<string>();
-                        Console.WriteLine("Ошибка обнаружена на следующем полигонt:");
-                        Console.WriteLine(pol.ToWtk());
-                        lines.Add(pol.ToWtk());                        
-                        System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
-                        throw ex;
-                    }
+        //                double cover;
+        //                List<CaptureConf> output;
+        //                Sessions.isRequestFeasible(reqparams, dt1, dt2, manager, out cover, out output);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                List<string> lines = new List<string>();
+        //                Console.WriteLine("Ошибка обнаружена на следующем полигонt:");
+        //                Console.WriteLine(pol.ToWtk());
+        //                lines.Add(pol.ToWtk());                        
+        //                System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
+        //                throw ex;
+        //            }
                     
-                }
-            }
+        //        }
+        //    }
 
-        }
+        //}
 
            
 

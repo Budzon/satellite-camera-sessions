@@ -1304,16 +1304,24 @@ namespace SatelliteTrajectory
 
     }
 
+
     public class Curve
     {
         public GeoPoint[] Vertices { get; private set; }
         public double[] Distances { get; private set; }
         public double Meters { get; private set; }
-        public int Count { get { return Vertices.Length; } }
-        public double[] Derivatives { get; private set; }
-        public double[] SndDerivatives { get; private set; }
+        public int Count { get { return Vertices.Length;} }
+        public double[] DerivativesLat { get; private set; }
+        public double[] DerivativesLon { get; private set; }
+        public double[] SndDerivativesLat { get; private set; }
+        public double[] SndDerivativesLon { get; private set; }
         public double[] Curvatures { get; private set; }
-        public GeoPoint this[int index] { get { return Vertices[index]; } }
+
+        public double[] DerivativesWRTlon { get; private set; }
+        public double[] SndDerivativesWRTlon { get; private set; }
+        public double[] CurvaturesWRTlon { get; private set; }
+
+        public GeoPoint this[int index] { get{ return Vertices[index]; } }
 
         public Curve(IEnumerable<GeoPoint> vertices)
         {
@@ -1326,23 +1334,48 @@ namespace SatelliteTrajectory
 
             Meters = Distances.Sum();
 
-            Derivatives = new double[Count];
-            SndDerivatives = new double[Count];
-            Derivatives[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
+            DerivativesWRTlon = new double[Count];
+            SndDerivativesWRTlon = new double[Count];
+            DerivativesWRTlon[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
+
+            DerivativesLat = new double[Count];
+            DerivativesLon = new double[Count];
+            SndDerivativesLat = new double[Count];
+            SndDerivativesLon = new double[Count];
+            DerivativesLat[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / Distances[1];
+            DerivativesLon[0] = (Vertices[1].Longitude - Vertices[0].Longitude) / Distances[1];
             for (int i = 1; i < Count - 1; ++i)
             {
+                double ds = (Distances[i + 1] + Distances[i]) / 2;
+                SndDerivativesLat[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude) / (ds * ds);
+                SndDerivativesLon[i] = (Vertices[i - 1].Longitude - 2 * Vertices[i].Longitude + Vertices[i + 1].Longitude) / (ds * ds);
+                DerivativesLat[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * ds);
+                DerivativesLon[i] = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / (2 * ds);
+
                 double dlon = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / 2;
-                SndDerivatives[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
+                SndDerivativesWRTlon[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
                     / (dlon * dlon);
-                Derivatives[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
+                DerivativesWRTlon[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
+
             }
-            Derivatives[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
-            SndDerivatives[0] = SndDerivatives[1];
-            SndDerivatives[Count - 1] = SndDerivatives[Count - 2];
+            DerivativesLat[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / Distances[Count - 1];
+            DerivativesLon[Count - 1] = (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude) / Distances[Count - 1];
+            SndDerivativesLat[0] = SndDerivativesLat[1];
+            SndDerivativesLat[Count - 1] = SndDerivativesLat[Count - 2];
+            SndDerivativesLon[0] = SndDerivativesLon[1];
+            SndDerivativesLon[Count - 1] = SndDerivativesLon[Count - 2];
+            DerivativesWRTlon[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
+            SndDerivativesWRTlon[0] = SndDerivativesWRTlon[1];
+            SndDerivativesWRTlon[Count - 1] = SndDerivativesWRTlon[Count - 2];
 
             Curvatures = new double[Count];
+            CurvaturesWRTlon = new double[Count];
             for (int i = 0; i < Count; ++i)
-                Curvatures[i] = SndDerivatives[i] / Math.Pow(1 + Derivatives[i] * Derivatives[i], 1.5);
+            {
+                CurvaturesWRTlon[i] = SndDerivativesWRTlon[i] / Math.Pow(1 + DerivativesWRTlon[i] * DerivativesWRTlon[i], 1.5);
+                Curvatures[i] = (DerivativesLat[i] * SndDerivativesLon[i] - DerivativesLon[i] * SndDerivativesLat[i]) /
+                    Math.Sqrt(DerivativesLat[i] * DerivativesLat[i] + DerivativesLon[i] * DerivativesLon[i]);
+            }
         }
 
         public List<Curve> BreakIntoShorterParts(double maxDist)
@@ -1350,7 +1383,7 @@ namespace SatelliteTrajectory
             List<Curve> parts = new List<Curve>();
             double curDist = 0;
             int begInd = 0, endInd = 0;
-
+            
             while (endInd < Count - 1)
             {
                 curDist += Distances[endInd];
@@ -1385,37 +1418,37 @@ namespace SatelliteTrajectory
             List<GeoPoint> curCurve = new List<GeoPoint>();
             //List<GeoPoint> straight = new List<GeoPoint>() { Vertices[0] };
 
-            int lastSign = 1, curSign = 1;
-            for (int i = 1; i < Count - 1; ++i)
-            {
-                if (i == 1)
-                {
-                    lastSign = Math.Sign(Curvatures[1]);
-                    curCurve.Add(Vertices[0]);
-                    curCurve.Add(Vertices[1]);
-                    continue;
-                }
-                curSign = Math.Sign(Curvatures[i]);
-                if (curSign * lastSign == 1)
-                {
-                    curCurve.Add(Vertices[i]);
-                }
-                else
-                {
-                    lastSign *= -1;
-                    curves.Add(new Curve(curCurve));
-                    curCurve = new List<GeoPoint>() { Vertices[i - 1], Vertices[i] };
-                    //curCurve = new List<GeoPoint>() { Vertices[i] };
-                }
-            }
-            curCurve.Add(Vertices[Count - 1]);
-            curves.Add(new Curve(curCurve));
-
-            //double threshold = (0.75 * curvatures.Average() + 0.25 * curvatures.Min());
-
-            //for (int i = 1; i < vertices.Count - 1; ++i)
+            //int lastSign = 1, curSign = 1;
+            //for (int i = 1; i < Count - 1; ++i)
             //{
-            //    if (Math.Abs(curvatures[i - 1]) < threshold)
+            //    if (i == 1)
+            //    {
+            //        lastSign = Math.Sign(Curvatures[1]);
+            //        curCurve.Add(Vertices[0]);
+            //        curCurve.Add(Vertices[1]);
+            //        continue;
+            //    }
+            //    curSign = Math.Sign(Curvatures[i]);
+            //    if (curSign * lastSign == 1)
+            //    {
+            //        curCurve.Add(Vertices[i]);
+            //    }
+            //    else
+            //    {
+            //        lastSign *= -1;
+            //        curves.Add(new Curve(curCurve));
+            //        curCurve = new List<GeoPoint>() { Vertices[i - 1], Vertices[i] };
+            //        //curCurve = new List<GeoPoint>() { Vertices[i] };
+            //    }
+            //}
+            //curCurve.Add(Vertices[Count - 1]);
+            //curves.Add(new Curve(curCurve));
+
+            //double threshold = (0.75 * Curvatures.Average() + 0.25 * Curvatures.Min());
+
+            //for (int i = 1; i < Vertices.Length - 1; ++i)
+            //{
+            //    if (Math.Abs(Curvatures[i - 1]) < threshold)
             //    {
             //        if (curCurve.Count > 0)
             //        {
@@ -1425,12 +1458,12 @@ namespace SatelliteTrajectory
             //            }
             //            else
             //            {
-            //                curves.Add(curCurve);
+            //                curves.Add(new Curve(curCurve));
             //            }
             //            curCurve = new List<GeoPoint>();
-            //            straight.Add(vertices[i - 1]);
+            //            straight.Add(Vertices[i - 1]);
             //        }
-            //        straight.Add(vertices[i]);
+            //        straight.Add(Vertices[i]);
             //    }
             //    else
             //    {
@@ -1442,18 +1475,59 @@ namespace SatelliteTrajectory
             //            }
             //            else
             //            {
-            //                curves.Add(straight);
+            //                curves.Add(new Curve(straight));
             //            }
             //            straight = new List<GeoPoint>();
-            //            curCurve.Add(vertices[i - 1]);
+            //            curCurve.Add(Vertices[i - 1]);
             //        }
 
-            //        curCurve.Add(vertices[i]);
+            //        curCurve.Add(Vertices[i]);
             //    }
             //}
             //curCurve.AddRange(straight);
-            //curCurve.Add(vertices[vertices.Count - 1]);
-            //curves.Add(curCurve);
+            //curCurve.Add(Vertices[Vertices.Length - 1]);
+            //curves.Add(new Curve(curCurve));
+
+            //double threshold = 1e-9;
+            int sign = 0;
+            List<int> signChange = new List<int> { 0 };
+            int lastIndex = 0;
+
+            for (int i = 1; i < Count - 1; ++i)
+            {
+                if (Comparison.IsZero(Curvatures[i]))
+                    continue;
+                else
+                {
+                    int curSign = Math.Sign(Curvatures[i]);
+
+                    if (sign * curSign == -1)
+                    {
+                        signChange.Add(lastIndex);
+                        signChange.Add(i);
+                    }
+
+                    sign = curSign;
+                    lastIndex = i;
+                }
+            }
+            signChange.Add(Count - 1);
+
+            int from = 0;
+            for (int i = 0; i < signChange.Count / 2 - 1; ++i)
+            {
+                int to = (signChange[2*i + 1] + signChange[2*i + 2]) / 2;
+                if (to - from < 3)
+                    continue;
+                for (int j = from; j < to; ++j)
+                    curCurve.Add(Vertices[j]);
+                from = to;
+                curves.Add(new Curve(curCurve));
+                curCurve = new List<GeoPoint>();
+            }
+            for (int j = from; j < Count; ++j)
+                curCurve.Add(Vertices[j]);
+            curves.Add(new Curve(curCurve));
 
             return curves;
         }
@@ -1464,6 +1538,7 @@ namespace SatelliteTrajectory
             List<Curve> res = new List<Curve>();
             foreach (var part in parts)
                 res.AddRange(part.BreakIntoShorterParts(maxDist));
+
             return res;
         }
     }
