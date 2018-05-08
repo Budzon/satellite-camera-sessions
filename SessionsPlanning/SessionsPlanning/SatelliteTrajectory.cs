@@ -142,7 +142,7 @@ namespace SatelliteTrajectory
                     firstKaPos.addRollRot(rollAngle);
                     leftLanePoints.Add(firstKaPos.BotLeftViewPoint);
                     rightLanePoints.Add(firstKaPos.BotRightViewPoint);
-                    leftControlPoints.Add(new Vector3D(0,0,0));
+                    leftControlPoints.Add(new Vector3D(0, 0, 0));
                     rightControlPoints.Add(new Vector3D(0, 0, 0));
 
                     leftLanePoints.Add(pos.LeftCartPoint);
@@ -229,9 +229,7 @@ namespace SatelliteTrajectory
 
         public List<CaptureConf> getCaptureConfs(RequestParams request)
         {
-            List<CaptureConf> res = new List<CaptureConf>(); 
-
-            double square = request.polygons.Sum(pol => pol.Area);
+            List<CaptureConf> res = new List<CaptureConf>();
 
             foreach (var reqPol in request.polygons)
             {
@@ -274,14 +272,14 @@ namespace SatelliteTrajectory
                         tFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
                         tTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
 
-                        if ((tTo - tFrom).TotalSeconds < OptimalChain.Constants.minCConfDuration)              
+                        if ((tTo - tFrom).TotalSeconds < OptimalChain.Constants.minCConfDuration)
                             continue;
-                        
+
                         Order order = new Order();
                         order.captured = int_pol;
                         order.request = request;
                         double subsquare = int_pol.Area;
-                        order.intersection_coeff = subsquare / square;
+                        order.intersection_coeff = subsquare / request.Square;
                         var orders = new List<Order>() { order };
                         int type = 0;
                         CaptureConf newcc = new CaptureConf(tFrom, tTo, rollAngle, orders, type, null);
@@ -290,8 +288,8 @@ namespace SatelliteTrajectory
                     }
                 }
             }
-             
-        
+
+
             return res;
         }
 
@@ -382,7 +380,7 @@ namespace SatelliteTrajectory
             return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
         }
 
-         
+
         /// <summary>
         /// возвращает время в секундах, характеризующее расстояние между серединой кадра и его границей по линии точки target
         /// </summary>
@@ -392,10 +390,10 @@ namespace SatelliteTrajectory
         private double getViewDeflect(DateTime dtime, Vector3D target)
         {
             TrajectoryPoint trajPoint = trajectory.GetPoint(dtime);
-            LanePos curPos = new LanePos(trajPoint, viewAngle, rollAngle);              
+            LanePos curPos = new LanePos(trajPoint, viewAngle, rollAngle);
             double a = GeoPoint.DistanceOverSurface(curPos.LeftCartPoint, target);
             double b = GeoPoint.DistanceOverSurface(curPos.RightCartPoint, target);
-            double ab = GeoPoint.DistanceOverSurface(curPos.LeftGeoPoint, curPos.RightGeoPoint); 
+            double ab = GeoPoint.DistanceOverSurface(curPos.LeftGeoPoint, curPos.RightGeoPoint);
             double botTrapezBase = GeoPoint.DistanceOverSurface(curPos.KaCoords.BotLeftViewPoint, curPos.KaCoords.TopLeftViewPoint);
             double topTrapezBase = GeoPoint.DistanceOverSurface(curPos.KaCoords.BotRightViewPoint, curPos.KaCoords.TopRightViewPoint);
             double triangleBase = Math.Abs(topTrapezBase - botTrapezBase) / 2;
@@ -441,8 +439,8 @@ namespace SatelliteTrajectory
         public DateTime toDT { get; private set; }
         public Polygon polygon { get; private set; }
         public List<LanePos> sectorPoints { get; private set; }
-        
-        public LaneSector(Polygon _polygon, List<LanePos> _points, DateTime _fromDt, DateTime _toDt)            
+
+        public LaneSector(Polygon _polygon, List<LanePos> _points, DateTime _fromDt, DateTime _toDt)
         {
             polygon = _polygon;
             sectorPoints = _points;
@@ -450,7 +448,7 @@ namespace SatelliteTrajectory
             toDT = _toDt;
         }
 
-        
+
 
 
         public DateTime getPointTime(Vector3D point)
@@ -872,33 +870,32 @@ namespace SatelliteTrajectory
             GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
             double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
             double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
-            //Vector Bm = new Vector(lats);
-            Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
+            Vector Bm = new Vector(lats);
             Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
 
-            //// Find lats based on lons
-            //Matrix A_for_preB = new Matrix(new double[][]
-            //{ 
-            //    new double[] { 1, lons[0], lons[0] * lons[0] },
-            //    new double[] { 1, lons[1], lons[1] * lons[1] },
-            //    new double[] { 1, lons[2], lons[2] * lons[2] }
-            //});
-            //Vector preB = Gauss.Solve(A_for_preB, Bm);
+            // Find lats based on lons
+            Matrix A_for_preB = new Matrix(new double[][]
+            { 
+                new double[] { 1, lons[0], lons[0] * lons[0] },
+                new double[] { 1, lons[1], lons[1] * lons[1] },
+                new double[] { 1, lons[2], lons[2] * lons[2] }
+            });
+            Vector preB = Gauss.Solve(A_for_preB, Bm);
 
             // Find lons based on dist
             double d1 = curve.Meters * (double)ind_curv / (curve.Count - 1);
             double d2 = curve.Meters;
             Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
-            Vector B = Gauss.Solve(A, Bm);
-            double B1 = B[0];
-            double B2 = B[1];
+            //Vector B = Gauss.Solve(A, Bm);
+            //B1 = B[0];
+            //B2 = B[1];
             Vector L = Gauss.Solve(A, Lm);
             double L1 = L[0];
             double L2 = L[1];
 
-            //// Plug to find B
-            //double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
-            //double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
+            // Plug to find B
+            double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
+            double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
 
             // Find average curvature
             //double curv = 0;
@@ -1080,7 +1077,7 @@ namespace SatelliteTrajectory
             double d1 = mid * step;
             double d2 = end * step;
 
-            Matrix A = new Matrix(new double[][] { new double[] { d1, d1*d1 }, new double[] { d2, d2*d2 } });
+            Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
             Vector B = Gauss.Solve(A, Bm);
             B1 = B[0];
             B2 = B[1];
@@ -1312,18 +1309,11 @@ namespace SatelliteTrajectory
         public GeoPoint[] Vertices { get; private set; }
         public double[] Distances { get; private set; }
         public double Meters { get; private set; }
-        public int Count { get { return Vertices.Length;} }
-        public double[] DerivativesLat { get; private set; }
-        public double[] DerivativesLon { get; private set; }
-        public double[] SndDerivativesLat { get; private set; }
-        public double[] SndDerivativesLon { get; private set; }
+        public int Count { get { return Vertices.Length; } }
+        public double[] Derivatives { get; private set; }
+        public double[] SndDerivatives { get; private set; }
         public double[] Curvatures { get; private set; }
-
-        public double[] DerivativesWRTdist { get; private set; }
-        public double[] SndDerivativesWRTdist { get; private set; }
-        public double[] CurvaturesWRTdist { get; private set; }
-
-        public GeoPoint this[int index] { get{ return Vertices[index]; } }
+        public GeoPoint this[int index] { get { return Vertices[index]; } }
 
         public Curve(IEnumerable<GeoPoint> vertices)
         {
@@ -1336,48 +1326,23 @@ namespace SatelliteTrajectory
 
             Meters = Distances.Sum();
 
-            DerivativesWRTdist = new double[Count];
-            SndDerivativesWRTdist = new double[Count];
-            DerivativesWRTdist[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
-
-            DerivativesLat = new double[Count];
-            DerivativesLon = new double[Count];
-            SndDerivativesLat = new double[Count];
-            SndDerivativesLon = new double[Count];
-            DerivativesLat[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / Distances[1];
-            DerivativesLon[0] = (Vertices[1].Longitude - Vertices[0].Longitude) / Distances[1];
+            Derivatives = new double[Count];
+            SndDerivatives = new double[Count];
+            Derivatives[0] = (Vertices[1].Latitude - Vertices[0].Latitude) / (Vertices[1].Longitude - Vertices[0].Longitude);
             for (int i = 1; i < Count - 1; ++i)
             {
-                double ds = (Distances[i + 1] + Distances[i]) / 2;
-                SndDerivativesLat[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude) / (ds * ds);
-                SndDerivativesLon[i] = (Vertices[i - 1].Longitude - 2 * Vertices[i].Longitude + Vertices[i + 1].Longitude) / (ds * ds);
-                DerivativesLat[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * ds);
-                DerivativesLon[i] = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / (2 * ds);
-
                 double dlon = (Vertices[i + 1].Longitude - Vertices[i - 1].Longitude) / 2;
-                SndDerivativesWRTdist[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
+                SndDerivatives[i] = (Vertices[i - 1].Latitude - 2 * Vertices[i].Latitude + Vertices[i + 1].Latitude)
                     / (dlon * dlon);
-                DerivativesWRTdist[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
-
+                Derivatives[i] = (Vertices[i + 1].Latitude - Vertices[i - 1].Latitude) / (2 * dlon);
             }
-            DerivativesLat[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / Distances[Count - 1];
-            DerivativesLon[Count - 1] = (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude) / Distances[Count - 1];
-            SndDerivativesLat[0] = SndDerivativesLat[1];
-            SndDerivativesLat[Count - 1] = SndDerivativesLat[Count - 2];
-            SndDerivativesLon[0] = SndDerivativesLon[1];
-            SndDerivativesLon[Count - 1] = SndDerivativesLon[Count - 2];
-            DerivativesWRTdist[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
-            SndDerivativesWRTdist[0] = SndDerivativesWRTdist[1];
-            SndDerivativesWRTdist[Count - 1] = SndDerivativesWRTdist[Count - 2];
+            Derivatives[Count - 1] = (Vertices[Count - 1].Latitude - Vertices[Count - 2].Latitude) / (Vertices[Count - 1].Longitude - Vertices[Count - 2].Longitude);
+            SndDerivatives[0] = SndDerivatives[1];
+            SndDerivatives[Count - 1] = SndDerivatives[Count - 2];
 
             Curvatures = new double[Count];
-            CurvaturesWRTdist = new double[Count];
             for (int i = 0; i < Count; ++i)
-            {
-                CurvaturesWRTdist[i] = SndDerivativesWRTdist[i] / Math.Pow(1 + DerivativesWRTdist[i] * DerivativesWRTdist[i], 1.5);
-                Curvatures[i] = (DerivativesLat[i] * SndDerivativesLon[i] - DerivativesLon[i] * SndDerivativesLat[i]) /
-                    Math.Sqrt(DerivativesLat[i] * DerivativesLat[i] + DerivativesLon[i] * DerivativesLon[i]);
-            }
+                Curvatures[i] = SndDerivatives[i] / Math.Pow(1 + Derivatives[i] * Derivatives[i], 1.5);
         }
 
         public List<Curve> BreakIntoShorterParts(double maxDist)
@@ -1385,7 +1350,7 @@ namespace SatelliteTrajectory
             List<Curve> parts = new List<Curve>();
             double curDist = 0;
             int begInd = 0, endInd = 0;
-            
+
             while (endInd < Count - 1)
             {
                 curDist += Distances[endInd];
@@ -1499,7 +1464,6 @@ namespace SatelliteTrajectory
             List<Curve> res = new List<Curve>();
             foreach (var part in parts)
                 res.AddRange(part.BreakIntoShorterParts(maxDist));
-
             return res;
         }
     }
