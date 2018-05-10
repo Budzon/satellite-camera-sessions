@@ -231,6 +231,7 @@ namespace SatelliteSessions
                                 getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
                                 allCoridors.AddRange(coridorParams);
+                                break;
                             }
                             catch (Exception e)
                             {
@@ -396,21 +397,7 @@ namespace SatelliteSessions
                          
             var requestCoridor = requests.Where(req => req.shootingType == 2).ToList();
             var requestNOTCoridor = requests.Where(req => req.shootingType != 2).ToList();
-
-
-            //Console.Write("GEOMETRYCOLLECTION(");
-            //int idd = 0;
-            //foreach (var trajectory in trajSpans)
-            //{
-
-            //    if (idd != 0)
-            //        Console.Write(",");
-            //    SatLane strip = new SatLane(trajectory, 0, AstronomyMath.ToRad(90));
-
-            //    Console.Write(Polygon.getMultipolFromPolygons(strip.Sectors.Select(sect => sect.polygon).ToList()));
-            //}
-            //Console.Write(")");
-
+ 
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
                 getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods);
@@ -747,7 +734,7 @@ namespace SatelliteSessions
             //}
         }
 
-        public static void getPiecewiseCoridorParams(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<CoridorParams> coridorParams, double maxSubCurveLengthMeters = 1.5e5)
+        public static void getPiecewiseCoridorParams(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<CoridorParams> coridorParams, double maxSubCurveLengthMeters = 3.5e5)
         {
             DateTime now = dateTime;
             Trajectory traj = getMaxTrajectory(managerDB, dateTime);
@@ -759,7 +746,7 @@ namespace SatelliteSessions
             for (int i = 0; i < curves.Count; ++i)
             {
                 getCustomCoridor(traj, now, curves[i], out oneParam);
-                now = now.AddSeconds(oneParam.Duration);
+                now = now.AddSeconds(oneParam.Duration + 20);
                 coridorParams.Add(oneParam);
             }
         }
