@@ -870,32 +870,32 @@ namespace SatelliteTrajectory
             GeoPoint[] refs = new GeoPoint[] { curve[0], curve[ind_curv], curve[curve.Count - 1] };
             double[] lats = refs.Select(gp => AstronomyMath.ToRad(gp.Latitude)).ToArray();
             double[] lons = refs.Select(gp => AstronomyMath.ToRad(gp.Longitude)).ToArray();
-            Vector Bm = new Vector(lats);
+            Vector Bm = new Vector(lats[1] - lats[0], lats[2] - lats[0]);
             Vector Lm = new Vector(lons[1] - lons[0], lons[2] - lons[0]);
 
-            // Find lats based on lons
-            Matrix A_for_preB = new Matrix(new double[][]
-            { 
-                new double[] { 1, lons[0], lons[0] * lons[0] },
-                new double[] { 1, lons[1], lons[1] * lons[1] },
-                new double[] { 1, lons[2], lons[2] * lons[2] }
-            });
-            Vector preB = Gauss.Solve(A_for_preB, Bm);
+            //// Find lats based on lons
+            //Matrix A_for_preB = new Matrix(new double[][]
+            //{ 
+            //    new double[] { 1, lons[0], lons[0] * lons[0] },
+            //    new double[] { 1, lons[1], lons[1] * lons[1] },
+            //    new double[] { 1, lons[2], lons[2] * lons[2] }
+            //});
+            //Vector preB = Gauss.Solve(A_for_preB, Bm);
 
             // Find lons based on dist
             double d1 = curve.Meters * (double)ind_curv / (curve.Count - 1);
             double d2 = curve.Meters;
             Matrix A = new Matrix(new double[][] { new double[] { d1, d1 * d1 }, new double[] { d2, d2 * d2 } });
-            //Vector B = Gauss.Solve(A, Bm);
-            //B1 = B[0];
-            //B2 = B[1];
+            Vector B = Gauss.Solve(A, Bm);
+            double B1 = B[0];
+            double B2 = B[1];
             Vector L = Gauss.Solve(A, Lm);
             double L1 = L[0];
             double L2 = L[1];
 
-            // Plug to find B
-            double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
-            double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
+            //// Plug to find B
+            //double B1 = preB[1] * L1 + 2 * preB[2] * lons[0] * L1;
+            //double B2 = preB[1] * L2 + preB[2] * (L1 * L1 + 2 * lons[0] * L2);
 
             // Find average curvature
             //double curv = 0;
