@@ -283,7 +283,7 @@ namespace OptimalChain
         public int compression { get; private set; } // коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями
         public double albedo { get; private set; } //  характеристика отражательной способности поверхности. 
         public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
-        
+        public double Square { get; private set; }
         /// <summary>
         /// разделим заказы на группы по признаку совместимых CaptureConf-ов
         /// </summary>
@@ -360,6 +360,8 @@ namespace OptimalChain
             {
                 polygons = new List<Polygon>() { comPolygon };
             }
+
+            Square = polygons.Sum(pol => pol.Area);
         }
 
         public RequestParams(RequestParams copyed)

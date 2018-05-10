@@ -84,7 +84,17 @@ namespace SatelliteSessions
 
             List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+        
+
+            // заплатка, треш и ужас
+            try
+            {
+                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            }
+            catch(Exception e1)
+            { 
+                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);                
+            }           
 
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
@@ -178,8 +188,7 @@ namespace SatelliteSessions
         {
             if (requests.Count == 0)
                 return;
-
-            
+                       
 
             foreach (var req in requests)
             {
@@ -191,7 +200,9 @@ namespace SatelliteSessions
 
                 Polygon reqpol = req.polygons.First();
 
-                double viewAngle = Math.Min(req.Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
+                double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, req.Max_SOEN_anlge);
+                double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
+                 
                 SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
 
                 List<CaptureConf> confs = viewLane.getCaptureConfs(req);
@@ -217,13 +228,13 @@ namespace SatelliteSessions
                             List<CoridorParams> coridorParams;
                             try
                             {
-                                getPiecewiseCoridorParams(start, line, managerDB, out coridorParams, 0.5e5);
+                                getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
                                 allCoridors.AddRange(coridorParams);
                             }
-                            catch(Exception e)
+                            catch (Exception e)
                             {
-                            //    Console.WriteLine(e.Message);       
+                                //Console.WriteLine(e.Message);       
                                 start = start.AddSeconds(20);
                             }
                             
@@ -272,7 +283,7 @@ namespace SatelliteSessions
             double max_roll_angle = Math.Min(Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
             double min_roll_angle = -max_roll_angle;
 
-            double angleStep = OptimalChain.Constants.camera_angle; // шаг равен углу обзора
+            double angleStep = OptimalChain.Constants.camera_angle *(1 - OptimalChain.Constants.stripOverlap); // шаг равен углу обзора
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
 
             ConcurrentBag<CaptureConf> concurrentlist = new ConcurrentBag<CaptureConf>();
@@ -374,8 +385,6 @@ namespace SatelliteSessions
             if (requests.Count == 0)
                 return new List<CaptureConf>();
 
-            //string trajFileName = AppDomain.CurrentDomain.BaseDirectory + "\\" + "trajectory_1day.dat";
-            //Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно
             DataFetcher fetcher = new DataFetcher(managerDB);
 
             inactivityRanges.Sort(delegate(TimePeriod span1, TimePeriod span2) { return span1.dateFrom.CompareTo(span2.dateFrom); });
@@ -387,6 +396,20 @@ namespace SatelliteSessions
                          
             var requestCoridor = requests.Where(req => req.shootingType == 2).ToList();
             var requestNOTCoridor = requests.Where(req => req.shootingType != 2).ToList();
+
+
+            //Console.Write("GEOMETRYCOLLECTION(");
+            //int idd = 0;
+            //foreach (var trajectory in trajSpans)
+            //{
+
+            //    if (idd != 0)
+            //        Console.Write(",");
+            //    SatLane strip = new SatLane(trajectory, 0, AstronomyMath.ToRad(90));
+
+            //    Console.Write(Polygon.getMultipolFromPolygons(strip.Sectors.Select(sect => sect.polygon).ToList()));
+            //}
+            //Console.Write(")");
 
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
@@ -453,9 +476,17 @@ namespace SatelliteSessions
 
             List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            
+            // заплатка, треш и ужас
+            try
+            {
+                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            }
+            catch (Exception e1)
+            {
+                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            }      
 
-            // учёт освещённости
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
@@ -465,7 +496,7 @@ namespace SatelliteSessions
             List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
-            Graph captureGraph = new Graph(confsToCapture);
+             Graph captureGraph = new Graph(confsToCapture);
             List<MPZParams> captureMPZParams = captureGraph.findOptimalChain(Nmax);
 
             // Найдём все возможные промежутки времени для сброса (из диапазона [timeFrom - timeTo] вычитаются все inactivityRanges и диапазоны съемки)
