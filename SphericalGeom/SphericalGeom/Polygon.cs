@@ -213,7 +213,15 @@ namespace SphericalGeom
         public Polygon(string wtkPolygon)
             : this()
         {
-            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
+            SqlGeography geom = null;
+            try
+            {
+                geom = SqlGeography.STGeomFromText(new SqlChars(wtkPolygon), 4326);
+            }
+            catch (Exception e)
+            {
+                throw new ArgumentException("Incorrect wkt string. " + e.Message);
+            }
             List<Vector3D> points = new List<Vector3D>();
             var apex = new Vector3D(0, 0, 0);
             for (int i = 1; i < geom.STNumPoints(); i++)
