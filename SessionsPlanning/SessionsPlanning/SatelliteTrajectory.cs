@@ -1323,6 +1323,9 @@ namespace SatelliteTrajectory
         public double[] SndDerivativesWRTlon { get; private set; }
         public double[] CurvaturesWRTlon { get; private set; }
 
+        public double[] CurvD { get; private set; }
+        public double Turnage { get; private set; }
+
         public GeoPoint this[int index] { get{ return Vertices[index]; } }
 
         public Curve(IEnumerable<GeoPoint> vertices)
@@ -1372,23 +1375,31 @@ namespace SatelliteTrajectory
 
             Curvatures = new double[Count];
             CurvaturesWRTlon = new double[Count];
+            CurvD = new double[Count];
+            Turnage = 0;
             for (int i = 0; i < Count; ++i)
             {
                 CurvaturesWRTlon[i] = SndDerivativesWRTlon[i] / Math.Pow(1 + DerivativesWRTlon[i] * DerivativesWRTlon[i], 1.5);
                 Curvatures[i] = (DerivativesLat[i] * SndDerivativesLon[i] - DerivativesLon[i] * SndDerivativesLat[i]) /
-                    Math.Sqrt(DerivativesLat[i] * DerivativesLat[i] + DerivativesLon[i] * DerivativesLon[i]);
+                    Math.Pow(DerivativesLat[i] * DerivativesLat[i] + DerivativesLon[i] * DerivativesLon[i], 1.5);
+                if (i == 0 || i == Count - 1)
+                    CurvD[i] = 0;
+                else
+                    CurvD[i] = Curvatures[i] * (Distances[i] + Distances[i + 1]);
+                Turnage += Math.Abs(CurvD[i]);
             }
         }
 
         public List<Curve> BreakIntoShorterParts(double maxDist)
         {
             List<Curve> parts = new List<Curve>();
+
             double curDist = 0;
             int begInd = 0, endInd = 0;
             
             while (endInd < Count - 1)
             {
-                curDist += Distances[endInd];
+                curDist += Math.Abs(CurvD[endInd]);
                 if (curDist < maxDist)
                 {
                     endInd++;
