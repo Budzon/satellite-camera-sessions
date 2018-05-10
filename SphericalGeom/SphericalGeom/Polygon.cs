@@ -577,20 +577,16 @@ namespace SphericalGeom
         /// </summary>
         /// <param name="wktPolygon"> скелетируемый полигон</param>
         /// <returns>линия скелета в wkt</returns>
-        [DllImport("CGALWrapperCPP", EntryPoint = "getStraightSkeleton", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern IntPtr getStraightSkeleton(string wktPolygon);
+        [DllImport("CGALWrapper", EntryPoint = "getPolygonSpine", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern IntPtr getPolygonSpine(string wktPolygon);
         
         /// <summary>
         /// Построения интерполироанного скелета полигона (алгоритм Straight Skeleton)
         /// </summary>
         /// <returns></returns>
         public List<GeoPoint> getCenterLine()
-        {
-            //@todo здесь нужно делать поиск прямолинейного скелета (straight skeleton) или типо того
-            
-           // int size = Vertices.Count / 2;
-
-            IntPtr pstr = getStraightSkeleton(this.ToWtk());
+        { 
+            IntPtr pstr = getPolygonSpine(this.ToWtk());
             string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
              
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
