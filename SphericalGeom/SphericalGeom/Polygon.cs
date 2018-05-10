@@ -258,11 +258,10 @@ namespace SphericalGeom
                 new Vector3D(0, 0, 1)
             });
 
-            Vector3D basisVec = Vector3D.CrossProduct(capCenter,
-                new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
+            Vector3D basisVec = new Vector3D(0, 0, 1); //Vector3D.CrossProduct(capCenter,  new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
             ReferenceFrame capFrame = new ReferenceFrame(
-                basisVec,
                 Vector3D.CrossProduct(basisVec, capCenter),
+                basisVec,
                 capCenter);
             leftLobe.FromThisFrame(capFrame);
             rightLobe.FromThisFrame(capFrame);
