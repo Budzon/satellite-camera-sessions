@@ -83,19 +83,8 @@ namespace SatelliteSessions
             DataFetcher fetcher = new DataFetcher(managerDB);
 
             List<TimePeriod> shadowPeriods;
-            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-        
-
-            // заплатка, треш и ужас
-            try
-            {
-                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
-            }
-            catch(Exception e1)
-            { 
-                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);                
-            }           
-
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;                  
+            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
@@ -462,18 +451,8 @@ namespace SatelliteSessions
             List<TimePeriod> freeSessionPeriodsForDrop = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions, silentTimePeriods);
 
             List<TimePeriod> shadowPeriods;
-            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            
-            // заплатка, треш и ужас
-            try
-            {
-                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
-            }
-            catch (Exception e1)
-            {
-                checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
-            }      
-
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;            
+            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
