@@ -89,7 +89,13 @@ namespace SphericalGeom
             normal.Normalize();
             Axis = normal;
             Center = Vector3D.DotProduct(A, normal) * normal;
-
+            //if (Comparison.IsZero(Center))
+            //{
+            //    Center = new Vector3D(0, 0, 0);
+            //    normal = Vector3D.CrossProduct(A, B);
+            //    normal.Normalize();
+            //    Axis = normal;
+            //}
             CentralAngle = AstronomyMath.ToRad(Vector3D.AngleBetween(A - Center, B - Center));
            
             Radius = Math.Min((A - Center).Length, 1.0);

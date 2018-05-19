@@ -44,7 +44,7 @@ namespace SphericalGeom
 
         public static bool IsZero(Vector3D v)
         {
-            return IsZero(v.Length);
+            return IsZero(v.Length / 170); //sqrt(3) и два порядка
         }
 
         public static bool IsEqual(Vector3D v, Vector3D u)

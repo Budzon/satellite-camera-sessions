@@ -23,7 +23,7 @@ namespace SphericalGeom
         private List<Vector3D> apexes;
         private List<Vector3D> vertices;
 
-        private static Random rand;
+        private static Random rand = null;
 
         private bool knowArcs;
         private List<Arc> arcs;
@@ -178,7 +178,8 @@ namespace SphericalGeom
             apexes = new List<Vector3D>();
             vertices = new List<Vector3D>();
             arcs = new List<Arc>();
-            rand = new Random();
+            if (rand == null)
+                rand = new Random();
             knowWtk = false;
             knowArea = false;
             knowCounterclockwise = false;
@@ -237,31 +238,45 @@ namespace SphericalGeom
 
         public static Polygon[] Hemisphere(Vector3D capCenter)
         {
-            double ang = 1e-12, c = Math.Cos(ang), s = Math.Sin(ang);
-            Polygon basic = new Polygon(new List<Vector3D>{
-                new Vector3D(c, 0, s),
-                new Vector3D(0, c, s),
-                new Vector3D(-c, 0, s),
-                new Vector3D(0, -c, s)
-            });
+            double ang = 1e-1, c = Math.Cos(ang), s = Math.Sin(ang);
+            //Polygon basic = new Polygon(new List<Vector3D>{
+            //    new Vector3D(c, 0, s),
+            //    new Vector3D(0, c, s),
+            //    new Vector3D(-c, 0, s),
+            //    new Vector3D(0, -c, s)
+            //});
 
+            //Polygon leftLobe = new Polygon(new List<Vector3D>{
+            //    new Vector3D(0, 1, 0),
+            //    new Vector3D(1, 0, 0),
+            //    new Vector3D(0, -1, 0),
+            //    new Vector3D(-0, 0, 1)
+            //});
+            //Polygon rightLobe = new Polygon(new List<Vector3D>{
+            //    new Vector3D(0, 1, 0),
+            //    new Vector3D(-1, 0, 0),
+            //    new Vector3D(0, -1, 0),
+            //    new Vector3D(0, 0, 1)
+            //});
+
+            // Overlapping lobes
             Polygon leftLobe = new Polygon(new List<Vector3D>{
-                new Vector3D(0, 1, 0),
-                new Vector3D(1, 0, 0),
-                new Vector3D(0, -1, 0),
+                new Vector3D(0, c, s),
+                new Vector3D(c, 0, s),
+                new Vector3D(0, -c, s),
                 new Vector3D(0, 0, 1)
             });
             Polygon rightLobe = new Polygon(new List<Vector3D>{
-                new Vector3D(0, 1, 0),
-                new Vector3D(-1, 0, 0),
-                new Vector3D(0, -1, 0),
+                new Vector3D(0, c, s),
+                new Vector3D(-c, 0, s),
+                new Vector3D(0, -c, s),
                 new Vector3D(0, 0, 1)
             });
 
-            Vector3D basisVec = new Vector3D(0, 0, 1); //Vector3D.CrossProduct(capCenter,  new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
+            Vector3D basisVec = Vector3D.CrossProduct(new Vector3D(0, 0, 1), capCenter); //Vector3D.CrossProduct(capCenter,  new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
             ReferenceFrame capFrame = new ReferenceFrame(
-                Vector3D.CrossProduct(basisVec, capCenter),
                 basisVec,
+                Vector3D.CrossProduct(basisVec, capCenter),
                 capCenter);
             leftLobe.FromThisFrame(capFrame);
             rightLobe.FromThisFrame(capFrame);
@@ -600,7 +615,7 @@ namespace SphericalGeom
 
             List<GeoPoint> points = new List<GeoPoint>();
               
-            for (int i = 1; i < geom.STNumPoints(); i++)
+            for (int i = 2; i < geom.STNumPoints(); i++)
             {
                 double lat = (double)geom.STPointN(i).Lat;
                 double lon = (double)geom.STPointN(i).Long;
@@ -770,7 +785,7 @@ namespace SphericalGeom
 
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
-
+            
             ReferenceFrame rotate = new ReferenceFrame();
             rotate.RotateBy(q.Middle, rotationAngleIfOverlap);            
             bool allGood = false;
