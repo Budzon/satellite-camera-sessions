@@ -1068,11 +1068,7 @@ namespace SatelliteSessions
                 {
                     while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
                         curSunPositionIndex++;
-                    if (i == 4)
-                    {
-                        int a = 2;
-                        a += 3;
-                    }
+
                     // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
