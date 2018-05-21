@@ -43,7 +43,7 @@ namespace OptimalChain
         public const int minTrajectoryStep = 10; // минимальный шаг траектории в секундах. Если в БД лежит траектория с худшим шагом, то интерполируем точки.
         public const double stripOverlap = 0.05; // перекрытие соседних полос.
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
-
+        public const int minTrajectoryPassInterval = 120; //[секнуды] максимальный разрыв по времени между двумя точками траектории, при котором мы продолжаем с такой траекторией работать.
         public static int CountMinPause(int t1, int st1, string channel1, int t2, int st2, string channel2)
         {
             int d = Constants.min_Delta_time;

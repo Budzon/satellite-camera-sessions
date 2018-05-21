@@ -17,33 +17,90 @@ namespace GeometryTest
     [TestClass]
     public class TrajectoryTest
     {
+
+        public const double TrajectoryEps = 0.250;
+
         [TestMethod]
         public void Test_GetTrajectorySat()
         {
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
-
-            DateTime dt1 = new DateTime(2019, 1, 5, 21, 23, 1);
-            DateTime dt2 = new DateTime(2019, 1, 6, 2, 1, 34);
-
             DataFetcher fetcher = new DataFetcher(manager);
-            Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
 
-            Assert.IsTrue(trajectory.Points[0].Time == dt1);
-            Assert.IsTrue(trajectory.Points.Last().Time == dt2);
-
-            Assert.IsTrue(trajectory.Points[0].Position == trajectory.GetPosition(dt1));
-            Assert.IsTrue(trajectory.Points.Last().Position == trajectory.GetPosition(dt2));
-
-            for (int i = 0; i < trajectory.Count; i++)
             {
-                var dtime = trajectory.Points[i].Time;
-                TrajectoryPoint? point = fetcher.GetPositionSat(dtime);
-                Assert.IsTrue(point != null);
-                var trpoint = (TrajectoryPoint)point;
-                //var diff = Math.Abs((trpoint.Time - dtime).TotalMilliseconds);
-                Assert.IsTrue(trpoint.Time == dtime);
+                DateTime dt1 = new DateTime(2019, 2, 2, 7, 20, 0);
+                DateTime dt2 = new DateTime(2019, 2, 2, 8, 20, 0);
+                              
+                Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+
+                Assert.IsTrue(trajectory.Points[0].Time == dt1);
+                Assert.IsTrue(trajectory.Points.Last().Time == dt2);
+
+                Assert.IsTrue(trajectory.Points[0].Position == trajectory.GetPosition(dt1));
+                Assert.IsTrue(trajectory.Points.Last().Position == trajectory.GetPosition(dt2));
+
+                //for (int i = 0; i < trajectory.Count; i++)
+                //{
+                //    var dtime = trajectory.Points[i].Time;
+                //    TrajectoryPoint? point = fetcher.GetSingleTragectoryPoint(dtime);
+                //    Assert.IsTrue(point != null);
+                //    var trpoint = (TrajectoryPoint)point; 
+                //    Assert.IsTrue(trpoint.Time == dtime);
+                //    double dist = (trpoint.Position - trajectory.Points[i].Position).Length;
+                //    Assert.IsTrue(dist < TrajectoryEps);
+                //}
             }
+
+
+            /// Проверим обработку отсутствия траектории в базе данных
+            bool fail = false;
+            {
+                DateTime dt1 = new DateTime(2000, 2, 2, 0, 0, 0);
+                DateTime dt2 = new DateTime(2000, 2, 3, 0, 0, 0);
+                //мы ожидаем, что на заданный диапазон нет траектории 
+
+                try
+                {
+                    Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2); 
+                    // если мы дошли сюда, значит исключение небыло сгенерировано, что неверно
+                    fail = true;                     
+                }
+                catch (ArgumentException ex)
+                { } // если исключение было сгенерировано, значит всё ок
+            }
+            {
+                DateTime dt1 = new DateTime(2000, 2, 2, 0,0,0);
+                DateTime dt2 = new DateTime(2000, 2, 2, 0, 0, 10);
+                //мы ожидаем, что на заданный диапазон нет траектории 
+                try
+                {
+                    Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+                    // если мы дошли сюда, значит исключение небыло сгенерировано, что неверно
+                    fail = true;
+                   
+                }
+                catch (ArgumentException ex)
+                { } // если исключение было сгенерировано, значит всё ок
+            }
+            {
+                DateTime dt1 = new DateTime(2000, 2, 2, 0, 0, 0);
+                DateTime dt2 = new DateTime(2014, 7, 13, 0, 20, 10);
+                //мы ожидаем, что только на часть заданного диапазона имеется траектория в БД, должно быть сгенерировано исключение
+                try
+                {
+                    Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
+                    // если мы дошли сюда, значит исключение небыло сгенерировано, что неверно
+                    fail = true;
+                }
+                catch (ArgumentException ex)
+                { } // если исключение было сгенерировано, значит всё ок
+            }
+            Assert.IsFalse(fail);
+
         }
+
+
+
+
     }
 }

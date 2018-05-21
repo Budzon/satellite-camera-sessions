@@ -608,33 +608,48 @@ namespace SphericalGeom
             }
             return points;
             //List<GeoPoint> res = new List<GeoPoint>();
-             
-            //// добавим дополнительные точки
+
+
+            //MNCbicSplne splineInterpolation = MNCbicSplne.InterpolateAkima(points.Select(p => p.Latitude).ToArray(), points.Select(p => p.Longitude).ToArray());
+            //int size = points.Count;
+            ////// добавим дополнительные точки
             //const int coef = 10; // 10 дополнителных точек на отрезок скелета
 
-            //int size = points.Count;
-
-            //if (size < 5)
-            //    throw new ArgumentException("Not enough points in polygon");
-
-            //double[] timeArray = new double[size];
-            //for (int k = 0; k < size; k++)
+            //for (int i = 0; i < size-1; i++)
             //{
-            //    timeArray[k] = k;
-            //}
-            
-            //MNCbicSplne longSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Longitude).ToArray());
-            //MNCbicSplne latSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Latitude).ToArray());
+            //    double latA = points[i].Latitude;
+            //    double latB = points[i+1].Latitude;
+            //    double latDist = latB - latA;
+            //    double h = latDist / coef;
+            //    for (int k = 0; k < coef; k++)
+            //    {
+            //        double curLat = latA + h * k;
+            //        GeoPoint c = new GeoPoint(curLat, splineInterpolation.Interpolate(curLat));
+            //        res.Add(c);
+            //    }                
+            //}         
 
-            //int newsize = coef * size;
-            //double h = 1.0 / coef;
-            //for (int i = 0; i < newsize; i++)
-            //{
-            //    double t = h * i;
-            //    GeoPoint c = new GeoPoint(latSpline.Interpolate(t), longSpline.Interpolate(t));
-            //    res.Add(c);
-            //}
- 
+            ////if (size < 5)
+            ////    throw new ArgumentException("Not enough points in polygon");
+
+            ////double[] timeArray = new double[size];
+            ////for (int k = 0; k < size; k++)
+            ////{
+            ////    timeArray[k] = k;
+            ////}
+
+            ////MNCbicSplne longSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Longitude).ToArray());
+            ////MNCbicSplne latSpline = MNCbicSplne.InterpolateAkima(timeArray, points.Select(p => p.Latitude).ToArray());
+
+            ////int newsize = coef * (size-1);
+            ////double h = 1.0 / coef;
+            ////for (int i = 0; i < newsize; i++)
+            ////{
+            ////    double t = h * i;
+            ////    GeoPoint c = new GeoPoint(latSpline.Interpolate(t), longSpline.Interpolate(t));
+            ////    res.Add(c);
+            ////}
+
             //return res;            
         }
 

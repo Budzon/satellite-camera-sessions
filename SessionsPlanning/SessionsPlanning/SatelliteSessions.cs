@@ -82,8 +82,8 @@ namespace SatelliteSessions
             // Astronomy.Trajectory trajectory = DatParser.getTrajectoryFromDatFile(trajFileName, timeFrom, timeTo); // @todo временно
             DataFetcher fetcher = new DataFetcher(managerDB);
 
-            List<TimePeriod> shadowPeriods;
-            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;                  
+            List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
             checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
@@ -834,7 +834,7 @@ namespace SatelliteSessions
             {
                 if (duration == 0)
                 {
-                    TrajectoryPoint? point = fetcher.GetPositionSat(dateTime);
+                    TrajectoryPoint? point = fetcher.GetSingleTragectoryPoint(dateTime);
 
                     if (point == null)
                     {

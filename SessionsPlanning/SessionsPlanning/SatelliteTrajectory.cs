@@ -272,6 +272,9 @@ namespace SatelliteTrajectory
                         tFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
                         tTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
 
+                        Console.WriteLine("{0} - {1}", tFrom, tTo);
+
+
                         if ((tTo - tFrom).TotalSeconds < OptimalChain.Constants.minCConfDuration)
                             continue;
 

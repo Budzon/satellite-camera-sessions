@@ -151,7 +151,7 @@ namespace SatelliteSessions
         private bool nkpoiOnTheLeft(DBTables.DataFetcher fetcher)
         {
             Vector3D snkpoi = fetcher.GetPositionSNKPOI();
-            TrajectoryPoint ka = fetcher.GetPositionSat(parameters.start).Value;
+            TrajectoryPoint ka = fetcher.GetSingleTragectoryPoint(parameters.start).Value;
             Vector3D kapos = ka.Position.ToVector();
             Vector3D planeNormal = Vector3D.CrossProduct(kapos, ka.Velocity);
             planeNormal.Normalize();
@@ -503,7 +503,7 @@ namespace SatelliteSessions
 
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
 
-            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetPositionSat(Parameters.start);
+            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetSingleTragectoryPoint(Parameters.start);
             if (KAbegin_ == null)
             {
                 throw new Exception("No trajectory data.");

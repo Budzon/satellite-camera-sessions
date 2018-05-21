@@ -84,7 +84,7 @@ namespace SatelliteSessions
             positions.AddRange(fetcher.GetPositionMNKPOI(timeFrom, timeTo));
 
             double R = Astronomy.Constants.EarthRadius;
-            double h = fetcher.GetPositionSat(timeFrom, timeTo).Select(spaceTime => spaceTime.Position.Length - R).Average();
+            double h = fetcher.GetTrajectorySat(timeFrom, timeTo).Select(point => point.Position.ToVector().Length - R).Average();
 
             zones = new List<CommunicationZoneMNKPOI>();
             foreach (PositionMNKPOI pos in positions)

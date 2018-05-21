@@ -276,11 +276,11 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 20; testi++)
+            for (int testi = 0; testi < 1; testi++)
             {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 30; i++)
+                for (int i = 0; i < 10; i++)
                 {
                     Polygon randpol = getRandomPolygon(rand, 3, 8, 2, 8);
                     polygons.Add(randpol);

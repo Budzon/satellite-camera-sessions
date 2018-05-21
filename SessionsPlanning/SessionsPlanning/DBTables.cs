@@ -102,25 +102,21 @@ namespace DBTables
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
+        private List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
         {
             List<SpaceTime> res = new List<SpaceTime>();
             foreach (DataChunk chunk in GetDataBetweenDatesInChunks(SatTable.Name, SatTable.Time, from, to, true))
                 foreach (DataRow row in chunk.Rows)
                     res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
 
+            if (res.Count == 0 && (to - from).TotalSeconds  > OptimalChain.Constants.minTrajectoryPassInterval)
+                throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+          
             return res;
         }
-         
-        public TrajectoryPoint? GetPositionSat(DateTime dtime)
-        {
-            string dtimestr = dtime.ToString(datePattern);
-            Trajectory trajectory =  SpaceTime.createTrajectory(GetMinimumPointsArray(dtime, dtime));
-            return trajectory.GetPoint(dtime);
-        }
 
-
-        public List<SpaceTime> GetMinimumPointsArray(DateTime fromDT, DateTime toDT)
+        // Интерполяция минимально достаточного кол-ва точкек на даты  fromDT toDT, нужно когда на эти даты точек слишком мало.
+        private List<SpaceTime> GetMinimumPointsArray(DateTime fromDT, DateTime toDT)
         {
             int minNumPoints = Trajectory.minNumPoints;
             string fromDTStr = fromDT.ToString(datePattern);
@@ -142,13 +138,44 @@ namespace DBTables
 
             if (afterPos.Length < halfMissNum)
                 beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, minNumPoints - positions.Count - afterPos.Length);
+            
+            List<SpaceTime> beforePosList = beforePos.Reverse().Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }).ToList();
+            List<SpaceTime> afterPosList = afterPos.Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }).ToList();
+            
+            // проверим, что диапазоны справа и слева (если они есть) не отстоят от запрашиваемой даты слишком далеко.
+            if (beforePosList.Count != 0)
+            {
+                DateTime nearestBeforeTime = beforePosList.Last().Time;
+                if ((fromDT - nearestBeforeTime).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data for a given time period");
+            }
 
-
-            positions.InsertRange(0, beforePos.Reverse().Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }));
-            positions.AddRange(afterPos.Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }) );
+            if (afterPosList.Count != 0)
+            {
+                DateTime nearestAfterTime = afterPosList.First().Time;
+                if ((nearestAfterTime - toDT).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data for a given time period");
+            }
+            
+            positions.InsertRange(0, beforePosList);
+            positions.AddRange(afterPosList);
 
             if (positions.Count < minNumPoints)
-                throw new ArgumentException("Not enough points in the database for " + fromDT.ToString()  );
+                throw new ArgumentException("Not enough ballistic data for a given time period" );
+
+            // найдем самый большой перерыв по времени между точками траектории. Отловим ситуацию, когда "вокруг" заданного промежутка fromDT : toDT нету данных траектории.
+            double maxDist = 0;
+            for (int i = 0; i < positions.Count-1; i ++ )
+            {
+                double curDist = (positions[i + 1].Time - positions[i].Time).TotalSeconds; 
+                if (curDist > maxDist)
+                    maxDist = curDist;                  
+            }
+
+            if (maxDist > OptimalChain.Constants.minTrajectoryPassInterval)
+                throw new ArgumentException("Not enough ballistic data for a given time period");
+
+            
 
             return positions;           
         }
@@ -159,7 +186,7 @@ namespace DBTables
         /// <param name="fromDT"> начало диапазона </param>
         /// <param name="toDT"> конец диапазона </param>
         /// <returns> список точек</returns>
-        public List<SpaceTime> IncreasePointsNumber(DateTime fromDT, DateTime toDT)
+        private List<SpaceTime> IncreasePointsNumber(DateTime fromDT, DateTime toDT)
         {
             int minNumPoints = Trajectory.minNumPoints;
             List<SpaceTime> positions = GetMinimumPointsArray(fromDT, toDT);         
@@ -178,7 +205,12 @@ namespace DBTables
         }
 
 
-
+        public TrajectoryPoint? GetSingleTragectoryPoint(DateTime dtime)
+        {
+            string dtimestr = dtime.ToString(datePattern);
+            Trajectory trajectory = SpaceTime.createTrajectory(GetMinimumPointsArray(dtime, dtime));
+            return trajectory.GetPoint(dtime);
+        }
 
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to)
@@ -189,9 +221,18 @@ namespace DBTables
                 preTrajectory = IncreasePointsNumber(from, to);
             else
             {
+
+                DateTime lastTime = preTrajectory.Last().Time;
+                if ((to - lastTime).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+
+                DateTime firstTime = preTrajectory.First().Time;
+                if ((firstTime - from).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+                
                 if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
                 {
-                    TrajectoryPoint? firstPoint = GetPositionSat(from);
+                    TrajectoryPoint? firstPoint = GetSingleTragectoryPoint(from);
                     if (firstPoint != null)
                     {
                         TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
@@ -202,7 +243,7 @@ namespace DBTables
 
                 if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
                 {
-                    TrajectoryPoint? secondPoint = GetPositionSat(to);
+                    TrajectoryPoint? secondPoint = GetSingleTragectoryPoint(to);
                     if (secondPoint != null)
                     {
                         TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
@@ -248,14 +289,16 @@ namespace DBTables
             List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
             List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
             DataRow[] preRows;
-
-            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false))
+            var turnsData = GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false);
+             
+            foreach (DataChunk chunk in turnsData)
             {
                 List<Tuple<int, DateTime>> turns = chunk.Rows.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
 
                 preRows = GetDataBeforeEqualDate(OrbitTable.Name, OrbitTable.TimeEquator, chunk.Begin, 1);
                 if (preRows.Length < 1) // no data about turns that began before the given date
-                    return null;
+                    throw new ArgumentException("Not enough data about turns from " + from.ToString() + " to " + to.ToString());
+
                 Tuple<int, DateTime> preTurn = Tuple.Create(OrbitTable.GetNumTurn(preRows[0]), OrbitTable.GetTimeEquator(preRows[0]));
 
                 times.Add(Tuple.Create(preTurn.Item1, chunk.Begin));
@@ -279,7 +322,11 @@ namespace DBTables
                 while (i + 1 < times.Count - 1 && (times[i + 1].Item1 == -1 || times[i + 1].Item1 == cur_turn))
                     ++i;
                 res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2)));
+                Console.WriteLine(i);
             }
+
+            if (res.Count() == 0)
+                throw new ArgumentException("Not enough turns data from " + from.ToString() + " to " + to.ToString());
 
             return res;
         }
