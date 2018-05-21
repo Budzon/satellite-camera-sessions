@@ -321,8 +321,7 @@ namespace DBTables
 
                 while (i + 1 < times.Count - 1 && (times[i + 1].Item1 == -1 || times[i + 1].Item1 == cur_turn))
                     ++i;
-                res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2)));
-                Console.WriteLine(i);
+                res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2))); 
             }
 
             if (res.Count() == 0)

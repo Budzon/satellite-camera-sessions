@@ -1511,7 +1511,7 @@ namespace ViewModel
 
             //return;
 
-            string polwtk = "POLYGON((-207.43107942374996 -27.010798687193656,-207.73317525187497 -27.724426688150217,-206.14415119593747 -28.028851186943648,-206.07769011374995 -26.886924561917397,-207.43107942374996 -27.010798687193656))";
+            string polwtk = "POLYGON((153.10581207275393 -27.427394826190067,153.1047821044922 -27.43821226954754,153.12623977661133 -27.438974021374015,153.12761306762695 -27.424804576823462,153.10581207275393 -27.427394826190067))";
 
             List<string> holes = new List<string>();
 
@@ -1572,7 +1572,7 @@ namespace ViewModel
            
             //List<TimePeriod> shadowPeriods;
             //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            //Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+            //  Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
 
             //return;
 
@@ -1646,7 +1646,7 @@ namespace ViewModel
         {
             DateTime start = DateTime.Now;
 
-            test_getCoridorMpzArray();
+            test_getPlainMpzArray();
             DateTime endd = DateTime.Now;
             Console.WriteLine("total time = " + (endd - start).TotalSeconds.ToString());
 
