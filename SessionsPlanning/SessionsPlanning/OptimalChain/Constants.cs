@@ -25,8 +25,8 @@ namespace OptimalChain
         public const int min_Delta_time = 8000;
         public const int minDeltaT = 19000;
          
-        // минимальная продолжительность конфигурации съемки в секундах. Приблизительно соответсвует времени пролёта подспутниковой точкой расстояния, равного ширине одного кадра.    
-        public const int minCConfDuration = 2;
+        // максимальный промежуток между двумя конфигурациями, при котором они объединяются в одну
+        public const int maxCConfInterval = 2;
 
         public const double angle_velocity_max = Math.PI / 60;
         public const double min_degree = Math.PI / 30;

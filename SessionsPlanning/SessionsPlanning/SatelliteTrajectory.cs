@@ -269,11 +269,11 @@ namespace SatelliteTrajectory
                         if (outOfRange)
                             break;
 
-                        tFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
-                        tTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
-                        
-                        if ((tTo - tFrom).TotalSeconds < OptimalChain.Constants.minCConfDuration)
-                            continue;
+                        DateTime shootingFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
+                        DateTime shootingTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
+
+                        if (shootingTo <= shootingFrom) // полоса конфигурации съемки короче кадра, делаем снимок по центру                        
+                             shootingTo = shootingFrom = tFrom.AddSeconds((tTo - tFrom).TotalSeconds / 2);                        
 
                         Order order = new Order();
                         order.captured = int_pol;
@@ -282,7 +282,7 @@ namespace SatelliteTrajectory
                         order.intersection_coeff = subsquare / request.Square;
                         var orders = new List<Order>() { order };
                         int type = 0;
-                        CaptureConf newcc = new CaptureConf(tFrom, tTo, rollAngle, orders, type, null);
+                        CaptureConf newcc = new CaptureConf(shootingFrom, shootingTo, rollAngle, orders, type, null);
 
                         res.Add(newcc);
                     }

@@ -1552,7 +1552,7 @@ namespace ViewModel
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(polwtk);
             Console.Write(",");
-            Console.Write(Polygon.getMultipolFromPolygons(mpzArray.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(ord => ord.captured))).ToList()));
+            Console.Write(  Polygon.getMultipolFromPolygons(mpzArray.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon) )).ToList()   ));
             Console.Write(")");
 
 
@@ -1646,7 +1646,7 @@ namespace ViewModel
         {
             DateTime start = DateTime.Now;
 
-            test_getPlainMpzArray();
+            test_Booblick();
             DateTime endd = DateTime.Now;
             Console.WriteLine("total time = " + (endd - start).TotalSeconds.ToString());
 

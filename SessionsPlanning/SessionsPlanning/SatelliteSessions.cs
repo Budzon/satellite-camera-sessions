@@ -1,4 +1,4 @@
-﻿#define _PARALLEL_
+﻿#define N_PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -326,9 +326,14 @@ namespace SatelliteSessions
 
                 foreach (var conf in laneCaptureConfs)
                 {
-                    var pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
                     TrajectoryPoint pointFrom = trajectory.GetPoint(conf.dateFrom);
-                    TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
+                    Polygon pol;
+                    if (conf.dateFrom == conf.dateTo)
+                        pol = new SatelliteCoordinates(pointFrom, rollAngle, 0).ViewPolygon;
+                    else
+                        pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
+                    
+                    //TrajectoryPoint pointTo = trajectory.GetPoint(conf.dateTo);
 
                     conf.setPolygon(pol);
                     if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)

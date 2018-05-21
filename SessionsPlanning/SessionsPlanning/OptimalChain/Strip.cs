@@ -137,7 +137,7 @@ namespace OptimalChain
             SatelliteSessions.PolinomCoef _poliCoef  = null)
             : base(_dateFrom, _dateTo)
         {
-            if (_dateFrom >= _dateTo)
+            if (_dateFrom > _dateTo)
                 throw new ArgumentException("Incorrect time interval");
 
             if (_orders == null)
@@ -201,7 +201,7 @@ namespace OptimalChain
 
 
         /// <summary>
-        /// объеденить (по времени) 
+        /// объеднить (по времени) 
         /// </summary>
         /// <param name="confs"></param>
         public static List<CaptureConf> compressCConfArray(List<CaptureConf> confs)
@@ -209,7 +209,7 @@ namespace OptimalChain
             if (confs.Count < 1)
                 return confs;
 
-            var res = SatelliteSessions.TimePeriod.compressTimePeriods<CaptureConf>(confs, OptimalChain.Constants.minCConfDuration);
+            var res = SatelliteSessions.TimePeriod.compressTimePeriods<CaptureConf>(confs, OptimalChain.Constants.maxCConfInterval);
 
             return res;
         }
