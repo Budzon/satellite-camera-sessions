@@ -236,9 +236,21 @@ namespace SphericalGeom
         }
         #endregion
 
+        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtractHemisphere(Polygon p, Vector3D capCenter)
+        {
+            var LitAndNot = Tuple.Create(new List<SphericalGeom.Polygon>(), new List<SphericalGeom.Polygon>());
+            var hemiSun = SphericalGeom.Polygon.Hemisphere(capCenter);
+            LitAndNot.Item1.AddRange(SphericalGeom.Polygon.Intersect(p, hemiSun[0]));
+            LitAndNot.Item1.AddRange(SphericalGeom.Polygon.Intersect(p, hemiSun[1]));
+            var hemiShadow = SphericalGeom.Polygon.Hemisphere(-capCenter);
+            LitAndNot.Item2.AddRange(SphericalGeom.Polygon.Intersect(p, hemiShadow[0]));
+            LitAndNot.Item2.AddRange(SphericalGeom.Polygon.Intersect(p, hemiShadow[1]));
+            return LitAndNot;
+        }
+
         public static Polygon[] Hemisphere(Vector3D capCenter)
         {
-            double ang = 1e-1, c = Math.Cos(ang), s = Math.Sin(ang);
+            //double ang = 1e-1, c = Math.Cos(ang), s = Math.Sin(ang);
             //Polygon basic = new Polygon(new List<Vector3D>{
             //    new Vector3D(c, 0, s),
             //    new Vector3D(0, c, s),
@@ -261,15 +273,15 @@ namespace SphericalGeom
 
             // Overlapping lobes
             Polygon leftLobe = new Polygon(new List<Vector3D>{
-                new Vector3D(0, c, s),
-                new Vector3D(c, 0, s),
-                new Vector3D(0, -c, s),
+                new Vector3D(0, 1, 0),
+                new Vector3D(1, 0, 0),
+                new Vector3D(0, -1, 0),
                 new Vector3D(0, 0, 1)
             });
             Polygon rightLobe = new Polygon(new List<Vector3D>{
-                new Vector3D(0, c, s),
-                new Vector3D(-c, 0, s),
-                new Vector3D(0, -c, s),
+                new Vector3D(0, 1, 0),
+                new Vector3D(-1, 0, 0),
+                new Vector3D(0, -1, 0),
                 new Vector3D(0, 0, 1)
             });
 

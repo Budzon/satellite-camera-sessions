@@ -973,7 +973,7 @@ namespace SatelliteSessions
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
 
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
+                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtractHemisphere(sector, sun);
                     bool allLit = LitAndNot.Item2.Count == 0;
                     bool allUnlit = LitAndNot.Item1.Count == 0;
 
@@ -1072,8 +1072,8 @@ namespace SatelliteSessions
                     // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
-
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, SphericalGeom.Polygon.Hemisphere(sun));
+                    
+                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtractHemisphere(sector, sun);
                     bool allLit = LitAndNot.Item2.Count == 0;
                     bool allUnlit = LitAndNot.Item1.Count == 0;
 
