@@ -73,6 +73,17 @@ namespace GeometryTest
         //}
 
         [TestMethod]
+        public void TestDivide()
+        {
+            foreach (var div in Curve.Divide(0, 13, 3))
+            {
+                foreach (int i in div)
+                    Console.Write(i + " ");
+                Console.WriteLine("");
+            }
+        }
+
+        [TestMethod]
         public void TestRollPitch()
         {
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
@@ -86,29 +97,33 @@ namespace GeometryTest
             for (int i = 0; i < pitches.Length; ++i)
                 pitches[i] = i - 45;
 
-            DateTime dt1 = new DateTime(2019, 1, 1, 10, 55, 30);
-            TrajectoryPoint tp = fetcher.GetPositionSat(dt1).Value;
+            DateTime dt1 = new DateTime(2019, 2, 2, 0, 0, 0);
 
             double roll, pitch;
             double roll1, pitch1;
             bool ok = true, equal;
-            for (int i = 0; i < rolls.Length; ++i)
+            for (int s = 0; s < 50; s += 1)
             {
-                roll = AstronomyMath.ToRad(rolls[i]);
-                for (int j = 0; j < pitches.Length; ++j)
+                TrajectoryPoint tp = fetcher.GetPositionSat(dt1).Value;
+                for (int i = 0; i < rolls.Length; ++i)
                 {
-                    pitch = AstronomyMath.ToRad(pitches[j]);
-                    //GeoPoint q = Routines.IntersectOpticalAxisAndEarth(tp, roll, pitch);
-                    SatelliteCoordinates satCoord = new SatelliteCoordinates(tp, roll, pitch);
-                    GeoPoint q = GeoPoint.FromCartesian(satCoord.MidViewPoint);
-                    Routines.GetRollPitch(tp, q, out roll1, out pitch1);
-                    equal = Comparison.IsZero(Math.Pow(roll - roll1, 3)) && Comparison.IsZero(Math.Pow(pitch - pitch1, 3));
-                    ok = ok && equal;
-                    if (!equal)
+                    roll = AstronomyMath.ToRad(rolls[i]);
+                    for (int j = 0; j < pitches.Length; ++j)
                     {
-                        Console.WriteLine(i + " " + j + " : " + (roll - roll1) + " " + (pitch - pitch1));
+                        pitch = AstronomyMath.ToRad(pitches[j]);
+                        //GeoPoint q = Routines.IntersectOpticalAxisAndEarth(tp, roll, pitch);
+                        SatelliteCoordinates satCoord = new SatelliteCoordinates(tp, roll, pitch);
+                        GeoPoint q = GeoPoint.FromCartesian(satCoord.MidViewPoint);
+                        Routines.GetRollPitch(tp, q, out roll1, out pitch1);
+                        equal = Comparison.IsZero(Math.Pow(roll - roll1, 1)) && Comparison.IsZero(Math.Pow(pitch - pitch1, 1));
+                        ok = ok && equal;
+                        //if (!equal)
+                        //{
+                        //    Console.WriteLine(i + " " + j + " : " + (roll - roll1) + " " + (pitch - pitch1));
+                        //}
                     }
                 }
+                dt1 = dt1.AddSeconds(10);
             }
 
             Assert.IsTrue(ok);
