@@ -1,4 +1,4 @@
-﻿#define N_PARALLEL_
+﻿#define _PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -35,17 +35,17 @@ namespace SatelliteSessions
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
 
-            string[] chan = new string[3] { "pk", "mk", "cm" };
-            int[] regime = new int[4] { 0, 1, 2, 3 }; // Zi, Vi, Si, Np
-            int[] shooting = new int[3] { 0, 1, 2 }; // прост, стерео, коридор
+            ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.ePK, ShootingChannel.eMK, ShootingChannel.eCM };
+            WorkingType[] regime = new WorkingType[4] { WorkingType.eCapture, WorkingType.eDrop, WorkingType.eDelete, WorkingType.eDropCapture }; // Zi, Vi, Si, Np
+            ShootingType[] shooting = new ShootingType[3] { ShootingType.ePlain, ShootingType.eStereoTriplet, ShootingType.eCorridor }; // прост, стерео, коридор
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
             DateTime to = from.AddSeconds(5);
 
             int k = 0;
-            foreach (string ch in chan)
-                foreach (int r in regime)
-                    foreach (int s in shooting)
+            foreach (ShootingChannel ch in chan)
+                foreach (WorkingType r in regime)
+                    foreach (ShootingType s in shooting)
                         foreach (int c in compression)
                         {
                             conf = new StaticConf(k, from, to, 0, 0, 0, null, "", c, 0.3, r, ch, s);
@@ -163,9 +163,7 @@ namespace SatelliteSessions
             else
                 coverage = summ;
         }
-
-         
-
+        
 
         private static void getCaptureConfArrayForTrajectoryForCoridor(
            DIOS.Common.SqlManager managerDB,
@@ -176,8 +174,7 @@ namespace SatelliteSessions
            List<TimePeriod> capturePeriods)
         {
             if (requests.Count == 0)
-                return;
-                       
+                return;                       
 
             foreach (var req in requests)
             {
@@ -243,9 +240,9 @@ namespace SatelliteSessions
                     double interCoeff = cp.Coridor.Area / req.polygons.First().Area;
                     
                     var orders = new List<Order>() { new Order() { request = req, captured = cp.Coridor, intersection_coeff = interCoeff } };
-                    int confType = 0;
+                    WorkingType confType = WorkingType.eCapture;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
-                        confType = 3;
+                        confType = WorkingType.eDropCapture;
                     CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders, confType, null, _poliCoef: cp.CoridorCoefs);
                     cc.setPolygon(cp.Coridor);
                     captureConfs.Add(cc);
@@ -306,11 +303,11 @@ namespace SatelliteSessions
                         {
                             var confsToFropCapt = confs.Where(cc => TimePeriod.isPeriodInPeriods(new TimePeriod(cc.dateFrom, cc.dateTo), freeSessionPeriodsForDrop)).ToList();
                             foreach (var conf in confsToFropCapt)
-                                conf.confType = 3;
+                                conf.confType =  WorkingType.eDropCapture;
                         }
 
                         // если заказ - стерео, то пробуем его снять в стерео.
-                        if (1 == request.shootingType)
+                        if (OptimalChain.ShootingType.eStereoTriplet == request.shootingType)
                         {
                             for (int i = 0; i < confs.Count; i++)
                             {
@@ -389,8 +386,8 @@ namespace SatelliteSessions
             // периоды, во время которых можно проводить съемку.
             List<TimePeriod> capturePeriods = TimePeriod.getFreeIntervals(inactivityRanges, timeFrom, timeTo);
                          
-            var requestCoridor = requests.Where(req => req.shootingType == 2).ToList();
-            var requestNOTCoridor = requests.Where(req => req.shootingType != 2).ToList();
+            var requestCoridor = requests.Where(req => req.shootingType == ShootingType.eCorridor).ToList();
+            var requestNOTCoridor = requests.Where(req => req.shootingType != ShootingType.eCorridor).ToList();
  
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
@@ -491,7 +488,7 @@ namespace SatelliteSessions
             int maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             int maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
 
-            Dictionary<TimePeriod, List<RouteParams>> dropRoutesParamsByIntervals = TimePeriod.getRoutesParamsInIntervals(allRoutesToDrop, freeRangesForDrop, workType: 1, startId: maxRoutesNumber);
+            Dictionary<TimePeriod, List<RouteParams>> dropRoutesParamsByIntervals = TimePeriod.getRoutesParamsInIntervals(allRoutesToDrop, freeRangesForDrop, workType: WorkingType.eDrop, startId: maxRoutesNumber);
 
             foreach (var intervalRoutes in dropRoutesParamsByIntervals)
             {
@@ -539,7 +536,7 @@ namespace SatelliteSessions
             maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
 
             maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
-            Dictionary<TimePeriod, List<RouteParams>> deleteRoutesParamsByIntervals = TimePeriod.getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: 2, startId: maxRoutesNumber);
+            Dictionary<TimePeriod, List<RouteParams>> deleteRoutesParamsByIntervals = TimePeriod.getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: WorkingType.eDelete, startId: maxRoutesNumber);
 
             maxMpzNum = dropMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
 
@@ -579,7 +576,7 @@ namespace SatelliteSessions
             foreach (var r in allRoutesLists)
                 allRoutes.AddRange(r);
 
-            var droproutes = allRoutes.Where(rout => (rout.type == 1 || rout.type == 3)).ToList();
+            var droproutes = allRoutes.Where(rout => (rout.type == WorkingType.eDrop || rout.type == WorkingType.eDropCapture)).ToList();
 
             allDropIntervals.AddRange(droproutes.Select(rout => new TimePeriod(rout.start, rout.end)));
 
@@ -632,7 +629,7 @@ namespace SatelliteSessions
                     double roll = route.Parameters.ShootingConf.roll;
                     var connectedRoute = new Tuple<int, int>(route.NPZ, route.Nroute);
                     DateTime dropTimeTo = prevTime.AddSeconds(route.Parameters.getDropTime());
-                    CaptureConf newConf = new CaptureConf(prevTime, dropTimeTo, roll, new List<Order>(route.Parameters.ShootingConf.orders), 1, connectedRoute);
+                    CaptureConf newConf = new CaptureConf(prevTime, dropTimeTo, roll, new List<Order>(route.Parameters.ShootingConf.orders), WorkingType.eDrop, connectedRoute);
 
                     DateTime dropTimeCentre = prevTime.AddSeconds(route.Parameters.getDropTime() / 2);
                     double timeDelta = Math.Min((dropTimeCentre - range.dateFrom).TotalSeconds, (range.dateTo - dropTimeCentre).TotalSeconds);

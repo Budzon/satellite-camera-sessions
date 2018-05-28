@@ -11,11 +11,11 @@ namespace OptimalChain
     {
         public int id;
 
-        public int type { get; set; }// 0— съемка, 1 — сброс, 2 — удаление, 3 — съемка со сброосом
+        public WorkingType type { get; set; } // тип работы
 
-        public string shooting_channel { get; set; }// pk, mk, cm
+        public ShootingChannel shooting_channel { get; set; } // канал
 
-        public int shooting_type { get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная
+        public ShootingType shooting_type { get; set; } // тип съемки
 
         public DateTime dateFrom { get; set; }
         public DateTime dateTo { get; set; }
@@ -50,14 +50,13 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb,  int T = 1, string channel = "pk", int stype = 0, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.eDrop, ShootingChannel channel = ShootingChannel.ePK, ShootingType stype = ShootingType.ePlain, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
             dateFrom = d1;
             dateTo = d2;
             roll = r;
             pitch = t;
-
             square = s;
             orders = o;
             connected_route = CR;
@@ -88,13 +87,15 @@ namespace OptimalChain
             return ms;
         }
     }
+    
+
 
     public class CaptureConf : SatelliteSessions.TimePeriod
     {
         public int id { get; set; }
-        public int confType { get; set; } // 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
-        public string shootingChannel {  get; private set; }// pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
-        public int shootingType {  get; private set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+        public WorkingType confType { get; set; } // 0— съемка, 1 — сброс, 2 -- удаление, 3 -- съемка со сброосом
+        public ShootingChannel shootingChannel {  get; private set; } // канал 
+        public ShootingType shootingType {  get; private set; } // тип съемки
         public double rollAngle {  get; private set; }//крен для съемки c нулевым тангажом
         public double square { get; private set; }//площадь полосы
         public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
@@ -125,14 +126,14 @@ namespace OptimalChain
         /// <param name="_dateTo">время конца для съемки в надир</param> 
         /// <param name="_rollAngle">крен для съемки c нулевым тангажом</param>  
         /// <param name="_orders">список заказов</param>
-        /// <param name="_confType">тип конфигурации: 0-- съемка, 1 -- сброс, 2 -- удаление, 3 — съемка со сброосом</param>        
+        /// <param name="_confType">тип конфигурации</param>        
         /// <param name="_connectedRoute">связанные мрашруты</param>
         public CaptureConf(
             DateTime _dateFrom,
             DateTime _dateTo,
             double _rollAngle,
             List<Order> _orders,
-            int _confType,
+            WorkingType _confType,
             Tuple<int, int> _connectedRoute,
             SatelliteSessions.PolinomCoef _poliCoef  = null)
             : base(_dateFrom, _dateTo)
@@ -182,7 +183,7 @@ namespace OptimalChain
                 double p =  pitchArray[delta].Item1;
                 double r =  pitchArray[delta].Item2;
 
-                if((confType==0)&&(shootingType!=1))
+                if((confType == WorkingType.eCapture) && (shootingType != ShootingType.eStereoTriplet))
                 {
                     p = p*sign;
                  //   r = r * sign;
@@ -267,6 +268,69 @@ namespace OptimalChain
 
     }
 
+    /// <summary>
+    /// Тип съемки
+    /// </summary>
+    public enum ShootingType
+    {
+        /// <summary>
+        /// Обычная съемка
+        /// </summary>
+        ePlain,
+
+        /// <summary>
+        /// коридорная съемка
+        /// </summary>
+
+        eCorridor,
+        /// <summary>
+        /// стереопара
+        /// </summary>
+
+        eStereoPair,
+
+        /// <summary>
+        /// стереотриплет
+        /// </summary>
+        eStereoTriplet
+    }
+
+    public enum ShootingChannel
+    {
+        /// <summary>
+        /// панхроматический канал
+        /// </summary>
+        ePK,
+        /// <summary>
+        /// многозанальный канал
+        /// </summary>
+        eMK,
+        /// <summary>
+        /// мультиспектральный
+        /// </summary>
+        eCM
+    }
+
+    public enum WorkingType
+    {
+        /// <summary>
+        /// съемка
+        /// </summary>
+        eCapture,
+        /// <summary>
+        /// сброс
+        /// </summary>
+        eDrop,
+        /// <summary>
+        /// удаление
+        /// </summary>
+        eDelete,
+        /// <summary>
+        /// съемка со сбросом
+        /// </summary>
+        eDropCapture
+    }
+
     public class RequestParams
     {
         public int id { get; private set; }
@@ -279,8 +343,8 @@ namespace OptimalChain
         public int Min_sun_angle { get; private set; }
         public string wktPolygon { get; private set; }
         public List<string> polygonToSubtract { get; private set; }
-        public string requestChannel { get; private set; } // pk, mk, cm  - панхроматический канал, многозанальный канал, мультиспектральный
-        public int shootingType { get; private set; } //0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+        public ShootingChannel requestChannel { get; private set; } // канал
+        public ShootingType shootingType { get; private set; } // тип съемки заказа
         public int compression { get; private set; } // коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями
         public double albedo { get; private set; } //  характеристика отражательной способности поверхности. 
         public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
@@ -292,11 +356,11 @@ namespace OptimalChain
         /// <returns> разделённые заказы </returns>
         public static List<List<RequestParams>> breakRequestsIntoGroups(List<RequestParams> requests)
         {
-            var breakingRequests = new Dictionary<Tuple<int,string,bool>, List<RequestParams>>();
+            var breakingRequests = new Dictionary<Tuple<ShootingType, ShootingChannel, bool>, List<RequestParams>>();
 
             foreach(var request in requests)
             {
-                Tuple<int, string, bool> key = Tuple.Create(request.shootingType, request.requestChannel, request.compression == OptimalChain.Constants.compressionDropCapture);
+                Tuple<ShootingType, ShootingChannel, bool> key = Tuple.Create(request.shootingType, request.requestChannel, request.compression == OptimalChain.Constants.compressionDropCapture);
                 if (!breakingRequests.ContainsKey(key))
                     breakingRequests[key] = new List<RequestParams>();
 
@@ -305,7 +369,7 @@ namespace OptimalChain
             return breakingRequests.Values.ToList();
         }
 
-
+       
         /// <summary>
         /// Конструктор параметров заказа
         /// </summary>
@@ -319,7 +383,7 @@ namespace OptimalChain
         /// <param name="_Min_sun_angle">Минимальный допусмтимый угол солнца над горизонтом</param>
         /// <param name="_wktPolygon">Полигон заказа в формае WKT</param>
         /// <param name="_albedo">  характеристика отражательной способности поверхности. </param>
-        ///  <param name="_shootingType"> 0 -- обычная съемка, 1-- стерео, 2- коридор </param>
+        ///  <param name="_shootingType"> тип съемка </param>
         /// <param name="_compression"> коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями</param>
         public RequestParams(int _id,
             int _priority,
@@ -333,8 +397,8 @@ namespace OptimalChain
             List<string> _polygonToSubtract = null,
             double _albedo = 0.36,
             int _compression = 0,
-            int _shootingType = 0,
-            string _requestChannel = "mk"
+            ShootingType _shootingType = ShootingType.ePlain,
+            ShootingChannel _requestChannel = ShootingChannel.eMK
             )
         {
             id = _id;

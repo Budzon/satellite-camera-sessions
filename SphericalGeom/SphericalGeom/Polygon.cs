@@ -603,7 +603,7 @@ namespace SphericalGeom
         public static extern IntPtr getPolygonSpine(string wktPolygon);
         
         /// <summary>
-        /// Построения интерполироанного скелета полигона (алгоритм Straight Skeleton)
+        /// Построения срединной линии полигона 
         /// </summary>
         /// <returns></returns>
         public List<GeoPoint> getCenterLine()

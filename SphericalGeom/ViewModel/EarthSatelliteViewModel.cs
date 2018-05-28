@@ -1303,7 +1303,7 @@ namespace ViewModel
 
             Console.Write("GEOMETRYCOLLECTION(");
 
-            Console.WriteLine(WktTestingTools.getWKTStrip(trajectory, rollAngle, 5));
+            Console.WriteLine(WktTestingTools.getWKTStrip(trajectory, rollAngle));
             Console.Write(",");
             Console.WriteLine(WktTestingTools.getWKTViewLine(trajectory, res[0].dateFrom, res[0].dateTo, rollAngle, 0, step: 5));
             Console.Write(",");
@@ -1429,8 +1429,8 @@ namespace ViewModel
             // test_Booblick2();
             // return;
 
-            DateTime dt1 = DateTime.Parse("01.02.2019 00:00:00");
-            DateTime dt2 = DateTime.Parse("01.02.2019 00:59:00");
+            DateTime dt1 = DateTime.Parse("01.02.2019 06:00:00");
+            DateTime dt2 = DateTime.Parse("01.02.2019 08:00:00");
 
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -1441,10 +1441,78 @@ namespace ViewModel
             double viewAngle = OptimalChain.Constants.camera_angle;
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
 
-            string outPol = "POLYGON((-16.5673828125 -56.292156685076456,-12.0849609375 -56.68037378950137,-11.337890625 -59.265880628258095,-15.688476562499998 -60.63010176626667,-19.423828124999996 -59.66774058164962,-19.6435546875 -57.46858919208933,-16.5673828125 -56.292156685076456))";
-            string intPol = "POLYGON((-15.776367187500002 -57.515822865538816,-17.534179687499996 -58.24016354341643,-16.5673828125 -59.31076795603883,-12.7001953125 -58.97266715450152,-13.403320312499998 -57.3739384187141,-15.776367187500002 -57.515822865538816))";
+          //  string outPol = "POLYGON((-16.5673828125 -56.292156685076456,-12.0849609375 -56.68037378950137,-11.337890625 -59.265880628258095,-15.688476562499998 -60.63010176626667,-19.423828124999996 -59.66774058164962,-19.6435546875 -57.46858919208933,-16.5673828125 -56.292156685076456))";
+          //  string intPol = "POLYGON((-15.776367187500002 -57.515822865538816,-17.534179687499996 -58.24016354341643,-16.5673828125 -59.31076795603883,-12.7001953125 -58.97266715450152,-13.403320312499998 -57.3739384187141,-15.776367187500002 -57.515822865538816))";
 
-            List<string> holes = new List<string>() { intPol };
+            string outPol =  "POLYGON((35.760498046875 56.662264768247184,34.573974609375 54.68018309710001,42.242431640625 54.47642158429295,42.71484375 56.67433841615883,35.760498046875 56.662264768247184))" ;
+
+            List<string> holes = new List<string>() {
+             
+
+"POLYGON((36.5185546875 56.1333069123757,36.683349609375 56.492827145026666,36.92504882812501 56.365250136856105,37.430419921875 56.492827145026666,37.177734375 56.035225783698735,37.02392578125 56.06590296330043,37.06787109375001 56.26776108757582,36.815185546875 56.243349924105246,36.705322265625 56.07203547180089,36.5185546875 56.1333069123757))" 
+
+,"POLYGON((37.89184570312501 56.42605447604976,37.628173828125 56.004524201154,37.84790039062501 55.973798205076605,38.04565429687501 56.365250136856105,38.56201171875 56.3409012041991,38.583984375 56.4199784113855,37.89184570312501 56.42605447604976))" 
+
+,"POLYGON((38.91357421875 56.365250136856105,39.166259765625 56.12718415613108,38.792724609375 55.930740775711854,39.02343750000001 55.85681658243854,39.72656249999999 56.32872090717996,39.517822265625 56.32872090717996,39.29809570312501 56.243349924105246,38.91357421875 56.365250136856105))" 
+
+,"POLYGON((40.92407226562501 56.32262930069561,40.836181640625 56.188367864753076,41.24267578125 56.19448087726974,41.275634765625 56.31044317134601,40.92407226562501 56.32262930069561))" 
+
+,"POLYGON((36.35375976562501 55.652798033189555,36.309814453125 55.10980079314379,37.6611328125 55.36038057233307,37.6611328125 55.578344672182055,36.35375976562501 55.652798033189555))" 
+
+,"POLYGON((41.49536132812499 56.79486226140054,43.01147460937501 55.96765007530669,44.176025390625 56.54737205307899,41.49536132812499 56.79486226140054))" 
+
+,"POLYGON((35.419921875 55.63419794625841,35.343017578125 55.460170838618154,33.85986328124999 55.578344672182055,34.266357421875 55.986091533808406,35.419921875 55.63419794625841))" 
+
+,"POLYGON((35.859375 56.07203547180089,35.66162109375 55.92458580482949,35.958251953125 55.83831352210822,36.49658203125 55.94919982336745,35.859375 56.07203547180089))" 
+
+,"POLYGON((35.892333984375 56.517079019323745,35.79345703125 56.27996083172846,36.2109375 56.237244700410315,36.287841796875 56.492827145026666,35.892333984375 56.517079019323745))" 
+
+,"POLYGON((35.2001953125 55.05320258537114,35.826416015625 54.977613670696286,35.716552734375 54.8386636129751,35.079345703125 54.85131525968609,35.2001953125 55.05320258537114))" 
+
+,"POLYGON((38.95751953125001 55.05320258537114,39.17724609375 55.36038057233307,39.61669921875001 55.19768334019969,39.462890625 54.90188218738501,38.95751953125001 55.05320258537114))" 
+
+,"POLYGON((40.83618164062499 55.64039895668736,40.616455078125 55.17886766328198,41.17675781249999 55.09723033442452,40.83618164062499 55.64039895668736))" 
+
+,"POLYGON((39.517822265625 55.64659898563684,39.61669921874999 55.42901345240739,40.2099609375 55.410307210052196,40.53955078125 55.813629071199585,40.067138671875 55.94919982336745,39.75952148437499 55.677584411089526,39.517822265625 55.64659898563684))" 
+
+,"POLYGON((38.265380859375 55.66519318443602,37.979736328125 55.522411831398216,38.48510742187499 55.4165436085801,39.056396484374986 55.547280698640805,38.265380859375 55.66519318443602))" 
+
+,"POLYGON((38.12255859374999 54.79435160392052,37.716064453125 54.832336301970344,37.96875 55.09094362227856,38.46313476562499 55.01542594056298,38.12255859374999 54.79435160392052))" 
+
+,"POLYGON((36.60644531249999 54.807017138462555,36.96899414062499 54.75633118164467,36.97998046875 54.457266680933856,36.397705078125 54.49556752187411,36.60644531249999 54.807017138462555))" 
+
+,"POLYGON((42.76977539062499 55.03431871502809,41.80297851562499 54.876606654108684,42.07763671875 54.68653423452969,42.56103515625 54.699233528481386,42.76977539062499 55.03431871502809))" 
+
+,"POLYGON((42.69287109374999 55.64039895668736,41.84692382812499 55.770393581620056,41.77001953125 55.441479359140686,43.121337890625 55.34788906283774,42.69287109374999 55.64039895668736))" 
+
+,"POLYGON((40.24291992187499 56.72259433299854,40.18798828124999 56.53525774684846,40.3857421875 56.4806953901963,40.462646484375 56.72259433299854,40.24291992187499 56.72259433299854))" 
+
+,"POLYGON((39.803466796875 54.88924640307587,40.67138671874999 54.85763959554899,40.58349609374999 54.80068486732233,39.83642578125 54.79435160392052,39.803466796875 54.88924640307587))" 
+
+,"POLYGON((38.583984375 54.844989932187616,39.17724609375 54.82600799909497,39.17724609375 54.72462019492448,38.638916015625 54.74999097022689,38.583984375 54.844989932187616))" 
+
+,"POLYGON((37.37548828125 54.69288437829769,37.76000976562499 54.64205540129177,37.705078125 54.48918653875083,37.265625 54.48918653875083,37.37548828125 54.69288437829769))" 
+
+,"POLYGON((37.03491210937499 55.103516058019665,37.13378906249999 54.99652425983251,37.705078125 54.990221720048964,37.73803710937499 55.13492985052767,37.03491210937499 55.103516058019665))" 
+
+,"POLYGON((41.660156249999986 56.145549500679095,40.83618164062499 55.986091533808406,40.91308593749999 55.795105452236925,41.69311523437499 56.004524201154,41.660156249999986 56.145549500679095))" 
+
+,"POLYGON((38.869628906249986 56.752722872057376,38.67187499999999 56.53525774684846,39.37499999999999 56.517079019323745,39.517822265624986 56.81290751870026,38.869628906249986 56.752722872057376))" 
+
+,"POLYGON((41.17675781249999 54.85131525968609,40.96801757812499 54.69288437829769,41.28662109374999 54.64205540129177,41.31958007812499 54.80068486732236,41.17675781249999 54.85131525968609))" 
+
+,"POLYGON((35.58471679687499 55.36038057233307,35.93627929687499 55.65899609942838,36.123046875 55.59697126798508,35.848388671875 55.178867663282006,35.628662109375 55.22275708802212,35.58471679687499 55.36038057233307))" 
+
+,"POLYGON((38.353271484375 56.01680776320322,37.96875 55.91227293006361,38.18847656249999 55.83831352210822,38.353271484375 56.01680776320322))" 
+
+,"POLYGON((37.02392578125 55.95535088453653,38.089599609375 55.90611502601163,38.309326171875 55.832143877813024,37.144775390625 55.825973254619015,37.02392578125 55.95535088453653))" 
+
+,"POLYGON((38.287353515625 55.97379820507658,39.19921875 55.72092280778696,38.968505859375 55.71473455012688,38.287353515625 55.97379820507658))" 
+
+,"POLYGON((40.07809037249999 55.31661025761744,39.83639136257812 55.128616289259156,40.49557048054688 55.128616289259156,40.5175431178125 55.541032161833186,40.07809037249999 55.31661025761744))" 
+
+ 
+};
 
 
             // List<string> wktl = new List<string>()
@@ -1464,6 +1532,8 @@ namespace ViewModel
 
             List<RequestParams> lst = new List<RequestParams>() { new RequestParams(0, 1, dt1, dt2, 99999, 1, 99999, 9999, outPol, holes) };
 
+            Console.WriteLine(Polygon.getMultipolFromPolygons(lst.SelectMany(l => l.polygons).ToList()));
+            
             // List<RequestParams> lst = wktl.Select(str =>   new RequestParams(0, 1, dt1, dt2, 99999, 1, 99999, 9999, str)).ToList();
 
             DateTime start = DateTime.Now;
@@ -1480,23 +1550,31 @@ namespace ViewModel
             foreach (var conf in res)
             {
                 SatLane strip = new SatLane(traj, conf.rollAngle, OptimalChain.Constants.camera_angle);
-                allpols.Add(strip.getSegment(conf.dateFrom, conf.dateTo));
+                if (conf.dateFrom == conf.dateTo)
+                    allpols.Add(new SatelliteCoordinates(traj.GetPoint(conf.dateFrom), conf.rollAngle, 0).ViewPolygon);
+                else
+                    allpols.Add(strip.getSegment(conf.dateFrom, conf.dateTo));
             }
-
+            Console.WriteLine();
+            Console.WriteLine();
             Console.Write("GEOMETRYCOLLECTION(");
-            //Console.WriteLine(outPol);
-            //Console.Write(",");
+            Console.WriteLine(outPol);
+            Console.Write(",");
             //Console.WriteLine(intPol);
-            Console.WriteLine(Polygon.getMultipolFromPolygons(lst.SelectMany(l => l.polygons).ToList()));
+            //Console.WriteLine(Polygon.getMultipolFromPolygons(lst.SelectMany(l => l.polygons).ToList()));
+            Console.WriteLine(Polygon.getMultipolFromPolygons( holes.Select(h => new Polygon(h)).ToList()));
             Console.Write(",");
             Console.WriteLine(Polygon.getMultipolFromPolygons(allpols));
             Console.Write(")");
+            Console.WriteLine();
+            Console.WriteLine();
         }
 
-        public void test_getPlainMpzArray()
+        public void test_getStereoTripletMpzArray()
         {
             DateTime dt1 = new DateTime(2019, 2, 6, 0, 0, 0);
-            DateTime dt2 = new DateTime(2019, 2, 8, 0, 0, 0);
+            DateTime dt2 = new DateTime(2019, 2, 6, 1, 0, 0);
+
 
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
@@ -1504,14 +1582,9 @@ namespace ViewModel
 
             //DataFetcher fetcher = new DataFetcher(managerDB);
             //Trajectory traj = fetcher.GetTrajectorySat(dt1, dt2);
-            //   SatLane strip = new SatLane(traj, 0, AstronomyMath.ToRad(90));
+            //Console.WriteLine(WktTestingTools.getWKTStrip(traj, 0));
 
-            //  Console.Write(Polygon.getMultipolFromPolygons(strip.Sectors.Select(sect => sect.polygon).ToList()));
-
-
-            //return;
-
-            string polwtk = "POLYGON((153.10581207275393 -27.427394826190067,153.1047821044922 -27.43821226954754,153.12623977661133 -27.438974021374015,153.12761306762695 -27.424804576823462,153.10581207275393 -27.427394826190067))";
+            string polwtk = "POLYGON((137.894051953125 -26.38104068955903,137.95725568359373 -26.376116965436545,137.96962163085936 -26.410578626363836,137.8954259472656 -26.420422925429968,137.894051953125 -26.38104068955903))";
 
             List<string> holes = new List<string>();
 
@@ -1521,11 +1594,72 @@ namespace ViewModel
                 _Max_sun_angle: 90,
                 _Min_sun_angle: 10,
                 _wktPolygon: polwtk,
-                _polygonToSubtract: holes, _requestChannel: "pk",
-                _shootingType: 0);
+                _polygonToSubtract: holes, _requestChannel: ShootingChannel.ePK,
+                _shootingType: ShootingType.ePlain);
 
-            //double square = req.polygons.Sum(pol => pol.Area);
+            double coverage;
+            List<CaptureConf> possibleConfs;
+            Sessions.isRequestFeasible(req, dt1, dt2, managerDB, out coverage, out possibleConfs);
+
+            return;
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+            Sessions.getMPZArray(new List<RequestParams> { req }, dt1, dt2
+    , silenceRanges
+    , inactivityRanges
+    , routesToDrop
+    , routesToDelete
+    , managerDB
+    , 356
+               , out mpzArray
+               , out sessions);
+
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(polwtk);
+            Console.Write(",");
+            Console.Write(Polygon.getMultipolFromPolygons(mpzArray.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList()));
+            Console.Write(")");
+        }
+
+        public void test_getPlainMpzArray()
+        {
+            DateTime dt1 = new DateTime(2019, 2, 6, 0, 0, 0);
+            DateTime dt2 = new DateTime(2019, 2, 6, 1, 0, 0);
+
+             
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+
+             
+            string polwtk = "POLYGON((140.47668457031253 -17.623081791311762,139.603271484375 -17.30606566309359,139.43023681640625 -18.145851771694467,140.5865478515625 -18.19282519773317,140.47668457031253 -17.623081791311762))";
+
+            List<string> holes = new List<string>();
+
+            RequestParams req = new RequestParams(0, 1, dt1, dt2,
+                _Max_SOEN_anlge: AstronomyMath.ToRad(50),
+                _minCoverPerc: 0.12,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonToSubtract: holes, _requestChannel: ShootingChannel.ePK,
+                _shootingType: ShootingType.ePlain);
+
+            //double coverage;
+            //List<CaptureConf> possibleConfs;
+            //Sessions.isRequestFeasible(req, dt1, dt2, managerDB, out coverage, out possibleConfs);     
             //return;
+
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
 
@@ -1561,25 +1695,35 @@ namespace ViewModel
 
         public void test_getCoridorMpzArray()
         {
-            DateTime dt1 = DateTime.Parse("07/01/2019 00:00:00");
-            DateTime dt2 = DateTime.Parse("17/01/2019 00:00:00");
-
+            //DateTime dt1 = DateTime.Parse("07/01/2019 03:00:00");
+            //DateTime dt2 = DateTime.Parse("17/01/2019 04:00:00");
+            DateTime dt1 = DateTime.Parse("13.01.2019 8:0:41");
+            DateTime dt2 = DateTime.Parse("13.01.2019 8:59:41");
+            
 
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
 
-           
+            
             //List<TimePeriod> shadowPeriods;
             //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
             //  Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
 
             //return;
 
-            string corydor_pol = "POLYGON((-71.69508360140024 -33.24668916461695, -71.69640540657565 -33.25302008439956, -71.6855907398276 -33.25359429479964, -71.67323112068698 -33.26364236595113, -71.67151450691745 -33.27512446058385, -71.65280341682957 -33.29908846719213, -71.65211677132176 -33.3381055723356, -71.64353370247409 -33.33867922296974, -71.64147376595066 -33.328639791414396, -71.64181708870456 -33.30956168429292, -71.64387702522801 -33.292631747864434, -71.65503501472995 -33.27928634703817, -71.66516303597018 -33.26938360198317, -71.6655578445643 -33.25989600597201, -71.68409727327524 -33.24554064929845, -71.69508360140024 -33.24668916461695))";
+            string corydor_pol = "POLYGON ((31.4346313476563 31.7491897749571,31.2835693359375 31.7491897749571,31.1407470703125 31.7305032292844,31.0226440429687 31.6674083170809,30.948486328125 31.4989456779629,30.948486328125 31.3630184912912,30.9841918945312 31.2198482262012,31.0693359375 31.1211457091563,31.234130859375 31.0388151041287,31.4456176757813 30.9658342024211,31.5362548828125 30.8409311390299,31.4895629882813 30.6780776242053,31.3906860351562 30.6000938735501,31.234130859375 30.5504351350953,31.080322265625 30.545704405481,31.0665893554687 30.4652467507532,31.1434936523437 30.4652467507532,31.278076171875 30.4818170028273,31.4593505859375 30.5362422547349,31.5966796875 30.588272671027,31.640625 30.713503990355,31.6433715820313 30.8126285847737,31.6543579101562 30.9045813670442,31.4813232421875 31.0552869290102,31.3604736328125 31.0999817937494,31.2368774414063 31.1446556363416,31.1517333984375 31.1963569577351,31.0830688476563 31.2527261968368,31.0391235351563 31.3348710339506,31.0308837890625 31.5012875211967,31.0693359375 31.6042705179912,31.2533569335937 31.6674083170809,31.4346313476563 31.6767584187955,31.4346313476563 31.7491897749571))";
+
+
+            Console.WriteLine("GEOMETRYCOLLECTION(");
+            Console.WriteLine(new Polygon(corydor_pol).ToWtk());
+            Console.Write(",");
+            Console.WriteLine(WktTestingTools.getLineSringStr(new Polygon(corydor_pol).getCenterLine()));
+            Console.WriteLine(")");
+            return;
 
             RequestParams coridor_rp = new RequestParams(_id: 0, _priority: 3, _timeFrom: dt1, _timeTo: dt2, _Max_SOEN_anlge: AstronomyMath.ToRad(45), _minCoverPerc: 0.4, _Max_sun_angle: 1, _Min_sun_angle:  1,
-                _wktPolygon: corydor_pol, _shootingType: 2, _compression: 6);
+                _wktPolygon: corydor_pol, _shootingType: ShootingType.eCorridor, _compression: 6);
 
             //double coverage;
             //List<CaptureConf> possibleConfs;
@@ -1596,6 +1740,8 @@ namespace ViewModel
             //Console.Write(")");
 
           //  return;
+     ///////////////////////////////////////////
+
 
             var res = Sessions.getCaptureConfArray(new List<RequestParams> { coridor_rp }, dt1, dt2, managerDB, new List<TimePeriod>(), new List<TimePeriod>());
 
@@ -1606,7 +1752,7 @@ namespace ViewModel
             Console.Write(",");
             Console.WriteLine(WktTestingTools.getLineSringStr(new Polygon(corydor_pol).getCenterLine()));
             Console.Write(",");
-            Console.WriteLine(Polygon.getMultipolFromPolygons(allpols)); 
+            Console.WriteLine(Polygon.getMultipolFromPolygons(allpols));
             Console.Write(")");
 
             return;
@@ -1644,9 +1790,16 @@ namespace ViewModel
 
         public IList<CaptureConf> test_getCaptureConfArray()
         {
+            //string str1 = "POLYGON((37.68310546875 55.95688849713528,37.21343994140624 55.808998992704886,37.4798583984375 55.51774716789876,38.111572265625 55.63109707296326,38.00445556640624 55.9722612642278,37.68310546875 55.95688849713528))";
+            //string str2 = "POLYGON((37.68859863281249 55.890715987422226,37.57873535156249 55.85989956952267,37.71881103515624 55.78892895389265,37.91107177734374 55.84294011297763,37.72155761718749 55.90765459369871,37.68859863281249 55.890715987422226))";
+            //SqlGeography geom1 = SqlGeography.STGeomFromText(new SqlChars(str1), 4326);
+            //SqlGeography geom2 = SqlGeography.STGeomFromText(new SqlChars(str1), 4326);
+
+            //SqlGeography geom3 = SqlGeography.ST
+
             DateTime start = DateTime.Now;
 
-            test_Booblick();
+            test_getPlainMpzArray();
             DateTime endd = DateTime.Now;
             Console.WriteLine("total time = " + (endd - start).TotalSeconds.ToString());
 

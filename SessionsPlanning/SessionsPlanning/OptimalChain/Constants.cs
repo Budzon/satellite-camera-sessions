@@ -44,28 +44,30 @@ namespace OptimalChain
         public const double stripOverlap = 0.05; // перекрытие соседних полос.
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
         public const int minTrajectoryPassInterval = 120; //[секнуды] максимальный разрыв по времени между двумя точками траектории, при котором мы продолжаем с такой траекторией работать.
-        public static int CountMinPause(int t1, int st1, string channel1, int t2, int st2, string channel2)
+
+
+        public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {
             int d = Constants.min_Delta_time;
-            if (t1 == 1)
+            if (t1 == WorkingType.eDrop)
             {
-                if (channel1 != "pk")
+                if (channel1 != ShootingChannel.ePK)
                 {
                     d += 4;
                 }
-                if (st1 == 2)
+                if (st1 == ShootingType.eCorridor)
                 {
                     d += 4;
                 }
             }
 
-            if (t2 == 1)
+            if (t2 == WorkingType.eDrop)
             {
-                if (channel2 != "pk")
+                if (channel2 != ShootingChannel.ePK)
                 {
                     d += 4;
                 }
-                if (st2 == 2)
+                if (st2 == ShootingType.eCorridor)
                 {
                     d += 4;
                 }

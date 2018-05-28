@@ -196,7 +196,7 @@ namespace ViewModel
             return res;
         }
 
-        public static string getWKTStrip(Trajectory trajectory, double rollAngle, int step)
+        public static string getWKTStrip(Trajectory trajectory, double rollAngle)
         {
             SatLane lane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
             string res = Polygon.getMultipolFromPolygons(lane.Sectors.Select(sect => sect.polygon).ToList());
