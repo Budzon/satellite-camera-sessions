@@ -277,24 +277,23 @@ namespace OptimalChain
         /// Обычная съемка
         /// </summary>
         ePlain,
-
         /// <summary>
         /// коридорная съемка
         /// </summary>
-
         eCorridor,
         /// <summary>
         /// стереопара
         /// </summary>
-
         eStereoPair,
-
         /// <summary>
         /// стереотриплет
         /// </summary>
         eStereoTriplet
     }
 
+    /// <summary>
+    /// канал съемки
+    /// </summary>
     public enum ShootingChannel
     {
         /// <summary>
@@ -311,6 +310,10 @@ namespace OptimalChain
         eCM
     }
 
+
+    /// <summary>
+    /// тип целевой работы
+    /// </summary>
     public enum WorkingType
     {
         /// <summary>
