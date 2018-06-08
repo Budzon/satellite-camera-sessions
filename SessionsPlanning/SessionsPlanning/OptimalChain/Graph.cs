@@ -124,7 +124,7 @@ namespace OptimalChain
             foreach(CaptureConf s in strips)
             {
             //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
-                if(s.shootingType != ShootingType.eStereoTriplet)
+                if ((s.shootingType != ShootingType.eStereoTriplet) && (s.shootingType != ShootingType.eStereoPair))
                 {
                     vertices.Add(new Vertex(s.DefaultStaticConf(), s));
                     for (int i = 0; i < s.timeDelta; i++)
@@ -133,7 +133,7 @@ namespace OptimalChain
                         vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
                     }
                 }
-                if (s.shootingType == ShootingType.eStereoTriplet)
+                if ((s.shootingType == ShootingType.eStereoTriplet) || (s.shootingType == ShootingType.eStereoPair))
                 {
                   foreach (KeyValuePair<double, Tuple<double,double>> p in s.pitchArray)
                   {
@@ -184,9 +184,10 @@ namespace OptimalChain
             
             double ms = c1.reConfigureMilisecinds(c2);
             double min_pause = Constants.CountMinPause(c1.type,c1.shooting_type,c1.shooting_channel, c2.type, c2.shooting_type,c2.shooting_channel);
+            double needded_pause = ms + min_pause;
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
-            return (ms < dms);
+            return (needded_pause < dms);
 
         }
         public double countEdgeWeight(Vertex v1, Vertex v2, bool change_strips = true)
