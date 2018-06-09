@@ -352,11 +352,10 @@ namespace OptimalChain
                 Console.WriteLine("**************************");
                 Console.WriteLine("Routes num = "+m.routes.Count);
                 foreach (RouteParams r in m.routes)
-                            {
-
-                                Console.WriteLine("-------------------------");
-                                Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
-                            }
+                {
+                    Console.WriteLine("-------------------------");
+                    Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
+                }
             }
 
             Console.WriteLine("Graph did his very best ");
