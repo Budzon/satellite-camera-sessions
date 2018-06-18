@@ -1835,11 +1835,62 @@ namespace ViewModel
             //}
             //new SatLane(trajectory, roll, 0);
             //return;
-            List<MPZ> mpzArray;
-            SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, out mpzArray);
-             
-            var orderPolsList = mpzArray.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
-            var shootingPolsList = mpzArray.SelectMany(mpz => mpz.Routes.Select(r =>  new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
+
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, managerDB, out mpzArray);            
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, managerDB, out mpzArray);
+            }
+            {
+                List<MPZ> mpzArray;
+                SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, managerDB, out mpzArray);
+            }
+
+
+            List<MPZ> mpzArray2;
+            SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, out mpzArray2);
+            
+            var orderPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
+            var shootingPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.Select(r =>  new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");            
             Console.Write(Polygon.getMultipolFromPolygons(orderPolsList));
