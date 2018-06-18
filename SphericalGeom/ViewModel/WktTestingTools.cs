@@ -75,6 +75,24 @@ namespace ViewModel
             return Polygon.getMultipolFromPolygons(strip.Sectors.Select(sect => sect.polygon).ToList()) ;
         }
 
+        public static string getWKTInterpolateTrajectory(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, int step)
+        {
+            string res = "";
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            res += "LINESTRING(\n";
+            for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += step)
+            {
+                DateTime curDt = segmdt1.AddSeconds(t);
+                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
+                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
+                if (t != 0)
+                    res += " , ";
+                res += string.Format("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
+            }
+            res += ")\n";
+            return res;
+        }
+
         public static string getWKTTrajectory(Trajectory trajectory)
         {
             string res = "";
@@ -101,24 +119,6 @@ namespace ViewModel
             {
                 GeoPoint pos = GeoPoint.FromCartesian(points[i]);
                 if (i != 0)
-                    res += " , ";
-                res += string.Format("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
-            }
-            res += ")\n";
-            return res;
-        }
-
-        public static string getWKTInterpolateTrajectory(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, int step)
-        {
-            string res = "";
-            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
-            res += "LINESTRING(\n";
-            for (int t = 0; t <= (segmdt2 - segmdt1).TotalSeconds; t += step)
-            {
-                DateTime curDt = segmdt1.AddSeconds(t);
-                TrajectoryPoint trajPoint = trajectory.GetPoint(curDt);
-                GeoPoint pos = GeoPoint.FromCartesian(trajPoint.Position.ToVector());
-                if (t != 0)
                     res += " , ";
                 res += string.Format("{0} {1}", pos.Longitude.ToString().Replace(separator, '.'), pos.Latitude.ToString().Replace(separator, '.'));
             }
@@ -196,7 +196,7 @@ namespace ViewModel
             return res;
         }
 
-        public static string getWKTStrip(Trajectory trajectory, double rollAngle, int step)
+        public static string getWKTStrip(Trajectory trajectory, double rollAngle)
         {
             SatLane lane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
             string res = Polygon.getMultipolFromPolygons(lane.Sectors.Select(sect => sect.polygon).ToList());

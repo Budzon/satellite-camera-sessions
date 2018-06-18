@@ -102,55 +102,93 @@ namespace DBTables
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        public List<SpaceTime> GetPositionSat(DateTime from, DateTime to)
+        private List<SpaceTime> GetPositions<TableClass>(DateTime from, DateTime to) where TableClass : BallisticTableFacade, new()
         {
+            TableClass table = new TableClass();
             List<SpaceTime> res = new List<SpaceTime>();
-            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(SatTable.Name, SatTable.Time, from, to, true))
+            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(table.Name, table.Time, from, to, true))
                 foreach (DataRow row in chunk.Rows)
-                    res.Add(new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) });
+                    res.Add(new SpaceTime { Position = table.GetPosition(row), Time = table.GetTime(row) });
+
+            if (res.Count == 0)
+            {
+                if ((to - from).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+                else
+                    return res;
+            }
+          
+              
+            double maxDist = 0;
+            for (int i = 0; i < res.Count - 1; i++)
+                maxDist = Math.Max(maxDist, (res[i + 1].Time - res[i].Time).TotalSeconds);
+            maxDist = Math.Max(maxDist, (res.First().Time - from).TotalSeconds);
+            maxDist = Math.Max(maxDist, (to - res.Last().Time).TotalSeconds);
+
+            if (maxDist > OptimalChain.Constants.minTrajectoryPassInterval)
+                throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
 
             return res;
         }
-         
-        public TrajectoryPoint? GetPositionSat(DateTime dtime)
-        {
-            string dtimestr = dtime.ToString(datePattern);
-            Trajectory trajectory =  SpaceTime.createTrajectory(GetMinimumPointsArray(dtime, dtime));
-            return trajectory.GetPoint(dtime);
-        }
 
-
-        public List<SpaceTime> GetMinimumPointsArray(DateTime fromDT, DateTime toDT)
+        // Интерполяция минимально достаточного кол-ва точкек на даты  fromDT toDT, нужно когда на эти даты точек слишком мало.
+        private List<SpaceTime> GetMinimumPointsArray<TableClass>(DateTime fromDT, DateTime toDT) where TableClass : BallisticTableFacade, new()
         {
+            TableClass table = new TableClass();
             int minNumPoints = Trajectory.minNumPoints;
             string fromDTStr = fromDT.ToString(datePattern);
             string toDTStr = toDT.ToString(datePattern);
 
             List<SpaceTime> positions;
 
-            positions = GetPositionSat(fromDT, toDT);
+            positions = GetPositions<TableClass>(fromDT, toDT);
 
             int halfMissNum = (minNumPoints - positions.Count + 1) / 2;
 
-            DataRow[] beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, halfMissNum);
+            DataRow[] beforePos = GetDataBeforeDate(table.Name, table.Time, fromDT, halfMissNum);
             DataRow[] afterPos;
 
-            afterPos = GetDataAfterDate(SatTable.Name, SatTable.Time, toDT, halfMissNum);
+            afterPos = GetDataAfterDate(table.Name, table.Time, toDT, halfMissNum);
 
             if (beforePos.Length < halfMissNum)
-                afterPos = GetDataAfterDate(SatTable.Name, SatTable.Time, toDT, minNumPoints - positions.Count - beforePos.Length);
+                afterPos = GetDataAfterDate(table.Name, table.Time, toDT, minNumPoints - positions.Count - beforePos.Length);
 
             if (afterPos.Length < halfMissNum)
-                beforePos = GetDataBeforeDate(SatTable.Name, SatTable.Time, fromDT, minNumPoints - positions.Count - afterPos.Length);
+                beforePos = GetDataBeforeDate(table.Name, table.Time, fromDT, minNumPoints - positions.Count - afterPos.Length);
 
+            List<SpaceTime> beforePosList = beforePos.Reverse().Select(row => new SpaceTime { Position = table.GetPosition(row), Time = table.GetTime(row) }).ToList();
+            List<SpaceTime> afterPosList = afterPos.Select(row => new SpaceTime { Position = table.GetPosition(row), Time = table.GetTime(row) }).ToList();
 
-            positions.InsertRange(0, beforePos.Reverse().Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }));
-            positions.AddRange(afterPos.Select(row => new SpaceTime { Position = SatTable.GetPosition(row), Time = SatTable.GetTime(row) }) );
+            // проверим, что диапазоны справа и слева (если они есть) не отстоят от запрашиваемой даты слишком далеко.
+            if (beforePosList.Count != 0)
+            {
+                DateTime nearestBeforeTime = beforePosList.Last().Time;
+                if ((fromDT - nearestBeforeTime).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data for a given time period");
+            }
+
+            if (afterPosList.Count != 0)
+            {
+                DateTime nearestAfterTime = afterPosList.First().Time;
+                if ((nearestAfterTime - toDT).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data for a given time period");
+            }
+
+            positions.InsertRange(0, beforePosList);
+            positions.AddRange(afterPosList);
 
             if (positions.Count < minNumPoints)
-                throw new ArgumentException("Not enough points in the database for " + fromDT.ToString()  );
+                throw new ArgumentException("Not enough ballistic data for a given time period");
 
-            return positions;           
+            // найдем самый большой перерыв по времени между точками траектории. 
+            double maxDist = 0;
+            for (int i = 0; i < positions.Count - 1; i++)
+                maxDist = Math.Max(maxDist, (positions[i + 1].Time - positions[i].Time).TotalSeconds);
+
+            if (maxDist > OptimalChain.Constants.minTrajectoryPassInterval)
+                throw new ArgumentException("Not enough ballistic data for a given time period");
+            
+            return positions;
         }
 
         /// <summary>
@@ -159,12 +197,12 @@ namespace DBTables
         /// <param name="fromDT"> начало диапазона </param>
         /// <param name="toDT"> конец диапазона </param>
         /// <returns> список точек</returns>
-        public List<SpaceTime> IncreasePointsNumber(DateTime fromDT, DateTime toDT)
+        private List<SpaceTime> IncreasePointsNumber(DateTime fromDT, DateTime toDT)
         {
             int minNumPoints = Trajectory.minNumPoints;
-            List<SpaceTime> positions = GetMinimumPointsArray(fromDT, toDT);         
-            TrajectoryPoint[] trajectoryPoints = positions.Select(pos => new TrajectoryPoint(pos.Time, pos.Position.ToPoint(), new Vector3D(0, 0, 0))).ToArray();             
-            Trajectory trajectory = Trajectory.Create(trajectoryPoints);      
+            List<SpaceTime> positions = GetMinimumPointsArray<SatTableFacade>(fromDT, toDT);
+            TrajectoryPoint[] trajectoryPoints = positions.Select(pos => new TrajectoryPoint(pos.Time, pos.Position.ToPoint(), new Vector3D(0, 0, 0))).ToArray();
+            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
 
             long timeStep = (toDT - fromDT).Ticks / (minNumPoints - 1);
 
@@ -178,20 +216,41 @@ namespace DBTables
         }
 
 
-
+        /// <summary>
+        /// Получить из таблицы TableClass одну точку, интерполировав её на основе соседних значений.
+        /// </summary>
+        /// <typeparam name="TableClass"></typeparam>
+        /// <param name="dtime"></param>
+        /// <returns></returns>
+        public TrajectoryPoint? GetSinglePoint<TableClass>(DateTime dtime) where TableClass : BallisticTableFacade, new()
+        {
+            TableClass table = new TableClass();
+            string dtimestr = dtime.ToString(datePattern);
+            Trajectory trajectory = SpaceTime.createTrajectory(GetMinimumPointsArray<TableClass>(dtime, dtime));             
+            return trajectory.GetPoint(dtime);
+        }
 
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to)
         {
-            List<SpaceTime> preTrajectory = GetPositionSat(from, to);
+            List<SpaceTime> preTrajectory = GetPositions<SatTableFacade>(from, to);
 
             if (preTrajectory.Count < Trajectory.minNumPoints)
                 preTrajectory = IncreasePointsNumber(from, to);
             else
             {
+
+                DateTime lastTime = preTrajectory.Last().Time;
+                if ((to - lastTime).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+
+                DateTime firstTime = preTrajectory.First().Time;
+                if ((firstTime - from).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                    throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+
                 if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
                 {
-                    TrajectoryPoint? firstPoint = GetPositionSat(from);
+                    TrajectoryPoint? firstPoint = GetSinglePoint<SatTableFacade>(from);
                     if (firstPoint != null)
                     {
                         TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
@@ -202,7 +261,7 @@ namespace DBTables
 
                 if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
                 {
-                    TrajectoryPoint? secondPoint = GetPositionSat(to);
+                    TrajectoryPoint? secondPoint = GetSinglePoint<SatTableFacade>(to);
                     if (secondPoint != null)
                     {
                         TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
@@ -211,7 +270,7 @@ namespace DBTables
                     }
                 }
             }
-             
+
             return SpaceTime.createTrajectory(preTrajectory); ;
         }
 
@@ -237,8 +296,8 @@ namespace DBTables
             //    }
 
             Trajectory traj = GetTrajectorySat(from, to);
-            foreach (TrajectoryPoint p in traj.Points)            
-                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));            
+            foreach (TrajectoryPoint p in traj.Points)
+                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
 
             return res;
         }
@@ -248,14 +307,16 @@ namespace DBTables
             List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
             List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
             DataRow[] preRows;
+            var turnsData = GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false);
 
-            foreach (DataChunk chunk in GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false))
+            foreach (DataChunk chunk in turnsData)
             {
                 List<Tuple<int, DateTime>> turns = chunk.Rows.Select(row => Tuple.Create(OrbitTable.GetNumTurn(row), OrbitTable.GetTimeEquator(row))).ToList();
 
                 preRows = GetDataBeforeEqualDate(OrbitTable.Name, OrbitTable.TimeEquator, chunk.Begin, 1);
                 if (preRows.Length < 1) // no data about turns that began before the given date
-                    return null;
+                    throw new ArgumentException("Not enough data about turns from " + from.ToString() + " to " + to.ToString());
+
                 Tuple<int, DateTime> preTurn = Tuple.Create(OrbitTable.GetNumTurn(preRows[0]), OrbitTable.GetTimeEquator(preRows[0]));
 
                 times.Add(Tuple.Create(preTurn.Item1, chunk.Begin));
@@ -280,6 +341,9 @@ namespace DBTables
                     ++i;
                 res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2)));
             }
+
+            if (res.Count() == 0)
+                throw new ArgumentException("Not enough turns data from " + from.ToString() + " to " + to.ToString());
 
             return res;
         }
@@ -369,6 +433,47 @@ namespace DBTables
         public DateTime Begin;
         public DateTime End;
     }
+
+
+    public abstract class BallisticTableFacade
+    {
+        public abstract string Name { get; } 
+        public abstract string Time { get; }
+
+        public abstract Vector3D GetPosition(DataRow row);
+        public abstract DateTime GetTime(DataRow row);
+    }
+
+    public class SunTableFacade : BallisticTableFacade
+    {
+        public override string Name { get { return SunTable.Name; } }
+        public override string Time { get { return SunTable.Time; } }
+
+        public override Vector3D GetPosition(DataRow row)
+        {
+            return SunTable.GetPosition(row);
+        }
+        public override DateTime GetTime(DataRow row)
+        {
+            return SunTable.GetTime(row);
+        }
+    }
+
+    public class SatTableFacade : BallisticTableFacade
+    {
+        public override string Name { get { return SatTable.Name; } }
+        public override string Time { get { return SatTable.Time; } }
+
+        public override Vector3D GetPosition(DataRow row)
+        {
+            return SatTable.GetPosition(row);
+        }
+        public override DateTime GetTime(DataRow row)
+        {
+            return SatTable.GetTime(row);
+        }                 
+    } 
+
 
     public static class SunTable
     {
@@ -802,13 +907,13 @@ namespace DBTables
         public static PositionMNKPOI GetDataMNKPOI(DataRow row)
         {
             return new PositionMNKPOI
-                    {
-                        Number = MnkpoiTable.GetNum(row),
-                        Position = MnkpoiTable.GetPositionGeo(row),
-                        Altitude = MnkpoiTable.GetAlt(row),
-                        TimeBeg = MnkpoiTable.GetTimeFrom(row),
-                        TimeEnd = MnkpoiTable.GetTimeTo(row)
-                    };
+            {
+                Number = MnkpoiTable.GetNum(row),
+                Position = MnkpoiTable.GetPositionGeo(row),
+                Altitude = MnkpoiTable.GetAlt(row),
+                TimeBeg = MnkpoiTable.GetTimeFrom(row),
+                TimeEnd = MnkpoiTable.GetTimeTo(row)
+            };
         }
 
         public static DateTime GetTimeFrom(DataRow row)

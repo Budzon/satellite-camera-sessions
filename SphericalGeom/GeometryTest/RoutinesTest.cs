@@ -8,6 +8,7 @@ using Common;
 
 using SatelliteTrajectory;
 using Astronomy;
+using DBTables;
 
 namespace GeometryTest
 {
@@ -97,7 +98,8 @@ namespace GeometryTest
             for (int i = 0; i < pitches.Length; ++i)
                 pitches[i] = i - 45;
 
-            DateTime dt1 = new DateTime(2019, 2, 2, 0, 0, 0);
+            DateTime dt1 = new DateTime(2019, 1, 1, 10, 55, 30);
+            TrajectoryPoint tp = fetcher.GetSinglePoint<SatTableFacade>(dt1).Value;
 
             double roll, pitch;
             double roll1, pitch1;

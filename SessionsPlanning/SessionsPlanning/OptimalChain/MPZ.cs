@@ -80,12 +80,10 @@ namespace OptimalChain
                 return lasting < Constants.MPZ_max_lasting_time;
             }
 
-
             double delta_time = (r.start - this.end).TotalMilliseconds;
             double dt_mpz = delta_time - Constants.MPZ_starting_Time - Constants.MPZ_init_Time;
 
             return (dt_mpz > 0);
-
         }
 
         public static MPZParams createMPZbetween(MPZParams m1, MPZParams m2, List<RouteParams> r)
@@ -269,10 +267,10 @@ namespace OptimalChain
     public class RouteParams
     {
         public int id { get; set; }
-        public int type { get; set; }//0-- съемка, 1 -- сброс, 2 -- удаление, 3 -- съемка со сброосом
-        public string shooting_channel { get; set; }// pk, mk, cm
+        public WorkingType type { get; set; } // тип работы
+        public ShootingChannel shooting_channel { get; set; } // канал
 
-        public int shooting_type { get; set; }//0 -- обычная съемка, 1-- стерео, 2 -- коридорная;
+        public ShootingType shooting_type { get; set; } // тип съемки
 
         public bool energo_save_mode { get; set; }
         public DateTime start { get; set; }
@@ -341,7 +339,7 @@ namespace OptimalChain
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, int st = 0, string channel = "pk", int fs = 1000)
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.ePlain, ShootingChannel channel = ShootingChannel.ePK, int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
@@ -353,7 +351,7 @@ namespace OptimalChain
             duration = (d2 - d1).TotalMilliseconds;
         }
 
-        public RouteParams(int t, DateTime d1, DateTime d2, Tuple<int, int> br, int st = 0, string channel = "pk", int fs = 1000, double alb = 0.36, int comp=10)
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.ePlain, ShootingChannel channel = ShootingChannel.ePK, int fs = 1000, double alb = 0.36, int comp = 10)
         {
             type = t;
             shooting_channel = channel;
@@ -425,7 +423,7 @@ namespace OptimalChain
 
             double ms = c1.reConfigureMilisecinds(c2);
             if (r.type != 0 || this.type != 0) ms = 0;
-            double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
+            //double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
             return (ms < dms);

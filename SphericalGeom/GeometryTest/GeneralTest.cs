@@ -67,17 +67,17 @@ namespace GeometryTest
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
 
-            string[] chan = new string[3] { "pk", "mk", "cm" };
-            int[] regime = new int[4] { 0, 1, 2, 3 }; // Zi, Vi, Si, Np
-            int[] shooting = new int[3] { 0, 1, 2 }; // прост, стерео, коридор
+            ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.ePK, ShootingChannel.eMK, ShootingChannel.eCM };
+            WorkingType[] regime = new WorkingType[4] { WorkingType.eCapture, WorkingType.eDrop, WorkingType.eDelete, WorkingType.eDropCapture }; // Zi, Vi, Si, Np
+            ShootingType[] shooting = new ShootingType[3] { ShootingType.ePlain, ShootingType.eStereoTriplet, ShootingType.eCorridor }; // прост, стерео, коридор
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
             DateTime to = from.AddSeconds(5);
 
             int k = 0;
-            foreach (string ch in chan)
-                foreach (int r in regime)
-                    foreach (int s in shooting)
+            foreach (ShootingChannel ch in chan)
+                foreach (WorkingType r in regime)
+                    foreach (ShootingType s in shooting)
                         foreach (int c in compression)
                         {
                             conf = new StaticConf(k, from, to, 0, 0, 0, null, "", c, 0.3, r, ch, s);
@@ -356,11 +356,11 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 20; testi++)
+            for (int testi = 0; testi < 1; testi++)
             {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < 30; i++)
+                for (int i = 0; i < 10; i++)
                 {
                     Polygon randpol = getRandomPolygon(rand, 3, 8, 2, 8);
                     polygons.Add(randpol);
@@ -453,7 +453,7 @@ namespace GeometryTest
 
                 List<Order> orders = new List<Order>() { order };
 
-                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 1, null);
+                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.eDrop, null);
                 StaticConf sc = ccToDrop.DefaultStaticConf();
                 RouteParams routeParamtoDrop = new RouteParams(sc);
                 routeParamtoDrop.id = 0;
@@ -469,7 +469,7 @@ namespace GeometryTest
                 routesToDrop.Add(routempzToDrop);
 
 
-                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, 2, null);
+                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.eDelete, null);
                 StaticConf scToDelete = ccToDelete.DefaultStaticConf();
                 RouteParams routeParamtoDelete = new RouteParams(scToDelete);
                 routeParamtoDelete.id = 0;

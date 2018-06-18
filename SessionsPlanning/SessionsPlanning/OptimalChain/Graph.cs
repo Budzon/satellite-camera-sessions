@@ -30,7 +30,7 @@ namespace OptimalChain
 
                 foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) >= v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
                 {
-                    if((v1.s.shooting_type==1)&&(v1.s.pitch>=-0.0872665))
+                    if ((v1.s.shooting_type == ShootingType.eStereoTriplet) && (v1.s.pitch >= -0.0872665))
                     {
                         if((v2.s.id == v1.s.id))
                         {
@@ -124,7 +124,7 @@ namespace OptimalChain
             foreach(CaptureConf s in strips)
             {
             //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
-                if(s.shootingType!=1)
+                if ((s.shootingType != ShootingType.eStereoTriplet) && (s.shootingType != ShootingType.eStereoPair))
                 {
                     vertices.Add(new Vertex(s.DefaultStaticConf(), s));
                     for (int i = 0; i < s.timeDelta; i++)
@@ -133,7 +133,7 @@ namespace OptimalChain
                         vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
                     }
                 }
-                if (s.shootingType == 1)
+                if ((s.shootingType == ShootingType.eStereoTriplet) || (s.shootingType == ShootingType.eStereoPair))
                 {
                   foreach (KeyValuePair<double, Tuple<double,double>> p in s.pitchArray)
                   {
@@ -184,9 +184,10 @@ namespace OptimalChain
             
             double ms = c1.reConfigureMilisecinds(c2);
             double min_pause = Constants.CountMinPause(c1.type,c1.shooting_type,c1.shooting_channel, c2.type, c2.shooting_type,c2.shooting_channel);
+            double needded_pause = ms + min_pause;
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
-            return (ms < dms);
+            return (needded_pause < dms);
 
         }
         public double countEdgeWeight(Vertex v1, Vertex v2, bool change_strips = true)
@@ -201,11 +202,11 @@ namespace OptimalChain
                return -1;
 
             Vertex v3 = null;
-            if(v1.s.shooting_type!=1)
+            if(v1.s.shooting_type != ShootingType.eStereoTriplet)
                     v3= GenerateNewConf(v1.cs, v2.s, false);
 
             Vertex v4 = null;
-            if (v2.s.shooting_type != 1) 
+            if (v2.s.shooting_type != ShootingType.eStereoTriplet) 
                 v4=GenerateNewConf(v2.cs, v1.s, true);
             
             if (v3 != null)
@@ -297,7 +298,7 @@ namespace OptimalChain
                             }
                             else
                             {
-                                if((!ids.Contains(v.s.id))||v.s.shooting_type==1)
+                                if((!ids.Contains(v.s.id))||v.s.shooting_type== ShootingType.eStereoTriplet)
                                 {
                                     if ((e.v1.path.Count > 0))
                                         {
@@ -352,11 +353,10 @@ namespace OptimalChain
                 Console.WriteLine("**************************");
                 Console.WriteLine("Routes num = "+m.routes.Count);
                 foreach (RouteParams r in m.routes)
-                            {
-
-                                Console.WriteLine("-------------------------");
-                                Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
-                            }
+                {
+                    Console.WriteLine("-------------------------");
+                    Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
+                }
             }
 
             Console.WriteLine("Graph did his very best ");
@@ -412,7 +412,7 @@ namespace OptimalChain
         public double countVertexPrice()
         {
             double sum = 0;
-            if (s.type != 2)
+            if (s.type != WorkingType.eDelete)
             {
              int[] pr_coef = new int[]{ 10, 100, 1000};
              foreach(Order o in s.orders)

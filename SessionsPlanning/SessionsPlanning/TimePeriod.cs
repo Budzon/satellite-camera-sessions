@@ -34,6 +34,11 @@ namespace SatelliteSessions
             return (dateFrom.Equals(obj.dateFrom) && dateTo.Equals(obj.dateTo));
         }
 
+        public bool isDtInPeriod(DateTime dt)
+        {
+            return dateFrom <= dt && dt <= dateTo;
+        }
+            
         /// <summary>
         /// Объеденим пересекающиеся временные диапазоны 
         /// </summary>
@@ -128,7 +133,7 @@ namespace SatelliteSessions
         /// <param name="routesToDrop"></param>
         /// <param name="freeCompressedIntervals"></param>
         /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
-        public static Dictionary<TimePeriod, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<TimePeriod> freeCompressedIntervals, int workType, int startId)
+        public static Dictionary<TimePeriod, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<TimePeriod> freeCompressedIntervals, WorkingType workType, int startId)
         {
             Dictionary<TimePeriod, List<RouteParams>> res = new Dictionary<TimePeriod, List<RouteParams>>();
             List<RouteMPZ> routes = new List<RouteMPZ>(inpRoutes);
@@ -157,9 +162,9 @@ namespace SatelliteSessions
                         prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
 
                     double actionTime = 0;
-                    if (workType == 1)
+                    if (workType == WorkingType.eDrop)
                         actionTime = rmpz.Parameters.getDropTime();
-                    else if (workType == 2)
+                    else if (workType == WorkingType.eDelete)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
 
                     DateTime nextDt = prevDt.AddSeconds(actionTime);
