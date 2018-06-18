@@ -14,7 +14,7 @@ namespace SatelliteSessions
     public class CommunicationZone
     {
         /// <summary>
-        /// In degrees.
+        /// Id
         /// </summary>
         public virtual int IdNumber { get; set; }
 

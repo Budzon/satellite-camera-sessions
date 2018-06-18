@@ -20,7 +20,7 @@ namespace SatelliteSessions
             routesToDrop = new List<RouteMPZ>();
         }
         /// <summary>
-        ///  Id антенны
+        ///  тип сессии
         /// </summary>
         public string nkpoiType { get; set; } // "MIGS" or "FIGS"
         /// <summary>

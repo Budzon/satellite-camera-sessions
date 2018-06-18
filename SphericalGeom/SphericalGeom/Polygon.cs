@@ -54,7 +54,7 @@ namespace SphericalGeom
 
         public IList<Vector3D> Apexes { get { return apexes; } }
         public IList<Vector3D> Vertices { get { return vertices; } }
-        public IList<Arc> Arcs 
+        public IList<Arc> Arcs
         {
             get
             {
@@ -324,8 +324,8 @@ namespace SphericalGeom
         {
             Polygon[] lobes = new Polygon[4];
 
-            double h = 1e-2, z = Math.Sqrt(1 - 2*h*h);
-            Vector3D N = new Vector3D(Math.Sqrt(2)*h, 0, z);
+            double h = 1e-2, z = Math.Sqrt(1 - 2 * h * h);
+            Vector3D N = new Vector3D(Math.Sqrt(2) * h, 0, z);
             Vector3D S = new Vector3D(Math.Sqrt(2) * h, 0, -z);
             Vector3D X = new Vector3D(1, 0, 0);
             Vector3D Yp = new Vector3D(0, 1, 0);
@@ -576,7 +576,7 @@ namespace SphericalGeom
             }
             return wtk;
         }
- 
+
         public static string getMultipolFromWkts(List<string> wkts)
         {
             string res = "";
@@ -601,20 +601,20 @@ namespace SphericalGeom
         /// <returns>линия скелета в wkt</returns>
         [DllImport("CGALWrapper", EntryPoint = "getPolygonSpine", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr getPolygonSpine(string wktPolygon);
-        
+
         /// <summary>
         /// Построения срединной линии полигона 
         /// </summary>
         /// <returns></returns>
         public List<GeoPoint> getCenterLine()
-        { 
+        {
             IntPtr pstr = getPolygonSpine(this.ToWtk());
             string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
-             
+
             SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
 
             List<GeoPoint> points = new List<GeoPoint>();
-              
+
             for (int i = 2; i < geom.STNumPoints(); i++)
             {
                 double lat = (double)geom.STPointN(i).Lat;
@@ -800,9 +800,9 @@ namespace SphericalGeom
 
             var pArcs = p.Arcs;
             var qArcs = q.Arcs;
-            
+
             ReferenceFrame rotate = new ReferenceFrame();
-            rotate.RotateBy(q.Middle, rotationAngleIfOverlap);            
+            rotate.RotateBy(q.Middle, rotationAngleIfOverlap);
             bool allGood = false;
             while (!allGood)
             {
@@ -818,7 +818,7 @@ namespace SphericalGeom
                     p.knowArcs = false;
                     q.knowArcs = false;
 
-                    q.ToThisFrame(rotate);                    
+                    q.ToThisFrame(rotate);
 
                     pArcs = p.Arcs;
                     qArcs = q.Arcs;
@@ -860,19 +860,19 @@ namespace SphericalGeom
                 }
         }
 
-        public static string getMultipolFromPolygons(ICollection<Polygon> polygons)
+        public static string getMultipolFromPolygons(List<Polygon> polygons)
         {
             string res = "";
 
             if (polygons.Count == 0)
                 return res;
 
-            foreach (var pol in polygons)
+            for (int i = 0; i < polygons.Count; i++)
             {
-                res = res + pol.ToWtk() + "\n";
-                if (pol != polygons.Last())
+                res = res + polygons[i].ToWtk() + "\n";
+                if (i != polygons.Count - 1)
                     res += ",";
-            }          
+            }
             res = "GEOMETRYCOLLECTION (" + res + ")";
             return res;
         }

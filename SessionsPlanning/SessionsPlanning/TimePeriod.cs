@@ -34,6 +34,11 @@ namespace SatelliteSessions
             return (dateFrom.Equals(obj.dateFrom) && dateTo.Equals(obj.dateTo));
         }
 
+        public bool isDtInPeriod(DateTime dt)
+        {
+            return dateFrom <= dt && dt <= dateTo;
+        }
+            
         /// <summary>
         /// Объеденим пересекающиеся временные диапазоны 
         /// </summary>

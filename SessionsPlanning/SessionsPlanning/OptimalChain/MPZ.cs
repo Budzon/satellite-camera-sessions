@@ -80,12 +80,10 @@ namespace OptimalChain
                 return lasting < Constants.MPZ_max_lasting_time;
             }
 
-
             double delta_time = (r.start - this.end).TotalMilliseconds;
             double dt_mpz = delta_time - Constants.MPZ_starting_Time - Constants.MPZ_init_Time;
 
             return (dt_mpz > 0);
-
         }
 
         public static MPZParams createMPZbetween(MPZParams m1, MPZParams m2, List<RouteParams> r)
@@ -425,7 +423,7 @@ namespace OptimalChain
 
             double ms = c1.reConfigureMilisecinds(c2);
             if (r.type != 0 || this.type != 0) ms = 0;
-            double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
+            //double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
 
             return (ms < dms);

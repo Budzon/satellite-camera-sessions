@@ -24,6 +24,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8F0D2787-F827-434D-B11B-F2637023A580}"
 	ProjectSection(SolutionItems) = preProject
 		..\SqlManager\Dios.SqlManager.dll = ..\SqlManager\Dios.SqlManager.dll
+		Performance5.psess = Performance5.psess
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oslo", "..\Oslo\Oslo.csproj", "{92589C2D-3833-496F-87E8-788FD511B162}"
@@ -107,5 +108,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
