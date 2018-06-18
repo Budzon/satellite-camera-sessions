@@ -324,12 +324,69 @@ namespace SphericalGeom
         public IList<Polygon> Shatter(Vector3D mid)
         {
             var res = new List<Polygon>();
-            res.Add(new Polygon(new List<Vector3D> { mid, vertices[vertices.Count - 1], vertices[0] },
-                                new List<Vector3D> { new Vector3D(0, 0, 0), apexes[apexes.Count - 1], new Vector3D(0, 0, 0) }));
-            for (int i = 0; i < vertices.Count - 1; ++i)
-                res.Add(new Polygon(new List<Vector3D> { mid, vertices[i], vertices[i + 1] },
-                                    new List<Vector3D> { new Vector3D(0, 0, 0), apexes[i], new Vector3D(0, 0, 0) }));
+            var seen = Enumerable.Range(0, Count - 1).Where(i => CanBeSeen(mid, i));
+            int[] chosen = seen.Take(2).ToArray();
+
+            List<Vector3D> verts1 = new List<Vector3D> { Vertices[chosen[1]], mid };
+            List<Vector3D> apexs1 = new List<Vector3D> { new Vector3D(0, 0, 0), new Vector3D(0, 0, 0) };
+            for (int i = chosen[0]; i < chosen[1]; ++i)
+            {
+                verts1.Add(Vertices[i]);
+                apexs1.Add(Apexes[i]);
+            }
+            res.Add(new Polygon(verts1, apexs1));
+
+            List<Vector3D> verts2 = new List<Vector3D>();
+            List<Vector3D> apexs2 = new List<Vector3D>();
+            for (int i = 0; i < chosen[0]; ++i)
+            {
+                verts2.Add(Vertices[i]);
+                apexs2.Add(Apexes[i]);
+            }
+            verts2.Add(Vertices[chosen[0]]);
+            apexs2.Add(new Vector3D(0, 0, 0));
+            verts2.Add(mid);
+            apexs2.Add(new Vector3D(0, 0, 0));
+            for (int i = chosen[1]; i < Count; ++i)
+            {
+                verts2.Add(Vertices[i]);
+                apexs2.Add(Apexes[i]);
+            }
+            res.Add(new Polygon(verts2, apexs2));
+
+            //res.Add(new Polygon(new List<Vector3D> { mid, vertices[vertices.Count - 1], vertices[0] },
+            //                    new List<Vector3D> { new Vector3D(0, 0, 0), apexes[apexes.Count - 1], new Vector3D(0, 0, 0) }));
+            //for (int i = 0; i < vertices.Count - 1; ++i)
+            //    res.Add(new Polygon(new List<Vector3D> { mid, vertices[i], vertices[i + 1] },
+            //                        new List<Vector3D> { new Vector3D(0, 0, 0), apexes[i], new Vector3D(0, 0, 0) }));
             return res;
+        }
+
+        public Vector3D PointInside()
+        {
+            if (Contains(Middle))
+                return Middle;
+
+            List<Arc> candidates = new List<Arc>();
+            for (int i = 0; i < Count; ++i)
+            {
+                int pre = (i == 0) ? Count - 1 : i - 1;
+                int nex = (i == Count - 1) ? 0 : i + 1;
+                if (Comparison.IsPositive(RotationAngleWithNextArc(pre)) == IsCounterclockwise)
+                    candidates.Add(new Arc(Vertices[i], (Vertices[pre] + Vertices[i] + Vertices[nex]) / 3));
+            }
+
+            double t = 1;
+            while (Comparison.IsPositive(t))
+            {
+                Vector3D? inside = candidates.Select(arc => (Nullable<Vector3D>)(GeoPoint.ToCartesian(arc.PointAt(t), 1))).Where(v => Contains(v.Value)).FirstOrDefault();
+                if (inside.HasValue)
+                    return inside.Value;
+                else
+                    t /= 2;
+            }
+
+            return Vertices[0];
         }
 
         public List<Polygon> BreakIntoLobes()
@@ -513,7 +570,7 @@ namespace SphericalGeom
                 else if (qInP)
                 {
                     intersection.Add(q);
-                    var pieces = p.Shatter(q.Middle);
+                    var pieces = p.Shatter(q.PointInside());
                     foreach (var piece in pieces)
                     {
                         var intersectionAndDifference = Polygon.IntersectAndSubtract(piece, q);
@@ -698,6 +755,15 @@ namespace SphericalGeom
                 Arcs[nextArcInd].A);
             double cos = Vector3D.DotProduct(Arcs[curArcInd].TangentB, Arcs[nextArcInd].TangentA);
             return Math.Atan2(sin, cos);
+        }
+
+        private bool CanBeSeen(Vector3D camera, int index)
+        {
+            Arc view = new Arc(camera, Vertices[index]);
+            int intersections = 0;
+            foreach (var arc in Arcs)
+                intersections += Arc.Intersect(view, arc).Count();
+            return intersections == 2;
         }
 
         private enum pointType { vertex, enter, exit };

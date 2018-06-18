@@ -18,6 +18,17 @@ namespace GeometryTest
         }
 
         [TestMethod]
+        public void TestMiddle()
+        {
+            Arc arc = new Arc(
+                GeoPoint.ToCartesian(new GeoPoint(0, 10), 1),
+                GeoPoint.ToCartesian(new GeoPoint(0, -10), 1)
+            );
+            Vector3D v = GeoPoint.ToCartesian(arc.Middle(), 1);
+            Assert.IsTrue(Comparison.IsZero(v - new Vector3D(1, 0, 0)));
+        }
+
+        [TestMethod]
         public void TestConstructorApexInOrOut()
         {
             Arc arc1 = new Arc(

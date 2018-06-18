@@ -1099,6 +1099,7 @@ namespace SatelliteTrajectory
 
             return AstronomyMath.ToRad(Vector3D.AngleBetween(pToSun, -v) - 90);
         }
+
     }
 
     public struct PolygonLit
@@ -1310,7 +1311,7 @@ namespace SatelliteTrajectory
         public GeoPoint[] Vertices { get; private set; }
         public double[] Distances { get; private set; }
         public double Meters { get; private set; }
-        public int Count { get { return Vertices.Length;} }
+        public int Count { get { return Vertices.Length; } }
         public double[] DerivativesLat { get; private set; }
         public double[] DerivativesLon { get; private set; }
         public double[] SndDerivativesLat { get; private set; }
@@ -1324,7 +1325,7 @@ namespace SatelliteTrajectory
         public double[] CurvD { get; private set; }
         public double Turnage { get; private set; }
 
-        public GeoPoint this[int index] { get{ return Vertices[index]; } }
+        public GeoPoint this[int index] { get { return Vertices[index]; } }
 
         public Curve(IEnumerable<GeoPoint> vertices)
         {
@@ -1386,19 +1387,21 @@ namespace SatelliteTrajectory
                     CurvD[i] = Curvatures[i] * (Distances[i] + Distances[i + 1]);
                 Turnage += Math.Abs(CurvD[i]);
             }
+            //Curvatures[0] = Curvatures[1];
+            //Curvatures[Count - 1] = Curvatures[Count - 2];
         }
 
-        public List<Curve> BreakIntoShorterParts(double maxDist)
+        public List<Curve> BreakIntoShorterParts(double maxCurv)
         {
             List<Curve> parts = new List<Curve>();
 
-            double curDist = 0;
+            double curCurv = 0; ;
             int begInd = 0, endInd = 0;
-            
+
             while (endInd < Count - 1)
             {
-                curDist += Math.Abs(CurvD[endInd]);
-                if (curDist < maxDist)
+                curCurv += Math.Abs(CurvD[endInd]);
+                if (curCurv < maxCurv)
                 {
                     endInd++;
                     continue;
@@ -1406,11 +1409,11 @@ namespace SatelliteTrajectory
                 else
                 {
                     //parts.Add(new Curve(SubArray(this.Vertices, begInd, endInd - begInd + 1)));
-                    if (Count - endInd < 3)
+                    if (Count - endInd < 2)
                         endInd = Count - 1;
                     parts.Add(new Curve(Vertices.Where((gp, ind) => (ind >= begInd) && (ind <= endInd))));
                     begInd = endInd;
-                    curDist = 0;
+                    curCurv = 0;
                 }
             }
             if (begInd != endInd)
@@ -1420,6 +1423,69 @@ namespace SatelliteTrajectory
 
             if (parts.Any(curve => curve.Count < 3))
                 throw new ArgumentException("Add more intermediate points to the curve.");
+            return parts;
+
+            //double thresh = 10;
+            //List<List<int>> divisions = new List<List<int>>();
+            double totalTV = 0;
+            for (int i = 1; i < Count - 1; ++i)
+            {
+                totalTV += Math.Abs(Curvatures[i] - Curvatures[i + 1]);
+            }
+            double minfunc = 0;
+            List<int> division = new List<int>();
+            for (int m = 1; 2 * m + 1 <= Count; ++m)
+            {
+                foreach (var div in Divide(0, Count - 1, m))
+                {
+                    div.Add(Count - 1);
+                    double maxtv = 0;
+                    for (int i = 0; i < m; ++i)
+                    {
+                        double tv = 0, len = Distances[div[i]];
+                        for (int j = div[i] + 1; j < div[i + 1] - 1; ++j)
+                        {
+                            tv += Math.Abs(Curvatures[j] - Curvatures[j + 1]);
+                            len += Distances[j];
+                        }
+                        maxtv = Math.Max(maxtv, tv / Math.Sqrt(len));
+                    }
+                    double func = maxtv / totalTV * Math.Sqrt(Meters);
+                    if ((m == 1) || (func < minfunc))
+                    {
+                        minfunc = func;
+                        division = div;
+                    }
+                    //if (maxtv < thresh)
+                    //    divisions.Add(div);
+                }
+                //if (divisions.Count > 0)
+                //    break;
+            }
+
+            //List<int> minLens = new List<int>();
+            //foreach (var div in divisions)
+            //{
+            //    int step = div[1] - div[0];
+            //    for (int i = 1; i < div.Count / 2; ++i)
+            //        step = Math.Min(step, div[2 * i + 1] - div[2 * i]);
+            //    minLens.Add(step);
+            //}
+            //int maxMinLen = 0, index = -1;
+            //for (int i = 0; i < minLens.Count; ++i)
+            //{
+            //    if (minLens[i] > maxMinLen)
+            //    {
+            //        maxMinLen = minLens[i];
+            //        index = i;
+            //    }
+            //}
+            //List<int> division = index == -1 ? new List<int>{0, Count - 1} : divisions[index];
+            for (int i = 0; i < division.Count - 1; ++i)
+            {
+                parts.Add(new Curve(Vertices.Where((gp, ind) => (ind >= division[i]) && (ind <= division[i + 1]))));
+            }
+
             return parts;
         }
 
@@ -1527,12 +1593,12 @@ namespace SatelliteTrajectory
             int from = 0;
             for (int i = 0; i < signChange.Count / 2 - 1; ++i)
             {
-                int to = (signChange[2*i + 1] + signChange[2*i + 2]) / 2;
+                int to = (signChange[2 * i + 1] + signChange[2 * i + 2]) / 2 + 1;
                 if (to - from < 3)
                     continue;
-                for (int j = from; j < to; ++j)
+                for (int j = from; j <= to; ++j)
                     curCurve.Add(Vertices[j]);
-                from = to;
+                from = to - 1;
                 curves.Add(new Curve(curCurve));
                 curCurve = new List<GeoPoint>();
             }
@@ -1551,6 +1617,51 @@ namespace SatelliteTrajectory
                 res.AddRange(part.BreakIntoShorterParts(maxDist));
 
             return res;
+        }
+
+        public static IEnumerable<List<int>> Divide(int beg, int end, int numOfIntervals)
+        {
+            if (end - beg >= 3)
+            {
+                List<int> next = new List<int>();
+                if (numOfIntervals == 1)
+                {
+                    next.Add(beg);
+                    //next.Add(end);
+                    yield return next;
+                }
+                else //((numOfIntervals >= 1) && (2 * numOfIntervals <= end - beg))
+                {
+                    int subPts = 3 * (numOfIntervals - 1);
+                    for (int i = beg + 3; i <= end - 3; ++i)
+                    {
+                        if (subPts <= i - beg && subPts <= end - i)
+                        {
+                            for (int k = 1; k < numOfIntervals; ++k)
+                                foreach (var left in Divide(beg, i, k))
+                                    foreach (var right in Divide(i, end, numOfIntervals - k))
+                                    {
+                                        next.AddRange(left);
+                                        next.AddRange(right);
+                                        yield return next;
+                                        next = new List<int>();
+                                    }
+                        }
+                    }
+                }
+            }
+        }
+
+        public string ToWkt()
+        {
+            string s = "LINESTRING(";
+            for (int i = 0; i < Count; ++i)
+            {
+                s += Vertices[i].Longitude.ToString().Replace(",", ".") + " " + Vertices[i].Latitude.ToString().Replace(",", ".");
+                if (i < Count - 1)
+                    s += ",";
+            }
+            return s + ")";
         }
     }
 

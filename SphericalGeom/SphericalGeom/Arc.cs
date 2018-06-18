@@ -123,9 +123,18 @@ namespace SphericalGeom
         public Arc(Vector3D a, Vector3D b) : this(a, b, new Vector3D(0, 0, 0)) { }
         #endregion
 
+        public GeoPoint PointAt(double ratio)
+        {
+            if (Comparison.IsNegative(ratio) || Comparison.IsPositive(ratio - 1))
+                throw new ArgumentException("Ratio must be within 0 and 1");
+            double lat = ParametrizedLatitudeRad(CentralAngle * ratio);
+            double lon = ParametrizedLongitudeRad(CentralAngle * ratio);
+            return new GeoPoint(AstronomyMath.ToDegrees(lat), AstronomyMath.ToDegrees(lon));
+        }
+
         public GeoPoint Middle()
         {
-            return new GeoPoint(ParametrizedLatitudeRad(CentralAngle / 2), ParametrizedLongitudeRad(CentralAngle / 2));
+            return PointAt(0.5);
         }
 
         public double MaxLatitudeDeg()

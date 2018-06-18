@@ -1,4 +1,4 @@
-﻿#define NOT_SPHERE
+﻿#define SPHERE
 
 using System;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ namespace GUI
         public TransformMatrix m_transformMatrix = new TransformMatrix();
         public int m_nChartModelIndex = -1;
 #if SPHERE
-       public Ellipse3D Terra;
+        public Ellipse3D Terra;
 #else
         public EllipseRegion3D Terra;
 #endif
@@ -42,7 +42,7 @@ namespace GUI
             vm = new ViewModel.EarthSatelliteViewModel();
             DataContext = vm;
 #if SPHERE
-            Terra = new Ellipse3D(1, 1, 1, 500);
+            Terra = new Ellipse3D(1, 1, 1, 1000);
 #else
             Terra = new EllipseRegion3D(1, 1, 1, 20, 50);
 #endif
@@ -96,36 +96,104 @@ namespace GUI
             //}
 
             // Parallel.For(0, nData, i =>
+
+            List<Vector3D> apexes = new List<Vector3D>
+            {
+                new Vector3D(0.110114001356683,0.020776017953791,0.0161249725195272),
+                new Vector3D(0, 0, 0),
+                new Vector3D(-0.110128429340776,-0.020679106196494,-0.0161472900825659),
+                new Vector3D(0, 0, 0)
+            };
+            List<Vector3D> verts = new List<Vector3D>
+            { 
+                new Vector3D(0.286086225170584,-0.167067743709656,-0.94352691576839),
+                new Vector3D(0.287704707730365,-0.177536763133048,-0.94111991737824),
+                new Vector3D(0.0674393368684983,-0.21883933597819,-0.973427594056878),
+                new Vector3D(0.0658668401225687,-0.208674988809425,-0.975764473844818)
+            };
+            SphericalGeom.Polygon sector = new SphericalGeom.Polygon(verts, apexes);
+            Vector3D sun = new Vector3D(-99335404.3188502, 94380801.7803882, -53605586.5457589);
+            var hemi = SphericalGeom.Polygon.Hemisphere(sun);
+            var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, hemi);
+            var sunP = vm.getPointPolygon(sun, 10);
+
+            SphericalGeom.Polygon pol = new SphericalGeom.Polygon(
+                new List<Vector3D>
+                {
+                    new Vector3D(-0.415256805379794,-0.0245434562815893,0.909373083139985),
+                    new Vector3D(-0.423538220582993,-0.0185226831269007,0.905688846080801),
+                    new Vector3D(-0.304617657598805,0.16455144919006,0.938152921036047),
+                    new Vector3D(-0.296533516087929,0.158649692318033,0.941752700534447),
+                    new Vector3D(-0.415252956838029,-0.0245432288162827,0.909374846670253)
+                },
+                new List<Vector3D>
+                {
+                    new Vector3D(-0.0593839609633907,-0.0915926626399865,-0.0161974938860543),
+                    new Vector3D(0, 0, 0),
+                    new Vector3D(0.0595345204650451,0.0914706217749444,0.0162654080488155),
+                    new Vector3D(0, 0,0),
+                    new Vector3D(0,0,0)
+                }
+            );
+
             for (int i = 0; i < nData; ++i)
             {
                 var p = Terra.GetPoint(i);
 
 
-                bool flag = false;
-                int pol_ind = 0;
-                for (int pi = 0; pi < vm.polygons.Count; pi++)
-                {
-                    var pol = vm.polygons[pi];
-                    if (pol.Contains(new Vector3D(p.X, p.Y, p.Z)))
-                    {
-                        flag = true;
-                        pol_ind = pi;
-                        break;
-                    }
-                }
+                //bool flag = false;
+                //int pol_ind = 0;
+                //for (int pi = 0; pi < vm.polygons.Count; pi++)
+                //{
+                //    var pol = vm.polygons[pi];
+                //    if (pol.Contains(new Vector3D(p.X, p.Y, p.Z)))
+                //    {
+                //        flag = true;
+                //        pol_ind = pi;
+                //        break;
+                //    }
+                //}
 
-                float polColor = (float)(pol_ind + 1) / vm.polygons.Count;
+                //float polColor = (float)(pol_ind + 1) / vm.polygons.Count;
 
-                if (flag)
+                //if (flag)
+                //{
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, polColor, (float)(1 - polColor), 0.0f));
+                //}
+                //else if (vm.PointInPolygon(p.X, p.Y, p.Z))
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
+                //else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                //else if (vm.PointInLane(p.X, p.Y, p.Z))
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                if (sector.Contains(new Vector3D(p.X, p.Y, p.Z)))
                 {
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, polColor, (float)(1 - polColor), 0.0f));
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 1.0f));
                 }
-                else if (vm.PointInPolygon(p.X, p.Y, p.Z))
+                //else if (LitAndNot.Item1[0].Contains(new Vector3D(p.X, p.Y, p.Z)))
+                //{
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 1.0f, 1.0f));
+                //}
+                //else if (LitAndNot.Item1[1].Contains(new Vector3D(p.X, p.Y, p.Z)))
+                //{
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.75f, 0.75f, 0.75f));
+                //}
+                //else if (LitAndNot.Item2[0].Contains(new Vector3D(p.X, p.Y, p.Z)))
+                //{
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.5f, 0.5f, 0.5f));
+                //}
+                //else if (LitAndNot.Item2[1].Contains(new Vector3D(p.X, p.Y, p.Z)))
+                //{
+                //    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.25f, 0.25f, 1.0f));
+                //}
+                else if (hemi[0].Contains(new Vector3D(p.X, p.Y, p.Z)))
+                {
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 1.0f, 0.0f, 0.0f));
-                else if (vm.PointInCaptureInterval(p.X, p.Y, p.Z))
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
-                else if (vm.PointInLane(p.X, p.Y, p.Z))
-                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 0.0f, 0.0f));
+                }
+                else if (hemi[1].Contains(new Vector3D(p.X, p.Y, p.Z)))
+                {
+                    Terra.SetColor(i, Color.FromScRgb(1.0f, 0.0f, 1.0f, 0.0f));
+                }
                 else
                     Terra.SetColor(i, Color.FromScRgb(1.0f, 0, 0.2f + (float)Math.Acos(p.Z) / 5f, 0.2f + (float)Math.Acos(p.Z) / 5f));
 
