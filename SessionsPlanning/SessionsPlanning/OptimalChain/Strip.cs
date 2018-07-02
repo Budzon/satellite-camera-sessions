@@ -110,6 +110,7 @@ namespace OptimalChain
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа и упреждение по крену      
         public int MinCompression {  get; private set; }
         public double AverAlbedo {  get; private set;}
+        public double SunAngle { get; private set; } // угол солнца снимаемой сцены
         public SatelliteSessions.PolinomCoef poliCoef { get; private set; }
 
         public void setPolygon(SphericalGeom.Polygon pol)
@@ -118,6 +119,17 @@ namespace OptimalChain
             wktPolygon = pol.ToWtk();
         }
 
+        /// <summary>
+        /// рассчитаем угол солнца для центра кадра
+        /// </summary>
+        /// <param name="sunPos">координаты солнца относительно центра земли</param>
+        /// <param name="centrePos"> координаты центра кадра </param>
+        public void setSun(Vector3D sunPos, Vector3D centrePos)
+        {
+            Vector3D toSun = sunPos - centrePos; // вектор на солнце от центра кадра
+            SunAngle = Math.PI/2 - Vector3D.AngleBetween(toSun, centrePos);
+        }
+        
         public void setPitchDependency(Dictionary<double, Tuple<double, double>> _pitchArray, double _timeDelta)
         {
             pitchArray = _pitchArray;
@@ -313,7 +325,7 @@ namespace OptimalChain
 
             double maxPitchAngle = Math.Abs(pitchAngleLimit) - Math.Abs(rollAngle);
 
-            if (maxPitchAngle < 0) // такое возможно, если rollAngle больше (по модулю) 30 градусов (максимальны тангаж)
+            if (maxPitchAngle < 0) // если rollAngle больше (по модулю) 30 градусов (максимальны тангаж)
                 maxPitchAngle = 0;
 
             double timeDelta;
@@ -329,8 +341,9 @@ namespace OptimalChain
 
             Vector3D dirRollPoint = SatelliteTrajectory.LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
             int pitchStep = 1; // угол изменения тангажа в градусах.
+           
             for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
-            {
+            { 
                 double pitch = AstronomyMath.ToRad(pitch_degr);
                 Vector3D dirPitchPoint = SatelliteTrajectory.LanePos.getSurfacePoint(pointFrom, rollAngle, pitch);
                 double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;

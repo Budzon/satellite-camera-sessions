@@ -100,7 +100,27 @@ namespace GeometryTest
         }
 
 
+        [TestMethod]
+        public void Test_GetTrajectorySun()
+        {
+            string cs = System.IO.File.ReadLines("DBstring.conf").First();
+            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+            DataFetcher fetcher = new DataFetcher(manager);
+              
+            DateTime dt1 = new DateTime(2019, 2, 2, 7, 20, 0);
+            DateTime dt2 = new DateTime(2019, 2, 2, 12, 20, 0);
 
+            Trajectory sunTraj = fetcher.GetTrajectorySun(dt1, dt2);
 
+            List<SpaceTime> sunpoints = fetcher.GetPositions<SunTableFacade>(dt1, dt2);
+            
+
+            foreach (var point in sunpoints)
+            {
+                Vector3D testPoint = sunTraj.GetPosition(point.Time.AddSeconds(0)).ToVector();
+                Assert.IsTrue((point.Position - testPoint).Length == 0);               
+            }
+        }
+        
     }
 }

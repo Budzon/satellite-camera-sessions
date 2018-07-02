@@ -102,7 +102,7 @@ namespace DBTables
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        private List<SpaceTime> GetPositions<TableClass>(DateTime from, DateTime to) where TableClass : BallisticTableFacade, new()
+        public List<SpaceTime> GetPositions<TableClass>(DateTime from, DateTime to) where TableClass : BallisticTableFacade, new()
         {
             TableClass table = new TableClass();
             List<SpaceTime> res = new List<SpaceTime>();
@@ -117,11 +117,10 @@ namespace DBTables
                 else
                     return res;
             }
-          
-              
+                        
             double maxDist = 0;
             for (int i = 0; i < res.Count - 1; i++)
-                maxDist = Math.Max(maxDist, (res[i + 1].Time - res[i].Time).TotalSeconds);
+                maxDist = Math.Max(maxDist, (res[i + 1].Time - res[i].Time).TotalSeconds);            
             maxDist = Math.Max(maxDist, (res.First().Time - from).TotalSeconds);
             maxDist = Math.Max(maxDist, (to - res.Last().Time).TotalSeconds);
 
@@ -216,30 +215,50 @@ namespace DBTables
         }
 
 
-        /// <summary>
-        /// Получить из таблицы TableClass одну точку, интерполировав её на основе соседних значений.
-        /// </summary>
-        /// <typeparam name="TableClass"></typeparam>
-        /// <param name="dtime"></param>
-        /// <returns></returns>
-        public TrajectoryPoint? GetSinglePoint<TableClass>(DateTime dtime) where TableClass : BallisticTableFacade, new()
+        private TrajectoryPoint? GetSinglePoint<TableClass>(DateTime dtime, double minStep) where TableClass : BallisticTableFacade, new()
         {
             TableClass table = new TableClass();
             string dtimestr = dtime.ToString(datePattern);
-            Trajectory trajectory = SpaceTime.createTrajectory(GetMinimumPointsArray<TableClass>(dtime, dtime));             
+            Trajectory trajectory = SpaceTime.createTrajectory(GetMinimumPointsArray<TableClass>(dtime, dtime), minStep);             
             return trajectory.GetPoint(dtime);
         }
 
 
-        public Trajectory GetTrajectorySat(DateTime from, DateTime to)
+        /// <summary>
+        /// Получить одну точку траектории, интерполировав её на основе соседних значений.
+        /// </summary>
+        /// <typeparam name="TableClass"></typeparam>
+        /// <param name="dtime"></param>
+        /// <returns></returns>
+        public TrajectoryPoint? GetSingleSatPoint(DateTime dtime, double minStep = OptimalChain.Constants.minTrajectoryStep) 
         {
-            List<SpaceTime> preTrajectory = GetPositions<SatTableFacade>(from, to);
+            return GetSinglePoint<SatTableFacade>(dtime, minStep);
+        }
+
+
+        /// <summary>
+        /// Получить одну точку траектории, интерполировав её на основе соседних значений.
+        /// </summary>
+        /// <typeparam name="TableClass"></typeparam>
+        /// <param name="dtime"></param>
+        /// <returns></returns>
+        public TrajectoryPoint? GetSingleSunPoint(DateTime dtime, double minStep = OptimalChain.Constants.minSunTrajectoryStep)
+        {
+            return GetSinglePoint<SunTableFacade>(dtime, minStep);
+        }
+
+        private Trajectory GetTrajectory<TableClass>(
+            DateTime from,
+            DateTime to,
+            double minStep)
+        where TableClass : BallisticTableFacade, new()
+        {
+            List<SpaceTime> preTrajectory = GetPositions<TableClass>(from, to);
 
             if (preTrajectory.Count < Trajectory.minNumPoints)
                 preTrajectory = IncreasePointsNumber(from, to);
             else
             {
-
                 DateTime lastTime = preTrajectory.Last().Time;
                 if ((to - lastTime).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
                     throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
@@ -250,7 +269,7 @@ namespace DBTables
 
                 if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
                 {
-                    TrajectoryPoint? firstPoint = GetSinglePoint<SatTableFacade>(from);
+                    TrajectoryPoint? firstPoint = GetSinglePoint<TableClass>(from, minStep);
                     if (firstPoint != null)
                     {
                         TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
@@ -261,7 +280,7 @@ namespace DBTables
 
                 if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
                 {
-                    TrajectoryPoint? secondPoint = GetSinglePoint<SatTableFacade>(to);
+                    TrajectoryPoint? secondPoint = GetSinglePoint<TableClass>(to, minStep);
                     if (secondPoint != null)
                     {
                         TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
@@ -271,7 +290,17 @@ namespace DBTables
                 }
             }
 
-            return SpaceTime.createTrajectory(preTrajectory); ;
+            return SpaceTime.createTrajectory(preTrajectory, minStep);
+        }
+
+        public Trajectory GetTrajectorySat(DateTime from, DateTime to, double minStep = OptimalChain.Constants.minTrajectoryStep)
+        {
+            return GetTrajectory<SatTableFacade>(from, to, minStep);            
+        }
+
+        public Trajectory GetTrajectorySun(DateTime from, DateTime to, double minStep = OptimalChain.Constants.minSunTrajectoryStep)
+        {
+            return GetTrajectory<SunTableFacade>(from, to, minStep);
         }
 
         /// <summary>
@@ -947,35 +976,25 @@ namespace DBTables
         /// </summary>
         /// <param name="points">точки траектории</param>
         /// <returns></returns>
-        public static Trajectory createTrajectory(List<SpaceTime> points)
-        {
-            //@todo сделать расчёт вектора скорости через касательные к кривой
+        public static Trajectory createTrajectory(List<SpaceTime> points, double minStep)
+        {            
             int count = points.Count;
 
-            TrajectoryPoint[] trajectoryPoints = points.Select(point => new TrajectoryPoint(point.Time, point.Position.ToPoint(), new Vector3D(0, 0, 0))).ToArray();
-
-            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
-
-            double timeStep = 1;
-            for (int i = 0; i < count; i++)
+            TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[points.Count];
+            for (int i = 0; i < points.Count; i++)
             {
-                TrajectoryPoint curpoint = trajectory.Points[i];
-                Vector3D velo;
-                if (i != count - 1)
-                {
-                    Point3D nextPoint = trajectory.GetPosition(curpoint.Time.AddSeconds(timeStep));
-                    velo = (nextPoint - curpoint.Position) / timeStep;
-                }
-                else
-                {
-                    Point3D nextPoint = trajectory.GetPosition(curpoint.Time.AddSeconds(-timeStep));
-                    velo = (curpoint.Position - nextPoint) / timeStep;
-                }
-                trajectory.Points[i] = new TrajectoryPoint(curpoint.Time, curpoint.Position, velo);
-            }
+                Vector3D toNeighbor;
+                if (i == points.Count - 1) // для последней точки берём вектор на предыдущую точку
+                    toNeighbor = points.Last().Position - points[points.Count - 2].Position;
+                else // для остальныйх на следюущую
+                    toNeighbor = points[i + 1].Position - points[i].Position;
+                Vector3D prod = Vector3D.CrossProduct(toNeighbor, points[i].Position);
+                Vector3D velo = Vector3D.CrossProduct(points[i].Position, prod);
+                trajectoryPoints[i] = new TrajectoryPoint(points[i].Time, points[i].Position.ToPoint(), velo);
+            } 
 
-            // Далее проверим, что шаг удовлетворяет условиям. И пропустим через констркутор для того, чтобы пересчитались интерполянты.
-            return Trajectory.changeMaximumTimeStep(Trajectory.Create(trajectory.Points), OptimalChain.Constants.minTrajectoryStep);
+            Trajectory trajectory = Trajectory.Create(trajectoryPoints);             
+            return Trajectory.changeMaximumTimeStep(trajectory, minStep);
         }
     }
 

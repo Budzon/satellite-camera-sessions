@@ -99,14 +99,14 @@ namespace GeometryTest
                 pitches[i] = i - 45;
 
             DateTime dt1 = new DateTime(2019, 1, 1, 10, 55, 30);
-            TrajectoryPoint tp = fetcher.GetSinglePoint<SatTableFacade>(dt1).Value;
+            //TrajectoryPoint tp = fetcher.GetSinglePoint<SatTableFacade>(dt1).Value;
 
             double roll, pitch;
             double roll1, pitch1;
             bool ok = true, equal;
             for (int s = 0; s < 50; s += 1)
             {
-                TrajectoryPoint tp = fetcher.GetPositionSat(dt1).Value;
+                TrajectoryPoint tp = fetcher.GetSingleSatPoint(dt1).Value;
                 for (int i = 0; i < rolls.Length; ++i)
                 {
                     roll = AstronomyMath.ToRad(rolls[i]);

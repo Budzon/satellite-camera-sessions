@@ -25,7 +25,7 @@ namespace OptimalChain
         public const int min_Delta_time = 8000;
         public const int minDeltaT = 19000;
          
-        // максимальный промежуток между двумя конфигурациями, при котором они объединяются в одну
+        // максимальный промежуток (в секундах) между двумя конфигурациями, при котором они объединяются в одну
         public const int maxCConfInterval = 2;
 
         public const double angle_velocity_max = Math.PI / 60;
@@ -42,6 +42,7 @@ namespace OptimalChain
         public const int stripStepPassing = 1; // шаг по колву точек. Значение 1, если используем все точки, без оптимизации
         // public const int stripPolygonStep = 10000; // расстояние между точками в метрах
         public const int minTrajectoryStep = 10; // минимальный шаг траектории в секундах. Если в БД лежит траектория с худшим шагом, то интерполируем точки.
+        public const int minSunTrajectoryStep = 60; 
         public const double stripOverlap = 0.05; // перекрытие соседних полос.
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
         public const int minTrajectoryPassInterval = 120; //[секнуды] максимальный разрыв по времени между двумя точками траектории, при котором мы продолжаем с такой траекторией работать.

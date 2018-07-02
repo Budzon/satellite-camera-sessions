@@ -64,27 +64,6 @@ namespace SatelliteSessions
             mpzs = mpzParams.Select(p => new MPZ(p, managerDB, flags)).ToList();
         }
 
-
-
-        public static List<TimePeriod> getSunBlindingPeriods(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
-        {
-            List<TimePeriod> res = new List<TimePeriod>();
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            var trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
-            foreach(var point in trajectory.Points)
-            {
-                Vector3D toSunVect = fetcher.GetSinglePoint<SunTableFacade>(point.Time).Value.Position.ToVector();
-                Vector3D toKaVect = point.Position.ToVector();
-                double angle = Vector3D.AngleBetween(toSunVect, -toKaVect);
-                if ( AstronomyMath.ToRad(angle) < OptimalChain.Constants.sunBlindingAngle)
-                {
-                    Console.WriteLine("psp");
-                }
-            }
-            return res;
-        }
-
-
         /// <summary>
         /// возвращает реализуемость заказа
         /// </summary>
@@ -191,6 +170,7 @@ namespace SatelliteSessions
            DIOS.Common.SqlManager managerDB,
            List<RequestParams> requests,
            Trajectory trajectory,
+           Trajectory sunTrajectory,
            List<CaptureConf> captureConfs,
            List<TimePeriod> freeSessionPeriodsForDrop,
            List<TimePeriod> capturePeriods)
@@ -278,6 +258,7 @@ namespace SatelliteSessions
         private static void getCaptureConfArrayForTrajectoryForPlainReq(
             List<RequestParams> requests,
             Trajectory trajectory,
+            Trajectory sunTrajectory,
             List<CaptureConf> captureConfs,
             List<TimePeriod> freeSessionPeriodsForDrop,
             List<TimePeriod> capturePeriods)
@@ -357,6 +338,19 @@ namespace SatelliteSessions
                     conf.setPolygon(pol);
                     if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)
                         conf.calculatePitchArrays(pointFrom);
+
+                    DateTime midTime;
+
+                    if (conf.dateFrom == conf.dateTo)
+                    {
+                        midTime = conf.dateFrom;
+                        conf.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(midTime).ToVector());                       
+                    }
+                    else
+                    {
+                        midTime = conf.dateFrom.AddSeconds((conf.dateTo - conf.dateFrom).TotalSeconds);
+                        conf.setSun(trajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
+                    }                       
                 }
                 foreach (var conf in laneCaptureConfs)
                     concurrentlist.Add(conf);
@@ -404,6 +398,7 @@ namespace SatelliteSessions
              
             inactivityRanges.Sort(delegate(TimePeriod span1, TimePeriod span2) { return span1.dateFrom.CompareTo(span2.dateFrom); });
 
+            Trajectory sunTrajectory = new DataFetcher(managerDB).GetTrajectorySun(timeFrom, timeTo);
             List<Trajectory> trajSpans = getLitTrajectoryParts(timeFrom, timeTo, managerDB, inactivityRanges);
 
             // периоды, во время которых можно проводить съемку.
@@ -414,11 +409,11 @@ namespace SatelliteSessions
  
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods);
+                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, sunTrajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods);
 
             List<CaptureConf> captureConfsCoridor = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForCoridor(managerDB, requestCoridor, trajectory, captureConfsCoridor, freeSessionPeriodsForDrop, capturePeriods);
+                getCaptureConfArrayForTrajectoryForCoridor(managerDB, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDrop, capturePeriods);
 
             List<CaptureConf> captureConfs = new List<CaptureConf>(captureConfsPlain);
             captureConfs.AddRange(captureConfsCoridor);
@@ -855,7 +850,7 @@ namespace SatelliteSessions
             {
                 if (duration == 0)
                 {
-                    TrajectoryPoint? point = fetcher.GetSinglePoint<SatTableFacade>(dateTime);
+                    TrajectoryPoint? point = fetcher.GetSingleSatPoint(dateTime);
 
                     if (point == null)
                     {
@@ -905,6 +900,7 @@ namespace SatelliteSessions
 
             return wtk;
         }
+
         /// <summary>
         /// Проверка ПНб (программа наблюдений) на непротиворечивость
         /// </summary>
@@ -1055,8 +1051,7 @@ namespace SatelliteSessions
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
             }
         }
-
-        
+                
 
         /// <summary>
         /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
@@ -1213,4 +1208,105 @@ namespace SatelliteSessions
         public string wktPolygon { get; set; }
         public bool sun { get; set; }
     }
+
+
+
+
+    /*
+    public static List<TimePeriod> getSunBlindingPeriods(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
+    {            
+        List<TimePeriod> res = new List<TimePeriod>();
+        DataFetcher fetcher = new DataFetcher(managerDB);
+        var trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+        var sunTrajectory = fetcher.GetTrajectorySun(timeFrom, timeTo, 30);
+        double curMin = 10000;
+        bool flag = false;
+        foreach(var point in trajectory.Points)
+        {
+            Vector3D toSunVect = sunTrajectory.GetPosition(point.Time).ToVector();// fetcher.GetSinglePoint<SunTableFacade>(point.Time).Value.Position.ToVector();
+
+
+            {
+                Vector3D dir = -point.Position.ToVector();
+
+                Vector3D velo = point.Velocity;
+                Vector3D pitchAxis = Vector3D.CrossProduct(velo, dir);
+                double roll = OptimalChain.Constants.max_roll_angle;
+                double pitch = OptimalChain.Constants.max_pitch_angle;
+
+                RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(velo, AstronomyMath.ToDegrees(-roll)));
+                RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitch)));
+
+                dir = rollTransform.Transform(dir);
+                dir = pitchTransform.Transform(dir);
+
+                Console.WriteLine(Vector3D.AngleBetween(-point.Position.ToVector(), dir));
+            }
+
+            {
+                Vector3D dir = -point.Position.ToVector();
+
+                Vector3D velo = point.Velocity;
+                Vector3D pitchAxis = Vector3D.CrossProduct(velo, dir);
+                double roll = OptimalChain.Constants.max_roll_angle;
+                double pitch = OptimalChain.Constants.max_pitch_angle;
+
+                RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(velo, AstronomyMath.ToDegrees(-roll)));
+                RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(pitchAxis, AstronomyMath.ToDegrees(pitch)));
+
+                dir = pitchTransform.Transform(dir);    
+                dir = rollTransform.Transform(dir);                   
+
+                Console.WriteLine(Vector3D.AngleBetween(-point.Position.ToVector(), dir));
+            }
+
+            var ka0 = new SatelliteCoordinates(point, 0, 0);
+            var ka1 = new SatelliteCoordinates(point); //, OptimalChain.Constants.max_roll_angle, OptimalChain.Constants.max_pitch_angle);
+
+            ka1.addRollRot(OptimalChain.Constants.max_roll_angle);
+            ka1.addPitchRot(OptimalChain.Constants.max_pitch_angle);                
+
+            Console.WriteLine(Vector3D.AngleBetween(ka0.ViewDir, ka1.ViewDir));
+
+
+            //Console.WriteLine(AstronomyMath.ToDegrees( 
+            //    Math.Acos(
+            //    Math.Cos(OptimalChain.Constants.max_pitch_angle) 
+            //    * Math.Cos(OptimalChain.Constants.max_roll_angle) 
+            //    )
+            //    ));
+
+            var ka2 = new SatelliteCoordinates(point, -OptimalChain.Constants.max_roll_angle, 0);
+
+
+            double angle = Math.Min(Vector3D.AngleBetween(toSunVect, ka1.ViewDir), Vector3D.AngleBetween(toSunVect, ka2.ViewDir));
+
+            double earthAngle = point.getAngleToEartchSurface();
+            Console.WriteLine("earthAngle = {0}", AstronomyMath.ToDegrees(earthAngle));
+
+            if (AstronomyMath.ToRad(angle) < OptimalChain.Constants.sunBlindingAngle)
+            {
+                if (!flag)
+                {
+                    //Console.WriteLine("__________________\n\n");
+                }
+                // Console.WriteLine(point.Time);
+                flag = true;
+            }
+            else
+            {
+                flag = false;
+            }
+            curMin = Math.Min(angle, curMin);
+        }
+        Console.WriteLine("curMin = {0}",  curMin);
+        Console.ReadKey();
+        return res;
+    }
+    */
+
 }
+
+
+
+

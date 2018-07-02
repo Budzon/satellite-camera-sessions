@@ -568,7 +568,7 @@ namespace ViewModel
             DateTime dt2 = DateTime.Parse("12.03.2015 19:17:27");
             DateTime dtx = DateTime.Parse("13.07.2014 0:57:00");
             // List<DBTables.SpaceTime> points = fetcher.GetPositionSat(dt1, dt2);
-            TrajectoryPoint? point = fetcher.GetSinglePoint<SatTableFacade>(dtx);
+            TrajectoryPoint? point = fetcher.GetSingleSatPoint(dtx);
 
             int i = 4;
         }
@@ -1019,7 +1019,7 @@ namespace ViewModel
             foreach (var p in testTrajectoryFull.Points)
                 preTrajectory.Add(new SpaceTime() { Position = p.Position.ToVector(), Time = p.Time });
 
-            Astronomy.Trajectory testTrajectory = SpaceTime.createTrajectory(preTrajectory);
+            Astronomy.Trajectory testTrajectory = SpaceTime.createTrajectory(preTrajectory, OptimalChain.Constants.minTrajectoryStep);
 
 
             double maxDist = 0;
@@ -1109,7 +1109,7 @@ namespace ViewModel
 
 
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
-            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetSinglePoint<SatTableFacade>(dtMid);
+            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetSingleSatPoint(dtMid);
 
             List<Vector3D> pitchLine = new List<Vector3D>();
             double pitchStep = AstronomyMath.ToRad(1);
@@ -1230,7 +1230,7 @@ namespace ViewModel
 
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
 
-            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetSinglePoint<SatTableFacade>(DateTime.Parse("01.02.2019 0:15:00"));
+            TrajectoryPoint pp1 = (TrajectoryPoint)fetcher.GetSingleSatPoint(DateTime.Parse("01.02.2019 0:15:00"));
 
             Vector3D leftVector = LanePos.getDirectionVector(pp1, -0.793708, 0);
             Vector3D rightVector = LanePos.getDirectionVector(pp1, 0.793708, 0);
@@ -1790,24 +1790,13 @@ namespace ViewModel
             Console.Write(",");
             Console.Write(Polygon.getMultipolFromPolygons(mpzArray.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(ord => ord.captured))).ToList()));
             Console.Write(")");
-
-
-
         }
 
-
-
+       
         public IList<CaptureConf> test_getCaptureConfArray()
-        {
-            //string str1 = "POLYGON((37.68310546875 55.95688849713528,37.21343994140624 55.808998992704886,37.4798583984375 55.51774716789876,38.111572265625 55.63109707296326,38.00445556640624 55.9722612642278,37.68310546875 55.95688849713528))";
-            //string str2 = "POLYGON((37.68859863281249 55.890715987422226,37.57873535156249 55.85989956952267,37.71881103515624 55.78892895389265,37.91107177734374 55.84294011297763,37.72155761718749 55.90765459369871,37.68859863281249 55.890715987422226))";
-            //SqlGeography geom1 = SqlGeography.STGeomFromText(new SqlChars(str1), 4326);
-            //SqlGeography geom2 = SqlGeography.STGeomFromText(new SqlChars(str1), 4326);
-            //SqlGeography geom3 = SqlGeography.ST
-
+        { 
             DateTime start = DateTime.Now;
-            
-            test_TestSessionsSequenses();
+             
             //test_getPlainMpzArray();
            
             DateTime endd = DateTime.Now;
@@ -1818,24 +1807,11 @@ namespace ViewModel
          
 
         public void test_TestSessionsSequenses()
-        {
-           // tttt();
-          ///  return;
+        { 
             DateTime fromDt = DateTime.Parse("20.02.2019 0:0:0"); 
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
  
-            //new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0)
-            //DataFetcher fetcher = new DataFetcher(managerDB);
-            //Trajectory trajectory = fetcher.GetTrajectorySat(fromDt,  DateTime.Parse(" 01.03.2019 1:39:12")    );
-            //var roll = 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle;
-            //foreach (var point in trajectory)
-            //{
-            //    Console.WriteLine(point.Position.ToVector().Length - Astronomy.Constants.EarthRadius);
-            //}
-            //new SatLane(trajectory, roll, 0);
-            //return;
-
             {
                 List<MPZ> mpzArray;
                 SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, managerDB, out mpzArray);            
@@ -1884,22 +1860,20 @@ namespace ViewModel
                 List<MPZ> mpzArray;
                 SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, managerDB, out mpzArray);
             }
-
-
+            
             List<MPZ> mpzArray2;
             SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, out mpzArray2);
             
             var orderPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
-            var shootingPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.Select(r =>  new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
+            var shootingPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
 
-            Console.Write("GEOMETRYCOLLECTION(");            
+            Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(orderPolsList));
             Console.Write(",");
 
             Console.Write(Polygon.getMultipolFromPolygons(shootingPolsList));
             Console.Write(")");
-        }
-             
+        }             
 
         public bool RegionCanBeCaptured { get; private set; }
         public double SatelliteRoll { get; private set; }

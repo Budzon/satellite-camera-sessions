@@ -1189,6 +1189,31 @@ namespace SatelliteTrajectory
         }
 
 
+        public void addOldPitchRot(double angle)
+        {
+            if (angle == 0)
+                return;
+              
+            Vector3D oldKaX = Vector3D.CrossProduct(-trajPos.Position.ToVector(), trajPos.Velocity);
+            RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(oldKaX, AstronomyMath.ToDegrees(angle)));
+            kaY = pitchTransform.Transform(kaY);
+            kaZ = pitchTransform.Transform(kaZ);
+            knowViewPolygon = false;
+        }
+
+        public void addOldRollRot(double angle)
+        {
+            if (angle == 0)
+                return;
+            /// поворачиваем в обратную сторону, так как за положительный крен принят поворот по часовой
+            /// 
+            RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(trajPos.Velocity, AstronomyMath.ToDegrees(-angle)));
+            kaX = rollTransform.Transform(kaX);
+            kaY = rollTransform.Transform(kaY);
+            knowViewPolygon = false;
+        }
+
+
         /// <summary>
         /// получить переднюю (по направлению скорости) левую точку полигона видимости
         /// </summary>

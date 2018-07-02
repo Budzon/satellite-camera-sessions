@@ -153,7 +153,7 @@ namespace SessionsPlanning
 
         private static void checkRoutesCount(List<MPZ> mpzArray, int count)
         {
-            if (mpzArray.Sum(mpz => mpz.Routes.Count) < count)
+            if (mpzArray.Sum(mpz => mpz.Routes.Count) != count)
                 throw new TestSequensesException("It is impossible to compose a test sequence for a given time");
         }
     }
@@ -274,7 +274,7 @@ namespace SessionsPlanning
             DateTime curDtFrom = period.dateFrom;
             while (period.isDtInPeriod(curDtFrom) && count < numFrames)
             {                
-                var kaPoint = fetcher.GetSinglePoint<SatTableFacade>(curDtFrom).Value;
+                var kaPoint = fetcher.GetSingleSatPoint(curDtFrom).Value;
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDtFrom.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
@@ -365,12 +365,11 @@ namespace SessionsPlanning
             
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double deflectTimeDelta =
-                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSinglePoint<SatTableFacade>(period.dateFrom).Value, 0,
-                    pitchAngle);
+                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSingleSatPoint(period.dateFrom).Value, 0, pitchAngle);
             DateTime curDt = period.dateFrom.AddSeconds(deflectTimeDelta); 
             while (period.isDtInPeriod(curDt.AddSeconds(deflectTimeDelta)) && count < numFrames)
             {                
-                var kaPoint = fetcher.GetSinglePoint<SatTableFacade>(curDt).Value;
+                var kaPoint = fetcher.GetSingleSatPoint(curDt).Value;
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
@@ -482,13 +481,13 @@ namespace SessionsPlanning
 
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double deflectTimeDelta =
-                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSinglePoint<SatTableFacade>(period.dateFrom).Value, 0,
+                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSingleSatPoint(period.dateFrom).Value, 0,
                     pitchAngle);
             DateTime curDt = period.dateFrom.AddSeconds(deflectTimeDelta);
             while (period.isDtInPeriod(curDt) && count < numFrames)
             {
                 double cam_angle = OptimalChain.Constants.camera_angle;
-                var kaPoint = fetcher.GetSinglePoint<SatTableFacade>(curDt).Value;
+                var kaPoint = fetcher.GetSingleSatPoint(curDt).Value;
                 SatelliteCoordinates kaPosLeft = new SatelliteCoordinates(kaPoint, -1.5 * cam_angle, 0);
                 SatelliteCoordinates kaPosRight = new SatelliteCoordinates(kaPoint, 1.5 * cam_angle, 0);
                 Polygon framePol = new Polygon(new List<Vector3D>()
