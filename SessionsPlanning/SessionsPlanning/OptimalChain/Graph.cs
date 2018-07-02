@@ -415,11 +415,13 @@ namespace OptimalChain
             if (s.type != WorkingType.eDelete)
             {
              int[] pr_coef = new int[]{ 10, 100, 1000};
+
+             double angle_coeff = 1 - Math.Acos(Math.Cos(s.pitch) * Math.Cos(s.roll)) * 180 /(100* Math.PI);// при съемке в надир = 1, при съемке с углом 55 = 0.45
              foreach(Order o in s.orders)
              {
-                 sum += s.square * o.intersection_coeff*pr_coef[o.request.priority-1];
+                sum += s.square * o.intersection_coeff*pr_coef[o.request.priority-1];
              }
-             return sum;
+             return angle_coeff*sum;
             }
 
             return 1;
