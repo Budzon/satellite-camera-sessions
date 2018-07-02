@@ -410,6 +410,10 @@ namespace OptimalChain
     public enum WorkingType
     {
         /// <summary>
+        /// удаление
+        /// </summary>
+        eDelete,
+        /// <summary>
         /// съемка
         /// </summary>
         eCapture,
@@ -417,10 +421,6 @@ namespace OptimalChain
         /// сброс
         /// </summary>
         eDrop,
-        /// <summary>
-        /// удаление
-        /// </summary>
-        eDelete,
         /// <summary>
         /// съемка со сбросом
         /// </summary>
