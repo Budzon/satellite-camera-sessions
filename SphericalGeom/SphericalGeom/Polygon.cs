@@ -34,6 +34,9 @@ namespace SphericalGeom
         private bool knowArea;
         private double area;
 
+        private bool knowDiameter;
+        private double diameter;
+
         private bool knowCounterclockwise;
         private bool counterclockwise;
         private bool knowAreaOrientation;
@@ -69,6 +72,24 @@ namespace SphericalGeom
             }
         }
 
+        /// <summary>
+        /// Maximum pairwise distance between vertices in radians.
+        /// </summary>
+        public double Diameter
+        {
+            get
+            {
+                if (!knowDiameter)
+                {
+                    diameter = 0;
+                    for (int i = 0; i < Count - 1; ++i)
+                        for (int j = i + 1; j < Count; ++j)
+                            diameter = Math.Max(diameter, GeoPoint.DistanceOverSurface(vertices[i], vertices[j]));
+                    knowDiameter = true;
+                }
+                return diameter;
+            }
+        }
         public double Area
         {
             get

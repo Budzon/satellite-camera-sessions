@@ -19,6 +19,7 @@
     <TargetFrameworkProfile />
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>61ab8d0a</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -87,6 +88,7 @@
     <Compile Include="CofigurationsTests.cs" />
     <Compile Include="TrajectoryTest.cs" />
     <Compile Include="RequestParamsTest.cs" />
+    <Compile Include="GdalTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">

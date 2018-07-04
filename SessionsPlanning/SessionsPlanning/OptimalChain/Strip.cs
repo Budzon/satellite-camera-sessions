@@ -53,6 +53,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
+
         public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.Downloading, ShootingChannel channel = ShootingChannel.pk, ShootingType stype = ShootingType.Normal, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
@@ -369,7 +370,6 @@ namespace OptimalChain
 
 
     }
-
 
     public class RequestParams
     {

@@ -412,6 +412,7 @@ namespace OptimalChain
         public double countVertexPrice()
         {
             double sum = 0;
+
             if (s.type != WorkingType.Removal)
             {
              int[] pr_coef = new int[]{ 10, 100, 1000};

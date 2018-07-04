@@ -99,7 +99,8 @@ namespace GeometryTest
                 pitches[i] = i - 45;
 
             DateTime dt1 = new DateTime(2019, 1, 1, 10, 55, 30);
-            //TrajectoryPoint tp = fetcher.GetSinglePoint<SatTableFacade>(dt1).Value;
+            
+            //TrajectoryPoint tp = fetcher.GetSingleSatPoint(dt1).Value;
 
             double roll, pitch;
             double roll1, pitch1;

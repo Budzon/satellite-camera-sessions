@@ -69,7 +69,8 @@ namespace GeometryTest
 
             ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingChannel.mk, ShootingChannel.cm };
             WorkingType[] regime = new WorkingType[4] { WorkingType.Shooting, WorkingType.Downloading, WorkingType.Removal, WorkingType.ShootingSending }; // Zi, Vi, Si, Np
-            ShootingType[] shooting = new ShootingType[3] { ShootingType.Normal, ShootingType.StereoTriplet, ShootingType.Coridor }; // прост, стерео, коридор
+            ShootingType[] shooting = new ShootingType[4] { ShootingType.Normal, ShootingType.Stereo, ShootingType.StereoTriplet, ShootingType.Corridor }; // прост, стерео, коридор
+
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
             DateTime to = from.AddSeconds(5);
@@ -316,7 +317,9 @@ namespace GeometryTest
 
             DateTime dt1 = new DateTime(2019, 1, 13, 8, 29, 30);
             var fetcher = new DBTables.DataFetcher(manager);
-            var sat = GeoPoint.FromCartesian(fetcher.GetSingleSatPoint(dt1).Value.Position.ToVector());
+
+			var sat = GeoPoint.FromCartesian(fetcher.GetSingleSatPoint(dt1).Value.Position.ToVector());
+
             SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
             string wktp = "POLYGON((31.9317626953125 31.557474155953216,31.720275878906254 31.53640812943962,31.5911865234375 31.48489338689015,31.4208984375 31.54108987958581,31.291809082031254 31.62298248226682,30.970458984374996 31.690781806136826,30.745239257812504 31.63233705366872,30.47332763671875 31.58321506275729,30.325012207031254 31.49191979634118,30.39093017578125 31.339562861785026,30.487060546874996 31.4825511331225,30.830383300781246 31.57853542647338,31.008911132812496 31.592573630393318,31.214904785156246 31.569175449070897,31.368713378906246 31.477866449675858,31.54998779296875 31.39350206165392,31.676330566406254 31.400535326863945,31.79168701171875 31.452096498983664,31.887817382812504 31.5012875211967,32.03063964843751 31.503629305773032,32.14599609375 31.498945677962936,32.15972900390625 31.550452675471504,31.9317626953125 31.557474155953216))";
             //string wktp = "POLYGON((29.860839843749996 31.17990959866414,29.783935546875 31.121145709156323,29.68505859375 31.074108380573307,29.5697021484375 31.04116839649143,29.4049072265625 31.0341083449035,29.234619140624996 31.04352163068421,29.09454345703125 31.074108380573307,28.97369384765625 31.078813161461056,28.85833740234375 31.062345409804408,28.745727539062504 31.022340429043638,28.63311767578125 30.94699135645719,28.5699462890625 30.866867816140285,28.605651855468746 30.85036346950237,28.638610839843746 30.8904405255621,28.6798095703125 30.942280064232108,28.73748779296875 30.970544333076077,28.79241943359375 31.00586290462421,28.850097656249996 31.019986671412497,28.940734863281246 31.0341083449035,29.05609130859375 31.038815104128687,29.130249023437496 31.029401353028902,29.28680419921875 31.008217011100186,29.410400390625004 30.99409150031616,29.5806884765625 31.017632855634176,29.759216308593746 31.07175590282013,29.838867187499996 31.114091594898696,29.902038574218746 31.168159735435708,29.860839843749996 31.17990959866414))";
@@ -453,7 +456,8 @@ namespace GeometryTest
 
                 List<Order> orders = new List<Order>() { order };
 
-                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
+				CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
+
                 StaticConf sc = ccToDrop.DefaultStaticConf();
                 RouteParams routeParamtoDrop = new RouteParams(sc);
                 routeParamtoDrop.id = 0;
@@ -469,7 +473,8 @@ namespace GeometryTest
                 routesToDrop.Add(routempzToDrop);
 
 
-                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Removal, null);
+				CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Removal, null);
+
                 StaticConf scToDelete = ccToDelete.DefaultStaticConf();
                 RouteParams routeParamtoDelete = new RouteParams(scToDelete);
                 routeParamtoDelete.id = 0;
