@@ -50,7 +50,7 @@ namespace OptimalChain
         public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {
             int d = Constants.min_Delta_time;
-            if (t1 == WorkingType.eCapture)
+            if (t1 == WorkingType.eShooting)
             {
                 if (channel1 != ShootingChannel.ePK)
                 {
@@ -62,7 +62,7 @@ namespace OptimalChain
                 }
             }
 
-            if (t2 == WorkingType.eCapture)
+            if (t2 == WorkingType.eShooting)
             {
                 if (channel2 != ShootingChannel.ePK)
                 {

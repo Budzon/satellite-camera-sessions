@@ -211,8 +211,8 @@ namespace SessionsPlanning
                 double turnDuration = 99.2;
                 fromDt = fromDt.AddMinutes(turnDuration);
 
-                double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+                double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
                 double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
                 dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
                 fromDt = fromDt.AddSeconds(dt);
@@ -267,8 +267,8 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
             List<StaticConf> sconfs = new List<StaticConf>();
 
             DateTime curDtFrom = period.dateFrom;
@@ -284,7 +284,7 @@ namespace SessionsPlanning
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _shootingType: ShootingType.ePlain, _requestChannel: ShootingChannel.ePK);
                 CaptureConf conf = new CaptureConf(curDtFrom, captureTo, 0, new List<Order>() {order},
-                    WorkingType.eCapture, null);
+                    WorkingType.eShooting, null);
                 conf.setPolygon(new SatelliteCoordinates(kaPoint).ViewPolygon);
                 conf.calculatePitchArrays(kaPoint);
                 sconfs.Add(conf.CreateStaticConf(0, 1));
@@ -312,8 +312,8 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
             List<StaticConf> sconfs = new List<StaticConf>();
 
             double velo = 6740; // [м/с] примерная скорость движения подспутниковой точки
@@ -335,7 +335,7 @@ namespace SessionsPlanning
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     corPol.ToWtk(), _shootingType: ShootingType.ePlain, _requestChannel: ShootingChannel.ePK);
                 CaptureConf conf = new CaptureConf(curDtFrom, curDtTo, 0, new List<Order>() { order },
-                    WorkingType.eCapture, null);
+                    WorkingType.eShooting, null);
                 conf.setPolygon(corPol);
                 sconfs.Add(conf.DefaultStaticConf());
 
@@ -359,8 +359,8 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
             List<StaticConf> sconfs = new List<StaticConf>();
             
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
@@ -380,7 +380,7 @@ namespace SessionsPlanning
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _requestChannel: ShootingChannel.ePK);
                 CaptureConf conf = new CaptureConf(curDt, captureTo, 0, new List<Order>() {order},
-                    WorkingType.eCapture, null);
+                    WorkingType.eShooting, null);
                 conf.setPolygon(framePol);
 
                 double reconfigureMin = 38;  // секунда на поворот от -stereoPitchAngle до stereoPitchAngle
@@ -412,8 +412,8 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
             List<StaticConf> sconfs = new List<StaticConf>();
 
             double velo = 6740; // [м/с] примерная скорость движения подспутниковой точки
@@ -440,9 +440,9 @@ namespace SessionsPlanning
                     {
                         new Order() {request = req, captured = cp.Coridor, intersection_coeff = interCoeff}
                     };
-                    WorkingType confType = WorkingType.eCapture;
+                    WorkingType confType = WorkingType.eShooting;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
-                        confType = WorkingType.eDropCapture;
+                        confType = WorkingType.eShootingSending;
                     CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders,
                         confType, null, _poliCoef: cp.CoridorCoefs);
                     cc.setPolygon(cp.Coridor);
@@ -476,8 +476,8 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
             List<StaticConf> sconfs = new List<StaticConf>();
 
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
@@ -506,13 +506,13 @@ namespace SessionsPlanning
 
                 
                 CaptureConf conf1 = new CaptureConf(curDt, captureTo, -1.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eCapture, null);                
+                    WorkingType.eShooting, null);                
                 CaptureConf conf2 = new CaptureConf(curDt, captureTo, -0.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eCapture, null);
+                    WorkingType.eShooting, null);
                 CaptureConf conf3 = new CaptureConf(curDt, captureTo, 0.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eCapture, null);
+                    WorkingType.eShooting, null);
                 CaptureConf conf4 = new CaptureConf(curDt, captureTo, 1.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eCapture, null);
+                    WorkingType.eShooting, null);
 
                 conf1.setPolygon(new SatelliteCoordinates(kaPoint, -1.5 * cam_angle, 0).ViewPolygon);
                 conf2.setPolygon(new SatelliteCoordinates(kaPoint, -0.5 * cam_angle, 0).ViewPolygon);
@@ -524,8 +524,8 @@ namespace SessionsPlanning
                 conf3.calculatePitchArrays(kaPoint);
                 conf4.calculatePitchArrays(kaPoint);
 
-                double shooting_time = (double)OptimalChain.Constants.CountMinPause(WorkingType.eCapture, type,
-                ShootingChannel.ePK, WorkingType.eCapture, type, ShootingChannel.ePK) / 1000000;
+                double shooting_time = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
+                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
 
                 int deltTime = (int)conf1.timeDelta;
                 sconfs.Add(conf1.CreateStaticConf(deltTime, -1));

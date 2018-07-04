@@ -52,7 +52,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.eDrop, ShootingChannel channel = ShootingChannel.ePK, ShootingType stype = ShootingType.ePlain, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.eDownloading, ShootingChannel channel = ShootingChannel.ePK, ShootingType stype = ShootingType.ePlain, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
             dateFrom = d1;
@@ -188,7 +188,7 @@ namespace OptimalChain
                 double p =  pitchArray[delta].Item1;
                 double r =  pitchArray[delta].Item2;
 
-                if((confType == WorkingType.eCapture) && (shootingType != ShootingType.eStereoTriplet))
+                if((confType == WorkingType.eShooting) && (shootingType != ShootingType.eStereoTriplet))
                 {
                     p = p*sign;
                  //   r = r * sign;
@@ -412,19 +412,19 @@ namespace OptimalChain
         /// <summary>
         /// удаление
         /// </summary>
-        eDelete,
+        eRemoval,
         /// <summary>
         /// съемка
         /// </summary>
-        eCapture,
+        eShooting,
         /// <summary>
         /// сброс
         /// </summary>
-        eDrop,
+        eDownloading,
         /// <summary>
         /// съемка со сбросом
         /// </summary>
-        eDropCapture
+        eShootingSending
     }
 
     public class RequestParams

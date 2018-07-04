@@ -162,9 +162,9 @@ namespace SatelliteSessions
                         prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
 
                     double actionTime = 0;
-                    if (workType == WorkingType.eDrop)
+                    if (workType == WorkingType.eDownloading)
                         actionTime = rmpz.Parameters.getDropTime();
-                    else if (workType == WorkingType.eDelete)
+                    else if (workType == WorkingType.eRemoval)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
 
                     DateTime nextDt = prevDt.AddSeconds(actionTime);

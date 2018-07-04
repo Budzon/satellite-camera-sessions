@@ -960,16 +960,16 @@ namespace SatelliteSessions
         {
             switch (type)
             {
-                case OptimalChain.WorkingType.eCapture:
+                case OptimalChain.WorkingType.eShooting:
                     return RegimeTypes.ZI;
                     // return RegimeTypes.SI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDrop:
+                case OptimalChain.WorkingType.eDownloading:
                     return RegimeTypes.VI;
                     // return RegimeTypes.ZI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDelete:
+                case OptimalChain.WorkingType.eRemoval:
                     return RegimeTypes.SI;
                     // return RegimeTypes.VI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDropCapture:
+                case OptimalChain.WorkingType.eShootingSending:
                     return RegimeTypes.NP;
                     // return RegimeTypes.NP; так написано в OptimalChain.MPZ, но просят поменять
                 default:

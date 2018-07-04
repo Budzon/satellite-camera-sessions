@@ -281,7 +281,7 @@ namespace SatelliteTrajectory
                         double subsquare = int_pol.Area;
                         order.intersection_coeff = subsquare / request.Square;
                         var orders = new List<Order>() { order };                        
-                        CaptureConf newcc = new CaptureConf(shootingFrom, shootingTo, rollAngle, orders, WorkingType.eCapture, null);
+                        CaptureConf newcc = new CaptureConf(shootingFrom, shootingTo, rollAngle, orders, WorkingType.eShooting, null);
 
                         res.Add(newcc);
                     }
