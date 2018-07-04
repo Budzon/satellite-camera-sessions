@@ -32,8 +32,11 @@ namespace SatelliteSessions
                 RegimeTypes type = RouteMPZ.WorkingTypeToRegimeType(route.type);
                 return (type == RegimeTypes.NP) || (type == RegimeTypes.ZI);
             });
-            bool hasPK = shootings.Any(route => route.shooting_channel == OptimalChain.ShootingChannel.ePK || route.shooting_channel == OptimalChain.ShootingChannel.eCM);
-            bool hasMK = shootings.Any(route => route.shooting_channel == OptimalChain.ShootingChannel.eMK || route.shooting_channel == OptimalChain.ShootingChannel.eCM);
+            bool hasPK = shootings.Any(route => route.shooting_channel == SessionsPlanning.ShootingChannel.pk 
+                || route.shooting_channel == SessionsPlanning.ShootingChannel.cm);
+
+            bool hasMK = shootings.Any(route => route.shooting_channel == SessionsPlanning.ShootingChannel.mk
+                || route.shooting_channel == SessionsPlanning.ShootingChannel.cm);
 
             Header = new HeaderMPZ(hasPK, hasMK, flags);
 
@@ -517,7 +520,7 @@ namespace SatelliteSessions
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
             /* ---------- Polinomial_coeff -----------*/
-                if (Parameters.shooting_type == OptimalChain.ShootingType.eCorridor) // коридорная
+                if (Parameters.shooting_type == SessionsPlanning.ShootingType.Coridor) // коридорная
                 {
 					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
                 }
@@ -533,10 +536,10 @@ namespace SatelliteSessions
             if (RegimeType == RegimeTypes.ZI || RegimeType == RegimeTypes.NP)
                 switch (Parameters.shooting_channel)
                 {
-                    case OptimalChain.ShootingChannel.ePK:
+                    case SessionsPlanning.ShootingChannel.pk:
                         Z = 16;
                         break;
-                    case OptimalChain.ShootingChannel.eMK:
+                    case SessionsPlanning.ShootingChannel.mk:
                         Z = 15;
                         break;
                     default:
@@ -579,14 +582,14 @@ namespace SatelliteSessions
             {
                 switch (Parameters.shooting_type)
                 {
-                    case OptimalChain.ShootingType.ePlain:
+                    case SessionsPlanning.ShootingType.Normal:
                         ByteRoutines.SetBitOne(REGta_bytes, 0); // кадровая
                         break;
-                    case OptimalChain.ShootingType.eStereoTriplet:
+                    case SessionsPlanning.ShootingType.StereoTriplet:
                         ByteRoutines.SetBitOne(REGta_bytes, 1); // стереотриплет
                         ByteRoutines.SetBitOne(REGta_bytes, 2);
                         break;
-                    case  OptimalChain.ShootingType.eCorridor:
+                    case  SessionsPlanning.ShootingType.Coridor:
                         ByteRoutines.SetBitOne(REGta_bytes, 2); // коридорная
                         break;
                     default:
@@ -956,20 +959,20 @@ namespace SatelliteSessions
             return s;
         }
 
-        public static RegimeTypes WorkingTypeToRegimeType(OptimalChain.WorkingType type)
+        public static RegimeTypes WorkingTypeToRegimeType(SessionsPlanning.WorkingType type)
         {
             switch (type)
             {
-                case OptimalChain.WorkingType.eCapture:
+                case SessionsPlanning.WorkingType.Shooting:
                     return RegimeTypes.ZI;
                     // return RegimeTypes.SI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDrop:
+                case SessionsPlanning.WorkingType.Downloading:
                     return RegimeTypes.VI;
                     // return RegimeTypes.ZI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDelete:
+                case SessionsPlanning.WorkingType.Removal:
                     return RegimeTypes.SI;
                     // return RegimeTypes.VI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDropCapture:
+                case SessionsPlanning.WorkingType.ShootingSending:
                     return RegimeTypes.NP;
                     // return RegimeTypes.NP; так написано в OptimalChain.MPZ, но просят поменять
                 default:

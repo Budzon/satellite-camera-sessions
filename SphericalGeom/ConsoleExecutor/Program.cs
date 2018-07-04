@@ -31,6 +31,8 @@ using OptimalChain;
 using DBTables;
 using Constants = OptimalChain.Constants;
 
+using SessionsPlanning;
+
 namespace ConsoleExecutor
 {
     class Program
@@ -72,8 +74,8 @@ namespace ConsoleExecutor
                 _Max_sun_angle: 90,
                 _Min_sun_angle: 10,
                 _wktPolygon: polwtk,
-                _polygonToSubtract: holes, _requestChannel: ShootingChannel.ePK,
-                _shootingType: ShootingType.ePlain);
+                _polygonToSubtract: holes, _requestChannel: ShootingChannel.pk,
+                _shootingType: ShootingType.Normal);
 
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();

@@ -7,6 +7,7 @@ using System.Windows.Media.Media3D;
 using Astronomy;
 using Common;
 using OptimalChain;
+using SessionsPlanning;
 
 namespace SatelliteSessions
 {
@@ -162,9 +163,9 @@ namespace SatelliteSessions
                         prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
 
                     double actionTime = 0;
-                    if (workType == WorkingType.eDrop)
+                    if (workType == WorkingType.Downloading)
                         actionTime = rmpz.Parameters.getDropTime();
-                    else if (workType == WorkingType.eDelete)
+                    else if (workType == WorkingType.Removal)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
 
                     DateTime nextDt = prevDt.AddSeconds(actionTime);

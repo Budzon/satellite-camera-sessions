@@ -254,17 +254,17 @@ namespace GUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            vm.CreateCaptureIntervals();
+            
         }
 
         private void Button_isRequestFeasible(object sender, RoutedEventArgs e)
         {
-            vm.test_isRequestFeasible();
+            
         }
 
         private void getCaptureConfArray_Click(object sender, RoutedEventArgs e)
         {
-            vm.test_getCaptureConfArray();
+             
         }
 
 

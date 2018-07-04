@@ -20,17 +20,17 @@ namespace GeometryTest
                 string s = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
                 List<RequestParams> list = new List<RequestParams>()
              {
-                 new RequestParams(1, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eStereoTriplet, _compression : 10, _requestChannel : ShootingChannel.eCM),
-                 new RequestParams(2, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eStereoTriplet, _compression : 10, _requestChannel : ShootingChannel.eCM),
+                 new RequestParams(1, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.StereoTriplet, _compression : 10, _requestChannel : ShootingChannel.cm),
+                 new RequestParams(2, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.StereoTriplet, _compression : 10, _requestChannel : ShootingChannel.cm),
                  
-                 new RequestParams(3, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eStereoTriplet, _compression : 1, _requestChannel :  ShootingChannel.eCM),                 
+                 new RequestParams(3, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.StereoTriplet, _compression : 1, _requestChannel :  ShootingChannel.cm),                 
 
-                 new RequestParams(4, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eStereoTriplet, _compression : 10, _requestChannel :  ShootingChannel.ePK),
-                 new RequestParams(5, 1, new DateTime(),new DateTime(), 2, 2,2,2,s, _shootingType : ShootingType.eStereoTriplet, _compression : 10, _requestChannel : ShootingChannel.ePK),
+                 new RequestParams(4, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.StereoTriplet, _compression : 10, _requestChannel :  ShootingChannel.pk),
+                 new RequestParams(5, 1, new DateTime(),new DateTime(), 2, 2,2,2,s, _shootingType : ShootingType.StereoTriplet, _compression : 10, _requestChannel : ShootingChannel.pk),
 
-                 new RequestParams(6, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eStereoTriplet, _compression : 1, _requestChannel : ShootingChannel.ePK),
+                 new RequestParams(6, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.StereoTriplet, _compression : 1, _requestChannel : ShootingChannel.pk),
 
-                 new RequestParams(7, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eCorridor, _compression : 1, _requestChannel : ShootingChannel.ePK)
+                 new RequestParams(7, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.Coridor, _compression : 1, _requestChannel : ShootingChannel.pk)
              };
 
                 List<List<RequestParams>> res = RequestParams.breakRequestsIntoGroups(list);
@@ -69,7 +69,7 @@ namespace GeometryTest
                 string s = "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))";
                 List<RequestParams> list = new List<RequestParams>()
              {
-                 new RequestParams(1, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.eStereoTriplet, _compression : 10, _requestChannel : ShootingChannel.eCM),
+                 new RequestParams(1, 1, new DateTime(),new DateTime(), 1, 1,1,1,s, _shootingType : ShootingType.StereoTriplet, _compression : 10, _requestChannel : ShootingChannel.cm),
                      
              };
 

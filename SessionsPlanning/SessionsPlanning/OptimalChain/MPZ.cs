@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SessionsPlanning;
 
 namespace OptimalChain
 {
@@ -339,7 +340,7 @@ namespace OptimalChain
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
-        public RouteParams(WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.ePlain, ShootingChannel channel = ShootingChannel.ePK, int fs = 1000)
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
@@ -351,7 +352,7 @@ namespace OptimalChain
             duration = (d2 - d1).TotalMilliseconds;
         }
 
-        public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.ePlain, ShootingChannel channel = ShootingChannel.ePK, int fs = 1000, double alb = 0.36, int comp = 10)
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
         {
             type = t;
             shooting_channel = channel;

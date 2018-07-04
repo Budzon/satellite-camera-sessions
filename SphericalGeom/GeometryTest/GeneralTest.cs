@@ -67,9 +67,9 @@ namespace GeometryTest
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
 
-            ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.ePK, ShootingChannel.eMK, ShootingChannel.eCM };
-            WorkingType[] regime = new WorkingType[4] { WorkingType.eCapture, WorkingType.eDrop, WorkingType.eDelete, WorkingType.eDropCapture }; // Zi, Vi, Si, Np
-            ShootingType[] shooting = new ShootingType[3] { ShootingType.ePlain, ShootingType.eStereoTriplet, ShootingType.eCorridor }; // прост, стерео, коридор
+            ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingChannel.mk, ShootingChannel.cm };
+            WorkingType[] regime = new WorkingType[4] { WorkingType.Shooting, WorkingType.Downloading, WorkingType.Removal, WorkingType.ShootingSending }; // Zi, Vi, Si, Np
+            ShootingType[] shooting = new ShootingType[3] { ShootingType.Normal, ShootingType.StereoTriplet, ShootingType.Coridor }; // прост, стерео, коридор
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
             DateTime to = from.AddSeconds(5);
@@ -453,7 +453,7 @@ namespace GeometryTest
 
                 List<Order> orders = new List<Order>() { order };
 
-                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.eDrop, null);
+                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
                 StaticConf sc = ccToDrop.DefaultStaticConf();
                 RouteParams routeParamtoDrop = new RouteParams(sc);
                 routeParamtoDrop.id = 0;
@@ -469,7 +469,7 @@ namespace GeometryTest
                 routesToDrop.Add(routempzToDrop);
 
 
-                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.eDelete, null);
+                CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Removal, null);
                 StaticConf scToDelete = ccToDelete.DefaultStaticConf();
                 RouteParams routeParamtoDelete = new RouteParams(scToDelete);
                 routeParamtoDelete.id = 0;

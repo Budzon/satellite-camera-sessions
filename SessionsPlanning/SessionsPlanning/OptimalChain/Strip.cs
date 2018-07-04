@@ -6,6 +6,7 @@ using Astronomy;
 using Common;
 
 using SphericalGeom;
+using SessionsPlanning;
 
 namespace OptimalChain
 {
@@ -52,7 +53,7 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.eDrop, ShootingChannel channel = ShootingChannel.ePK, ShootingType stype = ShootingType.ePlain, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.Downloading, ShootingChannel channel = ShootingChannel.pk, ShootingType stype = ShootingType.Normal, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
             dateFrom = d1;
@@ -92,9 +93,8 @@ namespace OptimalChain
         }
 
     }
-    
 
-
+ 
     public class CaptureConf : SatelliteSessions.TimePeriod
     {
         public int id { get; set; }
@@ -200,7 +200,7 @@ namespace OptimalChain
                 double p =  pitchArray[delta].Item1;
                 double r =  pitchArray[delta].Item2;
 
-                if((confType == WorkingType.eCapture) && (shootingType != ShootingType.eStereoTriplet))
+                if((confType == WorkingType.Shooting) && (shootingType != ShootingType.StereoTriplet))
                 {
                     p = p*sign;
                  //   r = r * sign;
@@ -274,7 +274,7 @@ namespace OptimalChain
             Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
 
             timeAngleArray[-deflectTimeDelta] = Tuple.Create(pitchAngle, 0.0);
-            if (ShootingType.eStereoTriplet == type)
+            if (ShootingType.StereoTriplet == type)
                 timeAngleArray[0] = Tuple.Create(0.0, 0.0);            
             timeAngleArray[deflectTimeDelta] = Tuple.Create(-pitchAngle, 0.0);
 
@@ -370,75 +370,6 @@ namespace OptimalChain
 
     }
 
-    /// <summary>
-    /// Тип съемки
-    /// </summary>
-    public enum ShootingType
-    {
-        /// <summary>
-        /// Обычная съемка
-        /// </summary>
-        ePlain,
-        /// <summary>
-        /// коридорная съемка
-        /// </summary>
-        eCorridor,
-        /// <summary>
-        /// стереопара
-        /// </summary>
-        eStereoPair,
-        /// <summary>
-        /// стереотриплет
-        /// </summary>
-        eStereoTriplet,     
-        /// <summary>
-        /// площадная съемка
-        /// </summary>
-        eArea
-    }
-
-    /// <summary>
-    /// канал съемки
-    /// </summary>
-    public enum ShootingChannel
-    {
-        /// <summary>
-        /// панхроматический канал
-        /// </summary>
-        ePK,
-        /// <summary>
-        /// многозанальный канал
-        /// </summary>
-        eMK,
-        /// <summary>
-        /// мультиспектральный
-        /// </summary>
-        eCM
-    }
-
-
-    /// <summary>
-    /// тип целевой работы
-    /// </summary>
-    public enum WorkingType
-    {
-        /// <summary>
-        /// съемка
-        /// </summary>
-        eCapture,
-        /// <summary>
-        /// сброс
-        /// </summary>
-        eDrop,
-        /// <summary>
-        /// удаление
-        /// </summary>
-        eDelete,
-        /// <summary>
-        /// съемка со сбросом
-        /// </summary>
-        eDropCapture
-    }
 
     public class RequestParams
     {
@@ -506,8 +437,8 @@ namespace OptimalChain
             List<string> _polygonToSubtract = null,
             double _albedo = 0.36,
             int _compression = 0,
-            ShootingType _shootingType = ShootingType.ePlain,
-            ShootingChannel _requestChannel = ShootingChannel.eMK
+            ShootingType _shootingType = ShootingType.Normal,
+            ShootingChannel _requestChannel = ShootingChannel.mk
             )
         {
             id = _id;

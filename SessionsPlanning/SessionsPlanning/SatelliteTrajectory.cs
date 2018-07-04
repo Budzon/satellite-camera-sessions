@@ -10,6 +10,7 @@ using Common;
 using Astronomy;
 using OptimalChain;
 using Microsoft.Research.Oslo;
+using SessionsPlanning;
 
 namespace SatelliteTrajectory
 {
@@ -281,7 +282,7 @@ namespace SatelliteTrajectory
                         double subsquare = int_pol.Area;
                         order.intersection_coeff = subsquare / request.Square;
                         var orders = new List<Order>() { order };                        
-                        CaptureConf newcc = new CaptureConf(shootingFrom, shootingTo, rollAngle, orders, WorkingType.eCapture, null);
+                        CaptureConf newcc = new CaptureConf(shootingFrom, shootingTo, rollAngle, orders, WorkingType.Shooting, null);
 
                         res.Add(newcc);
                     }

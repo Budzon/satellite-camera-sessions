@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SessionsPlanning;
 
 namespace OptimalChain
 {
@@ -51,25 +52,25 @@ namespace OptimalChain
         public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {
             int d = Constants.min_Delta_time;
-            if (t1 == WorkingType.eCapture)
+            if (t1 == WorkingType.Shooting)
             {
-                if (channel1 != ShootingChannel.ePK)
+                if (channel1 != ShootingChannel.pk)
                 {
                     d += 4;
                 }
-                if (st1 == ShootingType.eCorridor)
+                if (st1 == ShootingType.Coridor)
                 {
                     d += 4;
                 }
             }
 
-            if (t2 == WorkingType.eCapture)
+            if (t2 == WorkingType.Shooting)
             {
-                if (channel2 != ShootingChannel.ePK)
+                if (channel2 != ShootingChannel.pk)
                 {
                     d += 4;
                 }
-                if (st2 == ShootingType.eCorridor)
+                if (st2 == ShootingType.Coridor)
                 {
                     d += 4;
                 }
