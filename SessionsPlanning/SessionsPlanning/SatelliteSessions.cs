@@ -34,7 +34,7 @@ namespace SatelliteSessions
 
 ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingChannel.mk, ShootingChannel.cm };
             WorkingType[] regime = new WorkingType[4] { WorkingType.Shooting, WorkingType.Downloading, WorkingType.Removal, WorkingType.ShootingSending }; // Zi, Vi, Si, Np
-            ShootingType[] shooting = new ShootingType[4] { ShootingType.Normal, ShootingType.StereoTriplet, ShootingType.StereoTriplet, ShootingType.Corridor }; // прост, стерео, коридор
+            ShootingType[] shooting = new ShootingType[4] { ShootingType.Normal, ShootingType.StereoTriplet, ShootingType.StereoTriplet, ShootingType.Coridor }; // прост, стерео, коридор
             
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
@@ -1172,16 +1172,58 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
         }
 
 
-
-
-
-        public void addRouteToPNB(RouteParams routeParams, List<MPZ> pnb)
+        public void checkPNBRouteCompatible(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
         {
-            
-
-
+            conflicts = new List<Tuple<int, int>>();
+            foreach (var mpz in pnb)
+            {
+                if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
+                {
+                    conflicts.Add(Tuple.Create(mpz.Parameters.id, -1));
+                    continue;
+                }
+                foreach (var route in mpz.Routes)
+                {
+                    if (!route.Parameters.isCompatible(routeParams))
+                        conflicts.Add(Tuple.Create(mpz.Parameters.id, route.Parameters.id));
+                }
+            } 
         }
 
+
+        public void addRouteToPNB(RouteMPZ route, List<MPZ> pnb, string connString, out RouteParams modRouteParams, out MPZ newMPZ)
+        {
+            var routeParams = route.Parameters;
+
+            foreach (var mpz in pnb)
+            {
+                if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
+                {
+                    throw new ArgumentException("Route has conflict with FTA #" + mpz.Parameters.id.ToString());
+                }
+                foreach (var mpzRoute in mpz.Routes)
+                {
+                    if (!mpzRoute.Parameters.isCompatible(routeParams))
+                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.id.ToString());                       
+                }
+            }
+
+            modRouteParams = new RouteParams(routeParams);
+            newMPZ = null;
+
+            foreach (var mpz in pnb)
+            {
+                var copyMpzParams = new MPZParams(mpz.Parameters);                
+                if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))                
+                    return;                       
+            }
+            
+            List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams });
+
+            if (tmpList.Count > 0)
+                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connString), new FlagsMPZ());
+                               
+        }
 
 
 

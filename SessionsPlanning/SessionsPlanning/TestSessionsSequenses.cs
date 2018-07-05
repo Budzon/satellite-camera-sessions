@@ -182,7 +182,7 @@ namespace SessionsPlanning
             else if (type == ShootingType.Stereo || type == ShootingType.StereoTriplet)
                 return new StereoShootingTest(type);
             else if (type == ShootingType.Coridor)
-                return new CorridorShootingTest(type);
+                return new CoridorShootingTest(type);
             else if (type == ShootingType.Area)
                 return new AreaShootingTest(type);
             else
@@ -411,9 +411,9 @@ namespace SessionsPlanning
         }
     }
 
-    internal class CorridorShootingTest : ShootingTestTemplate
+    internal class CoridorShootingTest : ShootingTestTemplate
     {
-        public CorridorShootingTest(ShootingType _type) : base(_type)
+        public CoridorShootingTest(ShootingType _type) : base(_type)
         {
         }
 

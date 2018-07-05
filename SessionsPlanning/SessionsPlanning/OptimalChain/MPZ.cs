@@ -17,13 +17,22 @@ namespace OptimalChain
         public int N_routes { get; set; }
         public List<RouteParams> routes { get; set; }
 
+        public MPZParams(MPZParams copyed)
+        {
+            id = copyed.id;
+            PWR_ON = copyed.PWR_ON;
+            start = copyed.start;
+            end = copyed.end;
+            N_routes = copyed.N_routes;
+            routes = copyed.routes.Select(r => new RouteParams(r)).ToList();
+        }
+
         public MPZParams(int i)
         {
             id = i;
             PWR_ON = false;
             N_routes = 0;
             routes = new List<RouteParams>();
-
         }
 
         public MPZParams(int i, RouteParams r)
@@ -63,7 +72,7 @@ namespace OptimalChain
 
 
         /// <summary>
-        /// Проверка соместимости МПЗ и заданного маршрута
+        /// Проверка соместимости МПЗ и заданного маршрута 
         /// </summary>
         /// <param name="r">Маршрут, который требует проверки на совместимось с данным МПЗ</param>
         /// <returns>Код проверки: true--маршрут и МПЗ совместимы, false--маршрут и МПЗ несовместимы</returns>
@@ -74,7 +83,16 @@ namespace OptimalChain
                 if (!route.isCompatible(r))
                     return false;
             }
+            return this.isCompatibleWithMPZ(r);
+        }
 
+        /// <summary>
+        /// Проверка совместимости маршрута с самим МПЗ
+        /// </summary>
+        /// <param name="r"></param>
+        /// <returns></returns>
+        public bool isCompatibleWithMPZ(RouteParams r)
+        {
             if (N_routes < 12)
             {
                 double lasting = ((r.end - this.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON);
@@ -118,9 +136,7 @@ namespace OptimalChain
         }
 
         public bool InsertRoute(RouteParams r, DateTime insert_start, DateTime insert_end, MPZParams m_previous=null, MPZParams m_next = null)
-        {
-            
-
+        {           
             if (this.N_routes > 11) return false;
 
             double dmpz = Double.MaxValue;
@@ -140,8 +156,7 @@ namespace OptimalChain
                     start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
                     routes.Insert(0, r);
                     return true;
-                }
-                
+                }                
             }
 
 
@@ -152,7 +167,6 @@ namespace OptimalChain
             for(int i=0;i<N_routes;i++)
             {
                 RouteParams r1 = routes[i];
-
                 if(i == (N_routes -1))
                 {
                     if (!r.isCompatible(r)) return false;
@@ -174,8 +188,7 @@ namespace OptimalChain
                         r.start = s_new;
                         r.end = r.start.AddMilliseconds(r.duration);
                         return this.AddRoute(r);
-                    }
-                   
+                    }                   
                 }
 
                 RouteParams r2 = routes[i + 1];
@@ -201,7 +214,6 @@ namespace OptimalChain
             }
 
             return false;
-
         }
 
         public static List<MPZParams> FillMPZ(List<RouteParams> routes, int maxMpzNum = 0)
@@ -261,7 +273,6 @@ namespace OptimalChain
             if (currentMPZ!=null)
                 FTAs.Add(currentMPZ); 
             return FTAs;
-
         }
     }
 
@@ -339,6 +350,29 @@ namespace OptimalChain
         {
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
+
+
+        public RouteParams(RouteParams copyed)
+        {
+            type = copyed.type;
+            start = copyed.start;
+            end = copyed.end;
+            binded_route = copyed.binded_route;
+            ShootingConf = copyed.ShootingConf;
+            shooting_channel = copyed.shooting_channel;
+            shooting_type = copyed.shooting_type;
+            albedo = copyed.albedo;
+            zipMK = copyed.zipMK;
+            zipPK = copyed.zipPK;
+            duration = copyed.duration;
+            energo_save_mode = copyed.energo_save_mode;
+            File_Size = copyed.File_Size;
+            TNPos = copyed.TNPos;
+            Delta_T = copyed.Delta_T;
+            coridorLength = copyed.coridorLength;
+            coridorAzimuth = copyed.coridorAzimuth; 
+        }
+
 
         public RouteParams(WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000)
         {
