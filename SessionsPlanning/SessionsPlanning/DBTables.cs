@@ -117,10 +117,10 @@ namespace DBTables
                 else
                     return res;
             }
-                        
+
             double maxDist = 0;
             for (int i = 0; i < res.Count - 1; i++)
-                maxDist = Math.Max(maxDist, (res[i + 1].Time - res[i].Time).TotalSeconds);            
+                maxDist = Math.Max(maxDist, (res[i + 1].Time - res[i].Time).TotalSeconds);
             maxDist = Math.Max(maxDist, (res.First().Time - from).TotalSeconds);
             maxDist = Math.Max(maxDist, (to - res.Last().Time).TotalSeconds);
 
@@ -186,7 +186,7 @@ namespace DBTables
 
             if (maxDist > OptimalChain.Constants.minTrajectoryPassInterval)
                 throw new ArgumentException("Not enough ballistic data for a given time period");
-            
+
             return positions;
         }
 
@@ -219,7 +219,7 @@ namespace DBTables
         {
             TableClass table = new TableClass();
             string dtimestr = dtime.ToString(datePattern);
-            Trajectory trajectory = SpaceTime.createTrajectory(GetMinimumPointsArray<TableClass>(dtime, dtime), minStep);             
+            Trajectory trajectory = SpaceTime.createTrajectory(GetMinimumPointsArray<TableClass>(dtime, dtime), minStep);
             return trajectory.GetPoint(dtime);
         }
 
@@ -230,7 +230,7 @@ namespace DBTables
         /// <typeparam name="TableClass"></typeparam>
         /// <param name="dtime"></param>
         /// <returns></returns>
-        public TrajectoryPoint? GetSingleSatPoint(DateTime dtime, double minStep = OptimalChain.Constants.minTrajectoryStep) 
+        public TrajectoryPoint? GetSingleSatPoint(DateTime dtime, double minStep = OptimalChain.Constants.minTrajectoryStep)
         {
             return GetSinglePoint<SatTableFacade>(dtime, minStep);
         }
@@ -295,7 +295,7 @@ namespace DBTables
 
         public Trajectory GetTrajectorySat(DateTime from, DateTime to, double minStep = OptimalChain.Constants.minTrajectoryStep)
         {
-            return GetTrajectory<SatTableFacade>(from, to, minStep);            
+            return GetTrajectory<SatTableFacade>(from, to, minStep);
         }
 
         public Trajectory GetTrajectorySun(DateTime from, DateTime to, double minStep = OptimalChain.Constants.minSunTrajectoryStep)
@@ -328,6 +328,22 @@ namespace DBTables
             foreach (TrajectoryPoint p in traj.Points)
                 res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
 
+            return res;
+        }
+
+
+
+        public List<CloudinessData> GetMeteoData(DateTime from, DateTime to)
+        {
+            List<CloudinessData> res = new List<CloudinessData>();
+            var rows = GetTimePeriodsBetweenDates(MeteoReportTable.Name, MeteoReportTable.DTimeFrom, MeteoReportTable.DTimeTo, from, to);
+            foreach (DataRow row in rows)
+            {
+                res.Add(new CloudinessData(MeteoReportTable.GetCloudness(row),
+                    MeteoReportTable.GetPolygonWKT(row),
+                    MeteoReportTable.GetTimeFrom(row),
+                    MeteoReportTable.GetTimeTo(row)));
+            }
             return res;
         }
 
@@ -418,7 +434,7 @@ namespace DBTables
         public DataRow[] GetDataBetweenDates(string tableName, string dateFieldName, DateTime from, DateTime to, bool includeEnd)
         {
             string fromStr = from.ToString(datePattern);
-            string toStr = to.ToString(datePattern);
+            string toStr = to.ToString(datePattern); 
             DataTable table = manager.GetSqlObject(tableName,
                 String.Format("where {0} >= '{1}' and {0} <{3} '{2}' ORDER BY {0} ASC", dateFieldName, fromStr, toStr, includeEnd ? "=" : ""));
             return table.Select();
@@ -454,6 +470,23 @@ namespace DBTables
                 String.Format("where {0} >= '{1}' ORDER BY {0} ASC", dateFieldName, date.ToString(datePattern)),
                 limit: count).Select();
         }
+
+
+        public DataRow[] GetTimePeriodsBetweenDates(
+            string tableName,
+            string dateFieldFirst,
+            string dateFieldSecond,
+            DateTime from,
+            DateTime to)
+        {
+            return manager.GetSqlObject(
+                tableName,
+                String.Format("where {0} < '{1}' AND {2} > '{3}' ORDER BY {0} ASC",
+                dateFieldFirst, to.ToString(datePattern),
+                dateFieldSecond, from.ToString(datePattern)
+                )).Select();
+        }
+
     }
 
     internal struct DataChunk
@@ -466,7 +499,7 @@ namespace DBTables
 
     public abstract class BallisticTableFacade
     {
-        public abstract string Name { get; } 
+        public abstract string Name { get; }
         public abstract string Time { get; }
 
         public abstract Vector3D GetPosition(DataRow row);
@@ -500,8 +533,8 @@ namespace DBTables
         public override DateTime GetTime(DataRow row)
         {
             return SatTable.GetTime(row);
-        }                 
-    } 
+        }
+    }
 
 
     public static class SunTable
@@ -966,6 +999,38 @@ namespace DBTables
         }
     }
 
+
+
+    public static class MeteoReportTable // эта таблица находится в Базе ЦУКСа, а не ЦУПа, однако в будущем они будут объединены
+    {
+        public const string Name = "METEO_REPORT";
+        public const string Polygon = "polygon_wkt";
+        public const string DTimeFrom = "start_date";
+        public const string DTimeTo = "end_date";
+        public const string Cloudness = "cloudiness_prc";
+
+        public static int GetCloudness(DataRow row)
+        {
+            return (int)row[Cloudness];
+        }
+
+        public static string GetPolygonWKT(DataRow row)
+        {
+            return (string)row[Polygon];
+        }
+
+        public static DateTime GetTimeFrom(DataRow row)
+        {
+            return (DateTime)row[DTimeFrom];
+        }
+
+        public static DateTime GetTimeTo(DataRow row)
+        {
+            return (DateTime)row[DTimeTo];
+        }
+    }
+
+
     public class SpaceTime
     {
         public Vector3D Position { get; set; }
@@ -977,7 +1042,7 @@ namespace DBTables
         /// <param name="points">точки траектории</param>
         /// <returns></returns>
         public static Trajectory createTrajectory(List<SpaceTime> points, double minStep)
-        {            
+        {
             int count = points.Count;
 
             TrajectoryPoint[] trajectoryPoints = new TrajectoryPoint[points.Count];
@@ -991,9 +1056,9 @@ namespace DBTables
                 Vector3D prod = Vector3D.CrossProduct(toNeighbor, points[i].Position);
                 Vector3D velo = Vector3D.CrossProduct(points[i].Position, prod);
                 trajectoryPoints[i] = new TrajectoryPoint(points[i].Time, points[i].Position.ToPoint(), velo);
-            } 
+            }
 
-            Trajectory trajectory = Trajectory.Create(trajectoryPoints);             
+            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
             return Trajectory.changeMaximumTimeStep(trajectory, minStep);
         }
     }
@@ -1009,4 +1074,43 @@ namespace DBTables
         public DateTime TimeBeg { get; set; }
         public DateTime TimeEnd { get; set; }
     }
+
+
+
+    public class CloudinessData : SatelliteSessions.TimePeriod
+    {
+        public double Cloudiness { get; private set; }
+        public SphericalGeom.Polygon Polygon { get; private set; }
+
+
+        public CloudinessData(int cloudiness_prc, string wkt, DateTime from, DateTime to)
+            :base(from,to)
+        {
+            Cloudiness = (float)(cloudiness_prc) / 100;
+            Polygon = new SphericalGeom.Polygon(wkt); 
+        }
+
+
+        public static bool isCapConfInCloud(OptimalChain.CaptureConf conf, CloudinessData cloud)
+        {
+            if (conf.orders.Count != 1)
+                throw new ArgumentException("Orders number is incorrect");
+
+            OptimalChain.Order order = conf.orders.First();
+
+            if (cloud.Cloudiness < order.request.Cloudiness)
+                return false;
+
+            if (!SatelliteSessions.TimePeriod.isPeriodsOverlap(cloud, conf)) // они не пересекаются по времени
+                return false;
+
+            var interctions = SphericalGeom.Polygon.Intersect(order.captured, cloud.Polygon);
+            if (interctions.Count == 0)
+                return false;
+
+            return true;
+        }
+
+    }
+
 }

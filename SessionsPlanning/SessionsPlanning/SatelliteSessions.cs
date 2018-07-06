@@ -32,7 +32,7 @@ namespace SatelliteSessions
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
 
-ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingChannel.mk, ShootingChannel.cm };
+            ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingChannel.mk, ShootingChannel.cm };
             WorkingType[] regime = new WorkingType[4] { WorkingType.Shooting, WorkingType.Downloading, WorkingType.Removal, WorkingType.ShootingSending }; // Zi, Vi, Si, Np
             ShootingType[] shooting = new ShootingType[4] { ShootingType.Normal, ShootingType.StereoTriplet, ShootingType.StereoTriplet, ShootingType.Coridor }; // прост, стерео, коридор
             
@@ -78,20 +78,24 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             RequestParams request, 
             DateTime timeFrom,
             DateTime timeTo,
-            DIOS.Common.SqlManager managerDB,
+            string conStringCUKS,
+            string conStringCUP,
             out double coverage, 
             out List<CaptureConf> possibleConfs)
-        {             
-            DataFetcher fetcher = new DataFetcher(managerDB);
+        {
+            DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            DataFetcher fetcher = new DataFetcher(managerDbCUP);
 
             List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
                 timeTo,
-                managerDB,
+                managerDbCUP,
+                managerDbCUKS,
                 shadowPeriods,
                 new List<TimePeriod>()
                 );
@@ -104,7 +108,7 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, request.Max_SOEN_anlge);
             double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
 
-            List<Trajectory> possibleTrajParts = getLitTrajectoryParts(timeFrom, timeTo, managerDB, shadowPeriods);
+            List<Trajectory> possibleTrajParts = getLitTrajectoryParts(timeFrom, timeTo, managerDbCUP, shadowPeriods);
             List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
             foreach (var traj in possibleTrajParts)
             {
@@ -174,7 +178,8 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
            Trajectory sunTrajectory,
            List<CaptureConf> captureConfs,
            List<TimePeriod> freeSessionPeriodsForDrop,
-           List<TimePeriod> capturePeriods)
+           List<TimePeriod> capturePeriods,
+           List<CloudinessData> meteoList)
         {
             if (requests.Count == 0)
                 return;                       
@@ -246,11 +251,24 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
 					WorkingType confType = WorkingType.Shooting;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
                         confType = WorkingType.ShootingSending;
-
                     
                     CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders, confType, null, _poliCoef: cp.CoridorCoefs);
-                    cc.setPolygon(cp.Coridor);
-                    captureConfs.Add(cc);
+
+                    bool isCloudiness = false;
+                    foreach (CloudinessData cloud in meteoList)
+                    {
+                        if (CloudinessData.isCapConfInCloud(cc, cloud))
+                        {
+                            isCloudiness = true;
+                            break;
+                        }
+                    }
+
+                    if (!isCloudiness)
+                    {
+                        cc.setPolygon(cp.Coridor);
+                        captureConfs.Add(cc);
+                    }
                 }
 
             }
@@ -264,7 +282,8 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             Trajectory sunTrajectory,
             List<CaptureConf> captureConfs,
             List<TimePeriod> freeSessionPeriodsForDrop,
-            List<TimePeriod> capturePeriods)
+            List<TimePeriod> capturePeriods,
+            List<CloudinessData> meteoList)
         {
             if (requests.Count == 0)
                 return;
@@ -275,7 +294,7 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
  
             double max_roll_angle = Math.Min(Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
             double min_roll_angle = -max_roll_angle;
-
+           
             double angleStep = OptimalChain.Constants.camera_angle *(1 - OptimalChain.Constants.stripOverlap); // шаг равен углу обзора
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
 
@@ -303,6 +322,19 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
 
                         if (confs.Count == 0)
                             continue;
+                        
+                        //отбросим конфигурации, попавшие в облачные участки                        
+                        for (int i = 0; i < confs.Count; i++)
+                        {
+                            foreach (CloudinessData cloud in meteoList)
+                            {
+                                if (!CloudinessData.isCapConfInCloud(confs[i],cloud))
+                                    continue;
+
+                                confs.RemoveAt(i);
+                                i--;
+                            }
+                        }
 
                         // если сжатие заказа == compressionDropCapture, то для всех конифгураций, помещающихся в зону дейтвия НКПОИ мы выставляем режим "съемка со сбросом"
                         if (request.compression == OptimalChain.Constants.compressionDropCapture)
@@ -392,7 +424,8 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             List<RequestParams> requests,
             DateTime timeFrom,
             DateTime timeTo,
-            DIOS.Common.SqlManager managerDB,
+            DIOS.Common.SqlManager managerDbCUP,
+            DIOS.Common.SqlManager managerDbCUKS,
             List<TimePeriod> inactivityRanges,
             List<TimePeriod> freeSessionPeriodsForDrop)
         {
@@ -401,28 +434,30 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
              
             inactivityRanges.Sort(delegate(TimePeriod span1, TimePeriod span2) { return span1.dateFrom.CompareTo(span2.dateFrom); });
 
-            Trajectory sunTrajectory = new DataFetcher(managerDB).GetTrajectorySun(timeFrom, timeTo);
-            List<Trajectory> trajSpans = getLitTrajectoryParts(timeFrom, timeTo, managerDB, inactivityRanges);
+            Trajectory sunTrajectory = new DataFetcher(managerDbCUP).GetTrajectorySun(timeFrom, timeTo);
+            List<Trajectory> trajSpans = getLitTrajectoryParts(timeFrom, timeTo, managerDbCUP, inactivityRanges);
 
             // периоды, во время которых можно проводить съемку.
             List<TimePeriod> capturePeriods = TimePeriod.getFreeIntervals(inactivityRanges, timeFrom, timeTo);
                          
             var requestCoridor = requests.Where(req => req.shootingType == ShootingType.Coridor).ToList();
             var requestNOTCoridor = requests.Where(req => req.shootingType != ShootingType.Coridor).ToList();
- 
+            
+            List<CloudinessData> meteoList = new DataFetcher(managerDbCUKS).GetMeteoData(timeFrom, timeTo); // облачность
+
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, sunTrajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods);
+                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, sunTrajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods, meteoList);
 
             List<CaptureConf> captureConfsCoridor = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForCoridor(managerDB, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDrop, capturePeriods);
+                getCaptureConfArrayForTrajectoryForCoridor(managerDbCUP, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDrop, capturePeriods, meteoList
+                    );
 
-            List<CaptureConf> captureConfs = new List<CaptureConf>(captureConfsPlain);
-            captureConfs.AddRange(captureConfsCoridor);
+            List<CaptureConf> captureConfs = captureConfsPlain.Concat(captureConfsCoridor).ToList();
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
-                captureConfs[ci].id = ci;
+                 captureConfs[ci].id = ci;
 
             return captureConfs;
         }
@@ -450,21 +485,24 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             , List<Tuple<DateTime, DateTime>> silentRanges
             , List<Tuple<DateTime, DateTime>> inactivityRanges
             , List<RouteMPZ> routesToDrop
-            , List<RouteMPZ> routesToDelete
-            , DIOS.Common.SqlManager managerDB
+            , List<RouteMPZ> routesToDelete            
+            , string conStringCUP
+            , string conStringCUKS
             , int Nmax
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions
             , FlagsMPZ flags = null)
         {
+            DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             //List<RouteMPZ> routesToDropCopy = new List<RouteMPZ>(routesToDrop); // локальная копия, не будем портить входной массив
             //List<RouteMPZ> routesToDeleteCopy = new List<RouteMPZ>(routesToDelete); // локальная копия, не будем портить входной массив
 
             List<TimePeriod> silentTimePeriods = silentRanges.Select(tuple => new TimePeriod(tuple.Item1, tuple.Item2)).ToList();
             List<TimePeriod> inactivityTimePeriods = inactivityRanges.Select(tuple => new TimePeriod(tuple.Item1, tuple.Item2)).ToList();
 
-            List<CommunicationSession> snkpoiSessions = CommunicationSession.getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
-            List<CommunicationSession> mnkpoiSessions = CommunicationSession.getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
+            List<CommunicationSession> snkpoiSessions = CommunicationSession.getAllSNKPOICommunicationSessions(timeFrom, timeTo, ManagerDbCUP);
+            List<CommunicationSession> mnkpoiSessions = CommunicationSession.getAllMNKPOICommunicationSessions(timeFrom, timeTo, ManagerDbCUP);
 
             List<CommunicationSession> nkpoiSessions = new List<CommunicationSession>();
             nkpoiSessions.AddRange(snkpoiSessions);
@@ -475,14 +513,14 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
 
             List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;            
-            checkIfViewLaneIsLitWithTimeSpans(managerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
             shadowAndInactivityPeriods = TimePeriod.compressTimePeriods(shadowAndInactivityPeriods);
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
-            List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, managerDB, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
+            List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, ManagerDbCUP, ManagerDbCUKS, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             Graph captureGraph = new Graph(confsToCapture);
@@ -498,7 +536,7 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
 
             List<MPZ> captureMpz = new List<MPZ>();
             foreach (var mpz_param in captureMPZParams)
-                captureMpz.Add(new MPZ(mpz_param, managerDB, flags ?? new FlagsMPZ()));
+                captureMpz.Add(new MPZ(mpz_param, ManagerDbCUP, flags ?? new FlagsMPZ()));
 
             List<RouteMPZ> allRoutesToDrop = new List<RouteMPZ>();
             allRoutesToDrop.AddRange(routesToDrop);
@@ -581,7 +619,7 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             mpzArray = new List<MPZ>();
 
             foreach (var mpz_param in allMPZParams)
-                mpzArray.Add(new MPZ(mpz_param, managerDB, flags ?? new FlagsMPZ()));
+                mpzArray.Add(new MPZ(mpz_param, ManagerDbCUP, flags ?? new FlagsMPZ()));
             
             mpzArray.InsertRange(0, captureMpz);
 
@@ -906,60 +944,6 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
             return wtk;
         }
 
-        /// <summary>
-        /// Проверка ПНб (программа наблюдений) на непротиворечивость
-        /// </summary>
-        /// <param name="MPZArray">Список МПЗ</param>
-        /// <param name="isIncompatible"> Флаг наличия конфликтов (True/False)</param>
-        /// <param name="incompatibleRoutes">Список конфликтов (может быть пустым)</param>
-        public static void checkCompatibility(List<MPZ> MPZArray, out bool isIncompatible, out List<Tuple<RouteMPZ, RouteMPZ>> incompatibleRoutes)
-        {
-            List<RouteMPZ> routes = new List<RouteMPZ>();
-            incompatibleRoutes = new List<Tuple<RouteMPZ, RouteMPZ>>();
-            foreach (var mpz in MPZArray)
-            {
-                routes.AddRange(mpz.Routes);
-            }
-
-            if (routes.Count < 2)
-            {
-                isIncompatible = true;
-            }
-            else
-            {
-                isIncompatible = false;
-                incompatibleRoutes.Add(new Tuple<RouteMPZ, RouteMPZ>(routes[0], routes[1]));
-            }
-            /// @todo реализовать
-        }
-
-        /// <summary>
-        /// Нахождение в ПНб противоречий с заданным маршрутом
-        /// </summary>
-        /// <param name="MPZArray">Список МПЗ</param>
-        /// <param name="route">Маршрут, который надо проверить на совместимость с этим МПЗ</param>
-        /// <param name="isIncompatible">Флаг наличия конфликтов (True/False)</param>
-        /// <param name="incompatibleRoutes">. Список маршрутов, с которым конфликтует заданны маршрут: c</param>
-        public static void checkCompatibility(List<MPZ> MPZArray, RouteMPZ route, out bool isIncompatible, out List<RouteMPZ> incompatibleRoutes)
-        {
-            List<RouteMPZ> routes = new List<RouteMPZ>();
-            incompatibleRoutes = new List<RouteMPZ>();
-            foreach (var mpz in MPZArray)
-            {
-                routes.AddRange(mpz.Routes);
-            }
-
-            if (routes.Count == 0)
-            {
-                isIncompatible = true;
-            }
-            else
-            {
-                isIncompatible = false;
-                incompatibleRoutes.Add(routes[0]);
-            }
-            /// @todo реализовать
-        }
 
         /// <summary>
         /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
@@ -1172,7 +1156,7 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
         }
 
 
-        public void checkPNBRouteCompatible(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
+        public static void checkPNBRouteCompatible(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
         {
             conflicts = new List<Tuple<int, int>>();
             foreach (var mpz in pnb)
@@ -1191,7 +1175,7 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
         }
 
 
-        public void addRouteToPNB(RouteMPZ route, List<MPZ> pnb, string connString, out RouteParams modRouteParams, out MPZ newMPZ)
+        public static void addRouteToPNB(RouteMPZ route, List<MPZ> pnb, string connString, out RouteParams modRouteParams, out MPZ newMPZ)
         {
             var routeParams = route.Parameters;
 
@@ -1224,7 +1208,6 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
                 newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connString), new FlagsMPZ());
                                
         }
-
 
 
 
@@ -1272,10 +1255,6 @@ ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingCh
         public string wktPolygon { get; set; }
         public bool sun { get; set; }
     }
-
-
-  
-
 
 
 

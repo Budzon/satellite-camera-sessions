@@ -126,6 +126,16 @@ namespace SatelliteSessions
                 return false;
         }
 
+        public static bool isPeriodsOverlap(TimePeriod p1, TimePeriod p2)
+        {
+            if (p1.isDtInPeriod(p2.dateFrom) || p1.isDtInPeriod(p2.dateTo))
+                return true;
+
+            if (p2.isDtInPeriod(p1.dateFrom) || p2.isDtInPeriod(p1.dateTo))
+                return true;
+
+            return false;
+        }
 
 
         /// <summary>

@@ -48,7 +48,6 @@ namespace ConsoleExecutor
         static public IList<CaptureConf> test_getCaptureConfArray()
         {
             DateTime start = DateTime.Now;
-            //test_getSunBlindingPeriods();
             test_getPlainMpzArray();
             DateTime endd = DateTime.Now;
             Console.WriteLine();
@@ -58,11 +57,13 @@ namespace ConsoleExecutor
          
         static public void test_getPlainMpzArray()
         {
-            DateTime dt1 = new DateTime(2019, 2, 6, 0, 0, 0);
-            DateTime dt2 = new DateTime(2019, 2, 6, 21, 0, 0);
+            DateTime dt1 = new DateTime(2019, 2, 18, 23, 0, 0);
+            DateTime dt2 = new DateTime(2019, 2, 19, 0, 0, 0);
 
-            string cs = System.IO.File.ReadLines("DBstring.conf").First();
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
              
             string polwtk = "POLYGON((140.47668457031253 -17.623081791311762,139.603271484375 -17.30606566309359,139.43023681640625 -18.145851771694467,140.5865478515625 -18.19282519773317,140.47668457031253 -17.623081791311762))";
 
@@ -90,13 +91,17 @@ namespace ConsoleExecutor
             , silenceRanges
             , inactivityRanges
             , routesToDrop
-            , routesToDelete
-            , managerDB
+            , routesToDelete            
+            , cupConnStr
+            , cuksConnStr
             , 356
             , out mpzArray
             , out sessions);
 
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(polwtk);
@@ -109,9 +114,8 @@ namespace ConsoleExecutor
             DateTime start = mpzArray.First().Routes.First().startTime;
 
             int duration = mpzArray.First().Routes.First().Troute * 200;
-            string viewPol = Sessions.getSOENViewPolygon(start, roll, pitch, duration, managerDB, false);
-
-            Console.Write(viewPol);
+            //string viewPol = Sessions.getSOENViewPolygon(start, roll, pitch, duration, CUPmanagerDB, false);
+            //Console.Write(viewPol);
         }
 
 

@@ -105,7 +105,7 @@ namespace OptimalChain
         public double rollAngle {  get; private set; }//крен для съемки c нулевым тангажом
         public double square { get; private set; }//площадь полосы
         public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
-        public List<Order> orders { get; private set; }//cвязанные заказы. Список пуст только для маршрута на удаление
+        public List<Order> orders { get; private set; } //cвязанные заказы. Список пуст только для маршрута на удаление
         public Tuple<int, int> connectedRoute {  get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         public double timeDelta { get; private set;}// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа и упреждение по крену      
@@ -389,6 +389,7 @@ namespace OptimalChain
         public double albedo { get; private set; } //  характеристика отражательной способности поверхности. 
         public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
         public double Square { get; private set; }
+        public double Cloudiness { get; private set; }
         /// <summary>
         /// разделим заказы на группы по признаку совместимых CaptureConf-ов
         /// </summary>
@@ -438,7 +439,8 @@ namespace OptimalChain
             double _albedo = 0.36,
             int _compression = 0,
             ShootingType _shootingType = ShootingType.Normal,
-            ShootingChannel _requestChannel = ShootingChannel.mk
+            ShootingChannel _requestChannel = ShootingChannel.mk,
+            double _cloudiness = 0
             )
         {
             id = _id;
@@ -454,6 +456,7 @@ namespace OptimalChain
             compression = _compression;            
             shootingType = _shootingType;
             requestChannel = _requestChannel;
+            Cloudiness = _cloudiness;
             polygonToSubtract = _polygonToSubtract;
             Polygon comPolygon = new Polygon(wktPolygon);
             if (_polygonToSubtract != null)
@@ -492,7 +495,14 @@ namespace OptimalChain
 
     public class Order
     {
+        /// <summary>
+        /// параметры заказа
+        /// </summary>
         public RequestParams request { get; set; }
+
+        /// <summary>
+        /// захваченная (заснятая) область
+        /// </summary>
         public SphericalGeom.Polygon captured { get; set; }
         public double intersection_coeff { get; set; }
     }

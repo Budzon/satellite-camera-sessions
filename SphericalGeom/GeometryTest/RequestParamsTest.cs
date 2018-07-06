@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using OptimalChain;
+using SessionsPlanning;
 
 namespace GeometryTest
 {
