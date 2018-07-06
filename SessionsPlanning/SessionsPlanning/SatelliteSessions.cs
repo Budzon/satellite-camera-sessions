@@ -1175,10 +1175,8 @@ namespace SatelliteSessions
         }
 
 
-        public static void addRouteToPNB(RouteMPZ route, List<MPZ> pnb, string connString, out RouteParams modRouteParams, out MPZ newMPZ)
+        public static void addRouteToPNB(RouteParams routeParams, List<MPZ> pnb, string connString, out RouteParams modRouteParams, out MPZ newMPZ)
         {
-            var routeParams = route.Parameters;
-
             foreach (var mpz in pnb)
             {
                 if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
@@ -1208,9 +1206,7 @@ namespace SatelliteSessions
                 newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connString), new FlagsMPZ());
                                
         }
-
-
-
+         
 
     }
 
