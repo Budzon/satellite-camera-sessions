@@ -14,7 +14,7 @@ namespace OptimalChain
         public bool PWR_ON { get; set; }
         public DateTime start { get; set; }
         public DateTime end { get; set; }
-        public int N_routes { get; set; }
+        public int N_routes { get { return routes.Count; } }
         public List<RouteParams> routes { get; set; }
 
         public MPZParams(MPZParams copyed)
@@ -22,24 +22,21 @@ namespace OptimalChain
             id = copyed.id;
             PWR_ON = copyed.PWR_ON;
             start = copyed.start;
-            end = copyed.end;
-            N_routes = copyed.N_routes;
+            end = copyed.end; 
             routes = copyed.routes.Select(r => new RouteParams(r)).ToList();
         }
 
         public MPZParams(int i)
         {
             id = i;
-            PWR_ON = false;
-            N_routes = 0;
+            PWR_ON = false;            
             routes = new List<RouteParams>();
         }
 
         public MPZParams(int i, RouteParams r)
         {
             id = i;
-            PWR_ON = false;
-            N_routes = 1;
+            PWR_ON = false;            
             routes = new List<RouteParams>();
             routes.Add(r);
 
@@ -52,8 +49,7 @@ namespace OptimalChain
             if (N_routes > 11)
                 return false;
 
-            routes.Add(r);
-            N_routes++;
+            routes.Add(r);            
 
             if (N_routes < 2)
                 start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);

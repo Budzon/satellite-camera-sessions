@@ -99,9 +99,18 @@ namespace ConsoleExecutor
             , out sessions);
 
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
-
+       
             if (mpzArray.Count() == 0)
                 return;
+
+
+            var modRouteParams = new RouteParams(mpzArray.First().Routes.First().Parameters);
+            var copyMpzParams = mpzArray.First().Parameters;
+            if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))
+            {
+                Console.Write("OOOK");
+            }
+
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(polwtk);

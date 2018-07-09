@@ -562,6 +562,7 @@ namespace SatelliteSessions
                         if (capPrms.InsertRoute(routparams, interval.dateFrom, interval.dateTo, null, null))
                         {
                             routparamsList.Remove(routparams); // удаляем из списка маршрутов те, которые поместились в МПЗ
+                            break;
                         }
                     }
                 }
@@ -643,13 +644,12 @@ namespace SatelliteSessions
             {
                 foreach (var sess in nkpoiSessions)
                 {
-                    if (TimePeriod.isPeriodInPeriod(interval, sess.DropInterval)) // если этот интервал полностью в сессии, значит добавляем эту сессию в использованные
-                    {
-                        if (!sessions.Contains(sess)) // добавляем только если еще не добавили
-                            sessions.Add(sess);
-                        allDropIntervals.Remove(interval);
+                    if (!TimePeriod.isPeriodInPeriod(interval, sess.DropInterval)) // если этот интервал не в сессии, значит не подходит
                         continue;
-                    }
+                    if (!sessions.Contains(sess)) // добавляем только если еще не добавили
+                        sessions.Add(sess);
+                    allDropIntervals.Remove(interval);
+                    break;
                 }
             }
 
@@ -1155,7 +1155,12 @@ namespace SatelliteSessions
             TimePeriod.compressTimePeriods(shadowPeriods);
         }
 
-
+        /// <summary>
+        /// Проверка маршрута на совместимость с ПНБ
+        /// </summary>
+        /// <param name="routeParams">параметры маршрута</param>
+        /// <param name="pnb">ПНБ</param>
+        /// <param name="conflicts">список найденных конфликтов</param>
         public static void checkPNBRouteCompatible(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
         {
             conflicts = new List<Tuple<int, int>>();
@@ -1174,10 +1179,25 @@ namespace SatelliteSessions
             } 
         }
 
-
-        public static void addRouteToPNB(RouteParams routeParams, List<MPZ> pnb, string connString, out RouteParams modRouteParams, out MPZ newMPZ)
+        /// <summary>
+        /// Добавление мрашрута в ПНБ
+        /// </summary>
+        /// <param name="routeParams">параметры добавляемого маршрута</param>
+        /// <param name="PNB">ПНБ</param>
+        /// <param name="connString">строка подключения к БД ЦУП</param>
+        /// <param name="modRouteParams">изменённые параметры маршрута</param>
+        /// <param name="newMPZ">новй МПЗ (null, если не создался)</param>
+        /// <param name="sessionStart">время начала сессии (null, если не задано)</param>
+        /// <param name="sessionEnd">время конца сессии (null, если не задано)</param>
+        public static void addRouteToPNB(RouteParams routeParams,
+            List<MPZ> PNB,
+            string connString,
+            out RouteParams modRouteParams,
+            out MPZ newMPZ,
+            DateTime? sessionStart = null,
+            DateTime? sessionEnd = null)
         {
-            foreach (var mpz in pnb)
+            foreach (var mpz in PNB)
             {
                 if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
                 {
@@ -1193,20 +1213,107 @@ namespace SatelliteSessions
             modRouteParams = new RouteParams(routeParams);
             newMPZ = null;
 
-            foreach (var mpz in pnb)
+            if (!sessionStart.HasValue)
+                sessionStart = DateTime.MinValue;
+            if (!sessionEnd.HasValue)
+                sessionEnd = DateTime.MaxValue;
+
+            foreach (var mpz in PNB)
             {
-                var copyMpzParams = new MPZParams(mpz.Parameters);                
-                if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))                
+                var copyMpzParams = new MPZParams(mpz.Parameters);
+                if (copyMpzParams.InsertRoute(modRouteParams, sessionStart.Value, sessionEnd.Value))
                     return;                       
             }
             
             List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams });
 
             if (tmpList.Count > 0)
-                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connString), new FlagsMPZ());
-                               
+                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connString), new FlagsMPZ());                               
         }
-         
+
+        /// <summary>
+        /// Удаление маршрута из ПНБ
+        /// </summary>
+        /// <param name="PNB">ПНБ</param>
+        /// <param name="MPZId">номер мпз, из которого удаляем маршрут</param>
+        /// <param name="routeId">номер удаляемого маршрута</param>
+        public static void deleteRouteFromPNB(List<MPZ> PNB, int MPZId, int routeId)
+        {
+            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == MPZId);
+            
+            if (mpz == null)
+                throw new ArgumentException("Mpz id is incorrect");
+
+            var route = mpz.Routes.FirstOrDefault(r => r.Nroute == routeId);
+
+            if (route == null)
+                throw new ArgumentException("Route id is incorrect");
+
+            mpz.Routes.Remove(route);
+        }
+
+
+        public static void createNormalCaptureRoute(
+            ShootingType shootingType,
+            DateTime start,
+            double duration,
+            ShootingChannel channel,
+            WorkingType type,
+            double roll,
+            double pitch,
+            int MPZid
+            )
+        {
+
+        }
+
+
+
+        public static void createCoridorRoute(
+            ShootingType shootingType,
+            DateTime start,
+            double duration,
+            ShootingChannel channel,
+            WorkingType type,
+            double roll,
+            double pitch,
+            double corridorAzimuth,
+            double corridorLenth,
+            int MPZid
+            )
+        {
+
+
+        }
+
+
+        public static void createCoridorRoute(
+            ShootingType shootingType,
+            DateTime start,
+            double duration,
+            ShootingChannel channel,
+            WorkingType type,
+            string wktPol,
+            int MPZid
+            )
+        {
+
+        }
+
+        public static void createRemovalRoute(
+        ShootingType shootingType,
+        DateTime start,
+        double duration,
+        ShootingChannel channel,
+        WorkingType type,
+        int MPZid,
+        int routeId,
+        int cellId
+            )
+        {
+
+        }
+     
 
     }
 
