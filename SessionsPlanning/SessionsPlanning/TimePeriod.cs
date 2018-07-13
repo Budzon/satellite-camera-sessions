@@ -173,11 +173,13 @@ namespace SatelliteSessions
                         prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
 
                     double actionTime = 0;
- 
+
                     if (workType == WorkingType.Downloading)
                         actionTime = rmpz.Parameters.getDropTime();
                     else if (workType == WorkingType.Removal)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
+                    else
+                        throw new ArgumentException("Unsupported working type");
 
                     DateTime nextDt = prevDt.AddSeconds(actionTime);
                     if (nextDt > interval.dateTo)

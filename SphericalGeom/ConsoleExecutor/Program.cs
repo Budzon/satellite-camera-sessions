@@ -57,26 +57,30 @@ namespace ConsoleExecutor
          
         static public void test_getPlainMpzArray()
         {
-            DateTime dt1 = new DateTime(2019, 2, 18, 23, 0, 0);
-            DateTime dt2 = new DateTime(2019, 2, 19, 0, 0, 0);
+            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00+03:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-02-04T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
 
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
-             
-            string polwtk = "POLYGON((140.47668457031253 -17.623081791311762,139.603271484375 -17.30606566309359,139.43023681640625 -18.145851771694467,140.5865478515625 -18.19282519773317,140.47668457031253 -17.623081791311762))";
+
+            string polwtk = "POLYGON((153.17138671875 -28.557988492481016, 153.20983886718747 -28.021075462659887, 153.10546874999997 -28.01137657176146, 153.03955078124997 -28.548338387631418, 153.17138671875 -28.557988492481016))";
 
             List<string> holes = new List<string>();
 
             RequestParams req = new RequestParams(0, 1, dt1, dt2,
-                _Max_SOEN_anlge: AstronomyMath.ToRad(50),
-                _minCoverPerc: 0.12,
+                _Max_SOEN_anlge: 0.87266462599716477,
+                _minCoverPerc: 11,
                 _Max_sun_angle: 90,
                 _Min_sun_angle: 10,
                 _wktPolygon: polwtk,
-                _polygonToSubtract: holes, _requestChannel: ShootingChannel.pk,
-                _shootingType: ShootingType.Normal);
+                _polygonToSubtract: holes,
+                _requestChannel: 0,
+                _shootingType: ShootingType.Normal,
+                _compression: 10,
+                _albedo : 0
+                );
 
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
@@ -104,12 +108,12 @@ namespace ConsoleExecutor
                 return;
 
 
-            var modRouteParams = new RouteParams(mpzArray.First().Routes.First().Parameters);
-            var copyMpzParams = mpzArray.First().Parameters;
-            if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))
-            {
-                Console.Write("OOOK");
-            }
+            //var modRouteParams = new RouteParams(mpzArray.First().Routes.First().Parameters);
+            //var copyMpzParams = mpzArray.First().Parameters;
+            //if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))
+            //{
+            //    Console.Write("OOOK");
+            //}
 
 
             Console.Write("GEOMETRYCOLLECTION(");
@@ -118,13 +122,16 @@ namespace ConsoleExecutor
             Console.Write(Polygon.getMultipolFromPolygons(mpzArray.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList()));
             Console.Write(")");
 
-            double roll = mpzArray.First().Routes.First().Parameters.ShootingConf.roll;
-            double pitch = mpzArray.First().Routes.First().Parameters.ShootingConf.pitch;
-            DateTime start = mpzArray.First().Routes.First().startTime;
+            //double roll = mpzArray.First().Routes.First().Parameters.ShootingConf.roll;
+            //double pitch = mpzArray.First().Routes.First().Parameters.ShootingConf.pitch;
+            //DateTime start = mpzArray.First().Routes.First().startTime;
 
-            int duration = mpzArray.First().Routes.First().Troute * 200;
+            //int duration = mpzArray.First().Routes.First().Troute * 200;
             //string viewPol = Sessions.getSOENViewPolygon(start, roll, pitch, duration, CUPmanagerDB, false);
             //Console.Write(viewPol);
+
+            
+
         }
 
 

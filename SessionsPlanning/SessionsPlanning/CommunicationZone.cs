@@ -135,8 +135,9 @@ namespace SatelliteSessions
         /// <param name="time">Интересующий момент времени</param>
         /// <param name="snkpoi">Зона связи СНКПОИ</param>
         /// <param name="mnkpoi">Зона связи МНКПОИ</param>
-        public static void getCommunicationZones(DIOS.Common.SqlManager DBManager, DateTime time, out CommunicationZoneSNKPOI snkpoi, out CommunicationZoneMNKPOI mnkpoi)
+        public static void getCommunicationZones(string connectStr, DateTime time, out CommunicationZoneSNKPOI snkpoi, out CommunicationZoneMNKPOI mnkpoi)
         {
+            DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
             getSNKPOICommunicationZones(DBManager, out snkpoi);
 

@@ -15,10 +15,7 @@ namespace SatelliteSessions
     /// </summary>
     public class CommunicationSession
     {
-        public CommunicationSession()
-        {
-            routesToDrop = new List<RouteMPZ>();
-        }
+        public CommunicationSession() { }        
         /// <summary>
         ///  тип сессии
         /// </summary>
@@ -39,10 +36,7 @@ namespace SatelliteSessions
         /// Время конца 5-градусной зоны
         /// </summary>
         public DateTime Zone7timeTo { get; set; }
-        /// <summary>
-        /// Список маршрутов на сброс, участвующих в этом сеансе 
-        /// </summary>
-        public List<RouteMPZ> routesToDrop { get; set; }
+
 
         public TimePeriod DropInterval { get { return new TimePeriod(Zone7timeFrom, Zone7timeTo); } }
 
@@ -105,8 +99,7 @@ namespace SatelliteSessions
 
                 if ((!in5zone || i == count) && prevIn5zone) // предыдущая точка в пятиградусной зоне, а текущая точка последняя или находится вне пятиградусной зоны
                 {
-                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);
-                    tempSession.routesToDrop = new List<RouteMPZ>();
+                    tempSession.Zone5timeTo = getIntersectionTime(points[i - 1], point, centre, zone.Radius5);                    
                     if (is7zoneSet)
                         sessions.Add(tempSession); // добавляем только если удалось установить и 7 зону тоже                    
                     tempSession = new CommunicationSession();
@@ -171,8 +164,9 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного отрезка</param>
         /// <param name="timeTo">Конец временного отрезка</param>
         /// <returns>Все возможные сеансы связи за это время</returns>
-        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
+        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, string connectStr)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             List<CommunicationSession> snkpoSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> mnkpoSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
             List<CommunicationSession> sessions = new List<CommunicationSession>();

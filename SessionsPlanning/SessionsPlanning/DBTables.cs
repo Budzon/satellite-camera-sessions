@@ -1092,7 +1092,7 @@ namespace DBTables
 
 
         public static bool isCapConfInCloud(OptimalChain.CaptureConf conf, CloudinessData cloud)
-        {
+        {            
             if (conf.orders.Count != 1)
                 throw new ArgumentException("Orders number is incorrect");
 
