@@ -406,13 +406,12 @@ namespace SatelliteSessions
             
             captureConfs.AddRange(concurrentlist.ToList());
         }
- 
 
         public static List<Trajectory> getLitTrajectoryParts(
-            DateTime timeFrom,
-            DateTime timeTo,
-            DIOS.Common.SqlManager managerDB,
-            List<TimePeriod> shadowPeriods)
+           DateTime timeFrom,
+           DateTime timeTo,
+           DIOS.Common.SqlManager managerDB,
+           List<TimePeriod> shadowPeriods)
         {
             DataFetcher fetcher = new DataFetcher(managerDB);
             DateTime firstDt = timeFrom;
@@ -429,7 +428,7 @@ namespace SatelliteSessions
 
             return posiibleTrajectoryParts;
         }
-
+         
         public static List<CaptureConf> getCaptureConfArray(
             List<RequestParams> requests,
             DateTime timeFrom,
@@ -706,10 +705,11 @@ namespace SatelliteSessions
         /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
         /// <param name="managerDB">параметры взаимодействия с БД</param>
         /// <param name="flags">Флаги для настройки МПЗ</param>
-        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax, DIOS.Common.SqlManager managerDB, FlagsMPZ flags = null)
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax, string connectStr, FlagsMPZ flags = null)
         {
             List<MPZ> res = new List<MPZ>();
-            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, Nmax);            
+            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, Nmax);
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             return mpzParams.Select(param => new MPZ(param, managerDB, flags ?? new FlagsMPZ())).ToList();
         }
 
@@ -784,6 +784,7 @@ namespace SatelliteSessions
                 coridorParams.Add(oneParam);
             }
         }
+ 
 
         /// <summary>
         /// Рассчитать коридор съемки/видимости для заданной конфигурации СОЭНc
@@ -797,12 +798,22 @@ namespace SatelliteSessions
         /// <param name="wktPoly">Коридор в формате WKT</param>
         /// <param name="duration">Длительность съемки коридора [с]</param>
         /// <returns> полигон в формате WKT</returns>
-        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, DIOS.Common.SqlManager managerDB,
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr, 
             out string wktPoly, out double duration)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             if (dist > 97e3)
                 throw new ArgumentException("Coridor length cannot exceed 97km.");
 
+            CoridorParams coridorParams = getCoridorParams(dateTime, rollAngle, pitchAngle, dist, az, connectStr, out duration);
+            coridorParams.ComputeCoridorPolygon(getMaxTrajectory(managerDB, dateTime));
+            wktPoly = coridorParams.Coridor.ToWtk();
+        }
+
+        public static CoridorParams getCoridorParams(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr, out double duration)
+        {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
+    
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
             Trajectory traj = getMaxTrajectory(managerDB, dateTime);
@@ -814,13 +825,14 @@ namespace SatelliteSessions
                 out b1, out b2, out l1, out l2, out s1, out s2, out s3, out duration);
 
             CoridorParams coridorParams = new CoridorParams(l1, l2, b1, b2, s1, s2, s3, 0, rollAngle, pitchAngle, dateTime, dateTime.AddSeconds(duration));
-            coridorParams.ComputeCoridorPolygon(traj);
-            wktPoly = coridorParams.Coridor.ToWtk();
+            return coridorParams;
         }
 
-        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, GeoPoint end, DIOS.Common.SqlManager managerDB,
+
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, GeoPoint end, string connectStr, 
             out string wktPoly, out double duration, out double dist)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
             Trajectory traj = getMaxTrajectory(managerDB, dateTime);
@@ -836,9 +848,10 @@ namespace SatelliteSessions
             wktPoly = coridorParams.Coridor.ToWtk();
         }
 
-        public static void getCoridorPoly(DateTime dateTime, GeoPoint start, GeoPoint end, DIOS.Common.SqlManager managerDB,
+        public static void getCoridorPoly(DateTime dateTime, GeoPoint start, GeoPoint end, string connectStr,
             out string wktPoly, out double duration, out double dist)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
             Trajectory traj = getMaxTrajectory(managerDB, dateTime);
@@ -880,8 +893,9 @@ namespace SatelliteSessions
         /// <param name="DBManager">Параметры подключения к БД</param>
         /// <param name="isCoridor">Флаг коридорной съемки</param>
         /// <returns> полигон в формате WKT</returns>
-        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, DIOS.Common.SqlManager managerDB, bool isCoridor = false)
+        public static string getSOENViewPolygon(DateTime dateTime, double rollAngle, double pitchAngle, int duration, string connectStr, bool isCoridor = false)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             string wtk = "";
             DataFetcher fetcher = new DataFetcher(managerDB);
 
@@ -934,7 +948,7 @@ namespace SatelliteSessions
             else
             {
                 double dur;
-                getCoridorPoly(dateTime, rollAngle, pitchAngle, 96e3, Math.PI / 6, managerDB, out wtk, out dur);
+                getCoridorPoly(dateTime, rollAngle, pitchAngle, 96e3, Math.PI / 6, connectStr, out wtk, out dur);
             }
 
             return wtk;
@@ -948,8 +962,9 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного промежутка</param>
         /// <param name="timeTo">Конец временного промежутка</param>
         /// <param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
-        public static void checkIfViewLaneIsLit(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot)
+        public static void checkIfViewLaneIsLit(string connectStr, DateTime timeFrom, DateTime timeTo, out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot)
         {
+            DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
             var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
             List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
@@ -1250,7 +1265,197 @@ namespace SatelliteSessions
 
 
 
-     
+
+        /// <summary>
+        /// Создание параметров маршрута для обычной съемки
+        /// </summary>
+        /// <param name="connectStr">строка для подключения к БД</param>
+        /// <param name="dtFrom">время начала съемки</param>
+        /// <param name="duration">длительность съемки в секундах</param>
+        /// <param name="channel">канал</param>
+        /// <param name="shType">тип съемки</param>
+        /// <param name="wType">тип работы</param>
+        /// <param name="roll">крен</param>
+        /// <param name="pitch">тангаж</param>
+        /// <returns>параметры маршрута</returns>
+        public static RouteParams createNormalCaptureRoute(
+            string connectStr,
+            DateTime dtFrom,
+            double duration,
+            ShootingChannel channel,
+            ShootingType shType,
+            WorkingType wType,
+            double roll,
+            double pitch)
+        {
+            if (!(wType == WorkingType.ShootingSending || wType == WorkingType.Shooting))
+                throw new ArgumentException("Unsupported working type");
+
+            DIOS.Common.SqlManager managerDb = new DIOS.Common.SqlManager(connectStr);
+            DataFetcher fetcher = new DataFetcher(managerDb);
+
+            DateTime dtTo = dtFrom.AddMilliseconds(duration);
+            Trajectory trajectory = fetcher.GetTrajectorySat(dtFrom, dtTo);
+            Polygon pol = SatLane.getRollPitchLanePolygon(trajectory, roll, pitch);
+            
+            OptimalChain.StaticConf stConf = new StaticConf(
+                i: 0,
+                d1: dtFrom,
+                d2: dtTo,
+                t: pitch,
+                r: roll,
+                s: pol.Area,
+                o: new List<Order>(),
+                polygon: pol.ToWtk(),
+                comp: 0,
+                alb: 0,
+                T: wType,
+                channel: channel,
+                stype: shType);
+
+            RouteParams route = new RouteParams(stConf);
+            return route;
+        }
+
+        /// <summary>
+        /// создание параметров маршрута коридорной съемки
+        /// </summary>
+        /// <param name="connectStr">строка подключения к БД</param>
+        /// <param name="from">время начала съемки</param>
+        /// <param name="channel">канал</param>
+        /// <param name="shType">тип съемки</param>
+        /// <param name="wType">тип работы</param>
+        /// <param name="coridorAzimuth">азимут</param>
+        /// <param name="coridorLength">длина коридора</param>
+        /// <param name="roll">крен</param>
+        /// <param name="pitch">тангаж</param>
+        /// <returns>параметры маршрута</returns>
+        public static RouteParams createCorridorCaptureRoute(string connectStr,
+            DateTime from,
+            ShootingChannel channel,
+            ShootingType shType,
+            WorkingType wType,
+            double coridorAzimuth,
+            double coridorLength,
+            double roll,
+            double pitch)
+        {
+            if (!(wType == WorkingType.ShootingSending || wType == WorkingType.Shooting))
+                throw new ArgumentException("Unsupported working type");
+            double duration;
+            CoridorParams corrParams = getCoridorParams(from, roll, pitch, coridorLength, coridorAzimuth, connectStr, out duration);
+            
+            OptimalChain.StaticConf stConf = new StaticConf(
+                    i: 0,
+                    d1: corrParams.StartTime,
+                    d2: corrParams.EndTime,
+                    t: 0,
+                    r: 0,
+                    s: corrParams.Coridor.Area,
+                    o: new List<Order>(),
+                    polygon: corrParams.Coridor.ToWtk(),
+                    comp: 0,
+                    alb: 0,
+                    T: wType,
+                    channel: channel,
+                    stype: shType,
+                    _poliCoef: corrParams.CoridorCoefs);
+
+            return new RouteParams(stConf);
+        }
+
+        /// <summary>
+        /// Создание параметров маршрута коридорной съемки
+        /// </summary>
+        /// <param name="connectStr">строка подключения к БД</param>
+        /// <param name="from">время начала съемки</param>
+        /// <param name="channel">канал</param>
+        /// <param name="shType">тип съемки</param>
+        /// <param name="wType">тип работы</param>
+        /// <param name="wktPolygon">полигон заказа, снимаемый коридорами</param>
+        /// <returns>массив параметров маршрута</returns>
+        public static List<RouteParams> createCorridorCaptureRoute(
+            string connectStr,
+            DateTime from,
+            ShootingChannel channel,
+            ShootingType shType,
+            WorkingType wType,
+            string wktPolygon)
+        {
+            if (!(wType == WorkingType.ShootingSending || wType == WorkingType.Shooting))
+                throw new ArgumentException("Unsupported working type");
+
+            DIOS.Common.SqlManager managerDb = new DIOS.Common.SqlManager(connectStr);
+           
+             List<CoridorParams> coridorParams;
+             var line = new Polygon(wktPolygon).getCenterLine();
+             getPiecewiseCoridorParams(from, line, managerDb, out coridorParams);
+
+             List<RouteParams> res = new List<RouteParams>();
+
+             foreach (CoridorParams corrParams in coridorParams)
+             {
+                 DateTime toDt = corrParams.EndTime;
+                 OptimalChain.StaticConf stConf = new StaticConf(
+                    i: 0,
+                    d1: corrParams.StartTime,
+                    d2: corrParams.EndTime,
+                    t: 0,
+                    r: 0,
+                    s: corrParams.Coridor.Area,
+                    o: new List<Order>(),
+                    polygon: corrParams.Coridor.ToWtk(),
+                    comp: 0,
+                    alb: 0,
+                    T: wType,
+                    channel: channel,
+                    stype: shType,
+                    _poliCoef: corrParams.CoridorCoefs);
+
+                 res.Add(new RouteParams(stConf));
+             } 
+            
+            return res;
+        }
+        
+        /// <summary>
+        /// Создание памаетром маршрута на удаление или сброс (скачивание)
+        /// </summary>
+        /// <param name="fromDt">время начала съемки </param>
+        /// <param name="channel">канал</param>
+        /// <param name="shType">тип съемки</param>
+        /// <param name="wType">тип работы</param>
+        /// <param name="mpzId">номер МПЗ</param>
+        /// <param name="routeId">номер удаляемого (или сбрасываемого) маршрута</param>
+        /// <returns>маршрут на удаление или сброс</returns>
+        public static RouteParams createServiceRoute(
+            DateTime fromDt,
+            ShootingChannel channel,
+            ShootingType shType,
+            WorkingType wType,
+            int mpzId,
+            int routeId)
+        {
+            double actionTime = 0;
+            if (wType == WorkingType.Downloading)
+                actionTime = 0; // @todo @fixme ?? Как мне узнать время удаления роута, которого у меня нет?
+            else if (wType == WorkingType.Removal)
+                actionTime = OptimalChain.Constants.routeDeleteTime;
+            else
+                throw new ArgumentException("Unsupported working type");
+
+            DateTime toDt = fromDt.AddSeconds(actionTime+OptimalChain.Constants.min_Delta_time);
+
+            //public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
+
+            RouteParams curParam = new RouteParams(wType, fromDt, toDt, Tuple.Create(mpzId, routeId), shType, channel);            
+            return curParam;
+        }
+
+
+        
+
+
 
     }
 
