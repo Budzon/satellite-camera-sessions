@@ -27,7 +27,7 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="managerDB">параметры БД</param>
         /// <param name="mpzs">список из 15 МПЗ</param>
-        public static void testMpzFormation(DIOS.Common.SqlManager managerDB, out List<MPZ> mpzs)
+        public static void testMpzFormation(DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzs)
         {            
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
@@ -62,7 +62,7 @@ namespace SatelliteSessions
                         }
             var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
             FlagsMPZ flags = new FlagsMPZ();
-            mpzs = mpzParams.Select(p => new MPZ(p, managerDB, flags)).ToList();
+            mpzs = mpzParams.Select(p => new MPZ(p, managerDB, managerDbCUKS, flags)).ToList();
         }
 
         /// <summary>
@@ -536,7 +536,7 @@ namespace SatelliteSessions
             List<MPZParams> captureMPZParams = captureGraph.findOptimalChain(Nmax);
           
             // все параметры МПЗ на съемку, пришедшие из графа
-            List<MPZ> captureMpz = captureMPZParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, flags ?? new FlagsMPZ())).ToList();
+            List<MPZ> captureMpz = captureMPZParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
 
             // составим массив маршрутов на сброс (скачивание)
             List<RouteMPZ> allRoutesToDownload = new List<RouteMPZ>();
@@ -624,8 +624,8 @@ namespace SatelliteSessions
 
             mpzArray = new List<MPZ>();
             mpzArray.AddRange(captureMpz);
-            mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, flags ?? new FlagsMPZ())));
-            mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
                                   
             // составим массив использованных сессий
             sessions = new List<CommunicationSession>();
@@ -705,12 +705,13 @@ namespace SatelliteSessions
         /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
         /// <param name="managerDB">параметры взаимодействия с БД</param>
         /// <param name="flags">Флаги для настройки МПЗ</param>
-        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax, string connectStr, FlagsMPZ flags = null)
+        public static List<MPZ> createPNbOfRoutes(List<RouteParams> routesParams, int Nmax, string conStringCUP, string conStringCUKS, FlagsMPZ flags = null)
         {
             List<MPZ> res = new List<MPZ>();
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, Nmax);
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
-            return mpzParams.Select(param => new MPZ(param, managerDB, flags ?? new FlagsMPZ())).ToList();
+            DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            return mpzParams.Select(param => new MPZ(param, managerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
         }
 
         public static Trajectory getMaxTrajectory(DIOS.Common.SqlManager managerDB, DateTime start)
@@ -1060,7 +1061,12 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного промежутка</param>
         /// <param name="timeTo">Конец временного промежутка</param>
         /// <param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
-        public static void checkIfViewLaneIsLitWithTimeSpans(DIOS.Common.SqlManager DBManager, DateTime timeFrom, DateTime timeTo, out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot, out List<TimePeriod> shadowPeriods)
+        public static void checkIfViewLaneIsLitWithTimeSpans(
+            DIOS.Common.SqlManager DBManager,
+            DateTime timeFrom,
+            DateTime timeTo,
+            out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot,
+            out List<TimePeriod> shadowPeriods)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
             var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
@@ -1202,7 +1208,8 @@ namespace SatelliteSessions
         /// <param name="sessionEnd">время конца сессии (null, если не задано)</param>
         public static void addRouteToPNB(RouteParams routeParams,
             List<MPZ> PNB,
-            string connString,
+            string connStringCup,
+            string connStringCuks,
             out RouteParams modRouteParams,
             out MPZ newMPZ,
             DateTime? sessionStart = null,
@@ -1239,7 +1246,7 @@ namespace SatelliteSessions
             List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams });
 
             if (tmpList.Count > 0)
-                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connString), new FlagsMPZ());                               
+                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connStringCup), new DIOS.Common.SqlManager(connStringCuks), new FlagsMPZ());                               
         }
 
         /// <summary>

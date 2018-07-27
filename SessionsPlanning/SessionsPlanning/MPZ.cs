@@ -18,7 +18,7 @@ namespace SatelliteSessions
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
 
-        public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, FlagsMPZ flags)
+        public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, DIOS.Common.SqlManager DBmanagerCUKS, FlagsMPZ flags)
         {
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
@@ -38,7 +38,7 @@ namespace SatelliteSessions
             bool hasMK = shootings.Any(route => route.shooting_channel == SessionsPlanning.ShootingChannel.mk
                 || route.shooting_channel == SessionsPlanning.ShootingChannel.cm);
 
-            Header = new HeaderMPZ(hasPK, hasMK, flags);
+            Header = new HeaderMPZ(hasPK, hasMK, flags, new DBTables.DataFetcher(DBmanagerCUKS).getNKA());
 
             /* ---------- NPZ -----------*/
             Header.NPZ = parameters.id;
@@ -164,10 +164,9 @@ namespace SatelliteSessions
 
     public class HeaderMPZ
     {
-        public const int NKA = 3;
         public static TimeSpan TON_DELTA = new TimeSpan(0, 2, 30);
         public static TimeSpan TTASK_MAX = new TimeSpan(0, 23, 20);
-
+        
         public int NPZ { get; set; } // 24 bit
         public byte Nka { get; set; } // 4 bit
         public byte CONF_RLCI { get; set; } // 6 bit
@@ -224,13 +223,13 @@ namespace SatelliteSessions
         /// <param name="useYKZU2_1">CONF_B, 0, D4</param>
         /// <param name="mainKeyYKPD1">CONF_B, 1, D1</param>
         /// <param name="mainKeyYKPD2">CONF_B, 1, D3</param>
-        public HeaderMPZ(bool hasPK, bool hasMK, FlagsMPZ flags)
+        public HeaderMPZ(bool hasPK, bool hasMK, FlagsMPZ flags, int NumKA)
         {
             /* ---------- NPZ -----------*/
             // to be filled in MPZ
 
             /* ---------- NKA -----------*/
-            Nka = HeaderMPZ.NKA;
+            Nka = (byte)NumKA;
 
             /* ---------- CONF_RLCI -----------*/
             byte tmp = 0;

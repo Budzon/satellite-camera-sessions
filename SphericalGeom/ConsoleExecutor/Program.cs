@@ -63,7 +63,7 @@ namespace ConsoleExecutor
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
-            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);            
 
             string polwtk = "POLYGON((153.17138671875 -28.557988492481016, 153.20983886718747 -28.021075462659887, 153.10546874999997 -28.01137657176146, 153.03955078124997 -28.548338387631418, 153.17138671875 -28.557988492481016))";
 
@@ -142,57 +142,62 @@ namespace ConsoleExecutor
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
+            string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(cs2);
+
+
+
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
             {
                 List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, managerDB, out mpzArray);
+                SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
             }
 
             List<MPZ> mpzArray2;
-            SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, out mpzArray2);
+            SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray2);
 
             var orderPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
             var shootingPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();

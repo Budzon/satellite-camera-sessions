@@ -331,8 +331,6 @@ namespace DBTables
             return res;
         }
 
-
-
         public List<CloudinessData> GetMeteoData(DateTime from, DateTime to)
         {
             List<CloudinessData> res = new List<CloudinessData>();
@@ -487,7 +485,19 @@ namespace DBTables
                 )).Select();
         }
 
+        public int getNKA()
+        {
+            DataTable table = manager.GetSqlObject(SatteliteTable.Name,
+                String.Format("where {0} = '{1}';", SatteliteTable.Id, 1));
+            var res = table.Select();
+            if (res.Count() != 1)
+                throw new Exception("Can't fetch ka number");
+            return SatteliteTable.GetNka(res.First());
+        }
+
     }
+
+
 
     internal struct DataChunk
     {
@@ -536,6 +546,16 @@ namespace DBTables
         }
     }
 
+    public static class SatteliteTable
+    {
+        public const string Name = "SATELLITE";
+        public const string Id = "satellite";
+        public const string Nka = "N_KA";
+        public static int GetNka(DataRow row)
+        {
+            return (int)row[Nka];
+        }
+    }
 
     public static class SunTable
     {

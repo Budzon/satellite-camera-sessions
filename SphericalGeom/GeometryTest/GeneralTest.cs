@@ -65,6 +65,9 @@ namespace GeometryTest
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
 
+            string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager managerCuks = new DIOS.Common.SqlManager(cs2);
+
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
 
@@ -97,7 +100,7 @@ namespace GeometryTest
                         }
             var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
             FlagsMPZ flags = new FlagsMPZ();
-            var mpzs = mpzParams.Select(p => new MPZ(p, manager, flags));
+            var mpzs = mpzParams.Select(p => new MPZ(p, manager, managerCuks, flags));
             string mpz_string = mpzs.Aggregate("", (s, mpz) => s + mpz.ToString() + "\n");
             System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
         }
@@ -112,9 +115,12 @@ namespace GeometryTest
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
 
+            string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager managerDBCucs = new DIOS.Common.SqlManager(cs2);
+
             List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLit(managerDB, dt1, dt2, out partsLitAndNot);//, out shadowPeriods);
+            Sessions.checkIfViewLaneIsLit(cs, dt1, dt2, out partsLitAndNot);//, out shadowPeriods);
 
             Console.Write("GEOMETRYCOLLECTION(");
             foreach (var w in partsLitAndNot[1].Item2.Where(p => p.sun))
@@ -344,13 +350,13 @@ namespace GeometryTest
                 dt1,
                 AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
                 dist, AstronomyMath.ToRad(az),
-                manager, out wkt, out dur);
+                cs, out wkt, out dur);
             Console.WriteLine(wkt);
             SatelliteSessions.Sessions.getCoridorPoly(
                 dt1,
                 AstronomyMath.ToRad(roll), AstronomyMath.ToRad(pitch),
                 new GeoPoint(6.32, 143.55),
-                manager, out wkt, out dur, out dist);
+                cs, out wkt, out dur, out dist);
             Console.WriteLine(wkt);
         }
 
