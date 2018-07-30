@@ -350,7 +350,7 @@ namespace OptimalChain
         /// <summary>
         /// станция. Нужно только при сбросе
         /// </summary>
-        public CommunicationSessionStation station;
+        public CommunicationSessionStation station { get; private set; }
 
 
         public RouteParams(RouteParams copyed)
