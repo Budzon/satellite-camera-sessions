@@ -101,11 +101,7 @@ namespace ConsoleExecutor
             , 356
             , out mpzArray
             , out sessions
-            , new Dictionary<SessionsPlanning.CommunicationSessionStation, bool> {
-                { SessionsPlanning.CommunicationSessionStation.FIGS_Main,   true},
-                { SessionsPlanning.CommunicationSessionStation.FIGS_Backup, true},
-                { SessionsPlanning.CommunicationSessionStation.MIGS,        true}
-            }
+            , new List<SessionsPlanning.CommunicationSessionStation> {  SessionsPlanning.CommunicationSessionStation.FIGS_Main, SessionsPlanning.CommunicationSessionStation.FIGS_Backup,  SessionsPlanning.CommunicationSessionStation.MIGS}
             );
 
             Console.WriteLine("res.Count = {0}", mpzArray.Count());

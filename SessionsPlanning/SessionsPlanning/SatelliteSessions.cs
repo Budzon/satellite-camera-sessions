@@ -13,7 +13,7 @@ using OptimalChain;
 using DBTables;
 
 using SphericalGeom;
-using SessionsPlanning;
+using SessionsPlanning; 
 
 namespace SatelliteSessions
 {
@@ -434,7 +434,7 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDbCUP,
             DIOS.Common.SqlManager managerDbCUKS,
             List<TimePeriod> inactivityRanges,
-            List<TimePeriod> freeSessionPeriodsForDrop)
+            List<TimePeriod> freeSessionPeriodsForDownoad)
         {
             if (requests.Count == 0)
                 return new List<CaptureConf>();
@@ -454,11 +454,11 @@ namespace SatelliteSessions
 
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, sunTrajectory, captureConfsPlain, freeSessionPeriodsForDrop, capturePeriods, meteoList);
+                getCaptureConfArrayForTrajectoryForPlainReq(requestNOTCoridor, trajectory, sunTrajectory, captureConfsPlain, freeSessionPeriodsForDownoad, capturePeriods, meteoList);
 
             List<CaptureConf> captureConfsCoridor = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForCoridor(managerDbCUP, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDrop, capturePeriods, meteoList
+                getCaptureConfArrayForTrajectoryForCoridor(managerDbCUP, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDownoad, capturePeriods, meteoList
                     );
 
             List<CaptureConf> captureConfs = captureConfsPlain.Concat(captureConfsCoridor).ToList();
@@ -484,7 +484,7 @@ namespace SatelliteSessions
         /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
         /// <param name="mpzArray">Набор МПЗ</param>
         /// <param name="sessions">Сеансы связи</param>
-        /// <param name="stationsStatus">статус антенн (вкл/выкл)</param>
+        /// <param name="enabledStations">список включённых станций</param>
         /// <param name="flags">Флаги для настройки МПЗ</param>
         public static void getMPZArray(
               List<RequestParams> requests
@@ -499,7 +499,7 @@ namespace SatelliteSessions
             , int Nmax
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions
-            , Dictionary<SessionsPlanning.CommunicationSessionStation, bool> stationsStatus
+            , List<SessionsPlanning.CommunicationSessionStation> enabledStations
             , FlagsMPZ flags = null
             )
         {
@@ -512,15 +512,9 @@ namespace SatelliteSessions
             List<TimePeriod> silentTimePeriods = silentRanges.Select(tuple => new TimePeriod(tuple.Item1, tuple.Item2)).ToList();
             List<TimePeriod> inactivityTimePeriods = inactivityRanges.Select(tuple => new TimePeriod(tuple.Item1, tuple.Item2)).ToList();
 
-            List<CommunicationSession> snkpoiSessions = CommunicationSession.getAllSNKPOICommunicationSessions(timeFrom, timeTo, ManagerDbCUP);
-            List<CommunicationSession> mnkpoiSessions = CommunicationSession.getAllMNKPOICommunicationSessions(timeFrom, timeTo, ManagerDbCUP);
-
-            List<CommunicationSession> nkpoiSessions = new List<CommunicationSession>();
-            nkpoiSessions.AddRange(snkpoiSessions);
-            nkpoiSessions.AddRange(mnkpoiSessions);
-
-            // временные периоды, во время которых можно проводить съемку со сбросом
-            List<TimePeriod> freeSessionPeriodsForDrop = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions, silentTimePeriods);
+            Dictionary<CommunicationSessionStation, List<CommunicationSession>> nkpoiSessions
+                = CommunicationSession.createCommunicationSessions(timeFrom, timeTo, conStringCUP);
+ 
 
             List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;            
@@ -529,6 +523,10 @@ namespace SatelliteSessions
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
             shadowAndInactivityPeriods = TimePeriod.compressTimePeriods(shadowAndInactivityPeriods);
+
+            // временные периоды, во время которых можно проводить съемку со сбросом
+            List<TimePeriod> freeIntervalsForDownload
+                = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions.SelectMany(list => list.Value).ToList(), silentTimePeriods);
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture 
@@ -539,7 +537,7 @@ namespace SatelliteSessions
                 ManagerDbCUP,
                 ManagerDbCUKS,
                 shadowAndInactivityPeriods,
-                freeSessionPeriodsForDrop);
+                freeIntervalsForDownload);
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
@@ -555,56 +553,77 @@ namespace SatelliteSessions
                 .Where(route => route.Parameters.type == WorkingType.Shooting)
                 .ToList()); // добавим к сбросу только что отснятые маршруты
 
-            // Найдём все возможные промежутки времени для сброса (из диапазона [timeFrom - timeTo] вычитаются все inactivityRanges и диапазоны съемки)
+           
             List<TimePeriod> captureIntervals = captureMPZParams.Select(mpz => new TimePeriod(mpz.start, mpz.end)).ToList();
-            List<TimePeriod> silentAndCaptureRanges = new List<TimePeriod>();
-            silentAndCaptureRanges.AddRange(silentTimePeriods);
-            silentAndCaptureRanges.AddRange(captureIntervals);
-            silentAndCaptureRanges = TimePeriod.compressTimePeriods(silentAndCaptureRanges);
-            List<TimePeriod> freeIntervalsForDownload = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions, silentAndCaptureRanges);
 
-            // распределим маргруты на сброс по доступным интервалам
-            int maxRouteDropId = routesToDownload.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
+
+            Dictionary<CommunicationSessionStation, List<TimePeriod>> nkpoiSessionsIntervals
+             = nkpoiSessions.Select(pair => new KeyValuePair<CommunicationSessionStation, List<TimePeriod>>
+            (pair.Key, pair.Value.Select(sess => sess.DropInterval).ToList()))
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+            // вырежем из интервалов для сброса занятые съемкой интервалы и интервалы silentTimePeriods
+            foreach (var stationIntervals in nkpoiSessionsIntervals)
+            {
+                nkpoiSessionsIntervals[stationIntervals.Key] = TimePeriod.compressTimePeriods<TimePeriod>(stationIntervals.Value);
+                stationIntervals.Value.erase(silentTimePeriods); // вырежем из этих периодов все запрещённые к сбросу периоды времени
+                stationIntervals.Value.erase(captureIntervals);  // вырежем из этих периодов все занятые съемкой периоды времени
+            }
+
+            // получим все типы и отсортируем их по приоритету
+            List<CommunicationSessionStation> sortedList = new List<CommunicationSessionStation>()
+            {CommunicationSessionStation.FIGS_Main, CommunicationSessionStation.MIGS, CommunicationSessionStation.FIGS_Backup};
+
+            // распределим маршруты на сброс по доступным интервалам
+            int maxRouteDownloadId = routesToDownload.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
             int maxRouteDeleteId = routesToDelete.Select(route => route.Nroute).DefaultIfEmpty(0).Max();
             int maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
-            int maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
-            Dictionary<TimePeriod, List<RouteParams>> downloadingRoutesParamsByIntervals 
-                = TimePeriod.getRoutesParamsInIntervals(allRoutesToDownload, freeIntervalsForDownload, workType: WorkingType.Downloading, startId: maxRoutesNumber);
+            int maxRoutesNumber = Math.Max(maxRouteDownloadId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
+            
+            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(Nmax).Max();
+            List<MPZParams> downloadMpzParams = new List<MPZParams>();
 
-            // попробуем вместить созданные маршруты на сброс в уже созданные маршруты на съемку
-            foreach (var intervalRoutes in downloadingRoutesParamsByIntervals)
+            foreach (CommunicationSessionStation station in sortedList)
             {
-                List<RouteParams> routparamsList = intervalRoutes.Value;
-                TimePeriod interval = intervalRoutes.Key;                
-                foreach (var routparams in routparamsList.ToArray())
+                if (!nkpoiSessionsIntervals.ContainsKey(station))
+                    continue;
+                List<TimePeriod> freeStationIntervals = nkpoiSessionsIntervals[station];
+                
+                foreach (var capPrms in captureMPZParams)
                 {
-                    foreach (var capPrms in captureMPZParams)
+                    foreach (var routeToDownload in allRoutesToDownload)
                     {
-                        if (!capPrms.InsertRoute(routparams, interval.dateFrom, interval.dateTo, null, null))
-                            continue;                        
-                        routparamsList.Remove(routparams); // удаляем из списка маршрутов те, которые поместились в МПЗ
-                        break;                        
+                        RouteParams routeParams = new RouteParams(
+                            maxRoutesNumber++,
+                            WorkingType.Downloading,
+                            routeToDownload.Parameters.getDropTime(),
+                            Tuple.Create(routeToDownload.NPZ, routeToDownload.Nroute),
+                            station
+                            );
+                        
+                        foreach (TimePeriod period in freeStationIntervals)
+                        {
+                            if (!capPrms.InsertRoute(routeParams, period.dateFrom, period.dateTo, null, null))
+                                continue;
+                            allRoutesToDownload.Remove(routeToDownload);
+                            freeStationIntervals.erase(period);
+                            break;
+                        }
                     }
                 }
+
+                // Оставшиеся маршруты попытаемся вместить в оставшиеся сессии этой станции
+                List<RouteParams> downloadRoutes
+                    = TimePeriod.getRoutesParamsInIntervals(allRoutesToDownload, freeStationIntervals, workType: WorkingType.Downloading, startId: maxRoutesNumber);
+
+                freeStationIntervals.erase(downloadRoutes.Select(route => new TimePeriod(route.start, route.end)).ToList());   
+             
+                int curMaxMpzNum = downloadMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
+                List<MPZParams> curMPZ = MPZParams.FillMPZ(downloadRoutes, curMaxMpzNum);
+                downloadMpzParams.AddRange(curMPZ);
             }
 
-            int maxMpzNum = captureMPZParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(Nmax).Max();
-
-            // теперь создаем новые мпз сброса из оставшихся маршрутов
-            List<MPZParams> downloadMpzParams = new List<MPZParams>();
-            foreach (var intervalRoutes in downloadingRoutesParamsByIntervals)
-            {
-                List<RouteParams> routparamsList = intervalRoutes.Value;
-                // TimePeriod interval = intervalRoutes.Key;
-                if (routparamsList.Count > 0)
-                {
-                    int curMaxMpzNum = downloadMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
-                    List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, curMaxMpzNum);
-                    downloadMpzParams.AddRange(curMPZ);
-                }
-            }
-
-            // наёдем еще свободные временные промежутки, в которые можно произвести удаление
+             // наёдем еще свободные временные промежутки, в которые можно произвести удаление
             List<TimePeriod> downloadIntervals = downloadMpzParams.Select(mpzparams => new TimePeriod(mpzparams.start, mpzparams.end)).ToList();
             List<TimePeriod> inactivityDownCaptIntervals = new List<TimePeriod>();
             inactivityDownCaptIntervals.AddRange(captureIntervals);
@@ -613,44 +632,38 @@ namespace SatelliteSessions
             inactivityDownCaptIntervals = TimePeriod.compressTimePeriods(inactivityDownCaptIntervals);
             List<TimePeriod> freeRangesForDelete = TimePeriod.getFreeIntervals(inactivityDownCaptIntervals, timeFrom, timeTo);
             
-            maxRouteDropId = downloadMpzParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
+            maxRouteDownloadId = downloadMpzParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
-            maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
+            maxRoutesNumber = Math.Max(maxRouteDownloadId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
  
-            Dictionary<TimePeriod, List<RouteParams>> deleteRoutesParamsByIntervals
+            List<RouteParams> deleteRoutesParams
                 = TimePeriod.getRoutesParamsInIntervals(routesToDelete, freeRangesForDelete, workType: WorkingType.Removal, startId: maxRoutesNumber);
  
             maxMpzNum = downloadMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
 
             // создаем новые мпз удаления из маршрутов на удаление
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
-            foreach (var intervalRoutes in deleteRoutesParamsByIntervals)
-            {
-                List<RouteParams> routparamsList = intervalRoutes.Value;
-                //TimePeriod interval = intervalRoutes.Key;
-                int curMaxMpzNum = deleteMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(maxMpzNum).Max();
-                List<MPZParams> curMPZ = MPZParams.FillMPZ(routparamsList, curMaxMpzNum);
-                deleteMpzParams.AddRange(curMPZ);
-            }
+             
+            deleteMpzParams.AddRange(MPZParams.FillMPZ(deleteRoutesParams, maxMpzNum));
 
             mpzArray = new List<MPZ>();
             mpzArray.AddRange(captureMpz);
             mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
             mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
-                                  
+
             // составим массив использованных сессий
             sessions = new List<CommunicationSession>();
             
             // получим все интервалы сброса
             var downloadingIntervals = mpzArray
-                .SelectMany(mpz => mpz.Routes)  
+                .SelectMany(mpz => mpz.Routes)
                 .Select(route => route.Parameters)
                 .Where(route_par => route_par.type == WorkingType.Downloading || route_par.type == WorkingType.ShootingSending) 
                 .Select(route => new TimePeriod(route.start, route.end)).ToList();
 
             foreach (var interval in downloadingIntervals.ToArray())
             {
-                foreach (var sess in nkpoiSessions)
+                foreach (var sess in nkpoiSessions.SelectMany(group => group.Value))
                 {
                     if (!TimePeriod.isPeriodInPeriod(interval, sess.DropInterval)) // если этот интервал не в сессии, значит не подходит
                         continue;
@@ -798,7 +811,6 @@ namespace SatelliteSessions
             }
         }
  
-
         /// <summary>
         /// Рассчитать коридор съемки/видимости для заданной конфигурации СОЭНc
         /// </summary>

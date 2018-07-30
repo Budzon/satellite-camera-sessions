@@ -7,6 +7,7 @@ using System.Windows.Media.Media3D;
 using Astronomy;
 using DBTables;
 using Common;
+using SessionsPlanning;
 
 namespace SatelliteSessions
 {
@@ -53,8 +54,6 @@ namespace SatelliteSessions
             Zone7timeTo = dtTo7zone;
         }
 
-
-
         private static DateTime getIntersectionTime(TrajectoryPoint first_point, TrajectoryPoint second_point, Vector3D centre, double zoneR)
         {
             double angle_zone = Math.Asin(zoneR / (OptimalChain.Constants.orbit_height + Astronomy.Constants.EarthRadius));
@@ -70,7 +69,7 @@ namespace SatelliteSessions
             return resTime;
         }
 
-        public static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, List<CommunicationSession> sessions)
+        public static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions)
         {
             Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(zone.CentreLat, zone.CentreLon), 1);
 
@@ -117,14 +116,16 @@ namespace SatelliteSessions
                     if (is7zoneSet)  // добавляем только если удалось установить и 7 зону тоже      
                     {
                         foreach (var station in zone.Stations)
-                        {
+                        {                            
                            CommunicationSession session = new CommunicationSession(
                                 station,
                                 Zone5timeFrom,
                                 Zone5timeTo,
                                 Zone7timeFrom,
                                 Zone7timeTo);
-                           sessions.Add(session);
+                           if (!sessions.ContainsKey(station))
+                                sessions[station] = new List<CommunicationSession>();
+                           sessions[station].Add(session);
                         }
                     }
                                 
@@ -137,28 +138,25 @@ namespace SatelliteSessions
         }
 
 
-        public static List<CommunicationSession> getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
-        {
-            List<CommunicationSession> sessions = new List<CommunicationSession>();
+        public static void getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions)
+        {            
             DataFetcher fetcher = new DataFetcher(managerDB);
             CommunicationZoneSNKPOI sZone;
             CommunicationZone.getSNKPOICommunicationZones(managerDB, out sZone);
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
-            getSessionFromZone(sZone, fullTrajectory, sessions);             
-            return sessions;
+            getSessionFromZone(sZone, fullTrajectory, sessions);            
         }
 
-        public static List<CommunicationSession> getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB)
-        {
-            List<CommunicationSession> sessions = new List<CommunicationSession>();
+        public static void getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions)
+        { 
             DataFetcher fetcher = new DataFetcher(managerDB);
             List<CommunicationZoneMNKPOI> mZones;
             CommunicationZone.getMNKPOICommunicationZones(managerDB, timeFrom, timeTo, out mZones);
 
             if (mZones == null)
-                return new List<CommunicationSession>();
+                return;
             if (mZones.Count == 0)
-                return new List<CommunicationSession>();
+                return;
 
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
@@ -172,9 +170,7 @@ namespace SatelliteSessions
                     trajectory = fullTrajectory;
 
                 getSessionFromZone(zone, trajectory, sessions);
-            } 
-
-            return sessions;
+            }             
         }
 
         /// <summary>
@@ -182,17 +178,15 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="timeFrom">Начало временного отрезка</param>
         /// <param name="timeTo">Конец временного отрезка</param>
-        /// <returns>Все возможные сеансы связи за это время</returns>
-        public static List<CommunicationSession> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, string connectStr)
+        /// <returns>Все возможные сеансы связи за это время, сгруппированные по антеннам</returns>
+        public static Dictionary<SessionsPlanning.CommunicationSessionStation, List<CommunicationSession>> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, string connectStr)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
-            List<CommunicationSession> snkpoSessions = getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
-            List<CommunicationSession> mnkpoSessions = getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB);
-            List<CommunicationSession> sessions = new List<CommunicationSession>();
-            sessions.AddRange(snkpoSessions);
-            sessions.AddRange(mnkpoSessions);
+            var sessions = new Dictionary<CommunicationSessionStation, List<CommunicationSession>>();
+            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
+            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);           
             return sessions;
-        }
+        } 
 
 
         /// <summary>
@@ -203,11 +197,16 @@ namespace SatelliteSessions
         /// <returns> свободные промежутки времени </returns>
         public static List<TimePeriod> getFreeTimePeriodsOfSessions(List<CommunicationSession> sessions, List<TimePeriod> occupiedPeriods)
         {
+            List<TimePeriod> freePeriods = sessions.Select(sess => sess.DropInterval).ToList();
+            return getFreeTimePeriodsOfSessions(freePeriods, occupiedPeriods);  
+        }
+
+        public static List<TimePeriod> getFreeTimePeriodsOfSessions(List<TimePeriod> freePeriods, List<TimePeriod> occupiedPeriods)
+        {
             List<TimePeriod> freeRangesForDrop = new List<TimePeriod>();
             var compressedOccupiedPeriods = TimePeriod.compressTimePeriods(occupiedPeriods);
-            foreach (var session in sessions)
+            foreach (var timeSpan in freePeriods)
             {
-                var timeSpan = session.DropInterval;
                 //List<TimePeriod> freeRangesForSession = getFreeTimeRanges(timeSpan, occupiedPeriods);
                 List<TimePeriod> freeRangesForSession = TimePeriod.getFreeIntervals(compressedOccupiedPeriods, timeSpan.dateFrom, timeSpan.dateTo);
 
@@ -217,5 +216,6 @@ namespace SatelliteSessions
             freeRangesForDrop = freeRangesForDrop.OrderByDescending(range => (range.dateTo - range.dateFrom).TotalSeconds).ToList();
             return freeRangesForDrop;
         }
+
     }
 }

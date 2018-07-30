@@ -12,6 +12,29 @@ using SessionsPlanning;
 namespace SatelliteSessions
 {
 
+
+    public static class TimePeriodExtentions
+    {
+
+        public static void erase(this List<TimePeriod> intervals, List<TimePeriod> intervalsToErase)
+        {
+            foreach (var intToErase in intervalsToErase)            
+                intervals.erase(intToErase);            
+        }
+
+        /// <summary>
+        /// вырежем интервал intervalToErase из тех интервалов, с которыми у него есть пересечения
+        /// </summary>
+        /// <param name="intervals"></param>
+        /// <param name="intervalToErase"></param>
+        public static void erase(this List<TimePeriod> intervals, TimePeriod intervalToErase)
+        {
+            List<TimePeriod> intersected = intervals.Where(interval => TimePeriod.isPeriodsOverlap(interval, intervalToErase)).ToList();
+            List<TimePeriod> newInts = intersected.SelectMany(interval => interval.erase(intervalToErase)).ToList();
+            intervals = intervals.Except(intersected).Concat(newInts).ToList();
+        }
+    }
+
     public class TimePeriod
     {
         public DateTime dateFrom { get; private set; }
@@ -39,6 +62,32 @@ namespace SatelliteSessions
         {
             return dateFrom <= dt && dt <= dateTo;
         }
+
+        public List<TimePeriod> erase(TimePeriod periodToErase)
+        {
+            List<TimePeriod> res = new List<TimePeriod>();
+            if (this.dateFrom < periodToErase.dateFrom)
+            {
+                res.Add(new TimePeriod(this.dateFrom, TimePeriod.Min(this.dateTo, periodToErase.dateFrom)));
+            }
+
+            if (periodToErase.dateTo < this.dateTo)
+            {
+                res.Add(new TimePeriod(periodToErase.dateTo, TimePeriod.Max(this.dateFrom, periodToErase.dateTo)));
+            }
+            return res;
+        }
+
+
+        public static DateTime Max(DateTime dt1, DateTime dt2)
+        {
+            return (dt1 > dt2 ? dt1 : dt2);
+        }
+        public static DateTime Min(DateTime dt1, DateTime dt2)
+        {
+            return (dt1 < dt2 ? dt1 : dt2);
+        }   
+
             
         /// <summary>
         /// Объеденим пересекающиеся временные диапазоны 
@@ -144,16 +193,14 @@ namespace SatelliteSessions
         /// <param name="routesToDrop"></param>
         /// <param name="freeCompressedIntervals"></param>
         /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
-        public static Dictionary<TimePeriod, List<RouteParams>> getRoutesParamsInIntervals(List<RouteMPZ> inpRoutes, List<TimePeriod> freeCompressedIntervals, WorkingType workType, int startId)
-        {
-            Dictionary<TimePeriod, List<RouteParams>> res = new Dictionary<TimePeriod, List<RouteParams>>();
-            List<RouteMPZ> routes = new List<RouteMPZ>(inpRoutes);
-
+        public static List<RouteParams> getRoutesParamsInIntervals(List<RouteMPZ> routes, List<TimePeriod> freeCompressedIntervals, WorkingType workType, int startId)
+        {  
+            List<RouteParams> res = new List<RouteParams>();
             // отсортируем свободные промежутки по продолжительности в порядке возрастания по прищнаку продолжительности
             freeCompressedIntervals.Sort(delegate(TimePeriod span1, TimePeriod span2)
             { return (span1.dateTo - span1.dateFrom).CompareTo(span2.dateTo - span2.dateFrom); });
 
-            foreach (var interval in freeCompressedIntervals)
+            foreach (var interval in freeCompressedIntervals.ToArray())
             {
                 int id = startId + 1;
                 // получим все маршруты, которые могут быть сброшены/удалены в этом промежутке
@@ -162,9 +209,7 @@ namespace SatelliteSessions
                 if (curRoutes.Count == 0)
                     continue;
 
-                curRoutes.Sort(delegate(RouteMPZ rout1, RouteMPZ rout2) { return rout1.Parameters.end.CompareTo(rout2.Parameters.end); });
-
-                List<RouteParams> curPeriodRoutes = new List<RouteParams>();
+                curRoutes.Sort(delegate(RouteMPZ rout1, RouteMPZ rout2) { return rout1.Parameters.end.CompareTo(rout2.Parameters.end); });                 
 
                 DateTime prevDt = curRoutes[0].Parameters.end > interval.dateFrom ? curRoutes[0].Parameters.end : interval.dateFrom;
                 foreach (var rmpz in curRoutes.ToArray())
@@ -190,18 +235,11 @@ namespace SatelliteSessions
                     RouteParams curParam = new RouteParams(workType, prevDt, nextDt, Tuple.Create(rmpz.NPZ, rmpz.Nroute));
                     curParam.id = id;
                     curParam.ShootingConf = rmpz.Parameters.ShootingConf;
-                    curPeriodRoutes.Add(curParam);
+                    res.Add(curParam);
                     id++;
                     routes.Remove(rmpz);
-
                     prevDt = nextDt;
                 }
-
-                if (curPeriodRoutes.Count != 0)
-                {
-                    res[interval] = curPeriodRoutes;
-                }
-
             }
 
             return res;

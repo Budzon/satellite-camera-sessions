@@ -347,6 +347,11 @@ namespace OptimalChain
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
+        /// <summary>
+        /// станция. Нужно только при сбросе
+        /// </summary>
+        public CommunicationSessionStation station;
+
 
         public RouteParams(RouteParams copyed)
         {
@@ -380,6 +385,16 @@ namespace OptimalChain
             binded_route = null;
             File_Size = fs;
             duration = (d2 - d1).TotalMilliseconds;
+        }
+
+
+        public RouteParams(int route_id, WorkingType t, double dur, Tuple<int, int> br, CommunicationSessionStation st)
+        {
+            id = route_id;
+            type = t;
+            binded_route = br; 
+            duration = dur;
+            station = st;
         }
 
         public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
