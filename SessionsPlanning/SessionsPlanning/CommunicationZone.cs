@@ -10,14 +10,14 @@ using DBTables;
 
 namespace SatelliteSessions
 {
-    
-    public class CommunicationZone
+
+    public abstract class CommunicationZone
     {
         /// <summary>
         /// Id
         /// </summary>
         public virtual int IdNumber { get; set; }
-
+        public abstract List<SessionsPlanning.CommunicationSessionStation> Stations { get; }
         /// <summary>
         /// In degrees.
         /// </summary>
@@ -171,12 +171,33 @@ namespace SatelliteSessions
     {
         public DateTime From;
         public DateTime To;
+        public override List<SessionsPlanning.CommunicationSessionStation> Stations
+        {
+            get
+            {
+                return new List<SessionsPlanning.CommunicationSessionStation>() 
+                {
+                    SessionsPlanning.CommunicationSessionStation.MIGS
+                };
+            }
+        }
     }
 
     public class CommunicationZoneSNKPOI : CommunicationZone
     {
         public override int IdNumber { get { return -1; } }
 
+        public override List<SessionsPlanning.CommunicationSessionStation> Stations 
+        {
+            get 
+            {
+                return new List<SessionsPlanning.CommunicationSessionStation>() 
+                {
+                    SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                    SessionsPlanning.CommunicationSessionStation.FIGS_Backup
+                }; 
+            } 
+        }
     }
 
 }

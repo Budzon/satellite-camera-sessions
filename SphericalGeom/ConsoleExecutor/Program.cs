@@ -95,12 +95,18 @@ namespace ConsoleExecutor
             , silenceRanges
             , inactivityRanges
             , routesToDrop
-            , routesToDelete            
+            , routesToDelete
             , cupConnStr
             , cuksConnStr
             , 356
             , out mpzArray
-            , out sessions);
+            , out sessions
+            , new Dictionary<SessionsPlanning.CommunicationSessionStation, bool> {
+                { SessionsPlanning.CommunicationSessionStation.FIGS_Main,   true},
+                { SessionsPlanning.CommunicationSessionStation.FIGS_Backup, true},
+                { SessionsPlanning.CommunicationSessionStation.MIGS,        true}
+            }
+            );
 
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
        
@@ -114,7 +120,6 @@ namespace ConsoleExecutor
             //{
             //    Console.Write("OOOK");
             //}
-
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(polwtk);

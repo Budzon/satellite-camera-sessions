@@ -5,9 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
-using System.Collections.Concurrent;
-
- 
+using System.Collections.Concurrent; 
 using SatelliteTrajectory;
 using Astronomy;
 using Common;
@@ -486,6 +484,7 @@ namespace SatelliteSessions
         /// <param name="Nmax">номер,с которого мпз следует нумеровать</param>
         /// <param name="mpzArray">Набор МПЗ</param>
         /// <param name="sessions">Сеансы связи</param>
+        /// <param name="stationsStatus">статус антенн (вкл/выкл)</param>
         /// <param name="flags">Флаги для настройки МПЗ</param>
         public static void getMPZArray(
               List<RequestParams> requests
@@ -500,8 +499,11 @@ namespace SatelliteSessions
             , int Nmax
             , out List<MPZ> mpzArray
             , out List<CommunicationSession> sessions
-            , FlagsMPZ flags = null)
+            , Dictionary<SessionsPlanning.CommunicationSessionStation, bool> stationsStatus
+            , FlagsMPZ flags = null
+            )
         {
+            
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             //List<RouteMPZ> routesToDropCopy = new List<RouteMPZ>(routesToDrop); // локальная копия, не будем портить входной массив
@@ -529,11 +531,18 @@ namespace SatelliteSessions
             shadowAndInactivityPeriods = TimePeriod.compressTimePeriods(shadowAndInactivityPeriods);
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
-            List<CaptureConf> confsToCapture = getCaptureConfArray(requests, timeFrom, timeTo, ManagerDbCUP, ManagerDbCUKS, shadowAndInactivityPeriods, freeSessionPeriodsForDrop);
+            List<CaptureConf> confsToCapture 
+                = getCaptureConfArray(
+                requests,
+                timeFrom,
+                timeTo,
+                ManagerDbCUP,
+                ManagerDbCUKS,
+                shadowAndInactivityPeriods,
+                freeSessionPeriodsForDrop);
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
-            Graph captureGraph = new Graph(confsToCapture);
-            List<MPZParams> captureMPZParams = captureGraph.findOptimalChain(Nmax);
+            List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
           
             // все параметры МПЗ на съемку, пришедшие из графа
             List<MPZ> captureMpz = captureMPZParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
@@ -541,7 +550,10 @@ namespace SatelliteSessions
             // составим массив маршрутов на сброс (скачивание)
             List<RouteMPZ> allRoutesToDownload = new List<RouteMPZ>();
             allRoutesToDownload.AddRange(routesToDownload);
-            allRoutesToDownload.AddRange(captureMpz.SelectMany(mpz => mpz.Routes).Where(route => route.Parameters.type == WorkingType.Shooting).ToList()); // добавим к сбросу только что отснятые маршруты
+            allRoutesToDownload.AddRange(
+                captureMpz.SelectMany(mpz => mpz.Routes)
+                .Where(route => route.Parameters.type == WorkingType.Shooting)
+                .ToList()); // добавим к сбросу только что отснятые маршруты
 
             // Найдём все возможные промежутки времени для сброса (из диапазона [timeFrom - timeTo] вычитаются все inactivityRanges и диапазоны съемки)
             List<TimePeriod> captureIntervals = captureMPZParams.Select(mpz => new TimePeriod(mpz.start, mpz.end)).ToList();
@@ -557,7 +569,7 @@ namespace SatelliteSessions
             int maxCaptureRouteId = captureMPZParams.SelectMany(mpz => mpz.routes).Select(route => route.id).DefaultIfEmpty(0).Max();
             int maxRoutesNumber = Math.Max(maxRouteDropId, Math.Max(maxRouteDeleteId, maxCaptureRouteId));
             Dictionary<TimePeriod, List<RouteParams>> downloadingRoutesParamsByIntervals 
-                = TimePeriod.getRoutesParamsInIntervals(allRoutesToDownload, freeIntervalsForDownload, workType: WorkingType.Downloading, startId: maxRoutesNumber); 
+                = TimePeriod.getRoutesParamsInIntervals(allRoutesToDownload, freeIntervalsForDownload, workType: WorkingType.Downloading, startId: maxRoutesNumber);
 
             // попробуем вместить созданные маршруты на сброс в уже созданные маршруты на съемку
             foreach (var intervalRoutes in downloadingRoutesParamsByIntervals)
@@ -568,11 +580,10 @@ namespace SatelliteSessions
                 {
                     foreach (var capPrms in captureMPZParams)
                     {
-                        if (capPrms.InsertRoute(routparams, interval.dateFrom, interval.dateTo, null, null))
-                        {
-                            routparamsList.Remove(routparams); // удаляем из списка маршрутов те, которые поместились в МПЗ
-                            break;
-                        }
+                        if (!capPrms.InsertRoute(routparams, interval.dateFrom, interval.dateTo, null, null))
+                            continue;                        
+                        routparamsList.Remove(routparams); // удаляем из списка маршрутов те, которые поместились в МПЗ
+                        break;                        
                     }
                 }
             }
@@ -630,6 +641,7 @@ namespace SatelliteSessions
             // составим массив использованных сессий
             sessions = new List<CommunicationSession>();
             
+            // получим все интервалы сброса
             var downloadingIntervals = mpzArray
                 .SelectMany(mpz => mpz.Routes)  
                 .Select(route => route.Parameters)

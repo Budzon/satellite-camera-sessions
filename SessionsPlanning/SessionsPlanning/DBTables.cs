@@ -468,8 +468,7 @@ namespace DBTables
                 String.Format("where {0} >= '{1}' ORDER BY {0} ASC", dateFieldName, date.ToString(datePattern)),
                 limit: count).Select();
         }
-
-
+        
         public DataRow[] GetTimePeriodsBetweenDates(
             string tableName,
             string dateFieldFirst,
@@ -931,6 +930,27 @@ namespace DBTables
         public static DateTime GetWriteTime(DataRow row)
         {
             return (DateTime)row[WriteTime];
+        }
+    }
+
+    public static class StationTable
+    {
+        public const string Name = "COMMUNICATION_SESSION_STATION";
+        public const string Id = "communication_session_station";
+        public const string NameCol = "name";
+        public const string Priority = "priority";
+
+        public static int getId(DataRow row)
+        {
+            return (int)row[Id];
+        }
+        public static string getName(DataRow row)
+        {
+            return (string)row[NameCol];
+        }
+        public static int getPriority(DataRow row)
+        {
+            return (int)row[Priority];
         }
     }
 
