@@ -6,6 +6,7 @@ using Astronomy;
 using Common;
 
 using SphericalGeom;
+using SessionsPlanning;
 
 namespace OptimalChain
 {
@@ -52,7 +53,8 @@ namespace OptimalChain
         /// <param name="s">площадь</param>
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.eDownloading, ShootingChannel channel = ShootingChannel.ePK, ShootingType stype = ShootingType.ePlain, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
+
+        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.Downloading, ShootingChannel channel = ShootingChannel.pk, ShootingType stype = ShootingType.Normal, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
             dateFrom = d1;
@@ -92,9 +94,8 @@ namespace OptimalChain
         }
 
     }
-    
 
-
+ 
     public class CaptureConf : SatelliteSessions.TimePeriod
     {
         public int id { get; set; }
@@ -104,12 +105,13 @@ namespace OptimalChain
         public double rollAngle {  get; private set; }//крен для съемки c нулевым тангажом
         public double square { get; private set; }//площадь полосы
         public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
-        public List<Order> orders { get; private set; }//cвязанные заказы. Список пуст только для маршрута на удаление
+        public List<Order> orders { get; private set; } //cвязанные заказы. Список пуст только для маршрута на удаление
         public Tuple<int, int> connectedRoute {  get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         public double timeDelta { get; private set;}// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа и упреждение по крену      
         public int MinCompression {  get; private set; }
         public double AverAlbedo {  get; private set;}
+        public double SunAngle { get; private set; } // угол солнца снимаемой сцены
         public SatelliteSessions.PolinomCoef poliCoef { get; private set; }
 
         public void setPolygon(SphericalGeom.Polygon pol)
@@ -118,6 +120,17 @@ namespace OptimalChain
             wktPolygon = pol.ToWtk();
         }
 
+        /// <summary>
+        /// рассчитаем угол солнца для центра кадра
+        /// </summary>
+        /// <param name="sunPos">координаты солнца относительно центра земли</param>
+        /// <param name="centrePos"> координаты центра кадра </param>
+        public void setSun(Vector3D sunPos, Vector3D centrePos)
+        {
+            Vector3D toSun = sunPos - centrePos; // вектор на солнце от центра кадра
+            SunAngle = Math.PI/2 - Vector3D.AngleBetween(toSun, centrePos);
+        }
+        
         public void setPitchDependency(Dictionary<double, Tuple<double, double>> _pitchArray, double _timeDelta)
         {
             pitchArray = _pitchArray;
@@ -188,7 +201,7 @@ namespace OptimalChain
                 double p =  pitchArray[delta].Item1;
                 double r =  pitchArray[delta].Item2;
 
-                if((confType == WorkingType.eShooting) && (shootingType != ShootingType.eStereoTriplet))
+                if((confType == WorkingType.Shooting) && (shootingType != ShootingType.StereoTriplet))
                 {
                     p = p*sign;
                  //   r = r * sign;
@@ -262,7 +275,7 @@ namespace OptimalChain
             Dictionary<double, Tuple<double, double>> timeAngleArray = new Dictionary<double, Tuple<double, double>>();
 
             timeAngleArray[-deflectTimeDelta] = Tuple.Create(pitchAngle, 0.0);
-            if (ShootingType.eStereoTriplet == type)
+            if (ShootingType.StereoTriplet == type)
                 timeAngleArray[0] = Tuple.Create(0.0, 0.0);            
             timeAngleArray[deflectTimeDelta] = Tuple.Create(-pitchAngle, 0.0);
 
@@ -313,7 +326,7 @@ namespace OptimalChain
 
             double maxPitchAngle = Math.Abs(pitchAngleLimit) - Math.Abs(rollAngle);
 
-            if (maxPitchAngle < 0) // такое возможно, если rollAngle больше (по модулю) 30 градусов (максимальны тангаж)
+            if (maxPitchAngle < 0) // если rollAngle больше (по модулю) 30 градусов (максимальны тангаж)
                 maxPitchAngle = 0;
 
             double timeDelta;
@@ -329,8 +342,9 @@ namespace OptimalChain
 
             Vector3D dirRollPoint = SatelliteTrajectory.LanePos.getSurfacePoint(pointFrom, rollAngle, 0);
             int pitchStep = 1; // угол изменения тангажа в градусах.
+           
             for (int pitch_degr = pitchStep; pitch_degr <= AstronomyMath.ToDegrees(maxPitchAngle); pitch_degr += pitchStep)
-            {
+            { 
                 double pitch = AstronomyMath.ToRad(pitch_degr);
                 Vector3D dirPitchPoint = SatelliteTrajectory.LanePos.getSurfacePoint(pointFrom, rollAngle, pitch);
                 double distOverSurf = GeoPoint.DistanceOverSurface(GeoPoint.FromCartesian(dirPitchPoint), GeoPoint.FromCartesian(dirRollPoint)) * Astronomy.Constants.EarthRadius;
@@ -357,76 +371,6 @@ namespace OptimalChain
 
     }
 
-    /// <summary>
-    /// Тип съемки
-    /// </summary>
-    public enum ShootingType
-    {
-        /// <summary>
-        /// Обычная съемка
-        /// </summary>
-        ePlain,
-        /// <summary>
-        /// коридорная съемка
-        /// </summary>
-        eCorridor,
-        /// <summary>
-        /// стереопара
-        /// </summary>
-        eStereoPair,
-        /// <summary>
-        /// стереотриплет
-        /// </summary>
-        eStereoTriplet,     
-        /// <summary>
-        /// площадная съемка
-        /// </summary>
-        eArea
-    }
-
-    /// <summary>
-    /// канал съемки
-    /// </summary>
-    public enum ShootingChannel
-    {
-        /// <summary>
-        /// панхроматический канал
-        /// </summary>
-        ePK,
-        /// <summary>
-        /// многозанальный канал
-        /// </summary>
-        eMK,
-        /// <summary>
-        /// мультиспектральный
-        /// </summary>
-        eCM
-    }
-
-
-    /// <summary>
-    /// тип целевой работы
-    /// </summary>
-    public enum WorkingType
-    {
-        /// <summary>
-        /// удаление
-        /// </summary>
-        eRemoval,
-        /// <summary>
-        /// съемка
-        /// </summary>
-        eShooting,
-        /// <summary>
-        /// сброс
-        /// </summary>
-        eDownloading,
-        /// <summary>
-        /// съемка со сбросом
-        /// </summary>
-        eShootingSending
-    }
-
     public class RequestParams
     {
         public int id { get; private set; }
@@ -445,6 +389,7 @@ namespace OptimalChain
         public double albedo { get; private set; } //  характеристика отражательной способности поверхности. 
         public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
         public double Square { get; private set; }
+        public double Cloudiness { get; private set; }
         /// <summary>
         /// разделим заказы на группы по признаку совместимых CaptureConf-ов
         /// </summary>
@@ -493,8 +438,9 @@ namespace OptimalChain
             List<string> _polygonToSubtract = null,
             double _albedo = 0.36,
             int _compression = 0,
-            ShootingType _shootingType = ShootingType.ePlain,
-            ShootingChannel _requestChannel = ShootingChannel.eMK
+            ShootingType _shootingType = ShootingType.Normal,
+            ShootingChannel _requestChannel = ShootingChannel.mk,
+            double _cloudiness = 0
             )
         {
             id = _id;
@@ -510,6 +456,7 @@ namespace OptimalChain
             compression = _compression;            
             shootingType = _shootingType;
             requestChannel = _requestChannel;
+            Cloudiness = _cloudiness;
             polygonToSubtract = _polygonToSubtract;
             Polygon comPolygon = new Polygon(wktPolygon);
             if (_polygonToSubtract != null)
@@ -548,7 +495,14 @@ namespace OptimalChain
 
     public class Order
     {
+        /// <summary>
+        /// параметры заказа
+        /// </summary>
         public RequestParams request { get; set; }
+
+        /// <summary>
+        /// захваченная (заснятая) область
+        /// </summary>
         public SphericalGeom.Polygon captured { get; set; }
         public double intersection_coeff { get; set; }
     }

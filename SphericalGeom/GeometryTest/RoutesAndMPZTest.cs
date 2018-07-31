@@ -15,9 +15,9 @@ using Microsoft.SqlServer.Types;
 using System.Data.SqlTypes;
 using DBTables;
 using SatelliteSessions;
-
-
+using SessionsPlanning;
 using SphericalGeom;
+
 namespace GeometryTest
 {
     [TestClass]
@@ -59,5 +59,74 @@ namespace GeometryTest
             //Assert.IsTrue(res[1].Routes.Count == 12);
             //Assert.IsTrue(res[2].Routes.Count == 3);             
         }
+
+
+
+        [TestMethod]
+        public void Test_checkPNBRouteCompatible() ///(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
+        {
+            //DateTime dt1 = new DateTime(2019, 1, 4, 0, 0, 1);
+            //DateTime dt2 = new DateTime(2019, 1, 4, 0, 1, 1);
+            ////WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000
+            //Order order = new Order();
+            //order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+            //order.intersection_coeff = 0.1;
+            //CaptureConf cc = new CaptureConf(dt1, dt2, 0, new List<Order>() { order }, SessionsPlanning.WorkingType.Shooting, null);
+            //RouteParams routesParams = new RouteParams(SessionsPlanning.WorkingType.Shooting, dt1, dt2);
+            //routesParams.ShootingConf = cc.DefaultStaticConf();
+ 
+
+
+            DateTime dt1 = new DateTime(2019, 2, 18, 23, 0, 0);
+            DateTime dt2 = new DateTime(2019, 2, 19, 0, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            string polwtk = "POLYGON((140.47668457031253 -17.623081791311762,139.603271484375 -17.30606566309359,139.43023681640625 -18.145851771694467,140.5865478515625 -18.19282519773317,140.47668457031253 -17.623081791311762))";
+
+            List<string> holes = new List<string>();
+
+            RequestParams req = new RequestParams(0, 1, dt1, dt2,
+                _Max_SOEN_anlge: AstronomyMath.ToRad(50),
+                _minCoverPerc: 0.12,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonToSubtract: holes, _requestChannel: ShootingChannel.pk,
+                _shootingType: ShootingType.Normal);
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+            Sessions.getMPZArray(new List<RequestParams> { req }, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions);
+
+
+            RouteParams routesParams = new RouteParams(mpzArray.First().Routes.First().Parameters);
+
+           // mpzArray.First().Routes.First().Parameters
+            List<Tuple<int, int>> conflicts;
+            Sessions.checkPNBRouteCompatible(routesParams, mpzArray, out conflicts);
+            conflicts.Count();
+
+        }
+
     }
 }

@@ -314,6 +314,10 @@ namespace Astronomy
             return Trajectory.Create(newTrajsPoints.ToArray());
         }
 
+        //public static Trajectory calculateVelocity(Trajectory trajectory, double maxTimeStep)
+        //{
+        //}
+
         #region IEnumerable<TrajectoryPoint> Members
 
         public IEnumerator<TrajectoryPoint> GetEnumerator()
@@ -385,6 +389,12 @@ namespace Astronomy
         {
             return String.Format("{0}: pos {1}, vel {2}", time, position, velocity);
         }
+
+        public double getAngleToEartchSurface()
+        {
+            return Math.Asin(Astronomy.Constants.EarthRadius / this.Position.ToVector().Length);
+        }
+
     }
 
     internal class TrajectoryPointsByTimeComparer : IComparer<TrajectoryPoint>

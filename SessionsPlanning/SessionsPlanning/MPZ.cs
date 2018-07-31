@@ -18,7 +18,7 @@ namespace SatelliteSessions
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
 
-        public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, FlagsMPZ flags)
+        public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, DIOS.Common.SqlManager DBmanagerCUKS, FlagsMPZ flags)
         {
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
@@ -32,10 +32,13 @@ namespace SatelliteSessions
                 RegimeTypes type = RouteMPZ.WorkingTypeToRegimeType(route.type);
                 return (type == RegimeTypes.NP) || (type == RegimeTypes.ZI);
             });
-            bool hasPK = shootings.Any(route => route.shooting_channel == OptimalChain.ShootingChannel.ePK || route.shooting_channel == OptimalChain.ShootingChannel.eCM);
-            bool hasMK = shootings.Any(route => route.shooting_channel == OptimalChain.ShootingChannel.eMK || route.shooting_channel == OptimalChain.ShootingChannel.eCM);
+            bool hasPK = shootings.Any(route => route.shooting_channel == SessionsPlanning.ShootingChannel.pk 
+                || route.shooting_channel == SessionsPlanning.ShootingChannel.cm);
 
-            Header = new HeaderMPZ(hasPK, hasMK, flags);
+            bool hasMK = shootings.Any(route => route.shooting_channel == SessionsPlanning.ShootingChannel.mk
+                || route.shooting_channel == SessionsPlanning.ShootingChannel.cm);
+
+            Header = new HeaderMPZ(hasPK, hasMK, flags, new DBTables.DataFetcher(DBmanagerCUKS).getNKA());
 
             /* ---------- NPZ -----------*/
             Header.NPZ = parameters.id;
@@ -150,7 +153,7 @@ namespace SatelliteSessions
         private bool nkpoiOnTheLeft(DBTables.DataFetcher fetcher)
         {
             Vector3D snkpoi = fetcher.GetPositionSNKPOI();
-            TrajectoryPoint ka = fetcher.GetSinglePoint<DBTables.SatTableFacade>(parameters.start).Value;
+            TrajectoryPoint ka = fetcher.GetSingleSatPoint(parameters.start).Value;
             Vector3D kapos = ka.Position.ToVector();
             Vector3D planeNormal = Vector3D.CrossProduct(kapos, ka.Velocity);
             planeNormal.Normalize();
@@ -161,10 +164,9 @@ namespace SatelliteSessions
 
     public class HeaderMPZ
     {
-        public const int NKA = 3;
         public static TimeSpan TON_DELTA = new TimeSpan(0, 2, 30);
         public static TimeSpan TTASK_MAX = new TimeSpan(0, 23, 20);
-
+        
         public int NPZ { get; set; } // 24 bit
         public byte Nka { get; set; } // 4 bit
         public byte CONF_RLCI { get; set; } // 6 bit
@@ -221,13 +223,13 @@ namespace SatelliteSessions
         /// <param name="useYKZU2_1">CONF_B, 0, D4</param>
         /// <param name="mainKeyYKPD1">CONF_B, 1, D1</param>
         /// <param name="mainKeyYKPD2">CONF_B, 1, D3</param>
-        public HeaderMPZ(bool hasPK, bool hasMK, FlagsMPZ flags)
+        public HeaderMPZ(bool hasPK, bool hasMK, FlagsMPZ flags, int NumKA)
         {
             /* ---------- NPZ -----------*/
             // to be filled in MPZ
 
             /* ---------- NKA -----------*/
-            Nka = HeaderMPZ.NKA;
+            Nka = (byte)NumKA;
 
             /* ---------- CONF_RLCI -----------*/
             byte tmp = 0;
@@ -502,7 +504,7 @@ namespace SatelliteSessions
 
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
 
-            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetSinglePoint<DBTables.SatTableFacade>(Parameters.start);
+            Astronomy.TrajectoryPoint? KAbegin_ = fetcher.GetSingleSatPoint(Parameters.start);
             if (KAbegin_ == null)
             {
                 throw new Exception("No trajectory data.");
@@ -517,7 +519,7 @@ namespace SatelliteSessions
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
             /* ---------- Polinomial_coeff -----------*/
-                if (Parameters.shooting_type == OptimalChain.ShootingType.eCorridor) // коридорная
+                if (Parameters.shooting_type == SessionsPlanning.ShootingType.Coridor) // коридорная
                 {
 					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
                 }
@@ -533,10 +535,10 @@ namespace SatelliteSessions
             if (RegimeType == RegimeTypes.ZI || RegimeType == RegimeTypes.NP)
                 switch (Parameters.shooting_channel)
                 {
-                    case OptimalChain.ShootingChannel.ePK:
+                    case SessionsPlanning.ShootingChannel.pk:
                         Z = 16;
                         break;
-                    case OptimalChain.ShootingChannel.eMK:
+                    case SessionsPlanning.ShootingChannel.mk:
                         Z = 15;
                         break;
                     default:
@@ -579,14 +581,14 @@ namespace SatelliteSessions
             {
                 switch (Parameters.shooting_type)
                 {
-                    case OptimalChain.ShootingType.ePlain:
+                    case SessionsPlanning.ShootingType.Normal:
                         ByteRoutines.SetBitOne(REGta_bytes, 0); // кадровая
                         break;
-                    case OptimalChain.ShootingType.eStereoTriplet:
+                    case SessionsPlanning.ShootingType.StereoTriplet:
                         ByteRoutines.SetBitOne(REGta_bytes, 1); // стереотриплет
                         ByteRoutines.SetBitOne(REGta_bytes, 2);
                         break;
-                    case  OptimalChain.ShootingType.eCorridor:
+                    case  SessionsPlanning.ShootingType.Coridor:
                         ByteRoutines.SetBitOne(REGta_bytes, 2); // коридорная
                         break;
                     default:
@@ -956,20 +958,20 @@ namespace SatelliteSessions
             return s;
         }
 
-        public static RegimeTypes WorkingTypeToRegimeType(OptimalChain.WorkingType type)
+        public static RegimeTypes WorkingTypeToRegimeType(SessionsPlanning.WorkingType type)
         {
             switch (type)
             {
-                case OptimalChain.WorkingType.eShooting:
+                case SessionsPlanning.WorkingType.Shooting:
                     return RegimeTypes.ZI;
                     // return RegimeTypes.SI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eDownloading:
+                case SessionsPlanning.WorkingType.Downloading:
                     return RegimeTypes.VI;
                     // return RegimeTypes.ZI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eRemoval:
+                case SessionsPlanning.WorkingType.Removal:
                     return RegimeTypes.SI;
                     // return RegimeTypes.VI; так написано в OptimalChain.MPZ, но просят поменять
-                case OptimalChain.WorkingType.eShootingSending:
+                case SessionsPlanning.WorkingType.ShootingSending:
                     return RegimeTypes.NP;
                     // return RegimeTypes.NP; так написано в OptimalChain.MPZ, но просят поменять
                 default:

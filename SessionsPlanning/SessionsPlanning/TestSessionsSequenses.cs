@@ -28,10 +28,10 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static void get14PlainFrames1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get14PlainFrames1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.ePlain);
-            test.getFramesForOneTurn(fromDt, managerDB, out mpzArray, 14);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal);
+            test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 14);
             checkRoutesCount(mpzArray, 14);
         }
 
@@ -39,90 +39,90 @@ namespace SessionsPlanning
         /// Кадровая съемка. 45 кадров на 5-ти витках по 9 кадров
         /// </summary>
         /// <param name="fromDt">дата начала первого витка</param>
-        public static void get45PlainFrames4Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get45PlainFrames4Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.ePlain);
-            test.getFrames(fromDt, managerDB, out mpzArray, 9, 5);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal);
+            test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 9, 5);
             checkRoutesCount(mpzArray, 45);
         }
 
         /// <summary>
         /// Стереосъемка. 8 стереотриплетов  на одном витке
         /// </summary>
-        public static void get8StereoTriplets1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get8StereoTriplets1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eStereoTriplet);
-            test.getFramesForOneTurn(fromDt, managerDB, out mpzArray, 8);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.StereoTriplet);
+            test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 24);
         }
 
         /// <summary>
         /// Стереосъемка. 8 стереопар на одном витке
         /// </summary>
-        public static void get8StereoPairs1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get8StereoPairs1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eStereoPair);
-            test.getFramesForOneTurn(fromDt, managerDB, out mpzArray, 8);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Stereo);
+            test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 16);
         }
 
         /// <summary>
         /// Стереосъемка. 20 стереотриплетов на 5-ти витках по 4 стереотриплетов
         /// </summary>
-        public static void get20StereoTriplets5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get20StereoTriplets5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eStereoTriplet);
-            test.getFrames(fromDt, managerDB, out mpzArray, 5, 4);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.StereoTriplet);
+            test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 60);
         }
 
         /// <summary>
         ///  Стереосъемка. 20 стереопар на 5-ти витках по 4 стереопар
         /// </summary>
-        public static void get20StereoPairs5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get20StereoPairs5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eStereoPair);
-            test.getFrames(fromDt, managerDB, out mpzArray, 5, 4);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Stereo);
+            test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 40);
         }
 
         /// <summary>
         /// Коридорная съемка. 8 коридоров на одном витке
         /// </summary>
-        public static void get8Coridors1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get8Coridors1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eCorridor);
-            test.getFramesForOneTurn(fromDt, managerDB, out mpzArray, 8);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Coridor);
+            test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 8);
         }
 
         /// <summary>
         /// Коридорная съемка. 20 коридоров на 5-ти витках по 4 коридора
         /// </summary>
-        public static void get20Coridors5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get20Coridors5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eCorridor);
-            test.getFrames(fromDt, managerDB, out mpzArray, 5, 4);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Coridor);
+            test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 20);
         }
 
         /// <summary>
         /// Площадная съемка. 8 площадных съемок на одном витке
         /// </summary>
-        public static void get8AreaShooting1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get8AreaShooting1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eArea);
-            test.getFramesForOneTurn(fromDt, managerDB, out mpzArray, 8);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Area);
+            test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 32);
         }
 
         /// <summary>
         /// Площадная съемка. 20 площадных съемок на 5-ти витках по 4 коридора
         /// </summary>
-        public static void get20AreaShooting5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void get20AreaShooting5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.eArea);
-            test.getFrames(fromDt, managerDB, out mpzArray, 5, 4);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Area);
+            test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 80);
         }
 
@@ -133,10 +133,10 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static void getStrip4150km1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void getStrip4150km1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.ePlain, true);
-            test.getFramesForOneTurn(fromDt, managerDB, out mpzArray, 4150);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal, true);
+            test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 4150);
             checkRoutesCount(mpzArray, 1);
         }
 
@@ -144,16 +144,16 @@ namespace SessionsPlanning
         /// Кадровая съемка. 45 кадров на 5-ти витках по 9 кадров
         /// </summary>
         /// <param name="fromDt">дата начала первого витка</param>
-        public static void getStrip12050km5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray)
+        public static void getStrip12050km5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
         {
-            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.ePlain, true);
-            test.getFrames(fromDt, managerDB, out mpzArray, 5, 2410);
+            ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal, true);
+            test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 2410);
             checkRoutesCount(mpzArray, 5);
         }
 
         private static void checkRoutesCount(List<MPZ> mpzArray, int count)
         {
-            if (mpzArray.Sum(mpz => mpz.Routes.Count) < count)
+            if (mpzArray.Sum(mpz => mpz.Routes.Count) != count)
                 throw new TestSequensesException("It is impossible to compose a test sequence for a given time");
         }
     }
@@ -174,16 +174,16 @@ namespace SessionsPlanning
     {
         public static ShootingTestTemplate getShootingTest(ShootingType type, bool alongStrip = false)
         {
-            if (type == ShootingType.ePlain)
+            if (type == ShootingType.Normal)
                 if (alongStrip)
                     return new StripShootingTest(type);
                 else
                     return new PlainShootingTest(type);
-            else if (type == ShootingType.eStereoPair || type == ShootingType.eStereoTriplet)
+            else if (type == ShootingType.Stereo || type == ShootingType.StereoTriplet)
                 return new StereoShootingTest(type);
-            else if (type == ShootingType.eCorridor)
-                return new CorridorShootingTest(type);
-            else if (type == ShootingType.eArea)
+            else if (type == ShootingType.Coridor)
+                return new CoridorShootingTest(type);
+            else if (type == ShootingType.Area)
                 return new AreaShootingTest(type);
             else
                 throw new ArgumentException();
@@ -199,27 +199,35 @@ namespace SessionsPlanning
             this.type = _type;
         }
 
-        public void getFrames(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray,
+        public void getFrames(DateTime fromDt,
+            DIOS.Common.SqlManager managerDB,
+            DIOS.Common.SqlManager managerDbCUKS,
+            out List<MPZ> mpzArray,
             int numTurns, int numFramesOnTurn)
         {
             mpzArray = new List<MPZ>();
             for (int i = 0; i < numTurns; i++)
             {
                 List<MPZ> curMpz;
-                getFramesForOneTurn(fromDt, managerDB, out curMpz, numFramesOnTurn);
+                getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out curMpz, numFramesOnTurn);
                 mpzArray.AddRange(curMpz);
                 double turnDuration = 99.2;
                 fromDt = fromDt.AddMinutes(turnDuration);
 
-                double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+                double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+ 
                 double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
                 dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
                 fromDt = fromDt.AddSeconds(dt);
             }
         }
 
-        public void getFramesForOneTurn(DateTime fromDt, DIOS.Common.SqlManager managerDB, out List<MPZ> mpzArray,
+        public void getFramesForOneTurn(
+            DateTime fromDt,
+            DIOS.Common.SqlManager managerDB,
+            DIOS.Common.SqlManager managerDbCUKS,
+            out List<MPZ> mpzArray,
             int numFrames)
         {
             fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.MPZ_starting_Time); 
@@ -246,7 +254,7 @@ namespace SessionsPlanning
 
             List<RouteParams> routesParams = sconfs.Select(conf => new RouteParams(conf)).ToList();
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, 0);
-            mpzArray = mpzParams.Select(param => new MPZ(param, managerDB, new FlagsMPZ())).ToList();
+            mpzArray = mpzParams.Select(param => new MPZ(param, managerDB, managerDbCUKS, new FlagsMPZ())).ToList();
         }
 
 
@@ -267,14 +275,16 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+ 
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+ 
             List<StaticConf> sconfs = new List<StaticConf>();
 
             DateTime curDtFrom = period.dateFrom;
             while (period.isDtInPeriod(curDtFrom) && count < numFrames)
             {                
-                var kaPoint = fetcher.GetSinglePoint<SatTableFacade>(curDtFrom).Value;
+                var kaPoint = fetcher.GetSingleSatPoint(curDtFrom).Value;
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDtFrom.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
@@ -282,9 +292,10 @@ namespace SessionsPlanning
                 order.captured = framePol;
                 order.intersection_coeff = 1;
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    framePol.ToWtk(), _shootingType: ShootingType.ePlain, _requestChannel: ShootingChannel.ePK);
+                    framePol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
                 CaptureConf conf = new CaptureConf(curDtFrom, captureTo, 0, new List<Order>() {order},
-                    WorkingType.eShooting, null);
+                    WorkingType.Shooting, null);
+ 
                 conf.setPolygon(new SatelliteCoordinates(kaPoint).ViewPolygon);
                 conf.calculatePitchArrays(kaPoint);
                 sconfs.Add(conf.CreateStaticConf(0, 1));
@@ -312,8 +323,10 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+ 
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+ 
             List<StaticConf> sconfs = new List<StaticConf>();
 
             double velo = 6740; // [м/с] примерная скорость движения подспутниковой точки
@@ -328,14 +341,15 @@ namespace SessionsPlanning
                 Polygon corPol = SatLane.getRollPitchLanePolygon(traj, 0, 0);
 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    corPol.ToWtk(), _shootingType: ShootingType.eCorridor, _requestChannel: ShootingChannel.ePK);
+                    corPol.ToWtk(), _shootingType: ShootingType.Coridor, _requestChannel: ShootingChannel.pk);
                 Order order = new Order();
                 order.captured = corPol;
                 order.intersection_coeff = 1;
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    corPol.ToWtk(), _shootingType: ShootingType.ePlain, _requestChannel: ShootingChannel.ePK);
+                    corPol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
                 CaptureConf conf = new CaptureConf(curDtFrom, curDtTo, 0, new List<Order>() { order },
-                    WorkingType.eShooting, null);
+                    WorkingType.Shooting, null);
+ 
                 conf.setPolygon(corPol);
                 sconfs.Add(conf.DefaultStaticConf());
 
@@ -359,18 +373,19 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+ 
             List<StaticConf> sconfs = new List<StaticConf>();
             
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double deflectTimeDelta =
-                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSinglePoint<SatTableFacade>(period.dateFrom).Value, 0,
-                    pitchAngle);
+                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSingleSatPoint(period.dateFrom).Value, 0, pitchAngle);
             DateTime curDt = period.dateFrom.AddSeconds(deflectTimeDelta); 
             while (period.isDtInPeriod(curDt.AddSeconds(deflectTimeDelta)) && count < numFrames)
             {                
-                var kaPoint = fetcher.GetSinglePoint<SatTableFacade>(curDt).Value;
+                var kaPoint = fetcher.GetSingleSatPoint(curDt).Value;
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
@@ -378,9 +393,10 @@ namespace SessionsPlanning
                 order.captured = framePol;
                 order.intersection_coeff = 1;
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    framePol.ToWtk(), _requestChannel: ShootingChannel.ePK);
+                    framePol.ToWtk(), _requestChannel: ShootingChannel.pk);
                 CaptureConf conf = new CaptureConf(curDt, captureTo, 0, new List<Order>() {order},
-                    WorkingType.eShooting, null);
+                    WorkingType.Shooting, null);
+ 
                 conf.setPolygon(framePol);
 
                 double reconfigureMin = 38;  // секунда на поворот от -stereoPitchAngle до stereoPitchAngle
@@ -402,9 +418,9 @@ namespace SessionsPlanning
         }
     }
 
-    internal class CorridorShootingTest : ShootingTestTemplate
+    internal class CoridorShootingTest : ShootingTestTemplate
     {
-        public CorridorShootingTest(ShootingType _type) : base(_type)
+        public CoridorShootingTest(ShootingType _type) : base(_type)
         {
         }
 
@@ -412,8 +428,10 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+ 
             List<StaticConf> sconfs = new List<StaticConf>();
 
             double velo = 6740; // [м/с] примерная скорость движения подспутниковой точки
@@ -432,7 +450,7 @@ namespace SessionsPlanning
                 Sessions.getPiecewiseCoridorParams(curDtFrom, line, managerDB, out coridorParams);
                 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    corPol.ToWtk(), _shootingType: ShootingType.eCorridor, _requestChannel: ShootingChannel.ePK);
+                    corPol.ToWtk(), _shootingType: ShootingType.Coridor, _requestChannel: ShootingChannel.pk);
                 foreach (var cp in coridorParams)
                 {
                     double interCoeff = cp.Coridor.Area / req.polygons.First().Area;
@@ -440,9 +458,11 @@ namespace SessionsPlanning
                     {
                         new Order() {request = req, captured = cp.Coridor, intersection_coeff = interCoeff}
                     };
-                    WorkingType confType = WorkingType.eShooting;
+
+                    WorkingType confType = WorkingType.Shooting;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
-                        confType = WorkingType.eShootingSending;
+                        confType = WorkingType.ShootingSending;
+ 
                     CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders,
                         confType, null, _poliCoef: cp.CoridorCoefs);
                     cc.setPolygon(cp.Coridor);
@@ -476,19 +496,21 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+ 
+            double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+ 
             List<StaticConf> sconfs = new List<StaticConf>();
 
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double deflectTimeDelta =
-                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSinglePoint<SatTableFacade>(period.dateFrom).Value, 0,
+                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSingleSatPoint(period.dateFrom).Value, 0,
                     pitchAngle);
             DateTime curDt = period.dateFrom.AddSeconds(deflectTimeDelta);
             while (period.isDtInPeriod(curDt) && count < numFrames)
             {
                 double cam_angle = OptimalChain.Constants.camera_angle;
-                var kaPoint = fetcher.GetSinglePoint<SatTableFacade>(curDt).Value;
+                var kaPoint = fetcher.GetSingleSatPoint(curDt).Value;
                 SatelliteCoordinates kaPosLeft = new SatelliteCoordinates(kaPoint, -1.5 * cam_angle, 0);
                 SatelliteCoordinates kaPosRight = new SatelliteCoordinates(kaPoint, 1.5 * cam_angle, 0);
                 Polygon framePol = new Polygon(new List<Vector3D>()
@@ -502,17 +524,18 @@ namespace SessionsPlanning
                 order.captured = framePol;
                 order.intersection_coeff = 1;
                 order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    framePol.ToWtk(), _shootingType: ShootingType.ePlain, _requestChannel: ShootingChannel.ePK);
+                    framePol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
 
                 
                 CaptureConf conf1 = new CaptureConf(curDt, captureTo, -1.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eShooting, null);                
+                    WorkingType.Shooting, null);                
                 CaptureConf conf2 = new CaptureConf(curDt, captureTo, -0.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eShooting, null);
+                    WorkingType.Shooting, null);
                 CaptureConf conf3 = new CaptureConf(curDt, captureTo, 0.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eShooting, null);
+                    WorkingType.Shooting, null);
                 CaptureConf conf4 = new CaptureConf(curDt, captureTo, 1.5 * cam_angle, new List<Order>() { order },
-                    WorkingType.eShooting, null);
+                    WorkingType.Shooting, null);
+ 
 
                 conf1.setPolygon(new SatelliteCoordinates(kaPoint, -1.5 * cam_angle, 0).ViewPolygon);
                 conf2.setPolygon(new SatelliteCoordinates(kaPoint, -0.5 * cam_angle, 0).ViewPolygon);
@@ -524,8 +547,8 @@ namespace SessionsPlanning
                 conf3.calculatePitchArrays(kaPoint);
                 conf4.calculatePitchArrays(kaPoint);
 
-                double shooting_time = (double)OptimalChain.Constants.CountMinPause(WorkingType.eShooting, type,
-                ShootingChannel.ePK, WorkingType.eShooting, type, ShootingChannel.ePK) / 1000000;
+                double shooting_time = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
 
                 int deltTime = (int)conf1.timeDelta;
                 sconfs.Add(conf1.CreateStaticConf(deltTime, -1));

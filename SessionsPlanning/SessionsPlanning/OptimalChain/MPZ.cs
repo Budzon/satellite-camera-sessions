@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SessionsPlanning;
 
 namespace OptimalChain
 {
@@ -13,23 +14,29 @@ namespace OptimalChain
         public bool PWR_ON { get; set; }
         public DateTime start { get; set; }
         public DateTime end { get; set; }
-        public int N_routes { get; set; }
+        public int N_routes { get { return routes.Count; } }
         public List<RouteParams> routes { get; set; }
+
+        public MPZParams(MPZParams copyed)
+        {
+            id = copyed.id;
+            PWR_ON = copyed.PWR_ON;
+            start = copyed.start;
+            end = copyed.end; 
+            routes = copyed.routes.Select(r => new RouteParams(r)).ToList();
+        }
 
         public MPZParams(int i)
         {
             id = i;
-            PWR_ON = false;
-            N_routes = 0;
+            PWR_ON = false;            
             routes = new List<RouteParams>();
-
         }
 
         public MPZParams(int i, RouteParams r)
         {
             id = i;
-            PWR_ON = false;
-            N_routes = 1;
+            PWR_ON = false;            
             routes = new List<RouteParams>();
             routes.Add(r);
 
@@ -42,8 +49,7 @@ namespace OptimalChain
             if (N_routes > 11)
                 return false;
 
-            routes.Add(r);
-            N_routes++;
+            routes.Add(r);            
 
             if (N_routes < 2)
                 start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
@@ -62,7 +68,7 @@ namespace OptimalChain
 
 
         /// <summary>
-        /// Проверка соместимости МПЗ и заданного маршрута
+        /// Проверка соместимости МПЗ и заданного маршрута 
         /// </summary>
         /// <param name="r">Маршрут, который требует проверки на совместимось с данным МПЗ</param>
         /// <returns>Код проверки: true--маршрут и МПЗ совместимы, false--маршрут и МПЗ несовместимы</returns>
@@ -73,7 +79,16 @@ namespace OptimalChain
                 if (!route.isCompatible(r))
                     return false;
             }
+            return this.isCompatibleWithMPZ(r);
+        }
 
+        /// <summary>
+        /// Проверка совместимости маршрута с самим МПЗ
+        /// </summary>
+        /// <param name="r"></param>
+        /// <returns></returns>
+        public bool isCompatibleWithMPZ(RouteParams r)
+        {
             if (N_routes < 12)
             {
                 double lasting = ((r.end - this.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON);
@@ -117,9 +132,7 @@ namespace OptimalChain
         }
 
         public bool InsertRoute(RouteParams r, DateTime insert_start, DateTime insert_end, MPZParams m_previous=null, MPZParams m_next = null)
-        {
-            
-
+        {           
             if (this.N_routes > 11) return false;
 
             double dmpz = Double.MaxValue;
@@ -139,8 +152,7 @@ namespace OptimalChain
                     start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
                     routes.Insert(0, r);
                     return true;
-                }
-                
+                }                
             }
 
 
@@ -151,7 +163,6 @@ namespace OptimalChain
             for(int i=0;i<N_routes;i++)
             {
                 RouteParams r1 = routes[i];
-
                 if(i == (N_routes -1))
                 {
                     if (!r.isCompatible(r)) return false;
@@ -173,8 +184,7 @@ namespace OptimalChain
                         r.start = s_new;
                         r.end = r.start.AddMilliseconds(r.duration);
                         return this.AddRoute(r);
-                    }
-                   
+                    }                   
                 }
 
                 RouteParams r2 = routes[i + 1];
@@ -200,7 +210,6 @@ namespace OptimalChain
             }
 
             return false;
-
         }
 
         public static List<MPZParams> FillMPZ(List<RouteParams> routes, int maxMpzNum = 0)
@@ -260,7 +269,6 @@ namespace OptimalChain
             if (currentMPZ!=null)
                 FTAs.Add(currentMPZ); 
             return FTAs;
-
         }
     }
 
@@ -339,7 +347,35 @@ namespace OptimalChain
             return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
         }
 
-        public RouteParams(WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.ePlain, ShootingChannel channel = ShootingChannel.ePK, int fs = 1000)
+        /// <summary>
+        /// станция. Нужно только при сбросе
+        /// </summary>
+        public CommunicationSessionStation station { get; private set; }
+
+
+        public RouteParams(RouteParams copyed)
+        {
+            type = copyed.type;
+            start = copyed.start;
+            end = copyed.end;
+            binded_route = copyed.binded_route;
+            ShootingConf = copyed.ShootingConf;
+            shooting_channel = copyed.shooting_channel;
+            shooting_type = copyed.shooting_type;
+            albedo = copyed.albedo;
+            zipMK = copyed.zipMK;
+            zipPK = copyed.zipPK;
+            duration = copyed.duration;
+            energo_save_mode = copyed.energo_save_mode;
+            File_Size = copyed.File_Size;
+            TNPos = copyed.TNPos;
+            Delta_T = copyed.Delta_T;
+            coridorLength = copyed.coridorLength;
+            coridorAzimuth = copyed.coridorAzimuth; 
+        }
+
+
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000)
         {
             type = t;
             shooting_channel = channel;
@@ -351,7 +387,17 @@ namespace OptimalChain
             duration = (d2 - d1).TotalMilliseconds;
         }
 
-        public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.ePlain, ShootingChannel channel = ShootingChannel.ePK, int fs = 1000, double alb = 0.36, int comp = 10)
+
+        public RouteParams(int route_id, WorkingType t, double dur, Tuple<int, int> br, CommunicationSessionStation st)
+        {
+            id = route_id;
+            type = t;
+            binded_route = br; 
+            duration = dur;
+            station = st;
+        }
+
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
         {
             type = t;
             shooting_channel = channel;

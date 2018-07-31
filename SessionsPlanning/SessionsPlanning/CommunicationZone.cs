@@ -10,14 +10,14 @@ using DBTables;
 
 namespace SatelliteSessions
 {
-    
-    public class CommunicationZone
+
+    public abstract class CommunicationZone
     {
         /// <summary>
         /// Id
         /// </summary>
         public virtual int IdNumber { get; set; }
-
+        public abstract List<SessionsPlanning.CommunicationSessionStation> Stations { get; }
         /// <summary>
         /// In degrees.
         /// </summary>
@@ -135,8 +135,9 @@ namespace SatelliteSessions
         /// <param name="time">Интересующий момент времени</param>
         /// <param name="snkpoi">Зона связи СНКПОИ</param>
         /// <param name="mnkpoi">Зона связи МНКПОИ</param>
-        public static void getCommunicationZones(DIOS.Common.SqlManager DBManager, DateTime time, out CommunicationZoneSNKPOI snkpoi, out CommunicationZoneMNKPOI mnkpoi)
+        public static void getCommunicationZones(string connectStr, DateTime time, out CommunicationZoneSNKPOI snkpoi, out CommunicationZoneMNKPOI mnkpoi)
         {
+            DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
             getSNKPOICommunicationZones(DBManager, out snkpoi);
 
@@ -170,12 +171,33 @@ namespace SatelliteSessions
     {
         public DateTime From;
         public DateTime To;
+        public override List<SessionsPlanning.CommunicationSessionStation> Stations
+        {
+            get
+            {
+                return new List<SessionsPlanning.CommunicationSessionStation>() 
+                {
+                    SessionsPlanning.CommunicationSessionStation.MIGS
+                };
+            }
+        }
     }
 
     public class CommunicationZoneSNKPOI : CommunicationZone
     {
         public override int IdNumber { get { return -1; } }
 
+        public override List<SessionsPlanning.CommunicationSessionStation> Stations 
+        {
+            get 
+            {
+                return new List<SessionsPlanning.CommunicationSessionStation>() 
+                {
+                    SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                    SessionsPlanning.CommunicationSessionStation.FIGS_Backup
+                }; 
+            } 
+        }
     }
 
 }
