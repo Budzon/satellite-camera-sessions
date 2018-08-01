@@ -749,13 +749,13 @@ namespace SatelliteSessions
             {
                 case RegimeTypes.NP:
                 case RegimeTypes.ZI:
+                case RegimeTypes.VI:
                 case RegimeTypes.NP_fok_yust:
                 case RegimeTypes.ZI_fok_yust:
                     // case КАЛИБРОВКА:
                     REGka = 0;
                     break;
                 case RegimeTypes.SI:
-                case RegimeTypes.VI:
                 // case КАЛИБРОВКА:
                 case RegimeTypes.KPI_load:
                 case RegimeTypes.KPI_unload:
