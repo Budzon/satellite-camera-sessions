@@ -802,13 +802,22 @@ namespace SatelliteSessions
             ByteRoutines.SetBitZero(REGta_bytes, 0); //
             ByteRoutines.SetBitZero(REGta_bytes, 1); // Штатный ЗИ и НП -- отдельно 
             ByteRoutines.SetBitZero(REGta_bytes, 2); //
-            ByteRoutines.SetBitOne(REGta_bytes, 3);
+            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+                ByteRoutines.SetBitZero(REGta_bytes, 3);
+            else
+                ByteRoutines.SetBitOne(REGta_bytes, 3);
             ByteRoutines.SetBitZero(REGta_bytes, 4);
             ByteRoutines.SetBitZero(REGta_bytes, 5);
             ByteRoutines.SetBitZero(REGta_bytes, 6);
-            ByteRoutines.SetBitOne(REGta_bytes, 7);
+            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+                ByteRoutines.SetBitZero(REGta_bytes, 7);
+            else
+                ByteRoutines.SetBitOne(REGta_bytes, 7);
             ByteRoutines.SetBitZero(REGta_bytes, 8);
-            ByteRoutines.SetBitOne(REGta_bytes, 9);
+            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+                ByteRoutines.SetBitZero(REGta_bytes, 9);
+            else
+                ByteRoutines.SetBitOne(REGta_bytes, 9);
             // ByteRoutines.SetBitOne(REGta, 10); задается отдельно в МПЗ, SUSPEND_MODE
             ByteRoutines.SetBitZero(REGta_bytes, 11);
             int typeRegime = 0;
