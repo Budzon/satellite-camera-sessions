@@ -125,12 +125,12 @@ namespace SatelliteSessions
 
             if (Routes.Count > 0)
                 Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
-            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
+            Header.Ttask = (uint)((parameters.end - Header.ton).TotalMilliseconds);
             for (int i = 0; i < routes.Count; ++i)
             {
                 Routes[i].NPZ = Header.NPZ;
                 Routes[i].Nroute = i;
-                Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalSeconds * 5;
+                Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalMilliseconds;
                 if (i + 1 < routes.Count - 1)
                 {
                     if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
@@ -141,12 +141,12 @@ namespace SatelliteSessions
             try
             {
                 RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
-                Header.Tvideo = (uint)(firstVideo.Ts - 500);
+                Header.Tvideo = (uint)(firstVideo.Ts - 100*1000);
             }
             catch
             {
                 // Нет маршрутов со съемкой
-                Header.Tvideo = (uint)(HeaderMPZ.TTASK_MAX.TotalSeconds) * 5;
+                Header.Tvideo = (uint)(HeaderMPZ.TTASK_MAX.TotalMilliseconds);
             }
         }
 
@@ -553,22 +553,22 @@ namespace SatelliteSessions
             {
                 case RegimeTypes.SI:
                     int seconds = 5;
-                    Troute = seconds * 5;
+                    Troute = seconds * 1000;
                     Parameters.end = Parameters.start.AddSeconds(seconds);
                     Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.ZI:
-                    Troute = (int)((Parameters.end - Parameters.start).TotalSeconds * 5);
+                    Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
                     Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
                     seconds = (int)(Parameters.File_Size / 1024.0 * 8 + 1);
-                    Troute =  seconds * 5;
+                    Troute =  seconds * 1000;
                     Parameters.end = Parameters.start.AddSeconds(seconds);
                     Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.NP:
-                    Troute = (int)((Parameters.end - Parameters.start).TotalSeconds * 5);
+                    Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
                     Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 default:
@@ -1005,7 +1005,7 @@ namespace SatelliteSessions
             int zippk = Parameters.zipPK > 0 ? Parameters.zipPK : 1;
             return OptimalChain.RouteParams.InformationFluxInBits(
                 Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
-                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute * 0.2) / (1 << 23);
+                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute / 1000) / (1 << 23);
         }
 
         /// <summary>
