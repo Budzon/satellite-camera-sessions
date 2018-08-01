@@ -103,8 +103,6 @@ namespace SatelliteSessions
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 11);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 13);
                 }
-                Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
-                Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
         }
  
@@ -471,9 +469,9 @@ namespace SatelliteSessions
         public int Ts { get; set; } // 16bit
         public int Troute { get; set; } // 16 bit
         public byte[] REGta_bytes { get; set; } // 16 bit
-        public int REGta { get; set; }
+        public int REGta { get { return ByteRoutines.ToInt(REGta_bytes); } }
         public byte[] REGta_Param_bytes { get; set; } // 16 bit
-        public int REGta_Param { get; set; }
+        public int REGta_Param { get { return ByteRoutines.ToInt(REGta_Param_bytes); } }
         public IdFile IDFile { get; set; }
         public byte Delta_T { get; set; } // 1 byte
         public byte Hroute { get; set; } // 1 byte
