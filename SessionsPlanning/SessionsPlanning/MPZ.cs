@@ -651,8 +651,8 @@ namespace SatelliteSessions
             {
                 IDFile = new IdFile
                 {
-                    TNPZ = Parameters.binded_route.Item1,
-                    TNroute = Parameters.binded_route.Item2 == -1 ? 15 : Parameters.binded_route.Item2,
+                    TNPZ = Parameters.binded_route.NPZ,
+                    TNroute = Parameters.binded_route.NRoute == -1 ? 15 : Parameters.binded_route.NRoute,
                     TNPos = 0 //parameters.TNPos == null ? 0 : parameters.TNPos
                 };
             }

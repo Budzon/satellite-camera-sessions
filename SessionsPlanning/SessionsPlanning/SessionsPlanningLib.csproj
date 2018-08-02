@@ -90,7 +90,7 @@
     <Compile Include="MPZ.cs" />
     <Compile Include="OptimalChain\Constants.cs" />
     <Compile Include="OptimalChain\Graph.cs" />
-    <Compile Include="OptimalChain\MPZ.cs" />
+    <Compile Include="OptimalChain\MPZParams.cs" />
     <Compile Include="OptimalChain\Strip.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SatelliteRequests.cs" />

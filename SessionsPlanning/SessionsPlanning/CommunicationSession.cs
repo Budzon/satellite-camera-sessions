@@ -69,8 +69,14 @@ namespace SatelliteSessions
             return resTime;
         }
 
-        public static void getSessionFromZone(CommunicationZone zone, Trajectory trajectory, Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions)
+        public static void getSessionFromZone(
+            CommunicationZone zone,
+            Trajectory trajectory,
+            Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions,
+            List<SessionsPlanning.CommunicationSessionStation> enabledStations)
         {
+            if (enabledStations.Intersect(zone.Stations).Count() == 0)
+                return;
             Vector3D centre = GeoPoint.ToCartesian(new GeoPoint(zone.CentreLat, zone.CentreLon), 1);
 
             bool prevIn5zone = false;
@@ -116,7 +122,9 @@ namespace SatelliteSessions
                     if (is7zoneSet)  // добавляем только если удалось установить и 7 зону тоже      
                     {
                         foreach (var station in zone.Stations)
-                        {                            
+                        {
+                            if (!enabledStations.Contains(station))
+                                continue;
                            CommunicationSession session = new CommunicationSession(
                                 station,
                                 Zone5timeFrom,
@@ -138,16 +146,26 @@ namespace SatelliteSessions
         }
 
 
-        public static void getAllSNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions)
+        public static void getAllSNKPOICommunicationSessions(
+            DateTime timeFrom,
+            DateTime timeTo,
+            DIOS.Common.SqlManager managerDB,
+            Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions,
+            List<SessionsPlanning.CommunicationSessionStation> enabledStations)
         {            
             DataFetcher fetcher = new DataFetcher(managerDB);
-            CommunicationZoneSNKPOI sZone;
+            CommunicationZoneSNKPOI sZone;            
             CommunicationZone.getSNKPOICommunicationZones(managerDB, out sZone);
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
-            getSessionFromZone(sZone, fullTrajectory, sessions);            
+            getSessionFromZone(sZone, fullTrajectory, sessions, enabledStations);            
         }
 
-        public static void getAllMNKPOICommunicationSessions(DateTime timeFrom, DateTime timeTo, DIOS.Common.SqlManager managerDB, Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions)
+        public static void getAllMNKPOICommunicationSessions(
+            DateTime timeFrom,
+            DateTime timeTo,
+            DIOS.Common.SqlManager managerDB,
+            Dictionary<CommunicationSessionStation, List<CommunicationSession>> sessions,
+            List<SessionsPlanning.CommunicationSessionStation> enabledStations)
         { 
             DataFetcher fetcher = new DataFetcher(managerDB);
             List<CommunicationZoneMNKPOI> mZones;
@@ -161,7 +179,7 @@ namespace SatelliteSessions
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             foreach (var zone in mZones)
-            {
+            {                
                 Trajectory trajectory;
                 if (zone.From > timeFrom || zone.To < timeTo) // если временной промежуток зоны более строгий, чем  timeFrom - timeTo
                     trajectory = fetcher.GetTrajectorySat(zone.From > timeFrom ? zone.From : timeFrom,
@@ -169,7 +187,7 @@ namespace SatelliteSessions
                 else
                     trajectory = fullTrajectory;
 
-                getSessionFromZone(zone, trajectory, sessions);
+                getSessionFromZone(zone, trajectory, sessions, enabledStations);
             }             
         }
 
@@ -179,12 +197,16 @@ namespace SatelliteSessions
         /// <param name="timeFrom">Начало временного отрезка</param>
         /// <param name="timeTo">Конец временного отрезка</param>
         /// <returns>Все возможные сеансы связи за это время, сгруппированные по антеннам</returns>
-        public static Dictionary<SessionsPlanning.CommunicationSessionStation, List<CommunicationSession>> createCommunicationSessions(DateTime timeFrom, DateTime timeTo, string connectStr)
+        public static Dictionary<SessionsPlanning.CommunicationSessionStation, List<CommunicationSession>> createCommunicationSessions(
+            DateTime timeFrom,
+            DateTime timeTo,
+            string connectStr,
+            List<SessionsPlanning.CommunicationSessionStation> enabledStations)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             var sessions = new Dictionary<CommunicationSessionStation, List<CommunicationSession>>();
-            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);
-            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions);           
+            getAllSNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions, enabledStations);
+            getAllMNKPOICommunicationSessions(timeFrom, timeTo, managerDB, sessions, enabledStations);           
             return sessions;
         } 
 

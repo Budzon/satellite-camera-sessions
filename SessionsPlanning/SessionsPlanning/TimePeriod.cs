@@ -192,8 +192,13 @@ namespace SatelliteSessions
         /// </summary>
         /// <param name="routesToDrop"></param>
         /// <param name="freeCompressedIntervals"></param>
+        /// <param name="station"> антенна, через которую будет осуществлён сброс. Нужно только для сброса</param>
         /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
-        public static List<RouteParams> getRoutesParamsInIntervals(List<RouteMPZ> routes, List<TimePeriod> freeCompressedIntervals, WorkingType workType, int startId)
+        public static List<RouteParams> getRoutesParamsInIntervals(
+            List<RouteParams> routes,
+            List<TimePeriod> freeCompressedIntervals,
+            WorkingType workType,
+            CommunicationSessionStation station = CommunicationSessionStation.FIGS_Main)
         {  
             List<RouteParams> res = new List<RouteParams>();
             // отсортируем свободные промежутки по продолжительности в порядке возрастания по прищнаку продолжительности
@@ -201,26 +206,25 @@ namespace SatelliteSessions
             { return (span1.dateTo - span1.dateFrom).CompareTo(span2.dateTo - span2.dateFrom); });
 
             foreach (var interval in freeCompressedIntervals.ToArray())
-            {
-                int id = startId + 1;
+            {                 
                 // получим все маршруты, которые могут быть сброшены/удалены в этом промежутке
-                List<RouteMPZ> curRoutes = routes.Where(rout => rout.Parameters.end < interval.dateTo).ToList();
+                List<RouteParams> curRoutes = routes.Where(rout => rout.end < interval.dateTo).ToList();
 
                 if (curRoutes.Count == 0)
                     continue;
 
-                curRoutes.Sort(delegate(RouteMPZ rout1, RouteMPZ rout2) { return rout1.Parameters.end.CompareTo(rout2.Parameters.end); });                 
+                curRoutes.Sort(delegate(RouteParams rout1, RouteParams rout2) { return rout1.end.CompareTo(rout2.end); });                 
 
-                DateTime prevDt = curRoutes[0].Parameters.end > interval.dateFrom ? curRoutes[0].Parameters.end : interval.dateFrom;
+                DateTime prevDt = curRoutes[0].end > interval.dateFrom ? curRoutes[0].end : interval.dateFrom;
                 foreach (var rmpz in curRoutes.ToArray())
                 {
-                    if (prevDt < rmpz.Parameters.end)
-                        prevDt = rmpz.Parameters.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
+                    if (prevDt < rmpz.end)
+                        prevDt = rmpz.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
 
                     double actionTime = 0;
 
                     if (workType == WorkingType.Downloading)
-                        actionTime = rmpz.Parameters.getDropTime();
+                        actionTime = rmpz.getDropTime(station);
                     else if (workType == WorkingType.Removal)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
                     else
@@ -232,11 +236,10 @@ namespace SatelliteSessions
 
                     nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
 
-                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, Tuple.Create(rmpz.NPZ, rmpz.Nroute));
-                    curParam.id = id;
-                    curParam.ShootingConf = rmpz.Parameters.ShootingConf;
+                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, rmpz.Address);                    
+                    curParam.ShootingConf = rmpz.ShootingConf;
                     res.Add(curParam);
-                    id++;
+                    
                     routes.Remove(rmpz);
                     prevDt = nextDt;
                 }
