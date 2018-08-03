@@ -1407,8 +1407,8 @@ namespace SatelliteSessions
         /// <returns>маршрут на удаление или сброс</returns>
         public static RouteParams createServiceRoute(
             DateTime fromDt,
-            ShootingChannel channel,
-            ShootingType shType,
+            ShootingChannel channel, /// @toso зачем эти параметры
+            ShootingType shType, /// @toso зачем эти параметры
             WorkingType wType,
             RouteParams routeToAction)
         {
@@ -1421,10 +1421,8 @@ namespace SatelliteSessions
                 throw new ArgumentException("Unsupported working type");
 
             DateTime toDt = fromDt.AddSeconds(actionTime+OptimalChain.Constants.min_Delta_time);
-
-            //public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
-
-            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction, shType, channel);            
+             
+            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction);            
             return curParam;
         }
         

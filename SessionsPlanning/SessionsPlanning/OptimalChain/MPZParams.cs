@@ -305,7 +305,18 @@ namespace OptimalChain
         /// <summary>
         /// объем файла в Мб
         /// </summary>
-        public int File_Size { get; set; } //объем файла в Мб
+        public int File_Size {
+            get {
+                /// @todo TODO @fixme 
+                /// реализация
+                return 1000;
+            }
+            set
+            {
+                /// @todo TODO @fixme  set-a вообще не нужно, эту секцию удалить лучше
+            }
+        } 
+         
         /// <summary>
         /// Длительность в милисекундах
         /// </summary>
@@ -359,7 +370,7 @@ namespace OptimalChain
         public TimeSpan getDropTime(CommunicationSessionStation station)
         {
             double speed = station == CommunicationSessionStation.FIGS_Main ? 1024.0 : 512.0; // Mb per sec
-            return new TimeSpan(0, 0, 0, (int)(binded_route.File_Size / speed * 8 + 1)); // время на сброс этого роута
+            return new TimeSpan(0, 0, 0, (int)(File_Size / speed * 8 + 1)); // время на сброс этого роута
         }
 
         public RouteParams(RouteParams copyed)
@@ -377,8 +388,7 @@ namespace OptimalChain
             zipMK = copyed.zipMK;
             zipPK = copyed.zipPK;
             duration = copyed.duration;
-            energo_save_mode = copyed.energo_save_mode;
-            File_Size = copyed.File_Size;
+            energo_save_mode = copyed.energo_save_mode; 
             TNPos = copyed.TNPos;
             Delta_T = copyed.Delta_T;
             coridorLength = copyed.coridorLength;
@@ -386,21 +396,10 @@ namespace OptimalChain
         }
 
 
-        public RouteParams( WorkingType t, DateTime d1, DateTime d2, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000)
-        {            
-            type = t;
-            shooting_channel = channel;
-            shooting_type = st;
-            start = d1;
-            end = d2;
-            binded_route = null;
-            File_Size = fs;
-            duration = (d2 - d1).TotalMilliseconds;
-            NRoute = -1;
-            NPZ = -1;            
-        }
-
-        public RouteParams(WorkingType t, double dur, RouteParams _binded_route)
+        public RouteParams(
+            WorkingType t,
+            double dur,
+            RouteParams _binded_route)
         { 
             type = t;
             binded_route = _binded_route;
@@ -409,38 +408,30 @@ namespace OptimalChain
             NPZ = -1;
         }
 
-        public RouteParams(WorkingType t, DateTime d1, DateTime d2, RouteParams _binded_route, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
+        public RouteParams(
+            WorkingType t,
+            DateTime d1,
+            DateTime d2,
+            RouteParams _binded_route)
         { 
-            type = t;
-            shooting_channel = channel;
-            shooting_type = st;
+            type = t;        
             start = d1;
             end = d2;
-            binded_route = _binded_route;
-            File_Size = fs;
-            albedo = alb;
-            zipMK = comp;
-            zipPK = comp;
+            binded_route = _binded_route; 
             duration = (end - start).TotalMilliseconds;
             NRoute = -1;
             NPZ = -1;  
         }
 
         public RouteParams(StaticConf c)
-        { 
-            type = c.type;
-            start = c.dateFrom;
-            end = c.dateTo;
-            binded_route = c.connected_route;
+            : this(c.type, c.dateFrom, c.dateTo, c.connected_route)
+        {           
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
             shooting_type = c.shooting_type;
             albedo = c.AverAlbedo;
             zipMK = c.MinCompression;
-            zipPK = c.MinCompression;
-            duration = (end - start).TotalMilliseconds;
-            NRoute = -1;
-            NPZ = -1;  
+            zipPK = c.MinCompression;  
         }
          
 

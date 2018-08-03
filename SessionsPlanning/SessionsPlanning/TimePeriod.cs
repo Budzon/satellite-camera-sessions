@@ -193,7 +193,7 @@ namespace SatelliteSessions
         /// <param name="routesToDrop"></param>
         /// <param name="freeCompressedIntervals"></param>
         /// <param name="station"> антенна, через которую будет осуществлён сброс. Нужно только для сброса</param>
-        /// <returns> возвращает словарь *временной интервал / маршруты, помещенные в этот интервал*  </returns>
+        /// <returns> возвращает список маршрутов на сброс </returns>
         public static List<RouteParams> getRoutesParamsInIntervals(
             List<RouteParams> routes,
             List<TimePeriod> freeCompressedIntervals,
@@ -224,7 +224,7 @@ namespace SatelliteSessions
                     double actionTime = 0;
 
                     if (workType == WorkingType.Downloading)
-                        actionTime = routePrms.getDropTime(station).TotalSeconds;
+						actionTime = routePrms.getDropTime(station).TotalSeconds;
                     else if (workType == WorkingType.Removal)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
                     else
@@ -236,7 +236,7 @@ namespace SatelliteSessions
 
                     nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
 
-                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, routePrms);          
+                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, routePrms);
                     curParam.ShootingConf = routePrms.ShootingConf;
                     res.Add(curParam);
                     
