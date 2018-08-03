@@ -1414,7 +1414,7 @@ namespace SatelliteSessions
         {
             double actionTime = 0;
             if (wType == WorkingType.Downloading)
-                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS_Main); // @todo @fixme ?? какая антенна?
+                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS_Main).TotalSeconds; 
             else if (wType == WorkingType.Removal)
                 actionTime = OptimalChain.Constants.routeDeleteTime;
             else
