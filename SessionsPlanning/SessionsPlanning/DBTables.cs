@@ -494,6 +494,17 @@ namespace DBTables
             return SatteliteTable.GetNka(res.First());
         }
 
+        /// <summary>
+        /// Формирует список антенн, сортированный по приотритету использования
+        /// </summary>
+        /// <returns>список антенн, сортированный по приотритету использования</returns>
+        public List<SessionsPlanning.CommunicationSessionStation> getSortedStations()
+        {
+            DataTable table = manager.GetSqlObject(StationTable.Name,"");
+            var reqres = table.Select();            
+            var res = reqres.Select(row => Tuple.Create( (SessionsPlanning.CommunicationSessionStation)StationTable.getId(row), StationTable.getPriority(row)));
+            return res.OrderBy(row => row.Item2).Select(row => row.Item1).ToList();
+        }
     }
 
 

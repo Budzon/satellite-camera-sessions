@@ -92,7 +92,7 @@ namespace GeometryTest
                             p.Delta_T = 0;
                             p.duration = 10;
                             p.TNPos = 0;
-                            p.binded_route = Tuple.Create(101, 1);
+                            p.binded_route = new RouteAddress(101, 1);
                             param.Add(p);
                             from = to.AddSeconds(70);
                             to = from.AddSeconds(5);
@@ -468,11 +468,12 @@ namespace GeometryTest
                 CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
                 StaticConf sc = ccToDrop.DefaultStaticConf();
                 RouteParams routeParamtoDrop = new RouteParams(sc);
-                routeParamtoDrop.id = 0;
+                routeParamtoDrop.Address.NRoute = 10;
+                routeParamtoDrop.Address.NPZ = 10;
                 routeParamtoDrop.start = new DateTime(2019, 1, 4);
                 routeParamtoDrop.end = new DateTime(2019, 1, 5);
                 routeParamtoDrop.File_Size = 1000;
-                routeParamtoDrop.binded_route = new Tuple<int, int>(1, 1);
+                routeParamtoDrop.binded_route = new RouteAddress(1, 1);
                 // double timedrop = routeParam.getDropTime();
 
                 RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };
@@ -484,11 +485,11 @@ namespace GeometryTest
                 CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Removal, null);
                 StaticConf scToDelete = ccToDelete.DefaultStaticConf();
                 RouteParams routeParamtoDelete = new RouteParams(scToDelete);
-                routeParamtoDelete.id = 0;
+                routeParamtoDelete.NRoute = 0;
                 routeParamtoDelete.start = new DateTime(2019, 1, 4);
                 routeParamtoDelete.end = new DateTime(2019, 1, 5);
                 routeParamtoDelete.File_Size = 1000;
-                routeParamtoDelete.binded_route = new Tuple<int, int>(1, 1);
+                routeParamtoDelete.binded_route = new RouteAddress(1, 1);
                 RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerCUP) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
@@ -505,7 +506,10 @@ namespace GeometryTest
 
                 List<MPZ> mpzArray;
                 List<CommunicationSession> sessions;
-
+                var enabled = new List<SessionsPlanning.CommunicationSessionStation>  
+            { SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS };
                 Sessions.getMPZArray(requests, dt1, dt2
                                                     , silenceRanges
                                                     , inactivityRanges
@@ -515,7 +519,8 @@ namespace GeometryTest
                                                       , cuksConnStr
                                                       , 0
                                                      , out mpzArray
-                                                     , out sessions);
+                                                     , out sessions
+                                                     , enabled);
             }
 
             catch (Exception ex)

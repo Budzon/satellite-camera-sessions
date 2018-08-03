@@ -39,7 +39,7 @@ namespace OptimalChain
         public int MinCompression { get; set; }
         public double AverAlbedo { get; set; }
 
-        public Tuple<int, int> connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public RouteAddress connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         public string wktPolygon { get; set; }
         /// <summary>
@@ -54,7 +54,22 @@ namespace OptimalChain
         /// <param name="o">список заказов</param>
         /// <param name="polygon">полигон в формет WKT</param>
 
-        public StaticConf(int i, DateTime d1, DateTime d2, double t, double r, double s, List<Order> o, string polygon, int comp, double alb, WorkingType T = WorkingType.Downloading, ShootingChannel channel = ShootingChannel.pk, ShootingType stype = ShootingType.Normal, Tuple<int, int> CR = null, SatelliteSessions.PolinomCoef _poliCoef = null)
+        public StaticConf(
+            int i,
+            DateTime d1,
+            DateTime d2,
+            double t,
+            double r,
+            double s,
+            List<Order> o,
+            string polygon,
+            int comp,
+            double alb,
+            WorkingType T = WorkingType.Downloading,
+            ShootingChannel channel = ShootingChannel.pk,
+            ShootingType stype = ShootingType.Normal,
+            RouteAddress CR = null,
+            SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
             dateFrom = d1;
@@ -106,7 +121,7 @@ namespace OptimalChain
         public double square { get; private set; }//площадь полосы
         public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
         public List<Order> orders { get; private set; } //cвязанные заказы. Список пуст только для маршрута на удаление
-        public Tuple<int, int> connectedRoute {  get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public RouteAddress connectedRoute { get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         public double timeDelta { get; private set;}// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа и упреждение по крену      
         public int MinCompression {  get; private set; }
@@ -152,7 +167,7 @@ namespace OptimalChain
             double _rollAngle,
             List<Order> _orders,
             WorkingType _confType,
-            Tuple<int, int> _connectedRoute,
+            RouteAddress _connectedRoute,
             SatelliteSessions.PolinomCoef _poliCoef  = null)
             : base(_dateFrom, _dateTo)
         {
@@ -245,9 +260,8 @@ namespace OptimalChain
             var newDateTo = (dateTo > confs2.dateTo) ? dateTo : confs2.dateTo;
             var orders = new List<Order>();
             orders.AddRange(orders);
-            orders.AddRange(confs2.orders);
-            Tuple<int, int> newConnectedRoute = connectedRoute;
-            CaptureConf newConf = new CaptureConf(newDateFrom, newDateTo, rollAngle, orders, confType, newConnectedRoute);
+            orders.AddRange(confs2.orders);            
+            CaptureConf newConf = new CaptureConf(newDateFrom, newDateTo, rollAngle, orders, confType, connectedRoute);
 
             return newConf;
         }
