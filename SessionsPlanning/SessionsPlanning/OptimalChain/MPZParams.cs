@@ -359,7 +359,7 @@ namespace OptimalChain
         public TimeSpan getDropTime(CommunicationSessionStation station)
         {
             double speed = station == CommunicationSessionStation.FIGS_Main ? 1024.0 : 512.0; // Mb per sec
-            return new TimeSpan(0, 0, 0, (int)(File_Size / speed * 8 + 1)); // время на сброс этого роута
+            return new TimeSpan(0, 0, 0, (int)(binded_route.File_Size / speed * 8 + 1)); // время на сброс этого роута
         }
 
         public RouteParams(RouteParams copyed)
