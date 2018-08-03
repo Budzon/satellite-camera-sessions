@@ -240,14 +240,7 @@ namespace SatelliteSessions
             Nka = (byte)NumKA;
 
             /* ---------- CONF_RLCI -----------*/
-            byte tmp = 0;
-            ByteRoutines.SetBitOne(ref tmp, 0); // 1 подканал выбран
-            ByteRoutines.SetBitZero(ref tmp, 1); // 2 подканал не выбран
-            ByteRoutines.SetBitZero(ref tmp, 2); // СНКПОИ
-            // ВЫБОР АНТЕННЫ В КОНСТРУКТОРЕ МПЗ
-            ByteRoutines.SetBitZero(ref tmp, 4); // основной канал ЦИ СОЭН
-            // СОСТОЯНИЕ СВРЛ В КОНСТРУКТОРЕ МПЗ 
-            CONF_RLCI = tmp;
+            CONF_RLCI = 0; // В МПЗ
 
 
             /* ---------- Ntask -----------*/
@@ -675,11 +668,19 @@ namespace SatelliteSessions
             {
                 Target_RatePK = (int)(48 * 48 * 12.0 / Parameters.zipPK);
             }
+            else
+            {
+                Target_RatePK = 0;
+            }
 
             /* ---------- Target_RateMK -----------*/
             if (Parameters.zipMK >= 2)
             {
                 Target_RateMK = (int)(24 * 24 * 12.0 / Parameters.zipMK);
+            }
+            else
+            {
+                Target_RateMK = 0;
             }
 
             /* ---------- Quant_InitValuePK -----------*/
