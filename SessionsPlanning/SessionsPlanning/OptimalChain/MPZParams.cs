@@ -366,10 +366,10 @@ namespace OptimalChain
         //public int memoryCellMZU1 { get; set; }
         //public int memoryCellMZU2 { get; set; }
 
-        public double getDropTime(CommunicationSessionStation station)
+        public TimeSpan getDropTime(CommunicationSessionStation station)
         {
-            ///@todo  учёт параметра station! 
-            return (double)File_Size / 300 * 8 + 1; // время на сброс этого роута
+            double speed = station == CommunicationSessionStation.FIGS_Main ? 1024.0 : 512.0; // Mb per sec
+            return new TimeSpan(0, 0, 0, (int)(File_Size / speed * 8 + 1)); // время на сброс этого роута
         }
 
         public RouteParams(RouteParams copyed)
