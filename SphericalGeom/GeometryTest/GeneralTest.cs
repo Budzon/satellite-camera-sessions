@@ -92,7 +92,7 @@ namespace GeometryTest
                             p.Delta_T = 0;
                             p.duration = 10;
                             p.TNPos = 0;
-                            p.binded_route = new RouteAddress(101, 1);
+                            p.binded_route = null; // @todo чего тут я не знаю
                             param.Add(p);
                             from = to.AddSeconds(70);
                             to = from.AddSeconds(5);
@@ -468,12 +468,12 @@ namespace GeometryTest
                 CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
                 StaticConf sc = ccToDrop.DefaultStaticConf();
                 RouteParams routeParamtoDrop = new RouteParams(sc);
-                routeParamtoDrop.Address.NRoute = 10;
-                routeParamtoDrop.Address.NPZ = 10;
+                routeParamtoDrop.NRoute = 10;
+                routeParamtoDrop.NPZ = 10;
                 routeParamtoDrop.start = new DateTime(2019, 1, 4);
                 routeParamtoDrop.end = new DateTime(2019, 1, 5);
                 routeParamtoDrop.File_Size = 1000;
-                routeParamtoDrop.binded_route = new RouteAddress(1, 1);
+                routeParamtoDrop.binded_route = null;
                 // double timedrop = routeParam.getDropTime();
 
                 RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };
@@ -489,7 +489,7 @@ namespace GeometryTest
                 routeParamtoDelete.start = new DateTime(2019, 1, 4);
                 routeParamtoDelete.end = new DateTime(2019, 1, 5);
                 routeParamtoDelete.File_Size = 1000;
-                routeParamtoDelete.binded_route = new RouteAddress(1, 1);
+                routeParamtoDelete.binded_route = null;
                 RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerCUP) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDelete = new List<RouteMPZ>();

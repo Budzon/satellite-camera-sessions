@@ -71,6 +71,7 @@ namespace ConsoleExecutor
             SatLane strip = new SatLane(traj, 0, AstronomyMath.ToRad(90));
             return Polygon.getMultipolFromPolygons(strip.Sectors.Select(sect => sect.polygon).ToList()) ;
         }
+ 
 
         public static string getWKTInterpolateTrajectory(Trajectory trajectory, DateTime segmdt1, DateTime segmdt2, int step)
         {

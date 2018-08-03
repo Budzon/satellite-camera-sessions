@@ -74,9 +74,9 @@ namespace ConsoleExecutor
         }
 
 
-
         static public void test_error()
         {
+            #region
             RequestParams req0 = new RequestParams(333, 1,
                 DateTime.Parse("2010-02-04T00:00:00"),
                 DateTime.Parse("2029-02-04T00:00:00"),
@@ -84,15 +84,13 @@ namespace ConsoleExecutor
                 _minCoverPerc: 333,
                 _Max_sun_angle: 90,
                 _Min_sun_angle: 10,
-                _wktPolygon: "POLYGON((-74.94134736139962 -50.695799815685874, -74.87487785282862 -50.71999273829203, -74.78270527616077 -50.46675066520413, -74.84917478473177 -50.442557742597984, -74.94134736139962 -50.695799815685874))",
+                _wktPolygon: "POLYGON((-61.14715576171875 10.728079873904903,-61.28173828125 10.455401826918404,-61.1553955078125 10.401377554543544,-61.09222412109374 10.70649049256302,-61.14715576171875 10.728079873904903))",
                 _polygonToSubtract: new List<string>(),
                 _requestChannel: 0,
                 _shootingType: ShootingType.Normal,
                 _compression: 1,
                 _albedo: 0
-                );
-
-
+                ); 
 
 
 
@@ -281,12 +279,20 @@ namespace ConsoleExecutor
                 _compression: 1,
                 _albedo: 0
                 );
+#endregion
 
 
-            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00+03:00");// new DateTime(2019, 2, 18, 2, 0, 0);
-            DateTime dt2 = DateTime.Parse("2019-02-04T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+            DateTime dt1 = DateTime.Parse("2019-02-01T10:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-02-01T20:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
 
-            List<RequestParams> reqlist = new List<RequestParams> { req0, req1, req2, req3, req4, req5, req6, req7, req8, req9, req10 };
+            List<RequestParams> reqlist = new List<RequestParams> { req0,  req1, req2, req3, req4, req5, req6, req7, req8, req9, req10 };
+
+
+            //Console.Write("GEOMETRYCOLLECTION(");
+            //Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(req => new Polygon(req.wktPolygon) ).ToList()));
+            //Console.Write(")");
+
+            //return;
 
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
@@ -301,6 +307,31 @@ namespace ConsoleExecutor
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
 
+            List<TimePeriod> shadowPeriods;
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+            List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
+            shadowAndInactivityPeriods.AddRange(inactivityRanges.Select(t => new TimePeriod(t.Item1, t.Item2)));
+            shadowAndInactivityPeriods.AddRange(shadowPeriods);
+            shadowAndInactivityPeriods = TimePeriod.compressTimePeriods(shadowAndInactivityPeriods);
+
+
+    //        List<CaptureConf> confsToCapture
+    //= Sessions.getCaptureConfArray(
+    //reqlist,
+    //dt1, dt2,
+    //CUPmanagerDB,
+    //CUKSmanagerDB,
+    //inactivityRanges.Select(t => new TimePeriod(t.Item1, t.Item2)).ToList(),
+    //new List<TimePeriod>());
+
+    //        Console.Write("GEOMETRYCOLLECTION(");
+    //        Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(req => new Polygon(req.wktPolygon)).ToList()));
+    //        Console.Write(",");
+    //        Console.Write(Polygon.getMultipolFromPolygons(confsToCapture.Select(c => new Polygon(c.wktPolygon)).ToList()));
+    //        Console.Write(")");
+
+    //        return;
             Sessions.getMPZArray(reqlist, dt1, dt2
                     , silenceRanges
                     , inactivityRanges
@@ -317,6 +348,18 @@ namespace ConsoleExecutor
                 SessionsPlanning.CommunicationSessionStation.MIGS }
                     );
 
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(req => new Polygon(req.wktPolygon)).ToList()));
+            Console.Write(",");
+           // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+            Console.Write(")");
 
         }
 
@@ -480,7 +523,8 @@ namespace ConsoleExecutor
 
         static void Main(string[] args)
         {
-            test_getCaptureConfArray();
+            test_error();
+            //test_getCaptureConfArray();
             Console.ReadKey();
         }
     }

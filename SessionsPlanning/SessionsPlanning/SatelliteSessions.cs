@@ -52,7 +52,7 @@ namespace SatelliteSessions
                             p.Delta_T = 0;
                             p.duration = 10;
                             p.TNPos = 0;
-                            p.binded_route = new RouteAddress(101, 1);
+                            p.binded_route = null; // @todo чего тут я не знаю
                             param.Add(p);
                             from = to.AddSeconds(70);
                             to = from.AddSeconds(5);
@@ -593,7 +593,7 @@ namespace SatelliteSessions
                         RouteParams routeParams = new RouteParams(
                             WorkingType.Downloading,
                             routeToDownload.getDropTime(station),
-                            routeToDownload.Address);
+                            routeToDownload);
                         
                         foreach (TimePeriod period in freeStationIntervals)
                         {
@@ -1161,7 +1161,7 @@ namespace SatelliteSessions
                 foreach (var route in mpz.Routes)
                 {
                     if (!route.Parameters.isCompatible(routeParams))
-                        conflicts.Add(Tuple.Create(mpz.Parameters.id, route.Parameters.Address.NRoute));
+                        conflicts.Add(Tuple.Create(mpz.Parameters.id, route.Parameters.NRoute));
                 }
             } 
         }
@@ -1194,7 +1194,7 @@ namespace SatelliteSessions
                 foreach (var mpzRoute in mpz.Routes)
                 {
                     if (!mpzRoute.Parameters.isCompatible(routeParams))
-                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.Address.NRoute.ToString());                       
+                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.NRoute.ToString());                       
                 }
             }
 
@@ -1410,12 +1410,11 @@ namespace SatelliteSessions
             ShootingChannel channel,
             ShootingType shType,
             WorkingType wType,
-            int mpzId,
-            int routeId)
+            RouteParams routeToAction)
         {
             double actionTime = 0;
             if (wType == WorkingType.Downloading)
-                actionTime = 0; // @todo @fixme ?? Как мне узнать время удаления роута, которого у меня нет?
+                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS_Main); // @todo @fixme ?? какая антенна?
             else if (wType == WorkingType.Removal)
                 actionTime = OptimalChain.Constants.routeDeleteTime;
             else
@@ -1425,7 +1424,7 @@ namespace SatelliteSessions
 
             //public RouteParams(WorkingType t, DateTime d1, DateTime d2, Tuple<int, int> br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
 
-            RouteParams curParam = new RouteParams(wType, fromDt, toDt, new RouteAddress(mpzId, routeId), shType, channel);            
+            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction, shType, channel);            
             return curParam;
         }
         

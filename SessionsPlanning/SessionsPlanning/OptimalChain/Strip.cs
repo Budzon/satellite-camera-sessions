@@ -39,7 +39,7 @@ namespace OptimalChain
         public int MinCompression { get; set; }
         public double AverAlbedo { get; set; }
 
-        public RouteAddress connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public RouteParams connected_route { get; set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         public string wktPolygon { get; set; }
         /// <summary>
@@ -68,7 +68,7 @@ namespace OptimalChain
             WorkingType T = WorkingType.Downloading,
             ShootingChannel channel = ShootingChannel.pk,
             ShootingType stype = ShootingType.Normal,
-            RouteAddress CR = null,
+            RouteParams CR = null,
             SatelliteSessions.PolinomCoef _poliCoef = null)
         {
             id = i;
@@ -121,7 +121,7 @@ namespace OptimalChain
         public double square { get; private set; }//площадь полосы
         public string wktPolygon {  get; private set; } //полигон съемки, который захватывается этой конфигураций. Непуст только для маршрутов на съемку и съемку со сбросом.
         public List<Order> orders { get; private set; } //cвязанные заказы. Список пуст только для маршрута на удаление
-        public RouteAddress connectedRoute { get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public RouteParams connectedRoute { get; private set; }//связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
         public double timeDelta { get; private set;}// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа и упреждение по крену      
         public int MinCompression {  get; private set; }
@@ -167,7 +167,7 @@ namespace OptimalChain
             double _rollAngle,
             List<Order> _orders,
             WorkingType _confType,
-            RouteAddress _connectedRoute,
+            RouteParams _connectedRoute,
             SatelliteSessions.PolinomCoef _poliCoef  = null)
             : base(_dateFrom, _dateTo)
         {

@@ -106,7 +106,10 @@ namespace GeometryTest
 
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
-
+            var enabled = new List<SessionsPlanning.CommunicationSessionStation>  
+            { SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS };
             Sessions.getMPZArray(new List<RequestParams> { req }, dt1, dt2
             , silenceRanges
             , inactivityRanges
@@ -116,7 +119,8 @@ namespace GeometryTest
             , cuksConnStr
             , 356
             , out mpzArray
-            , out sessions);
+            , out sessions
+            , enabled);
 
 
             RouteParams routesParams = new RouteParams(mpzArray.First().Routes.First().Parameters);

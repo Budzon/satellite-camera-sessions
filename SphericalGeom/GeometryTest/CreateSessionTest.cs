@@ -32,10 +32,14 @@ namespace GeometryTest
 
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
-            List<CommunicationSession> sessions = new List<CommunicationSession>();
-            CommunicationSession.getSessionFromZone(sZone, fullTrajectory, sessions);
+            var enabled = new List<SessionsPlanning.CommunicationSessionStation>  
+            { SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS };
+            var sessions = new Dictionary<SessionsPlanning.CommunicationSessionStation, List<CommunicationSession>>();
+            CommunicationSession.getSessionFromZone(sZone, fullTrajectory, sessions, enabled);
 
-            CommunicationSession testSession = sessions[0];
+            CommunicationSession testSession = sessions.SelectMany(item => item.Value).First();
 
             DateTime dtFrom = testSession.DropInterval.dateFrom;
             DateTime dtTo = testSession.DropInterval.dateTo;

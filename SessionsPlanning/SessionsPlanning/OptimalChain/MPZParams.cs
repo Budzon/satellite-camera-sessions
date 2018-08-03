@@ -136,8 +136,8 @@ namespace OptimalChain
         {            
             for (int i = 0; i < routes.Count; i++)
             {
-                routes[i].Address.NRoute = i;
-                routes[i].Address.NPZ = this.id;
+                routes[i].NRoute = i;
+                routes[i].NPZ = this.id;
             }
         }
 
@@ -277,8 +277,8 @@ namespace OptimalChain
             return FTAs;
         }
     }
-
-    public class RouteAddress
+ 
+    public class RouteParams
     {
         /// <summary>
         /// номер маршрута в мпз
@@ -288,17 +288,7 @@ namespace OptimalChain
         /// номер родительского мпз
         /// </summary>
         public int NPZ { get; set; }
-        
-        public RouteAddress(int nR, int nM)
-        {
-            NRoute = nR;
-            NPZ = nM;
-        }
 
-    }
-    public class RouteParams
-    {
-        public RouteAddress Address { get; set; } // номер мпз и маршрута
         public WorkingType type { get; set; } // тип работы
         public ShootingChannel shooting_channel { get; set; } // канал
 
@@ -310,7 +300,7 @@ namespace OptimalChain
 
         public StaticConf ShootingConf { get; set; }
 
-        public RouteAddress binded_route { get; set; }
+        public RouteParams binded_route { get; set; }
 
         /// <summary>
         /// объем файла в Мб
@@ -374,7 +364,8 @@ namespace OptimalChain
 
         public RouteParams(RouteParams copyed)
         {
-            Address = copyed.Address;
+            NRoute = copyed.NRoute;
+            NPZ = copyed.NPZ;
             type = copyed.type;
             start = copyed.start;
             end = copyed.end;
@@ -405,31 +396,34 @@ namespace OptimalChain
             binded_route = null;
             File_Size = fs;
             duration = (d2 - d1).TotalMilliseconds;
-            Address = new RouteAddress(-1, -1);
+            NRoute = -1;
+            NPZ = -1;            
         }
 
-        public RouteParams(WorkingType t, double dur, RouteAddress br)
+        public RouteParams(WorkingType t, double dur, RouteParams _binded_route)
         { 
             type = t;
-            binded_route = br;
+            binded_route = _binded_route;
             duration = dur;
-            Address = new RouteAddress(-1, -1);
+            NRoute = -1;
+            NPZ = -1;
         }
 
-        public RouteParams(WorkingType t, DateTime d1, DateTime d2, RouteAddress br, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
+        public RouteParams(WorkingType t, DateTime d1, DateTime d2, RouteParams _binded_route, ShootingType st = ShootingType.Normal, ShootingChannel channel = ShootingChannel.pk, int fs = 1000, double alb = 0.36, int comp = 10)
         { 
             type = t;
             shooting_channel = channel;
             shooting_type = st;
             start = d1;
             end = d2;
-            binded_route = br;
+            binded_route = _binded_route;
             File_Size = fs;
             albedo = alb;
             zipMK = comp;
             zipPK = comp;
             duration = (end - start).TotalMilliseconds;
-            Address = new RouteAddress(-1, -1);
+            NRoute = -1;
+            NPZ = -1;  
         }
 
         public RouteParams(StaticConf c)
@@ -445,7 +439,8 @@ namespace OptimalChain
             zipMK = c.MinCompression;
             zipPK = c.MinCompression;
             duration = (end - start).TotalMilliseconds;
-            Address = new RouteAddress(-1, -1);
+            NRoute = -1;
+            NPZ = -1;  
         }
          
 

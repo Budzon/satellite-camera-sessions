@@ -216,15 +216,15 @@ namespace SatelliteSessions
                 curRoutes.Sort(delegate(RouteParams rout1, RouteParams rout2) { return rout1.end.CompareTo(rout2.end); });                 
 
                 DateTime prevDt = curRoutes[0].end > interval.dateFrom ? curRoutes[0].end : interval.dateFrom;
-                foreach (var rmpz in curRoutes.ToArray())
+                foreach (var routePrms in curRoutes.ToArray())
                 {
-                    if (prevDt < rmpz.end)
-                        prevDt = rmpz.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
+                    if (prevDt < routePrms.end)
+                        prevDt = routePrms.end; // если текущее время раньше времени конца работы сбрасываемого/удаляемого маршрута, сдвигаем текущее время
 
                     double actionTime = 0;
 
                     if (workType == WorkingType.Downloading)
-                        actionTime = rmpz.getDropTime(station);
+                        actionTime = routePrms.getDropTime(station);
                     else if (workType == WorkingType.Removal)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
                     else
@@ -236,11 +236,11 @@ namespace SatelliteSessions
 
                     nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
 
-                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, rmpz.Address);                    
-                    curParam.ShootingConf = rmpz.ShootingConf;
+                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, routePrms);          
+                    curParam.ShootingConf = routePrms.ShootingConf;
                     res.Add(curParam);
                     
-                    routes.Remove(rmpz);
+                    routes.Remove(routePrms);
                     prevDt = nextDt;
                 }
             }
