@@ -63,7 +63,7 @@ namespace SessionsPlanning
         public uint Longitude { get; set; }
         public bool North { get; set; }
         public bool East { get; set; }
-
+        
         public string Name
         {
             get
@@ -74,8 +74,8 @@ namespace SessionsPlanning
 
         public Tile(GeoPoint gp)
         {
-            North = Comparison.IsPositive(gp.Latitude);
-            East = Comparison.IsPositive(gp.Longitude);
+            North = !Comparison.IsNegative(gp.Latitude);
+            East = !Comparison.IsNegative(gp.Longitude);
             double alat = Math.Abs(gp.Latitude);
             double alon = Math.Abs(gp.Longitude);
             Latitude = (uint)(North ? Math.Floor(alat) : Math.Ceiling(alat));
@@ -86,12 +86,22 @@ namespace SessionsPlanning
     public class DemHandler
     {
         public string Path { get; private set; }
+        public string Prefix { get; private set; }
+        public bool Zip { get; private set; }
+        public bool Ftp { get; private set; }
         private Random rand;
 
-        public DemHandler(string path)
+        public DemHandler(string path, bool zip, bool ftp)
         {
             rand = new Random();
             Path = path;
+            Prefix = "";
+            Zip = zip;
+            Ftp = ftp;
+            if (zip)
+                Prefix += Prefix.Length == 0 ? "/vsizip/" : "vsizip/";
+            if (ftp)
+                Prefix += Prefix.Length == 0 ? "/vsicurl/" : "vsicurl/";
             GdalConfiguration.ConfigureGdal();
         }
 
@@ -102,8 +112,8 @@ namespace SessionsPlanning
 
         private RasterData GetRaster(Tile tile)
         {
-            var dataSet = Gdal.Open(Path + tile.Name, OSGeo.GDAL.Access.GA_ReadOnly);
-
+            var dataSet = Gdal.Open(Prefix + Path + tile.Name + (Zip ? ".zip" : ""), OSGeo.GDAL.Access.GA_ReadOnly);
+            
             if (dataSet.RasterCount != 1)
                 throw new Exception(String.Format("Wrong number of raster bands: {0}", dataSet.RasterCount));
 
@@ -135,6 +145,11 @@ namespace SessionsPlanning
         private Int16 GetHeight(RasterData rasterData, GeoPoint gp)
         {
             return GetHeight(rasterData, gp.Latitude, gp.Longitude);
+        }
+
+        public OSGeo.GDAL.Dataset Open(string path)
+        {
+            return Gdal.Open(path, OSGeo.GDAL.Access.GA_ReadOnly);
         }
 
         public Int16 GetHeight(GeoPoint gp)

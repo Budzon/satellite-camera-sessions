@@ -592,7 +592,7 @@ namespace SatelliteSessions
                     {
                         RouteParams routeParams = new RouteParams(
                             WorkingType.Downloading,
-                            routeToDownload.getDropTime(station),
+                            routeToDownload.getDropTime(station).TotalSeconds,
                             routeToDownload);
                         
                         foreach (TimePeriod period in freeStationIntervals)

@@ -224,7 +224,7 @@ namespace SatelliteSessions
                     double actionTime = 0;
 
                     if (workType == WorkingType.Downloading)
-                        actionTime = routePrms.getDropTime(station);
+						actionTime = rmpz.getDropTime(station).TotalSeconds;
                     else if (workType == WorkingType.Removal)
                         actionTime = OptimalChain.Constants.routeDeleteTime;
                     else

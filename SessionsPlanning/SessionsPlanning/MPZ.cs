@@ -54,17 +54,20 @@ namespace SatelliteSessions
             loadRoutes(routes);
 
             /* ---------- CONF_RLCI -----------*/
-            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
-            if (nkpoiOnTheLeft(fetcher))
-                Header.CONF_RLCI += 8; // ВЫБОР АНТЕННЫ АРМ2
-            else
-                Header.CONF_RLCI += 0; // ВЫБОР АНТЕННЫ АРМ1
             bool dumpsData = Routes.Any(route => route.RegimeType == RegimeTypes.VI || route.RegimeType == RegimeTypes.NP);
-            if (dumpsData)
-                Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
-            else
+            if (!dumpsData)
                 Header.CONF_RLCI = 0; // нет сброса, то 0 целиком
-
+            else
+            {
+                Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
+                if (Parameters.Station == SessionsPlanning.CommunicationSessionStation.FIGS_Main)
+                    Header.CONF_RLCI += 3; // два подканала, 1024мб/с, обе поляризации
+                else
+                    Header.CONF_RLCI += 1; // один подканал, 512мб/с, с правой поляризацией
+                if (Parameters.Station == SessionsPlanning.CommunicationSessionStation.MIGS)
+                    Header.CONF_RLCI += 4; // МНКПОИ
+            }            
+            
             /* ---------- Session_key_On -----------*/
             Header.Session_key_ON = (byte)(flags.sessionKeyOn ? 1 : 0);
 
@@ -103,8 +106,6 @@ namespace SatelliteSessions
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 11);
                     ByteRoutines.SetBitOne(Routes[i].REGta_Param_bytes, 13);
                 }
-                Routes[i].REGta = ByteRoutines.ToInt(Routes[i].REGta_bytes);
-                Routes[i].REGta_Param = ByteRoutines.ToInt(Routes[i].REGta_Param_bytes);
             }
         }
  
@@ -125,12 +126,19 @@ namespace SatelliteSessions
 
             if (Routes.Count > 0)
                 Header.ton = (Routes[0].startTime - HeaderMPZ.TON_DELTA); // ПРВЕРИТЬ АДЕКВАТНОСТЬ
-            Header.Ttask = (uint)((parameters.end - Header.ton).TotalSeconds * 5);
+            Header.Ttask = (uint)((parameters.end - Header.ton).TotalMilliseconds);
             for (int i = 0; i < routes.Count; ++i)
             {
+                if (Routes[i].RegimeType == RegimeTypes.VI)
+                {
+                    var span = Routes[i].Parameters.getDropTime(Parameters.Station.Value);
+                    Routes[i].Troute = (int)span.TotalMilliseconds;
+                    Routes[i].Parameters.end = Routes[i].Parameters.start + span;
+                    Routes[i].Parameters.duration = Routes[i].Troute;
+                }
                 Routes[i].NPZ = Header.NPZ;
                 Routes[i].Nroute = i;
-                Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalSeconds * 5;
+                Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalMilliseconds;
                 if (i + 1 < routes.Count - 1)
                 {
                     if ((Routes[i + 1].Parameters.start - Routes[i].Parameters.end).TotalSeconds > 60)
@@ -141,12 +149,12 @@ namespace SatelliteSessions
             try
             {
                 RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
-                Header.Tvideo = (uint)(firstVideo.Ts - 500);
+                Header.Tvideo = (uint)(firstVideo.Ts - 100*1000);
             }
             catch
             {
                 // Нет маршрутов со съемкой
-                Header.Tvideo = (uint)(HeaderMPZ.TTASK_MAX.TotalSeconds) * 5;
+                Header.Tvideo = (uint)(HeaderMPZ.TTASK_MAX.TotalMilliseconds);
             }
         }
 
@@ -232,14 +240,7 @@ namespace SatelliteSessions
             Nka = (byte)NumKA;
 
             /* ---------- CONF_RLCI -----------*/
-            byte tmp = 0;
-            ByteRoutines.SetBitOne(ref tmp, 0); // 1 подканал выбран
-            ByteRoutines.SetBitZero(ref tmp, 1); // 2 подканал не выбран
-            ByteRoutines.SetBitZero(ref tmp, 2); // СНКПОИ
-            // ВЫБОР АНТЕННЫ В КОНСТРУКТОРЕ МПЗ
-            ByteRoutines.SetBitZero(ref tmp, 4); // основной канал ЦИ СОЭН
-            // СОСТОЯНИЕ СВРЛ В КОНСТРУКТОРЕ МПЗ 
-            CONF_RLCI = tmp;
+            CONF_RLCI = 0; // В МПЗ
 
 
             /* ---------- Ntask -----------*/
@@ -471,9 +472,9 @@ namespace SatelliteSessions
         public int Ts { get; set; } // 16bit
         public int Troute { get; set; } // 16 bit
         public byte[] REGta_bytes { get; set; } // 16 bit
-        public int REGta { get; set; }
+        public int REGta { get { return ByteRoutines.ToInt(REGta_bytes); } }
         public byte[] REGta_Param_bytes { get; set; } // 16 bit
-        public int REGta_Param { get; set; }
+        public int REGta_Param { get { return ByteRoutines.ToInt(REGta_Param_bytes); } }
         public IdFile IDFile { get; set; }
         public byte Delta_T { get; set; } // 1 byte
         public byte Hroute { get; set; } // 1 byte
@@ -553,22 +554,21 @@ namespace SatelliteSessions
             {
                 case RegimeTypes.SI:
                     int seconds = 5;
-                    Troute = seconds * 5;
+                    Troute = seconds * 1000;
                     Parameters.end = Parameters.start.AddSeconds(seconds);
                     Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.ZI:
-                    Troute = (int)((Parameters.end - Parameters.start).TotalSeconds * 5);
+                    Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
                     Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
-                    seconds = (int)(Parameters.File_Size / 1024.0 * 8 + 1);
-                    Troute =  seconds * 5;
-                    Parameters.end = Parameters.start.AddSeconds(seconds);
-                    Parameters.duration = seconds * 1e3;
+                    // Troute requires antenna data from Header
+                    //Parameters.end = Parameters.start.AddSeconds(seconds);
+                    //Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.NP:
-                    Troute = (int)((Parameters.end - Parameters.start).TotalSeconds * 5);
+                    Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
                     Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 default:
@@ -668,11 +668,19 @@ namespace SatelliteSessions
             {
                 Target_RatePK = (int)(48 * 48 * 12.0 / Parameters.zipPK);
             }
+            else
+            {
+                Target_RatePK = 0;
+            }
 
             /* ---------- Target_RateMK -----------*/
             if (Parameters.zipMK >= 2)
             {
                 Target_RateMK = (int)(24 * 24 * 12.0 / Parameters.zipMK);
+            }
+            else
+            {
+                Target_RateMK = 0;
             }
 
             /* ---------- Quant_InitValuePK -----------*/
@@ -749,13 +757,13 @@ namespace SatelliteSessions
             {
                 case RegimeTypes.NP:
                 case RegimeTypes.ZI:
+                case RegimeTypes.VI:
                 case RegimeTypes.NP_fok_yust:
                 case RegimeTypes.ZI_fok_yust:
                     // case КАЛИБРОВКА:
                     REGka = 0;
                     break;
                 case RegimeTypes.SI:
-                case RegimeTypes.VI:
                 // case КАЛИБРОВКА:
                 case RegimeTypes.KPI_load:
                 case RegimeTypes.KPI_unload:
@@ -802,13 +810,22 @@ namespace SatelliteSessions
             ByteRoutines.SetBitZero(REGta_bytes, 0); //
             ByteRoutines.SetBitZero(REGta_bytes, 1); // Штатный ЗИ и НП -- отдельно 
             ByteRoutines.SetBitZero(REGta_bytes, 2); //
-            ByteRoutines.SetBitOne(REGta_bytes, 3);
+            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+                ByteRoutines.SetBitZero(REGta_bytes, 3);
+            else
+                ByteRoutines.SetBitOne(REGta_bytes, 3);
             ByteRoutines.SetBitZero(REGta_bytes, 4);
             ByteRoutines.SetBitZero(REGta_bytes, 5);
             ByteRoutines.SetBitZero(REGta_bytes, 6);
-            ByteRoutines.SetBitOne(REGta_bytes, 7);
+            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+                ByteRoutines.SetBitZero(REGta_bytes, 7);
+            else
+                ByteRoutines.SetBitOne(REGta_bytes, 7);
             ByteRoutines.SetBitZero(REGta_bytes, 8);
-            ByteRoutines.SetBitOne(REGta_bytes, 9);
+            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+                ByteRoutines.SetBitZero(REGta_bytes, 9);
+            else
+                ByteRoutines.SetBitOne(REGta_bytes, 9);
             // ByteRoutines.SetBitOne(REGta, 10); задается отдельно в МПЗ, SUSPEND_MODE
             ByteRoutines.SetBitZero(REGta_bytes, 11);
             int typeRegime = 0;
@@ -1005,7 +1022,7 @@ namespace SatelliteSessions
             int zippk = Parameters.zipPK > 0 ? Parameters.zipPK : 1;
             return OptimalChain.RouteParams.InformationFluxInBits(
                 Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
-                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute * 0.2) / (1 << 23);
+                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute / 1000) / (1 << 23);
         }
 
         /// <summary>
