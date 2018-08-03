@@ -54,17 +54,20 @@ namespace SatelliteSessions
             loadRoutes(routes);
 
             /* ---------- CONF_RLCI -----------*/
-            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(DBmanager);
-            if (nkpoiOnTheLeft(fetcher))
-                Header.CONF_RLCI += 8; // ВЫБОР АНТЕННЫ АРМ2
-            else
-                Header.CONF_RLCI += 0; // ВЫБОР АНТЕННЫ АРМ1
             bool dumpsData = Routes.Any(route => route.RegimeType == RegimeTypes.VI || route.RegimeType == RegimeTypes.NP);
-            if (dumpsData)
-                Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
-            else
+            if (!dumpsData)
                 Header.CONF_RLCI = 0; // нет сброса, то 0 целиком
-
+            else
+            {
+                Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
+                if (Parameters.Station == SessionsPlanning.CommunicationSessionStation.FIGS_Main)
+                    Header.CONF_RLCI += 3; // два подканала, 1024мб/с, обе поляризации
+                else
+                    Header.CONF_RLCI += 1; // один подканал, 512мб/с, с правой поляризацией
+                if (Parameters.Station == SessionsPlanning.CommunicationSessionStation.MIGS)
+                    Header.CONF_RLCI += 4; // МНКПОИ
+            }            
+            
             /* ---------- Session_key_On -----------*/
             Header.Session_key_ON = (byte)(flags.sessionKeyOn ? 1 : 0);
 
@@ -126,6 +129,13 @@ namespace SatelliteSessions
             Header.Ttask = (uint)((parameters.end - Header.ton).TotalMilliseconds);
             for (int i = 0; i < routes.Count; ++i)
             {
+                if (Routes[i].RegimeType == RegimeTypes.VI)
+                {
+                    var span = Routes[i].Parameters.getDropTime(Parameters.Station.Value);
+                    Routes[i].Troute = (int)span.TotalMilliseconds;
+                    Routes[i].Parameters.end = Routes[i].Parameters.start + span;
+                    Routes[i].Parameters.duration = Routes[i].Troute;
+                }
                 Routes[i].NPZ = Header.NPZ;
                 Routes[i].Nroute = i;
                 Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalMilliseconds;
@@ -560,10 +570,9 @@ namespace SatelliteSessions
                     Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
-                    seconds = (int)(Parameters.File_Size / 1024.0 * 8 + 1);
-                    Troute =  seconds * 1000;
-                    Parameters.end = Parameters.start.AddSeconds(seconds);
-                    Parameters.duration = seconds * 1e3;
+                    // Troute requires antenna data from Header
+                    //Parameters.end = Parameters.start.AddSeconds(seconds);
+                    //Parameters.duration = seconds * 1e3;
                     break;
                 case RegimeTypes.NP:
                     Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
