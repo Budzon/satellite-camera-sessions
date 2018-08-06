@@ -443,7 +443,6 @@ namespace OptimalChain
         public bool isCompatible(RouteParams r)
         {
             StaticConf c1, c2;
-
            
             if (r.start > this.start)
             {
