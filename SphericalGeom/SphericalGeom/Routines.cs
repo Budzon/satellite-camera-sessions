@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
+using Microsoft.Research.Oslo;
 
 using Common;
 using Astronomy;
@@ -330,6 +331,49 @@ namespace SphericalGeom
             //return f((left + right) / 2);
         }
 
+
+        public static Matrix getRotMatr(Vector3D axis, double angle)
+        {
+            // почему-то работает в 4+ раз быстрее стандартного метода
+            Vector3D r = new Vector3D(axis.X, axis.Y, axis.Z);
+            r.Normalize();
+            double rx = r.X;
+            double ry = r.Y;
+            double rz = r.Z;
+
+            double V = (1 - Math.Cos(angle));
+            double sinAngle = Math.Sin(angle);
+            double cosAngle = Math.Cos(angle);
+
+            double m11 = rx * rx * V + cosAngle;
+            double m12 = rx * ry * V - rz * sinAngle;
+            double m13 = rx * rz * V + ry * sinAngle;
+
+            double m21 = rx * ry * V + rz * sinAngle;
+            double m22 = ry * ry * V + cosAngle;
+            double m23 = ry * rz * V - rx * sinAngle;
+
+            double m31 = rx * rz * V - ry * sinAngle;
+            double m32 = ry * rz * V + rx * sinAngle;
+            double m33 = rz * rz * V + cosAngle;
+
+            double[][] ar = new double[3][]{
+                 new double[3]{m11, m12, m13},
+                 new double[3]{m21, m22, m23},
+                 new double[3]{m31, m32, m33}
+            };
+            return new Matrix(ar);
+        }
+
+        public static Vector3D applyRotMatr(Vector3D vect, Matrix rotMatr)
+        {
+            return new Vector3D
+            (
+                rotMatr[0, 0] * vect.X + rotMatr[0, 1] * vect.Y + rotMatr[0, 2] * vect.Z,
+                rotMatr[1, 0] * vect.X + rotMatr[1, 1] * vect.Y + rotMatr[1, 2] * vect.Z,
+                rotMatr[2, 0] * vect.X + rotMatr[2, 1] * vect.Y + rotMatr[2, 2] * vect.Z
+            );
+        }
 
         ///// <summary>
         ///// Полигон видимости СОЭН

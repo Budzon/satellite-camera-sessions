@@ -359,14 +359,14 @@ namespace ConsoleExecutor
         {
             //test_checkIfViewLaneIsLit();
             //return;
-            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00+03:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
             DateTime dt2 = DateTime.Parse("2019-02-08T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
             
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
-
+ 
             List<string> wktList = new List<string>(){
             "POLYGON((153.17138671875 -28.557988492481016, 153.20983886718747 -28.021075462659887, 153.10546874999997 -28.01137657176146, 153.03955078124997 -28.548338387631418, 153.17138671875 -28.557988492481016))"
             ,"POLYGON((154.3393780386478 8.456259424457386,153.88343525756835 7.531485504923765,154.98209256137423 7.346285806781779,154.53713635333284 8.075724865506643,154.3393780386478 8.456259424457386))"
@@ -433,9 +433,7 @@ namespace ConsoleExecutor
             Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
             Console.Write(")");
         }
-
-
-
+        
         static public void test_TestSessionsSequenses()
         {
             DateTime fromDt = DateTime.Parse("20.02.2019 0:0:0");
@@ -546,13 +544,15 @@ namespace ConsoleExecutor
             double ours_sum = 0;
             double theirs_sum = 0;
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 100; i++)
             {
-                ours_sum += ours_Polygons(lineWkt, wktList);
                 theirs_sum += theirs_Polygons(lineWkt, wktList);
+                ours_sum += ours_Polygons(lineWkt, wktList);
+                
             }
-            double ours = ours_sum / 100;
             double theirs = theirs_sum / 100;
+            double ours = ours_sum / 100;
+            
             Console.WriteLine("Вариант с  SqlGeography быстрее в {0} раз", ours / theirs);
         }
 
@@ -630,13 +630,69 @@ namespace ConsoleExecutor
             Console.WriteLine(")");
         }
 
+
+        //static double test_addroll_1()
+        //{                      
+        //    DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00+03:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+
+        //    string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+        //    string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+        //    DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+        //    DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+            
+        //    TrajectoryPoint p1 = new DataFetcher(CUPmanagerDB).GetSingleSatPoint(dt1).Value;
+
+        //    DateTime start = DateTime.Now;
+        //    SatelliteCoordinates firstKaPos = new SatelliteCoordinates(p1);
+
+        //    for (double i = 0; i < 3; i += 0.00001)
+        //    {
+        //        firstKaPos.addRollRotMOD(0.2);
+        //    }            
+        //    DateTime end = DateTime.Now;
+        //    Console.WriteLine(firstKaPos.ViewDir);
+        //    return (end - start).Milliseconds; 
+        //}
+
+        //static double test_addroll_2()
+        //{
+        //    DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00+03:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+
+        //    string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+        //    string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+        //    DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+        //    DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+            
+        //    TrajectoryPoint p1 = new DataFetcher(CUPmanagerDB).GetSingleSatPoint(dt1).Value;
+
+        //    DateTime start = DateTime.Now;
+        //    SatelliteCoordinates firstKaPos = new SatelliteCoordinates(p1);
+
+        //    for (double i = 0; i < 3; i += 0.00001)
+        //    {
+        //        firstKaPos.addRollRot(0.2);
+        //    }
+        //    DateTime end = DateTime.Now;
+        //    Console.WriteLine(firstKaPos.ViewDir);
+        //    return (end - start).Milliseconds; 
+        //}
+
+
+        //static void test_addroll()
+        //{
+        //    double dur1 = test_addroll_1();
+        //    double dur2 = test_addroll_2();
+        //    Console.WriteLine("{0}/{1}", dur2 , dur1);
+        //    Console.WriteLine("Вариант с  MOD быстрее в {0} раз", dur2 / dur1);
+        //}
+
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
 
            // test_error();
+           // test_addroll();
             test_getPlainMpzArray();
-            //test_Polygons();
             
             DateTime end = DateTime.Now;
             Console.WriteLine("Время выполнения : {0} ", (end - start).ToString());

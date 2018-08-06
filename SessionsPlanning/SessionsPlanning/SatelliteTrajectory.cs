@@ -625,8 +625,8 @@ namespace SatelliteTrajectory
         private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
         {
             Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
-            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAx, 90));
-            Vector3D controlPoint = leftTransform.Transform(KAPoint);
+            Matrix rotMatr = Routines.getRotMatr(rotAx, Math.PI / 2);
+            Vector3D controlPoint = Routines.applyRotMatr(KAPoint, rotMatr);
             double lenth = Vector3D.DotProduct(sidePoint, controlPoint) / controlPoint.Length;
             controlPoint.Normalize();
             controlPoint = controlPoint * lenth;
@@ -1168,58 +1168,14 @@ namespace SatelliteTrajectory
             addPitchRot(pitchAngle);
         }
         
-        private Matrix getRotMatr(Vector3D axis, double angle)
-        {
-            // почему-то работает в 4 раза быстрее стандартного метода
-            Vector3D r = new Vector3D(axis.X, axis.Y, axis.Z);
-            r.Normalize();
-            double rx = r.X;
-            double ry = r.Y;
-            double rz = r.Z;
-
-            double V = (1 - Math.Cos(angle));
-            double sinAngle = Math.Sin(angle);
-            double cosAngle = Math.Cos(angle);
-
-            double m11 = rx * rx * V + cosAngle;
-            double m12 = rx * ry * V - rz * sinAngle;
-            double m13 = rx * rz * V + ry * sinAngle;
-
-            double m21 = rx * ry * V + rz * sinAngle;
-            double m22 = ry * ry * V + cosAngle;
-            double m23 = ry * rz * V - rx * sinAngle;
-
-            double m31 = rx * rz * V - ry * sinAngle;
-            double m32 = ry * rz * V + rx * sinAngle;
-            double m33 = rz * rz * V + cosAngle;
-
-            double[][] ar = new double[3][]{
-                 new double[3]{m11, m12, m13},
-                 new double[3]{m21, m22, m23},
-                 new double[3]{m31, m32, m33}
-            };
-            Matrix rotMatr = new Matrix(ar);
-
-            return rotMatr; 
-        }
-
-        private Vector3D applyRotMatr(Vector3D vect, Matrix rotMatr)
-        {
-            return new Vector3D
-            (
-                rotMatr[0,0]*vect.X + rotMatr[0,1]*vect.Y + rotMatr[0,2]*vect.Z,
-                rotMatr[1,0]*vect.X + rotMatr[1,1]*vect.Y + rotMatr[1,2]*vect.Z,
-                rotMatr[2,0]*vect.X + rotMatr[2,1]*vect.Y + rotMatr[2,2]*vect.Z             
-            );
-        }
 
         public void addPitchRot(double angle)
         {
             if (angle == 0)
                 return;
-            Matrix rotMatr = getRotMatr(kaX, -angle);
-            kaY = applyRotMatr(kaY, rotMatr);
-            kaZ = applyRotMatr(kaZ, rotMatr);
+            Matrix rotMatr = Routines.getRotMatr(kaX, -angle);
+            kaY = Routines.applyRotMatr(kaY, rotMatr);
+            kaZ = Routines.applyRotMatr(kaZ, rotMatr);
 
             knowViewPolygon = false;
         }
@@ -1230,9 +1186,9 @@ namespace SatelliteTrajectory
             if (angle == 0)
                 return;
             /// поворачиваем в обратную сторону, так как за положительный крен принят поворот по часовой
-            Matrix rotMatr = getRotMatr(kaZ, -angle);
-            kaX = applyRotMatr(kaX, rotMatr);
-            kaY = applyRotMatr(kaY, rotMatr);
+            Matrix rotMatr = Routines.getRotMatr(kaZ, -angle);
+            kaX = Routines.applyRotMatr(kaX, rotMatr);
+            kaY = Routines.applyRotMatr(kaY, rotMatr);
             knowViewPolygon = false;
         }
 
