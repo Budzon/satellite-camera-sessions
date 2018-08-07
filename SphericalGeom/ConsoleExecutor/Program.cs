@@ -49,18 +49,18 @@ namespace ConsoleExecutor
         
         static public void test_checkIfViewLaneIsLit()
         {
-            DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
-            DateTime dt2 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
-            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
-            Console.WriteLine(partsLitAndNot.Count);
-            Console.WriteLine();
-            foreach (var tuple in partsLitAndNot)
-            {
-                Console.WriteLine(tuple.Item1);
-                Console.WriteLine();
-                Console.WriteLine(Polygon.getMultipolFromPolygons(  tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList() ));
-            }
+            //DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            //DateTime dt2 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+            //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            //Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
+            //Console.WriteLine(partsLitAndNot.Count);
+            //Console.WriteLine();
+            //foreach (var tuple in partsLitAndNot)
+            //{
+            //    Console.WriteLine(tuple.Item1);
+            //    Console.WriteLine();
+            //    Console.WriteLine(Polygon.getMultipolFromPolygons(  tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList() ));
+            //}
 
             return;
         }
@@ -299,9 +299,9 @@ namespace ConsoleExecutor
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
 
-            List<TimePeriod> shadowPeriods;
+            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+          //  Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, dt1, dt2, out partsLitAndNot, out shadowPeriods);
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityRanges.Select(t => new TimePeriod(t.Item1, t.Item2)));
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
@@ -630,11 +630,69 @@ namespace ConsoleExecutor
             Console.WriteLine(")");
         }
 
+        static void testddl()
+        {
+            string pol1wkt = "POLYGON((-82.97767639160156 47.63393279834071,-82.39059448242189 47.630693753685705,-82.4029541015625 47.68110753158709,-82.95913696289062 47.674635091761616,-82.97767639160156 47.63393279834071))";
+            string pol2wkt = "POLYGON((-82.51899719238283 47.5913464767971,-82.5286102294922 47.74717289953017,-82.91038513183594 47.74347914666066,-82.90695190429688 47.57976811421673,-82.83210754394531 47.5857891823799,-82.84446716308595 47.70883746550024,-82.59040832519533 47.7134576874889,-82.57118225097656 47.598755284818026,-82.51899719238283 47.5913464767971))";
+
+            SqlGeography pol1 = SqlGeography.STGeomFromText(new SqlChars(pol1wkt), 4326);
+            SqlGeography pol2 = SqlGeography.STGeomFromText(new SqlChars(pol2wkt), 4326);
+
+            SqlGeography res = pol1.STIntersection(pol2);
+            //res.STGeometryN(1)    
+            //res.STNumGeometries()    
+            Console.WriteLine("GEOMETRYCOLLECTION(");
+            Console.WriteLine(pol1.ToString());
+            Console.WriteLine(",");
+            Console.WriteLine(res.ToString());
+            Console.WriteLine(",");
+            Console.WriteLine(pol2.ToString());
+            Console.WriteLine(")");
+        }
+
+
+        static void fixPolygons()
+        {
+            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00");
+            DateTime dt2 = DateTime.Parse("2019-02-02T00:20:00");
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            var trajectory = new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2);
+
+            SatLane viewLane = new SatLane(trajectory, 0, OptimalChain.Constants.camera_angle*10);
+            //Console.WriteLine(viewLane.Sectors.First().polygon.ToWtk());
+            //return;
+            Polygon reqPol = new Polygon("POLYGON((-30.14648437500001 -51.39920565355377,-14.853515625000012 -48.16608541901252,-17.314453125000014 -44.59046718130883,-31.46484375000001 -48.516604348867475,-30.14648437500001 -51.39920565355377))");
+
+
+            var request = new RequestParams(0, 1, dt1, dt2,
+                _Max_SOEN_anlge: 0.87266462599716477,
+                _minCoverPerc: 11,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: "POLYGON((-30.14648437500001 -51.39920565355377,-14.853515625000012 -48.16608541901252,-17.314453125000014 -44.59046718130883,-31.46484375000001 -48.516604348867475,-30.14648437500001 -51.39920565355377))",
+                _polygonToSubtract: new List<string>(),
+                _requestChannel: 0,
+                _shootingType: ShootingType.Normal,
+                _compression: 10,
+                _albedo: 0
+                );                        
+
+            List<CaptureConf> confs = viewLane.getCaptureConfs(request);
+                                    
+            List<Polygon> pols = confs.Select(cc => viewLane.getSegment(confs.First().dateFrom, confs.First().dateTo) ).ToList();
+            Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
+        }
+
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
 
-           // test_error();
+            // fixPolygons();
             test_getPlainMpzArray();
             //test_Polygons();
             

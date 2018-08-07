@@ -235,10 +235,10 @@ namespace SessionsPlanning
 
             DateTime toDt = fromDt.AddMinutes(turnDuration);
 
-            List<TimePeriod> shadowPeriods;
+            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, fromDt, toDt, out partsLitAndNot,
-                out shadowPeriods);
+          //  Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, fromDt, toDt, out partsLitAndNot,
+           //     out shadowPeriods);
 
             List<TimePeriod> freeIntervals = TimePeriod.getFreeIntervals(shadowPeriods, fromDt, toDt);
 

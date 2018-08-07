@@ -1,4 +1,4 @@
-﻿#define _PARALLEL_
+﻿#define  NOT_PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -85,9 +85,9 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             DataFetcher fetcher = new DataFetcher(managerDbCUP);
 
-            List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
+            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+           // checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
@@ -512,10 +512,10 @@ namespace SatelliteSessions
 
             Dictionary<CommunicationSessionStation, List<CommunicationSession>> nkpoiSessions
                 = CommunicationSession.createCommunicationSessions(timeFrom, timeTo, conStringCUP, enabledStations);
- 
-            List<TimePeriod> shadowPeriods;
+
+            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;            
-            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            //checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
@@ -535,6 +535,9 @@ namespace SatelliteSessions
                 ManagerDbCUKS,
                 shadowAndInactivityPeriods,
                 freeIntervalsForDownload);
+
+            List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
+            Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
@@ -925,6 +928,7 @@ namespace SatelliteSessions
             return wtk;
         }
 
+        /*
 
         /// <summary>
         /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
@@ -1141,6 +1145,8 @@ namespace SatelliteSessions
             }      
             TimePeriod.compressTimePeriods(shadowPeriods);
         }
+         
+        */
 
         /// <summary>
         /// Проверка маршрута на совместимость с ПНБ

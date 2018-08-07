@@ -39,38 +39,38 @@ namespace SphericalGeom
             return;
         }
 
-        public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)
-        {
-            if (latticeOrigin.X == 0 && latticeOrigin.Y == 0)
-                throw new ArgumentException("latticeOrigin is north pole, try perturbing it a little bit");
+        //public static List<Polygon> SliceIntoSquares(Polygon p, Vector3D latticeOrigin, double latticeAxisInclination, double squareSide)
+        //{
+        //    if (latticeOrigin.X == 0 && latticeOrigin.Y == 0)
+        //        throw new ArgumentException("latticeOrigin is north pole, try perturbing it a little bit");
 
-            var latticeFrame = new ReferenceFrame(
-                   latticeOrigin,
-                   new Vector3D(-latticeOrigin.Y, latticeOrigin.X, 0),
-                   new Vector3D(-latticeOrigin.X * latticeOrigin.Z,
-                                -latticeOrigin.Y * latticeOrigin.Z,
-                                latticeOrigin.X * latticeOrigin.X + latticeOrigin.Y * latticeOrigin.Y));
-            latticeFrame.RotateBy(new Vector3D(1, 0, 0), -latticeAxisInclination);
+        //    var latticeFrame = new ReferenceFrame(
+        //           latticeOrigin,
+        //           new Vector3D(-latticeOrigin.Y, latticeOrigin.X, 0),
+        //           new Vector3D(-latticeOrigin.X * latticeOrigin.Z,
+        //                        -latticeOrigin.Y * latticeOrigin.Z,
+        //                        latticeOrigin.X * latticeOrigin.X + latticeOrigin.Y * latticeOrigin.Y));
+        //    latticeFrame.RotateBy(new Vector3D(1, 0, 0), -latticeAxisInclination);
             
-            // Place p at lat=0, lon=0
-            Vector3D pMiddle = latticeFrame.ToThisFrame(p.Middle);
-            var pFrame = ReferenceFrame.Concatenate(latticeFrame,
-                new ReferenceFrame(pMiddle,
-                    new Vector3D(-pMiddle.Y, pMiddle.X, 0),
-                    new Vector3D(-pMiddle.X * pMiddle.Z,
-                        -pMiddle.Y * pMiddle.Z,
-                        pMiddle.X * pMiddle.X + pMiddle.Y * pMiddle.Y)));
-            p.ToThisFrame(pFrame);
+        //    // Place p at lat=0, lon=0
+        //    Vector3D pMiddle = latticeFrame.ToThisFrame(p.Middle);
+        //    var pFrame = ReferenceFrame.Concatenate(latticeFrame,
+        //        new ReferenceFrame(pMiddle,
+        //            new Vector3D(-pMiddle.Y, pMiddle.X, 0),
+        //            new Vector3D(-pMiddle.X * pMiddle.Z,
+        //                -pMiddle.Y * pMiddle.Z,
+        //                pMiddle.X * pMiddle.X + pMiddle.Y * pMiddle.Y)));
+        //    p.ToThisFrame(pFrame);
 
-            GeoRect boundingBox = p.BoundingBox();
-            List<GeoRect> checkerboard = SliceIntoSquares(boundingBox, squareSide);
-            List<Polygon> squares = new List<Polygon>();
-            foreach (GeoRect square in checkerboard)
-                squares.AddRange(Polygon.Intersect(p, new Polygon(square)));
-            squares.ForEach(square => square.FromThisFrame(pFrame));
-            p.FromThisFrame(pFrame);
-            return squares;
-        }
+        //    GeoRect boundingBox = p.BoundingBox();
+        //    List<GeoRect> checkerboard = SliceIntoSquares(boundingBox, squareSide);
+        //    List<Polygon> squares = new List<Polygon>();
+        //    foreach (GeoRect square in checkerboard)
+        //        squares.AddRange(Polygon.Intersect(p, new Polygon(square)));
+        //    squares.ForEach(square => square.FromThisFrame(pFrame));
+        //    p.FromThisFrame(pFrame);
+        //    return squares;
+        //}
 
         /// <summary>
         /// Break the rectangle into squares of size <paramref name="squareSide"/>,
@@ -136,22 +136,22 @@ namespace SphericalGeom
         //    return outGp;
         //}
 
-        public static Polygon ProjectConeOntoSphere(Vector3D apex, IList<Vector3D> normals)
-        {
-            var coneEdgeDirections = new List<Vector3D>();
-            coneEdgeDirections.Add(Vector3D.CrossProduct(normals[normals.Count - 1], normals[0]));
-            for (int i = 1; i < normals.Count; ++i)
-                coneEdgeDirections.Add(Vector3D.CrossProduct(normals[i-1], normals[i]));
+        //public static Polygon ProjectConeOntoSphere(Vector3D apex, IList<Vector3D> normals)
+        //{
+        //    var coneEdgeDirections = new List<Vector3D>();
+        //    coneEdgeDirections.Add(Vector3D.CrossProduct(normals[normals.Count - 1], normals[0]));
+        //    for (int i = 1; i < normals.Count; ++i)
+        //        coneEdgeDirections.Add(Vector3D.CrossProduct(normals[i-1], normals[i]));
 
-            var result = new List<Vector3D>();
-            foreach (var direction in coneEdgeDirections)
-            {
-                var intersection = IntersectLineUnitSphere(apex, direction);
-                // Assume a good cone: all its edges intersect the unit sphere
-                result.Add(intersection.Where(v => Comparison.IsPositive(Vector3D.DotProduct(apex, v) - 1)).ElementAt(0));
-            }
-            return new Polygon(result, apex);
-        }
+        //    var result = new List<Vector3D>();
+        //    foreach (var direction in coneEdgeDirections)
+        //    {
+        //        var intersection = IntersectLineUnitSphere(apex, direction);
+        //        // Assume a good cone: all its edges intersect the unit sphere
+        //        result.Add(intersection.Where(v => Comparison.IsPositive(Vector3D.DotProduct(apex, v) - 1)).ElementAt(0));
+        //    }
+        //    return new Polygon(result, apex);
+        //}
 
         /// <summary>
         /// Solve a 2 by 3 system of linear equations.
