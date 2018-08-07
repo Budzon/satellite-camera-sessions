@@ -630,8 +630,8 @@ namespace SatelliteTrajectory
         private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
         {
             Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
-            RotateTransform3D leftTransform = new RotateTransform3D(new AxisAngleRotation3D(rotAx, 90));
-            Vector3D controlPoint = leftTransform.Transform(KAPoint);
+            Matrix rotMatr = Routines.getRotMatr(rotAx, Math.PI / 2);
+            Vector3D controlPoint = Routines.applyRotMatr(KAPoint, rotMatr);
             double lenth = Vector3D.DotProduct(sidePoint, controlPoint) / controlPoint.Length;
             controlPoint.Normalize();
             controlPoint = controlPoint * lenth;
@@ -1174,53 +1174,32 @@ namespace SatelliteTrajectory
             addRollRot(rollAngle);
             addPitchRot(pitchAngle);
         }
+        
+
+        public void addPitchRot(double angle)
+        {
+            if (angle == 0)
+                return;
+            Matrix rotMatr = Routines.getRotMatr(kaX, -angle);
+            kaY = Routines.applyRotMatr(kaY, rotMatr);
+            kaZ = Routines.applyRotMatr(kaZ, rotMatr);
+
+            knowViewPolygon = false;
+        }
+        
 
         public void addRollRot(double angle)
         {
             if (angle == 0)
                 return;
             /// поворачиваем в обратную сторону, так как за положительный крен принят поворот по часовой
-            RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(kaZ, AstronomyMath.ToDegrees(-angle)));
-            kaX = rollTransform.Transform(kaX);
-            kaY = rollTransform.Transform(kaY);
+            Matrix rotMatr = Routines.getRotMatr(kaZ, -angle);
+            kaX = Routines.applyRotMatr(kaX, rotMatr);
+            kaY = Routines.applyRotMatr(kaY, rotMatr);
             knowViewPolygon = false;
         }
 
-        public void addPitchRot(double angle)
-        {
-            if (angle == 0)
-                return;
-            RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(kaX, AstronomyMath.ToDegrees(angle)));
-            kaY = pitchTransform.Transform(kaY);
-            kaZ = pitchTransform.Transform(kaZ);
-            knowViewPolygon = false;
-        }
-
-
-        public void addOldPitchRot(double angle)
-        {
-            if (angle == 0)
-                return;
-              
-            Vector3D oldKaX = Vector3D.CrossProduct(-trajPos.Position.ToVector(), trajPos.Velocity);
-            RotateTransform3D pitchTransform = new RotateTransform3D(new AxisAngleRotation3D(oldKaX, AstronomyMath.ToDegrees(angle)));
-            kaY = pitchTransform.Transform(kaY);
-            kaZ = pitchTransform.Transform(kaZ);
-            knowViewPolygon = false;
-        }
-
-        public void addOldRollRot(double angle)
-        {
-            if (angle == 0)
-                return;
-            /// поворачиваем в обратную сторону, так как за положительный крен принят поворот по часовой
-            /// 
-            RotateTransform3D rollTransform = new RotateTransform3D(new AxisAngleRotation3D(trajPos.Velocity, AstronomyMath.ToDegrees(-angle)));
-            kaX = rollTransform.Transform(kaX);
-            kaY = rollTransform.Transform(kaY);
-            knowViewPolygon = false;
-        }
-
+         
 
         /// <summary>
         /// получить переднюю (по направлению скорости) левую точку полигона видимости
