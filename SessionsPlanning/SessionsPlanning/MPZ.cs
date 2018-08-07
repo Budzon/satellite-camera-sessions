@@ -693,15 +693,23 @@ namespace SatelliteSessions
                     Quant_InitValuePK = 2000;
                     break;
                 case 4:
+                    Quant_InitValuePK = 1350;
+                    break;
                 case 5:
                     Quant_InitValuePK = 700;
                     break;
                 case 6:
+                    Quant_InitValuePK = 600;
+                    break;
                 case 7:
                     Quant_InitValuePK = 500;
                     break;
                 case 8:
+                    Quant_InitValuePK = 433;
+                    break;
                 case 9:
+                    Quant_InitValuePK = 366;
+                    break;
                 case 10:
                     Quant_InitValuePK = 300;
                     break;
@@ -720,15 +728,23 @@ namespace SatelliteSessions
                     Quant_InitValueMK = 2000;
                     break;
                 case 4:
+                    Quant_InitValueMK = 1350;
+                    break;
                 case 5:
                     Quant_InitValueMK = 700;
                     break;
                 case 6:
+                    Quant_InitValueMK = 600;
+                    break;
                 case 7:
                     Quant_InitValueMK = 500;
                     break;
                 case 8:
+                    Quant_InitValueMK = 433;
+                    break;
                 case 9:
+                    Quant_InitValueMK = 366;
+                    break;
                 case 10:
                     Quant_InitValueMK = 300;
                     break;
