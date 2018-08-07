@@ -110,122 +110,36 @@ namespace SatelliteTrajectory
 
         private void createPolygons(double minAngle, double maxAngle, int polygonStep)
         {
-            Sectors = new List<LaneSector>();
-
-            List<Vector3D> leftLanePoints = new List<Vector3D>();
-            List<Vector3D> rightLanePoints = new List<Vector3D>();
-
-            List<Vector3D> leftControlPoints = new List<Vector3D>();
-            List<Vector3D> rightControlPoints = new List<Vector3D>();
-
             if (trajectory.Count == 0)
                 return;
-
+             
+            List<Vector3D> leftLanePoints = new List<Vector3D>();
+            List<Vector3D> rightLanePoints = new List<Vector3D>();
+             
             TrajectoryPoint[] points = trajectory.Points;
             int points_count = trajectory.Count;
 
             LanePos firstPos = new LanePos(points[0], viewAngle, rollAngle);
-
-            DateTime sectorFromDT = firstPos.Time;
-            DateTime sectorToDT;
-            List<LanePos> sectorPoints = new List<LanePos>();
-
-            GeoPoint prevPoint = AstronomyMath.GreenwichToSpherical(firstPos.LeftCartPoint.ToPoint());
-
+              List<LanePos> sectorPoints = new List<LanePos>();
             for (int p_ind = 0; p_ind < points_count; p_ind++)
             {
                 LanePos pos = new LanePos(points[p_ind], viewAngle, rollAngle);
+                leftLanePoints.Add(pos.LeftCartPoint);
+                rightLanePoints.Add(pos.RightCartPoint);                
                 sectorPoints.Add(pos);
-
-                if (p_ind == 0) // первая точка полосы
-                {
-                    SatelliteCoordinates firstKaPos = new SatelliteCoordinates(trajectory.Points[p_ind]);
-                    firstKaPos.addRollRot(rollAngle);
-                    leftLanePoints.Add(firstKaPos.BotLeftViewPoint);
-                    rightLanePoints.Add(firstKaPos.BotRightViewPoint);
-                    leftControlPoints.Add(new Vector3D(0, 0, 0));
-                    rightControlPoints.Add(new Vector3D(0, 0, 0));
-
-                    leftLanePoints.Add(pos.LeftCartPoint);
-                    rightLanePoints.Add(pos.RightCartPoint);
-
-                    leftControlPoints.Add(pos.LeftControlPoint);
-                    rightControlPoints.Add(pos.RightControlPoint);
-                    continue;
-                }
-
-                GeoPoint point = GeoPoint.FromCartesian(pos.LeftCartPoint);
-                bool needNewSector = false;
-
-                if (p_ind == points_count - 1)
-                {
-                    needNewSector = true;
-                }
-                else
-                {
-                    //GeoPoint nextPoint = GeoPoint.FromCartesian(points[p_ind + 1].LeftCartPoint);
-                    double curDist = GeoPoint.DistanceOverSurface(prevPoint, point);
-                    //double distNext = GeoPoint.DistanceOverSurface(prevPoint, nextPoint);
-                    needNewSector = curDist > AstronomyMath.ToRad(90); // @todo плохой способ. Правильнее будет, если сделать 180, но так не работает, разобраться почему?
-                }
-
-                if (p_ind % polygonStep == 0 || needNewSector)
-                {
-                    leftLanePoints.Add(pos.LeftCartPoint);
-                    rightLanePoints.Add(pos.RightCartPoint);
-
-                    leftControlPoints.Add(pos.LeftControlPoint);
-                    rightControlPoints.Add(pos.RightControlPoint);
-
-                    if (p_ind == points_count - 1) // если точка последняя
-                    {
-                        SatelliteCoordinates firstKaPos = new SatelliteCoordinates(trajectory.Points[p_ind]);
-                        firstKaPos.addRollRot(rollAngle);
-                        leftLanePoints.Add(firstKaPos.TopLeftViewPoint);
-                        rightLanePoints.Add(firstKaPos.TopRightViewPoint);
-                        leftControlPoints.Add(new Vector3D(0, 0, 0));
-                        rightControlPoints.Add(new Vector3D(0, 0, 0));
-                    }
-                }
-
-                if (needNewSector)
-                {
-                    for (int i = rightLanePoints.Count - 1; i >= 0; i--)
-                        leftLanePoints.Add(rightLanePoints[i]);
-
-                    rightControlPoints[0] = new Vector3D(0, 0, 0); // торец по большому кругу
-                    leftControlPoints[leftControlPoints.Count - 1] = new Vector3D(0, 0, 0); // торец по большому кругу
-
-                    for (int i = rightControlPoints.Count - 1; i >= 0; i--)
-                        leftControlPoints.Add(rightControlPoints[i]);
-
-                    sectorToDT = points[p_ind].Time;
-                    Polygon pol = new Polygon(leftLanePoints, leftControlPoints);
-                    //var testpol = new Polygon(pol.ToWtk());
-                    LaneSector newSector = new LaneSector(pol, sectorPoints, sectorFromDT, sectorToDT);
-                    Sectors.Add(newSector);
-
-                    sectorPoints = new List<LanePos>();
-
-                    rightLanePoints.Clear();
-                    leftLanePoints.Clear();
-
-                    leftControlPoints.Clear();
-                    rightControlPoints.Clear();
-
-                    sectorPoints.Add(pos);
-
-                    leftLanePoints.Add(pos.LeftCartPoint);
-                    rightLanePoints.Add(pos.RightCartPoint);
-
-                    leftControlPoints.Add(pos.LeftControlPoint);
-                    rightControlPoints.Add(pos.RightControlPoint);
-
-                    sectorFromDT = sectorToDT;
-                    prevPoint = point;
-                    // break; ////
-                }
             }
+
+            List<Vector3D> polpoints = new List<Vector3D>(rightLanePoints);
+            leftLanePoints.Reverse();
+            polpoints.AddRange(leftLanePoints);
+            var sector = new LaneSector(
+                new Polygon(polpoints),
+                sectorPoints,
+                trajectory.First().Time,
+                trajectory.Last().Time                
+                );
+            Sectors = new List<LaneSector>();
+            Sectors.Add(sector);
         }
 
         public List<CaptureConf> getCaptureConfs(RequestParams request)
@@ -377,7 +291,7 @@ namespace SatelliteTrajectory
             for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
                 polygonPoints.Add(rightPolygonPoints[ind]);
 
-            return new Polygon(polygonPoints, new Vector3D(0, 0, 0));
+            return new Polygon(polygonPoints);
         }
 
 
@@ -685,9 +599,10 @@ namespace SatelliteTrajectory
         public double maxAngle { get; set; }
     }
 
-
+    
     public class TrajectoryRoutines
     {
+        /*
         public static List<PolygonLit> GetOneSatTurnLitParts(List<LanePos> turn)
         {
             List<PolygonLit> res = new List<PolygonLit> { };
@@ -764,6 +679,7 @@ namespace SatelliteTrajectory
 
             return new Polygon(vertices, apexes);
         }
+        */
 
         /// <summary>
         /// Подсчёт коэффициентов полиномов для коридоров.
