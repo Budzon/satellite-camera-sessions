@@ -28,9 +28,7 @@ namespace SphericalGeom
         }
 
         public Polygon(List<Vector3D> points)
-        {
-           // _geography.
-            //GeoPoint gpoint = GeoPoint.FromCartesian(ver);
+        { 
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
             builder.SetSrid(4326);
             builder.BeginGeography(OpenGisGeographyType.Polygon);
@@ -38,7 +36,7 @@ namespace SphericalGeom
             builder.BeginFigure(firstgeop.Latitude, firstgeop.Longitude);
             foreach (var p in points.Skip(1))
             {
-                GeoPoint geop = GeoPoint.FromCartesian(p);
+                var geop = GeoPoint.FromCartesian(p);
                 builder.AddLine(geop.Latitude, geop.Longitude);
             }
             builder.AddLine(firstgeop.Latitude, firstgeop.Longitude);
@@ -47,7 +45,10 @@ namespace SphericalGeom
             _geography = builder.ConstructedGeography; 
         }
 
-
+        //public Polygon(List<Vector3D> points)
+        //    : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
+        //{}
+        
         public double Area
         {
             get
