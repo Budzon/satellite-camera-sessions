@@ -472,7 +472,7 @@ namespace GeometryTest
                 routeParamtoDrop.NPZ = 10;
                 routeParamtoDrop.start = new DateTime(2019, 1, 4);
                 routeParamtoDrop.end = new DateTime(2019, 1, 5);
-                routeParamtoDrop.File_Size = 1000;
+                //routeParamtoDrop.File_Size = 1000;
                 routeParamtoDrop.binded_route = null;
                 // double timedrop = routeParam.getDropTime();
 
@@ -488,7 +488,7 @@ namespace GeometryTest
                 routeParamtoDelete.NRoute = 0;
                 routeParamtoDelete.start = new DateTime(2019, 1, 4);
                 routeParamtoDelete.end = new DateTime(2019, 1, 5);
-                routeParamtoDelete.File_Size = 1000;
+                //routeParamtoDelete.File_Size = 1000;
                 routeParamtoDelete.binded_route = null;
                 RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerCUP) { NPZ = 0, Nroute = 0 };
 
