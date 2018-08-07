@@ -302,21 +302,51 @@ namespace OptimalChain
 
         public RouteParams binded_route { get; set; }
 
+        private int fileSize;
+        private bool know_fileSize = false;
         /// <summary>
         /// объем файла в Мб
         /// </summary>
         public int File_Size {
-            get {
-                /// @todo TODO @fixme 
-                /// реализация
-                return 1000;
-            }
-            set
+            get 
             {
-                /// @todo TODO @fixme  set-a вообще не нужно, эту секцию удалить лучше
+                if (!know_fileSize)
+                {
+                    int CodVznCalibr = 1;
+                    //if (RegimeType == RegimeTypes.ZI_cal)
+                    //    if (REGta_Param_bytes[1] == 0)
+                    //        CodVznCalibr = 1;
+                    //    else
+                    //        CodVznCalibr = REGta_Param_bytes[1];
+                    //else
+                    //    CodVznCalibr = 1;
+                    int Nm = shooting_channel == ShootingChannel.pk ? 0 : 4;
+                    int Np = shooting_channel == ShootingChannel.mk ? 0 : 1;
+                    int zipmk = Math.Max(1, zipMK);
+                    int zippk = Math.Max(1, zipPK);
+                    fileSize = (int)(InformationFluxInBits(ShootingConf.roll, ShootingConf.pitch,
+                        Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (end - start).TotalSeconds / (1 << 23));
+                    know_fileSize = true;
+                }
+                return fileSize;
             }
-        } 
-         
+        }
+
+        private byte hroute;
+        private bool know_hroute = false;
+        public byte Hroute
+        {
+            get 
+            {
+                if (!know_hroute)
+                {
+                    hroute = 200;
+                    know_hroute = true;
+                }
+                return hroute;
+            }
+        }
+
         /// <summary>
         /// Длительность в милисекундах
         /// </summary>
