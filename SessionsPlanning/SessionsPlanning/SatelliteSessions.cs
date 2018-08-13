@@ -218,27 +218,32 @@ namespace SatelliteSessions
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
                         {
                             List<CoridorParams> coridorParams;
-                            try
-                            {
+                         //   try
+                         //   {
                                 getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
-                                allCoridors.AddRange(coridorParams);
-                                break;
-                            }
-                            catch (Exception e)
-                            {
+                              //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
+                              //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
+                                if (coridorParams.Count != 0)
+                                {
+                                    allCoridors.AddRange(coridorParams);
+                                    break;
+                                }
+                                else
+                                {
+                                    start = start.AddSeconds(20);
+                                }
+                         //   }
+                         //   catch (Exception e)
+                         //   {
                                 //Console.WriteLine(e.Message);       
-                                start = start.AddSeconds(20);
-                            }
-                            
+                         //       start = start.AddSeconds(20);
+                         //   }                            
                         }
                     }
-
                 }
 
-                allCoridors.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
-                allCoridors.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
-                
+                Console.WriteLine(allCoridors.Count);
                 //allCoridors.RemoveAll(cor => SatelliteCoordinates ka = new SatelliteCoordinates(cor.AbsMaxRequiredRoll, cor.AbsMaxRequiredPitch);  Vector3D.AngleBetween(ka.ViewDir, ka.)   > req.Max_SOEN_anlge);
 
                 foreach (var cp in allCoridors)

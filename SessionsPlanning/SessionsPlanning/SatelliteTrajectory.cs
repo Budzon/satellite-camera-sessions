@@ -280,7 +280,7 @@ namespace SatelliteTrajectory
             if (Sectors[0].sectorPoints[0].Time > begTime || lastPoint.Time < endTime)
                 throw new System.ArgumentException("Incorrect time interval.");
 
-            List<Vector3D> polygonPoints = new List<Vector3D>();
+            List<Vector3D> leftPolygonPoints = new List<Vector3D>();
             List<Vector3D> rightPolygonPoints = new List<Vector3D>();
 
             bool found_beg = false, found_end = false;
@@ -289,7 +289,7 @@ namespace SatelliteTrajectory
                 var sectorPoints = sector.sectorPoints;
 
                 int i = 0;
-                if (polygonPoints.Count > 0) // уже начался полигон
+                if (leftPolygonPoints.Count > 0) // уже начался полигон
                     i = 1;
 
                 for (; i < sectorPoints.Count; i++)
@@ -302,14 +302,14 @@ namespace SatelliteTrajectory
 
                     if (begTime < sectorPoints[i].Time && sectorPoints[i].Time < endTime)
                     {
-                        polygonPoints.Add(sectorPoints[i].LeftCartPoint);
+                        leftPolygonPoints.Add(sectorPoints[i].LeftCartPoint);
                         rightPolygonPoints.Add(sectorPoints[i].RightCartPoint);
                         continue;
                     }
 
                     if (begTime == sectorPoints[i].Time && sectorPoints[i].Time == endTime)
                     {
-                        polygonPoints.Add(sectorPoints[i].LeftCartPoint);
+                        leftPolygonPoints.Add(sectorPoints[i].LeftCartPoint);
                         rightPolygonPoints.Add(sectorPoints[i].RightCartPoint);
 
                         if (begTime == sectorPoints[i].Time)
@@ -326,7 +326,7 @@ namespace SatelliteTrajectory
             if (!found_beg)
             {
                 LanePos posFrom = interpolatelanePosByTime(begTime);
-                polygonPoints.Insert(0, posFrom.LeftCartPoint);
+                leftPolygonPoints.Insert(0, posFrom.LeftCartPoint);
                 rightPolygonPoints.Insert(0, posFrom.RightCartPoint);
                 fisrt = posFrom;
             }
@@ -334,23 +334,24 @@ namespace SatelliteTrajectory
             if (!found_end)
             {
                 LanePos posTo = interpolatelanePosByTime(endTime);
-                polygonPoints.Add(posTo.LeftCartPoint);
+                leftPolygonPoints.Add(posTo.LeftCartPoint);
                 rightPolygonPoints.Add(posTo.RightCartPoint);
                 last = posTo;
             }
 
             // учёт трапецевидности
 
-            polygonPoints.Insert(0, fisrt.KaCoords.BotLeftViewPoint);
+            leftPolygonPoints.Insert(0, fisrt.KaCoords.BotLeftViewPoint);
             rightPolygonPoints.Insert(0, fisrt.KaCoords.BotRightViewPoint);
 
-            polygonPoints.Add(last.KaCoords.TopLeftViewPoint);
+            leftPolygonPoints.Add(last.KaCoords.TopLeftViewPoint);
             rightPolygonPoints.Add(last.KaCoords.TopRightViewPoint);
+    
 
-            for (int ind = rightPolygonPoints.Count - 1; ind >= 0; ind--)
-                polygonPoints.Add(rightPolygonPoints[ind]);
-
-            return new Polygon(polygonPoints);
+            for (int i = leftPolygonPoints.Count - 1; i >= 0; i--)            
+                rightPolygonPoints.Add(leftPolygonPoints[i]);
+            
+            return new Polygon(rightPolygonPoints);
         }
 
 

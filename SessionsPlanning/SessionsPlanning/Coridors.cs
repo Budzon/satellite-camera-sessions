@@ -186,27 +186,27 @@ namespace SatelliteSessions
                     // points[0] is an extra beggining point
                     if (forward && left)
                     {
-                        points[0] = curKaPos.BotRightViewPoint;
-                        points[1] = curKaPos.BotLeftViewPoint;
-                        points[vertNum - 1] = curKaPos.TopRightViewPoint;
-                    }
-                    else if (forward && !left)
-                    {
-                        points[0] = curKaPos.BotLeftViewPoint;
-                        points[1] = curKaPos.TopLeftViewPoint;
-                        points[vertNum - 1] = curKaPos.BotRightViewPoint;
-                    }
-                    else if (!forward && left)
-                    {
                         points[0] = curKaPos.TopRightViewPoint;
                         points[1] = curKaPos.BotRightViewPoint;
                         points[vertNum - 1] = curKaPos.TopLeftViewPoint;
                     }
-                    else // if (!forward && !left)
+                    else if (forward && !left)
                     {
                         points[0] = curKaPos.TopLeftViewPoint;
                         points[1] = curKaPos.TopRightViewPoint;
                         points[vertNum - 1] = curKaPos.BotLeftViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[0] = curKaPos.BotRightViewPoint; 
+                        points[1] = curKaPos.BotLeftViewPoint;
+                        points[vertNum - 1] = curKaPos.TopRightViewPoint; 
+                    }
+                    else // if (!forward && !left)
+                    {
+                        points[0] = curKaPos.BotLeftViewPoint;
+                        points[1] = curKaPos.TopLeftViewPoint;
+                        points[vertNum - 1] = curKaPos.BotRightViewPoint;
                     }
                 }
                 else if (i == pointsPerSide - 1)
@@ -214,27 +214,27 @@ namespace SatelliteSessions
                     // points[pointsPerSide + 1] is an extra ending point
                     if (forward && left)
                     {
-                        points[pointsPerSide] = curKaPos.BotLeftViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.TopLeftViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.TopRightViewPoint;
-                    }
-                    else if (forward && !left)
-                    {
-                        points[pointsPerSide] = curKaPos.TopLeftViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.TopRightViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.BotRightViewPoint;
-                    }
-                    else if (!forward && left)
-                    {
                         points[pointsPerSide] = curKaPos.BotRightViewPoint;
                         points[pointsPerSide + 1] = curKaPos.BotLeftViewPoint;
                         points[pointsPerSide + 2] = curKaPos.TopLeftViewPoint;
                     }
+                    else if (forward && !left)
+                    {
+                        points[pointsPerSide] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.BotRightViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.TopRightViewPoint;
+                    }
+                    else if (!forward && left)
+                    {
+                        points[pointsPerSide] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.TopLeftViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.TopRightViewPoint;
+                    }
                     else // if (!forward && !left)
                     {
-                        points[pointsPerSide] = curKaPos.TopRightViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.BotRightViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.BotLeftViewPoint;
+                        points[pointsPerSide] = curKaPos.TopLeftViewPoint;
+                        points[pointsPerSide + 1] = curKaPos.TopRightViewPoint;
+                        points[pointsPerSide + 2] = curKaPos.BotRightViewPoint;
                     }
                 }
                 else
@@ -273,27 +273,26 @@ namespace SatelliteSessions
                     }
                     else if (forward && left)
                     {
+                        points[i + 1] = curKaPos.BotRightViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.TopLeftViewPoint;
+                    }
+                    else if (forward && !left)
+                    {
                         points[i + 1] = curKaPos.BotLeftViewPoint;
                         points[vertNum - 1 - i] = curKaPos.TopRightViewPoint;
                     }
-                    else if (forward && !left)
+                    else if (!forward && left)
+                    {
+                        points[i + 1] = curKaPos.BotLeftViewPoint;
+                        points[vertNum - 1 - i] = curKaPos.TopRightViewPoint;
+                    }
+                    else // if (!forward && !left)
                     {
                         points[i + 1] = curKaPos.TopLeftViewPoint;
                         points[vertNum - 1 - i] = curKaPos.BotRightViewPoint;
                     }
-                    else if (!forward && left)
-                    {
-                        points[i + 1] = curKaPos.BotRightViewPoint;
-                        points[vertNum - 1 - i] = curKaPos.TopLeftViewPoint;
-                    }
-                    else // if (!forward && !left)
-                    {
-                        points[i + 1] = curKaPos.TopRightViewPoint;
-                        points[vertNum - 1 - i] = curKaPos.BotLeftViewPoint;
-                    }
                 }
             }
-
             Coridor = new Polygon(points.ToList());
         }
     }

@@ -355,6 +355,81 @@ namespace ConsoleExecutor
 
         }
 
+        static public void test_getCoridorMpzArray()
+        { 
+            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-02-03T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            List<string> wktList = new List<string>(){
+            "POLYGON((149.51293945312497 -30.090484220005344,149.5404052734375 -30.033433263128984,149.56787109375 -29.95969381418451,149.60906982421875 -29.893043385434176,149.65301513671875 -29.850173125689892,149.688720703125 -29.81681685764992,149.68597412109372 -29.80251790576446,149.64202880859372 -29.833496383743203,149.59945678710935 -29.872801391992795,149.55825805664062 -29.926374178635747,149.5184326171875 -29.99538103356813,149.4978332519531 -30.041755241903317,149.48959350585935 -30.073847754270204,149.51293945312497 -30.090484220005344))"
+                };
+
+            List<string> holes = new List<string>();
+
+            List<RequestParams> reqlist = wktList.Select(polwtk =>
+             new RequestParams(0, 1, dt1, dt2,
+                _Max_SOEN_anlge: 0.87266462599716477,
+                _minCoverPerc: 11,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonToSubtract: holes,
+                _requestChannel: 0,
+                _shootingType: ShootingType.Coridor,
+                _compression: 10,
+                _albedo: 0
+                )
+             ).ToList();
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation> 
+            {   SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+            Console.Write(")");
+        }
+
         static public void test_getPlainMpzArray()
         {
             //test_checkIfViewLaneIsLit();
@@ -416,7 +491,7 @@ namespace ConsoleExecutor
             , out mpzArray
             , out sessions
             , new List<SessionsPlanning.CommunicationSessionStation> 
-            { SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+            {   SessionsPlanning.CommunicationSessionStation.FIGS_Main,
                 SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
                 SessionsPlanning.CommunicationSessionStation.MIGS }
             );
@@ -698,7 +773,7 @@ namespace ConsoleExecutor
             DateTime start = DateTime.Now;
 
             // fixPolygons();
-            test_getPlainMpzArray();
+            test_getCoridorMpzArray();
             //test_Polygons();
             
             DateTime end = DateTime.Now;

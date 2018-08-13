@@ -60,9 +60,24 @@ namespace SphericalGeom
         {
             return _geography.ToString();
         }
+
+        [DllImport("CGALWrapper", EntryPoint = "getPolygonSpine", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern IntPtr getPolygonSpine(string wktPolygon);
         public List<GeoPoint> getCenterLine()
-        {             
-            List<GeoPoint> points = new List<GeoPoint>(); 
+        {
+            IntPtr pstr = getPolygonSpine(this.ToWtk());
+            string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
+
+            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
+
+            List<GeoPoint> points = new List<GeoPoint>();
+
+            for (int i = 2; i < geom.STNumPoints(); i++)
+            {
+                double lat = (double)geom.STPointN(i).Lat;
+                double lon = (double)geom.STPointN(i).Long;
+                points.Add(new GeoPoint(lat, lon));
+            }
             return points;
         }
 
