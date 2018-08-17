@@ -27,16 +27,27 @@ namespace SphericalGeom
             _geography = SqlGeography.STGeomFromText(new SqlChars(wkt), 4326);
         }
 
-        public Polygon(List<Vector3D> points)
+        public bool Contains(GeoPoint testP)
+        {
+            SqlGeographyBuilder builder = new SqlGeographyBuilder();
+            builder.SetSrid(4326);
+            builder.BeginGeography(OpenGisGeographyType.Point);
+            builder.BeginFigure(testP.Latitude, testP.Longitude);
+            builder.EndFigure();
+            builder.EndGeography();
+            SqlGeography pointGeography = builder.ConstructedGeography;
+            return (bool)_geography.STContains(pointGeography);
+        }
+
+        public Polygon(List<GeoPoint> points)
         { 
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
             builder.SetSrid(4326);
             builder.BeginGeography(OpenGisGeographyType.Polygon);
-            GeoPoint firstgeop = GeoPoint.FromCartesian(points.First());
+            GeoPoint firstgeop = points.First();
             builder.BeginFigure(firstgeop.Latitude, firstgeop.Longitude);
-            foreach (var p in points.Skip(1))
+            foreach (var geop in points.Skip(1))
             {
-                var geop = GeoPoint.FromCartesian(p);
                 builder.AddLine(geop.Latitude, geop.Longitude);
             }
             builder.AddLine(firstgeop.Latitude, firstgeop.Longitude);
@@ -45,9 +56,9 @@ namespace SphericalGeom
             _geography = builder.ConstructedGeography; 
         }
 
-        //public Polygon(List<Vector3D> points)
-        //    : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
-        //{}
+        public Polygon(List<Vector3D> points)
+            : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
+        {}
         
         public double Area
         {

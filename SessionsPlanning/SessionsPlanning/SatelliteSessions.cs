@@ -202,10 +202,16 @@ namespace SatelliteSessions
                 confs = TimePeriod.compressTimePeriods<CaptureConf>(confs, 0);
 
                 List<CoridorParams> allCoridors = new List<CoridorParams>();
-                int eps = 1; // немного удлинним сегмент полосы для того, чтобы точно замести полигон закакза целиком
+               
                 foreach (var conf in confs)
                 {
-                    Polygon segment = viewLane.getSegment(conf.dateFrom.AddSeconds(-eps), conf.dateTo.AddSeconds(eps));
+                    int startEps = 1, endEps = 1; // если возможно, то немного удлинним сегмент полосы для того, чтобы точно замести полигон закакза целиком 
+                    if (conf.dateFrom.AddSeconds(-startEps) < viewLane.FromDt)
+                        startEps = 0;
+                    if (conf.dateTo.AddSeconds(endEps) > viewLane.ToDt)
+                        endEps = 0;
+
+                    Polygon segment = viewLane.getSegment(conf.dateFrom.AddSeconds(-startEps), conf.dateTo.AddSeconds(endEps));
 
                     IList<Polygon> interpols = Polygon.Intersect(segment, reqpol);
 
@@ -218,8 +224,8 @@ namespace SatelliteSessions
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
                         {
                             List<CoridorParams> coridorParams;
-                         //   try
-                         //   {
+                            try
+                            {
                                 getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
                               //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
@@ -233,12 +239,12 @@ namespace SatelliteSessions
                                 {
                                     start = start.AddSeconds(20);
                                 }
-                         //   }
-                         //   catch (Exception e)
-                         //   {
-                                //Console.WriteLine(e.Message);       
-                         //       start = start.AddSeconds(20);
-                         //   }                            
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("!!!!!!!!!!!" + e.Message);       
+                                start = start.AddSeconds(20);
+                            }                            
                         }
                     }
                 }

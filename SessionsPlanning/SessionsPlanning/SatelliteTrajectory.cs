@@ -11,6 +11,8 @@ using Astronomy;
 using OptimalChain;
 using Microsoft.Research.Oslo;
 using SessionsPlanning;
+//using System.Data.SqlTypes;
+using Microsoft.SqlServer.Types;
 
 namespace SatelliteTrajectory
 {
@@ -29,6 +31,22 @@ namespace SatelliteTrajectory
         private double rollAngle;
         private double viewAngle;
 
+
+        public DateTime FromDt
+        {
+            get
+            {
+                return trajectory[0].Time;
+            }
+        }
+        public DateTime ToDt
+        {
+            get
+            { 
+                return trajectory.Last().Time;
+            }
+        }
+
         /// <summary>
         ///  Функция рассчитывает полигон видимости для полосы с ненулевым тангажом и креном
         /// </summary>
@@ -40,8 +58,12 @@ namespace SatelliteTrajectory
         public static Polygon getRollPitchLanePolygon(Astronomy.Trajectory trajectory, double rollAngle, double pitchAngle)
         {
             int count = trajectory.Count;
-            // количество точек будущего полигона - две точки с каждого полигона видимости
 
+            if (count <= 1)
+            {
+                throw new ArgumentException("Not enough points to create an overview polygon");
+            }
+            // количество точек будущего полигона - две точки с каждого полигона видимости
             int vertNum = count * 2 + 2;
             Vector3D[] points = new Vector3D[vertNum];
 
@@ -97,6 +119,11 @@ namespace SatelliteTrajectory
 
         public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle)
         {
+            if (_trajectory.Count <= 1)
+            {
+                throw new ArgumentException("Not enough points to create an overview lane");
+            }
+
             trajectory = _trajectory;
             rollAngle = _rollAngle;
             viewAngle = _viewAngle;
@@ -1263,6 +1290,98 @@ namespace SatelliteTrajectory
             }
         }
 
+        public enum StripDirection
+        {
+            TopLeft,
+            TopRight,
+            BotLeft,
+            BotRight
+        };
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pointTo">точка (например центр другого кадра), относительно которой выбираем точки</param>
+        /// <returns> Tuple<правая точка, левая точка></returns>
+        public Tuple<Line, Line> getOptimalStrip(SatelliteCoordinates satTo)
+        {
+            Line dirVect = new Line(GeoPoint.FromCartesian(MidViewPoint), GeoPoint.FromCartesian(satTo.MidViewPoint));
+
+            GeoPoint[] fromPoints = new GeoPoint[4]
+            {
+                GeoPoint.FromCartesian(TopLeftViewPoint),
+                GeoPoint.FromCartesian(TopRightViewPoint),
+                GeoPoint.FromCartesian(BotLeftViewPoint),
+                GeoPoint.FromCartesian(BotRightViewPoint)
+            };
+                        
+            GeoPoint[] toPoints = new GeoPoint[4]
+            {
+                GeoPoint.FromCartesian(satTo.TopLeftViewPoint),
+                GeoPoint.FromCartesian(satTo.TopRightViewPoint),
+                GeoPoint.FromCartesian(satTo.BotLeftViewPoint),
+                GeoPoint.FromCartesian(satTo.BotRightViewPoint)
+            };
+
+            List<GeoPoint> fromPointsLeft = fromPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Left).ToList();
+            List<GeoPoint> fromPointsRight = fromPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Right).ToList();
+
+            List<GeoPoint> toPointsLeft = toPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Left).ToList();
+            List<GeoPoint> toPointsRight = toPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Right).ToList();
+            
+            Line left = findSideLine(fromPointsLeft, toPointsLeft, Line.PointSide.Left);
+            Line right = findSideLine(fromPointsRight, toPointsRight, Line.PointSide.Right);
+             
+            return Tuple.Create(right, left);
+        }
+
+        public GeoPoint? getExtremePoint(SatelliteCoordinates satTo)
+        {
+            Tuple<Line, Line> Strip = getOptimalStrip(satTo);
+            var polPoints = new List<GeoPoint>() { Strip.Item1.From, Strip.Item1.To, Strip.Item2.To, Strip.Item2.From};
+            Polygon testPol = new Polygon(polPoints);
+            
+            GeoPoint[] fromPoints = new GeoPoint[4]
+            {
+                GeoPoint.FromCartesian(TopLeftViewPoint),
+                GeoPoint.FromCartesian(TopRightViewPoint),
+                GeoPoint.FromCartesian(BotLeftViewPoint),
+                GeoPoint.FromCartesian(BotRightViewPoint)
+            };
+
+            List<GeoPoint> res = new List<GeoPoint>();
+            foreach (var p in fromPoints)
+            {
+                if (polPoints.Where(polp => polp.Equals(p)).Count() == 0)
+                    if (!testPol.Contains(p))
+                        return p;
+            }
+            return null;
+        }
+
+        private static Line findSideLine(List<GeoPoint> fromPoints, List<GeoPoint> toPoints, Line.PointSide checkSign)
+        {
+            foreach (var pair in fromPoints.SelectMany(f => toPoints.Select(t => Tuple.Create(f, t))))
+            {
+                bool ok = true;
+                Line testLine = new Line(pair.Item1, pair.Item2);
+                foreach (var testP in fromPoints.Concat(toPoints))
+                {
+                    if (testLine.getPointSide(testP) == checkSign)
+                    {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok)
+                {
+                    return testLine;
+                }
+            }
+            throw new InvalidOperationException("Corridor formation error");
+        }
+
         private void calculateViewPolygon()
         {
             double half = OptimalChain.Constants.camera_angle / 2;
@@ -1281,9 +1400,114 @@ namespace SatelliteTrajectory
             midViewPoint = Routines.SphereVectIntersect(kaY, trajPos.Position, Astronomy.Constants.EarthRadius);
             knowViewPolygon = true;
         }
-
     }
 
+
+
+    public class Line
+    {
+        public Line(GeoPoint f, GeoPoint t)
+        {
+            From = f;
+            To = t;
+
+            SqlGeographyBuilder builder = new SqlGeographyBuilder();
+            builder.SetSrid(4326);
+            builder.BeginGeography(OpenGisGeographyType.LineString);
+            builder.BeginFigure(f.Latitude, f.Longitude);
+            builder.AddLine(t.Latitude, t.Longitude);
+            builder.EndFigure();
+            builder.EndGeography();
+            _geography = builder.ConstructedGeography; 
+        }
+
+        public GeoPoint From { get; private set; }
+        public GeoPoint To { get; private set; }
+        private SqlGeography _geography;
+
+        private const double eps = 0.00001; // точность определения стороны точки
+
+        /// <summary>
+        /// с какой стороны от вектора лежит прямая
+        /// </summary>
+        public enum PointSide { Right, Left, Between}
+        public PointSide getPointSide(GeoPoint tstP)
+        {
+            if (tstP.Equals(From) || tstP.Equals(To))
+                return PointSide.Between;
+
+            double res = (To.Longitude - From.Longitude) * (tstP.Latitude - From.Latitude) - (To.Latitude - From.Latitude) * (tstP.Longitude - From.Longitude);
+
+            if (res < -eps)
+                return PointSide.Right;
+            if (res > eps)
+                return PointSide.Left; 
+
+            return PointSide.Between;
+        }
+
+        public GeoPoint? getIntersectWith(Line other)
+        {
+            SqlGeography intersection = _geography.STIntersection(other._geography);
+            if (intersection.STNumGeometries() == 0)
+                return null;
+            else
+                return new GeoPoint((double)intersection.STPointN(1).Lat, (double)intersection.STPointN(1).Long);
+        }
+
+        public Line getReverse()
+        {
+            return new Line(To, From);
+        }
+
+        /// <summary>
+        /// составим одну линиую из нескольких с учётом пересечений
+        /// </summary>
+        /// <param name="lines">склеиваемые линии</param>
+        /// <returns>массив точек</returns>
+        static public List<GeoPoint> getLineMerge(Line[] lines)
+        {
+            List<GeoPoint> polygonsPoints = new List<GeoPoint>();
+            bool interToPrev = false;
+            for (int i = 0; i < lines.Count(); i++)
+            {
+                if (!interToPrev)
+                    polygonsPoints.Add(lines[i].From); // добавляем начальную точку только если на прошлой итерации не было обнаружено пересечения
+
+                if (i == lines.Count() - 1)
+                {
+                    polygonsPoints.Add(lines[i].To);
+                    break;
+                }
+
+                int j = i+1;
+                for (; j < lines.Count(); j++)
+                {
+                    if (j == i+1)
+                    {
+                        if (lines[i].To.Equals(lines[j].From))
+                            break;
+                    }
+
+                    GeoPoint? intersToNext = lines[i].getIntersectWith(lines[j]);
+                    if (intersToNext.HasValue)
+                    {
+                        polygonsPoints.Add(intersToNext.Value);
+                        interToPrev = true;
+                        i = j;
+                        break;
+                    }
+                }
+                if (j != i)
+                {
+                    polygonsPoints.Add(lines[i].To);
+                    interToPrev = false;
+                }
+            }
+            return polygonsPoints;
+        }
+        
+    }
 
     public class Curve
     {
