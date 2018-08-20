@@ -1304,7 +1304,7 @@ namespace SatelliteTrajectory
         /// </summary>
         /// <param name="pointTo">точка (например центр другого кадра), относительно которой выбираем точки</param>
         /// <returns> Tuple<правая точка, левая точка></returns>
-        public Tuple<Line, Line> getOptimalStrip(SatelliteCoordinates satTo)
+        public Polygon getOptimalStrip(SatelliteCoordinates satTo)
         {
             Line dirVect = new Line(GeoPoint.FromCartesian(MidViewPoint), GeoPoint.FromCartesian(satTo.MidViewPoint));
 
@@ -1333,33 +1333,14 @@ namespace SatelliteTrajectory
             Line left = findSideLine(fromPointsLeft, toPointsLeft, Line.PointSide.Left);
             Line right = findSideLine(fromPointsRight, toPointsRight, Line.PointSide.Right);
              
-            return Tuple.Create(right, left);
-        }
-
-        public GeoPoint? getExtremePoint(SatelliteCoordinates satTo)
-        {
-            Tuple<Line, Line> Strip = getOptimalStrip(satTo);
-            var polPoints = new List<GeoPoint>() { Strip.Item1.From, Strip.Item1.To, Strip.Item2.To, Strip.Item2.From};
-            Polygon testPol = new Polygon(polPoints);
+            Polygon stripPol = new Polygon(
+                new List<GeoPoint>(){
+                    right.From, right.To, left.To, left.From
+            });
             
-            GeoPoint[] fromPoints = new GeoPoint[4]
-            {
-                GeoPoint.FromCartesian(TopLeftViewPoint),
-                GeoPoint.FromCartesian(TopRightViewPoint),
-                GeoPoint.FromCartesian(BotLeftViewPoint),
-                GeoPoint.FromCartesian(BotRightViewPoint)
-            };
-
-            List<GeoPoint> res = new List<GeoPoint>();
-            foreach (var p in fromPoints)
-            {
-                if (polPoints.Where(polp => polp.Equals(p)).Count() == 0)
-                    if (!testPol.Contains(p))
-                        return p;
-            }
-            return null;
+            return stripPol;
         }
-
+  
         private static Line findSideLine(List<GeoPoint> fromPoints, List<GeoPoint> toPoints, Line.PointSide checkSign)
         {
             foreach (var pair in fromPoints.SelectMany(f => toPoints.Select(t => Tuple.Create(f, t))))
@@ -1379,7 +1360,7 @@ namespace SatelliteTrajectory
                     return testLine;
                 }
             }
-            throw new InvalidOperationException("Corridor formation error");
+            throw new Exception("Corridor formation error");
         }
 
         private void calculateViewPolygon()

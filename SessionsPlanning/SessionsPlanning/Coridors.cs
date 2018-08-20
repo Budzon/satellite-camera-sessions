@@ -143,9 +143,8 @@ namespace SatelliteSessions
 
             Line[] rightLines = new Line[pointsPerSide - 1]; 
             Line[] leftLines = new Line[pointsPerSide - 1]; 
-
-            GeoPoint? begExstraPoint = null;
-            GeoPoint? endExstraPoint = null;
+           
+            Coridor = prevKaPos.ViewPolygon;
 
             for (int i = 1; i < pointsPerSide; i++)
             {
@@ -157,40 +156,20 @@ namespace SatelliteSessions
                 AbsMaxRequiredRoll = Math.Max(AbsMaxRequiredRoll, Math.Abs(rollAngle));
                 AbsMaxRequiredPitch = Math.Max(AbsMaxRequiredPitch, Math.Abs(pitchAngle));
 
-                SatelliteCoordinates curKaPos = new SatelliteCoordinates(curTP, rollAngle, pitchAngle);
-             
-                Vector3D dVect = curKaPos.MidViewPoint - prevKaPos.MidViewPoint;
-                var curLines = prevKaPos.getOptimalStrip(curKaPos);
+                SatelliteCoordinates curKaPos = new SatelliteCoordinates(curTP);
+                curKaPos.addRollPitchRot(rollAngle, pitchAngle);        
 
-                rightLines[i-1] = new Line(curLines.Item1.From, curLines.Item1.To);
-                leftLines[i-1] = new Line(curLines.Item2.From, curLines.Item2.To);
-
-                if (i == 1)
-                {
-                    begExstraPoint = prevKaPos.getExtremePoint(curKaPos);
-                } else if (i == pointsPerSide-1)
-                {
-                    endExstraPoint = curKaPos.getExtremePoint(prevKaPos);
-                }
+                Polygon curPol = prevKaPos.getOptimalStrip(curKaPos);
+                Coridor.Add(curPol);
+                Coridor.Add(curKaPos.ViewPolygon);
+                
                 prevKaPos = curKaPos;
+            }             
+            if (!Coridor.IsValid())
+            {
+                throw new Exception("Corridor formation error");
             }
-
-            List<GeoPoint> rightPolygonsPoints = Line.getLineMerge(rightLines);            
-            List<GeoPoint> leftPolygonsPoints = Line.getLineMerge(leftLines);
-
-            if (begExstraPoint.HasValue)
-                rightPolygonsPoints.Insert(0, begExstraPoint.Value);
-
-            if (endExstraPoint.HasValue)
-                rightPolygonsPoints.Add(endExstraPoint.Value);
-
-            leftPolygonsPoints.Reverse();
-            rightPolygonsPoints.AddRange(leftPolygonsPoints);
-
-            Coridor = new Polygon(rightPolygonsPoints);
-        }
-
-       
+        }       
     }
 }
 

@@ -16,27 +16,23 @@ namespace SphericalGeom
     public class Polygon
     {
         private SqlGeography _geography;
+        private const double maxArea = 2.5505e+14; // максимально возможная площадь
+
+        public double Area { get; private set; }
 
         public Polygon(SqlGeography geography)
         {
             _geography = geography;
+            calcArea();       
         }
 
         public Polygon(string wkt)
-        {
-            _geography = SqlGeography.STGeomFromText(new SqlChars(wkt), 4326);
-        }
+            :this(SqlGeography.STGeomFromText(new SqlChars(wkt), 4326))
+        {}
 
-        public bool Contains(GeoPoint testP)
+        public bool IsValid()
         {
-            SqlGeographyBuilder builder = new SqlGeographyBuilder();
-            builder.SetSrid(4326);
-            builder.BeginGeography(OpenGisGeographyType.Point);
-            builder.BeginFigure(testP.Latitude, testP.Longitude);
-            builder.EndFigure();
-            builder.EndGeography();
-            SqlGeography pointGeography = builder.ConstructedGeography;
-            return (bool)_geography.STContains(pointGeography);
+            return (bool)_geography.STIsValid();
         }
 
         public Polygon(List<GeoPoint> points)
@@ -53,24 +49,53 @@ namespace SphericalGeom
             builder.AddLine(firstgeop.Latitude, firstgeop.Longitude);
             builder.EndFigure();
             builder.EndGeography();
-            _geography = builder.ConstructedGeography; 
+            _geography = builder.ConstructedGeography;
+            calcArea();
         }
-
+       
         public Polygon(List<Vector3D> points)
             : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
         {}
         
-        public double Area
+        public bool Contains(GeoPoint testP)
         {
-            get
-            {
-                return (double)_geography.STArea();
-            }
+            SqlGeographyBuilder builder = new SqlGeographyBuilder();
+            builder.SetSrid(4326);
+            builder.BeginGeography(OpenGisGeographyType.Point);
+            builder.BeginFigure(testP.Latitude, testP.Longitude);
+            builder.EndFigure();
+            builder.EndGeography();
+            SqlGeography pointGeography = builder.ConstructedGeography;
+            return (bool)_geography.STContains(pointGeography);
         }
+
+        public void Add(Polygon other)
+        {           
+            _geography = _geography.STUnion(other._geography);
+        }
+        
         public string ToWtk()
         {
             return _geography.ToString();
         }
+
+        public string ToWebglearthString()
+        {
+            string res = "WE.polygon([";
+            for (int i = 1; i <= _geography.STNumPoints(); i++)
+            {
+                GeoPoint gpoint = new GeoPoint(
+                    (double)_geography.STPointN(i).Lat,
+                    (double)_geography.STPointN(i).Long);
+                res += "[" + ((string)_geography.STPointN(i).Lat.ToSqlString()).Replace(',', '.') + ", " + ((string)_geography.STPointN(i).Long.ToSqlString()).Replace(',', '.') + "]";
+                if (i != _geography.STNumPoints())
+                    res += ",";
+            }
+            res += "]  );";
+            return res;
+        }
+
+
 
         [DllImport("CGALWrapper", EntryPoint = "getPolygonSpine", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr getPolygonSpine(string wktPolygon);
@@ -78,18 +103,23 @@ namespace SphericalGeom
         {
             IntPtr pstr = getPolygonSpine(this.ToWtk());
             string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
-
-            SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
-
             List<GeoPoint> points = new List<GeoPoint>();
 
-            for (int i = 2; i < geom.STNumPoints(); i++)
+            try
             {
-                double lat = (double)geom.STPointN(i).Lat;
-                double lon = (double)geom.STPointN(i).Long;
-                points.Add(new GeoPoint(lat, lon));
+                SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
+                for (int i = 2; i < geom.STNumPoints(); i++)
+                {
+                    double lat = (double)geom.STPointN(i).Lat;
+                    double lon = (double)geom.STPointN(i).Long;
+                    points.Add(new GeoPoint(lat, lon));
+                }
+                return points;
             }
-            return points;
+            catch (Exception e)
+            {
+                return points;
+            }
         }
 
         public List<Vector3D> Vertices
@@ -161,8 +191,7 @@ namespace SphericalGeom
 
             return Tuple.Create(intersection, diff);
         }
-         
-
+          
 
         public static string getMultipolFromWkts(List<string> wkts)
         {
@@ -182,6 +211,7 @@ namespace SphericalGeom
             return res;
         }
 
+       
         public static string getMultipolFromPolygons(List<Polygon> polygons)
         {
             string res = "";
@@ -197,6 +227,20 @@ namespace SphericalGeom
             }
             res = "GEOMETRYCOLLECTION (" + res + ")";
             return res;
+        }
+
+
+        private void calcArea()
+        {
+            string b1 = _geography.IsValidDetailed();
+           // string b2 = other._geography.IsValidDetailed();
+
+            Console.WriteLine(b1);
+
+
+            Area = (double)_geography.STArea();
+            if (Area >= maxArea)
+                throw new ArgumentException("Wrong points order");
         }
     }
 }

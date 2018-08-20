@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Media.Media3D;
-using System.Collections.Concurrent; 
+using System.Collections.Concurrent;
 using SatelliteTrajectory;
 using Astronomy;
 using Common;
@@ -13,7 +13,7 @@ using OptimalChain;
 using DBTables;
 
 using SphericalGeom;
-using SessionsPlanning; 
+using SessionsPlanning;
 
 namespace SatelliteSessions
 {
@@ -26,14 +26,14 @@ namespace SatelliteSessions
         /// <param name="managerDB">параметры БД</param>
         /// <param name="mpzs">список из 15 МПЗ</param>
         public static void testMpzFormation(DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzs)
-        {            
+        {
             List<RouteParams> param = new List<RouteParams>();
             OptimalChain.StaticConf conf;
 
             ShootingChannel[] chan = new ShootingChannel[3] { ShootingChannel.pk, ShootingChannel.mk, ShootingChannel.cm };
             WorkingType[] regime = new WorkingType[4] { WorkingType.Shooting, WorkingType.Downloading, WorkingType.Removal, WorkingType.ShootingSending }; // Zi, Vi, Si, Np
             ShootingType[] shooting = new ShootingType[4] { ShootingType.Normal, ShootingType.StereoTriplet, ShootingType.StereoTriplet, ShootingType.Coridor }; // прост, стерео, коридор
-            
+
             int[] compression = new int[5] { 0, 1, 2, 7, 10 };
             DateTime from = new DateTime(2019, 1, 5);
             DateTime to = from.AddSeconds(5);
@@ -73,12 +73,12 @@ namespace SatelliteSessions
         /// <param name="coverage">Процент покрытия, которые можно получить.</param>
         /// <param name="possibleConfs">Список конфигураций, когда возможна съемка (хотя бы кусочка)</param>
         public static void isRequestFeasible(
-            RequestParams request, 
+            RequestParams request,
             DateTime timeFrom,
             DateTime timeTo,
             string conStringCUKS,
             string conStringCUP,
-            out double coverage, 
+            out double coverage,
             out List<CaptureConf> possibleConfs)
         {
             DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
@@ -87,7 +87,7 @@ namespace SatelliteSessions
 
             List<TimePeriod> shadowPeriods = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-           // checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            // checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
@@ -167,7 +167,7 @@ namespace SatelliteSessions
             else
                 coverage = summ;
         }
-      
+
 
         private static void getCaptureConfArrayForTrajectoryForCoridor(
            DIOS.Common.SqlManager managerDB,
@@ -180,7 +180,7 @@ namespace SatelliteSessions
            List<CloudinessData> meteoList)
         {
             if (requests.Count == 0)
-                return;                       
+                return;
 
             foreach (var req in requests)
             {
@@ -194,7 +194,7 @@ namespace SatelliteSessions
 
                 double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, req.Max_SOEN_anlge);
                 double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
-                 
+
                 SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
 
                 List<CaptureConf> confs = viewLane.getCaptureConfs(req);
@@ -202,7 +202,7 @@ namespace SatelliteSessions
                 confs = TimePeriod.compressTimePeriods<CaptureConf>(confs, 0);
 
                 List<CoridorParams> allCoridors = new List<CoridorParams>();
-               
+
                 foreach (var conf in confs)
                 {
                     int startEps = 1, endEps = 1; // если возможно, то немного удлинним сегмент полосы для того, чтобы точно замести полигон закакза целиком 
@@ -217,19 +217,21 @@ namespace SatelliteSessions
 
                     foreach (var p in interpols)
                     {
-                        List<GeoPoint> line = p.getCenterLine();                         
+                        List<GeoPoint> line = p.getCenterLine();
+                        if (line.Count < 2)
+                            continue;
                         double deltaPitchTime = CaptureConf.getTimeDeltaFromPitch(trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
                         DateTime start = conf.dateFrom.AddSeconds(-deltaPitchTime);
-                                                
+
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
                         {
                             List<CoridorParams> coridorParams;
-                            try
-                            {
+                           /// try
+                           // {
                                 getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
-                              //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
-                              //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
+                                //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
+                                //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
                                 if (coridorParams.Count != 0)
                                 {
                                     allCoridors.AddRange(coridorParams);
@@ -239,12 +241,12 @@ namespace SatelliteSessions
                                 {
                                     start = start.AddSeconds(20);
                                 }
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine("!!!!!!!!!!!" + e.Message);       
-                                start = start.AddSeconds(20);
-                            }                            
+                          //  }
+                            //catch (Exception e)
+                            //{
+                            //    Console.WriteLine("!!!!!!!!!!!" + e.Message);
+                            //    start = start.AddSeconds(20);
+                            //}
                         }
                     }
                 }
@@ -253,14 +255,14 @@ namespace SatelliteSessions
                 //allCoridors.RemoveAll(cor => SatelliteCoordinates ka = new SatelliteCoordinates(cor.AbsMaxRequiredRoll, cor.AbsMaxRequiredPitch);  Vector3D.AngleBetween(ka.ViewDir, ka.)   > req.Max_SOEN_anlge);
 
                 foreach (var cp in allCoridors)
-                { 
+                {
                     double interCoeff = cp.Coridor.Area / req.polygons.First().Area;
-                    
+
                     var orders = new List<Order>() { new Order() { request = req, captured = cp.Coridor, intersection_coeff = interCoeff } };
-					WorkingType confType = WorkingType.Shooting;
+                    WorkingType confType = WorkingType.Shooting;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
                         confType = WorkingType.ShootingSending;
-                    
+
                     CaptureConf cc = new CaptureConf(cp.StartTime, cp.EndTime, cp.AbsMaxRequiredRoll, orders, confType, null, _poliCoef: cp.CoridorCoefs);
 
                     // проверим, не превышена ли облачность в месте съемки
@@ -291,13 +293,13 @@ namespace SatelliteSessions
                     }
 
                     cc.setPolygon(cp.Coridor);
-                    captureConfs.Add(cc);                    
+                    captureConfs.Add(cc);
                 }
 
             }
- 
+
         }
- 
+
 
         private static void getCaptureConfArrayForTrajectoryForPlainReq(
             List<RequestParams> requests,
@@ -314,24 +316,25 @@ namespace SatelliteSessions
             List<List<RequestParams>> breakingRequests = RequestParams.breakRequestsIntoGroups(requests); // разделим заказы на несовместимые подгруппы 
 
             double Max_SOEN_anlge = requests.Max(req => req.Max_SOEN_anlge); // не будем генерировать полос для угла, превышающего это значение
- 
+
             double max_roll_angle = Math.Min(Max_SOEN_anlge, OptimalChain.Constants.max_roll_angle);
             double min_roll_angle = -max_roll_angle;
-           
-            double angleStep = OptimalChain.Constants.camera_angle *(1 - OptimalChain.Constants.stripOverlap); // шаг равен углу обзора
+
+            double angleStep = OptimalChain.Constants.camera_angle * (1 - OptimalChain.Constants.stripOverlap); // шаг равен углу обзора
             int num_steps = (int)((max_roll_angle - min_roll_angle) / angleStep); /// @todo что делать с остатком от деления?
 
             ConcurrentBag<CaptureConf> concurrentlist = new ConcurrentBag<CaptureConf>();
-            
+
 #if _PARALLEL_
             Parallel.For(0, num_steps + 1, index =>
             {
                 double rollAngle = min_roll_angle + index * angleStep;
 #else
-                for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)    {
+            for (double rollAngle = min_roll_angle; rollAngle <= max_roll_angle; rollAngle += angleStep)
+            {
 #endif
                 List<CaptureConf> laneCaptureConfs = new List<CaptureConf>(); // конфигурации захвата для текущий полосы захвата
-                SatLane viewLane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle); 
+                SatLane viewLane = new SatLane(trajectory, rollAngle, OptimalChain.Constants.camera_angle);
 
                 foreach (var requestGroup in breakingRequests)
                 {
@@ -345,13 +348,13 @@ namespace SatelliteSessions
 
                         if (confs.Count == 0)
                             continue;
-                        
+
                         //отбросим конфигурации, попавшие в облачные участки                        
                         for (int i = 0; i < confs.Count; i++)
                         {
                             foreach (CloudinessData cloud in meteoList)
                             {
-                                if (!CloudinessData.isCapConfInCloud(confs[i],cloud))
+                                if (!CloudinessData.isCapConfInCloud(confs[i], cloud))
                                     continue;
 
                                 confs.RemoveAt(i);
@@ -364,7 +367,7 @@ namespace SatelliteSessions
                         {
                             var confsToFropCapt = confs.Where(cc => TimePeriod.isPeriodInPeriods(new TimePeriod(cc.dateFrom, cc.dateTo), freeSessionPeriodsForDrop)).ToList();
                             foreach (var conf in confsToFropCapt)
-								conf.confType = WorkingType.ShootingSending;
+                                conf.confType = WorkingType.ShootingSending;
                         }
 
                         // если заказ - стерео, то пробуем его снять в стерео.
@@ -378,7 +381,7 @@ namespace SatelliteSessions
                         }
                         groupConfs.AddRange(confs);
                     }
-                    
+
                     laneCaptureConfs.AddRange(CaptureConf.compressCConfArray(groupConfs));
                 }
 
@@ -390,21 +393,21 @@ namespace SatelliteSessions
                         pol = new SatelliteCoordinates(pointFrom, rollAngle, 0).ViewPolygon;
                     else
                         pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
-                     
+
                     conf.setPolygon(pol);
                     if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)
                         conf.calculatePitchArrays(pointFrom);
-                                    
+
                     if (conf.dateFrom == conf.dateTo)
-                    { 
-                        conf.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(conf.dateFrom).ToVector());                       
+                    {
+                        conf.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(conf.dateFrom).ToVector());
                     }
                     else
                     {
                         DateTime midTime;
                         midTime = conf.dateFrom.AddSeconds((conf.dateTo - conf.dateFrom).TotalSeconds);
                         conf.setSun(trajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
-                    }                       
+                    }
                 }
                 foreach (var conf in laneCaptureConfs)
                     concurrentlist.Add(conf);
@@ -412,7 +415,7 @@ namespace SatelliteSessions
 #if _PARALLEL_
 );
 #endif
-            
+
             captureConfs.AddRange(concurrentlist.ToList());
         }
 
@@ -437,7 +440,7 @@ namespace SatelliteSessions
 
             return posiibleTrajectoryParts;
         }
-         
+
         public static List<CaptureConf> getCaptureConfArray(
             List<RequestParams> requests,
             DateTime timeFrom,
@@ -449,7 +452,7 @@ namespace SatelliteSessions
         {
             if (requests.Count == 0)
                 return new List<CaptureConf>();
-             
+
             inactivityRanges.Sort(delegate(TimePeriod span1, TimePeriod span2) { return span1.dateFrom.CompareTo(span2.dateFrom); });
 
             Trajectory sunTrajectory = new DataFetcher(managerDbCUP).GetTrajectorySun(timeFrom, timeTo);
@@ -457,10 +460,10 @@ namespace SatelliteSessions
 
             // периоды, во время которых можно проводить съемку.
             List<TimePeriod> capturePeriods = TimePeriod.getFreeIntervals(inactivityRanges, timeFrom, timeTo);
-                         
+
             var requestCoridor = requests.Where(req => req.shootingType == ShootingType.Coridor).ToList();
             var requestNOTCoridor = requests.Where(req => req.shootingType != ShootingType.Coridor).ToList();
-            
+
             List<CloudinessData> meteoList = new DataFetcher(managerDbCUKS).GetMeteoData(timeFrom, timeTo); // облачность
 
             List<CaptureConf> captureConfsPlain = new List<CaptureConf>();
@@ -475,7 +478,7 @@ namespace SatelliteSessions
             List<CaptureConf> captureConfs = captureConfsPlain.Concat(captureConfsCoridor).ToList();
 
             for (int ci = 0; ci < captureConfs.Count; ci++)
-                 captureConfs[ci].id = ci;
+                captureConfs[ci].id = ci;
 
             return captureConfs;
         }
@@ -504,7 +507,7 @@ namespace SatelliteSessions
             , List<Tuple<DateTime, DateTime>> silentRanges
             , List<Tuple<DateTime, DateTime>> inactivityRanges
             , List<RouteMPZ> routesToDownload
-            , List<RouteMPZ> routesToDelete            
+            , List<RouteMPZ> routesToDelete
             , string conStringCUP
             , string conStringCUKS
             , int Nmax
@@ -514,7 +517,7 @@ namespace SatelliteSessions
             , FlagsMPZ flags = null
             )
         {
-            
+
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
 
@@ -525,7 +528,7 @@ namespace SatelliteSessions
                 = CommunicationSession.createCommunicationSessions(timeFrom, timeTo, conStringCUP, enabledStations);
 
             List<TimePeriod> shadowPeriods = new List<TimePeriod>();
-            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;            
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
             //checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
@@ -552,7 +555,7 @@ namespace SatelliteSessions
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
-          
+
             // все параметры МПЗ на съемку, пришедшие из графа
             //List<MPZ> captureMpz = new Graph(confsToCapture).findOptimalChain(Nmax).Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
 
@@ -562,7 +565,7 @@ namespace SatelliteSessions
             allRoutesToDownload.AddRange(captureMPZParams.SelectMany(mpz => mpz.routes)
                 .Where(route => route.type == WorkingType.Shooting)
                 .ToList()); // добавим к сбросу только что отснятые маршруты
-            
+
             // временные промежутки, занятые съемкой           
             List<TimePeriod> captureIntervals = captureMPZParams.Select(mpz => new TimePeriod(mpz.start, mpz.end)).ToList();
 
@@ -586,20 +589,20 @@ namespace SatelliteSessions
             maxMpzNum = Math.Max(maxMpzNum, captureMPZParams.Select(mpz => mpz.id).DefaultIfEmpty(0).Max());
 
             List<MPZParams> downloadMpzParams = new List<MPZParams>();
-                        
+
             // распределим маршруты на сброс по доступным интервалам
             foreach (CommunicationSessionStation station in sortedStationList)
             {
                 if (!nkpoiSessionsIntervals.ContainsKey(station))
                     continue;
                 List<TimePeriod> freeStationIntervals = nkpoiSessionsIntervals[station];
-                               
+
                 // сначала постараемся уместить маршруты на сброс в имеющиеся МПЗ
                 foreach (var capPrms in captureMPZParams)
                 {
                     // если антенна для этого МПЗ уже определена и отличается от текущей, значит пропускаем МПЗ
                     if (capPrms.Station.HasValue)
-                        if (capPrms.Station.Value != station) 
+                        if (capPrms.Station.Value != station)
                             continue;
 
                     foreach (var routeToDownload in allRoutesToDownload)
@@ -608,19 +611,19 @@ namespace SatelliteSessions
                             WorkingType.Downloading,
                             routeToDownload.getDropTime(station).TotalSeconds,
                             routeToDownload);
-                        
+
                         foreach (TimePeriod period in freeStationIntervals)
                         {
                             if (!capPrms.InsertRoute(routeParams, TimePeriod.Max(routeToDownload.end, period.dateFrom), period.dateTo, null, null))
                                 continue;
                             allRoutesToDownload.Remove(routeToDownload);
                             freeStationIntervals.erase(period);
-                            if (!capPrms.Station.HasValue) 
+                            if (!capPrms.Station.HasValue)
                                 capPrms.Station = station;
                             break;
                         }
                     }
-                } 
+                }
 
                 // Оставшиеся маршруты попытаемся вместить в оставшиеся сессии этой станции
                 List<RouteParams> downloadRoutes
@@ -634,7 +637,7 @@ namespace SatelliteSessions
                 downloadMpzParams.AddRange(curMPZ);
             }
 
-             // наёдем еще свободные временные промежутки, в которые можно произвести удаление
+            // наёдем еще свободные временные промежутки, в которые можно произвести удаление
             List<TimePeriod> downloadIntervals = downloadMpzParams.Select(mpzparams => new TimePeriod(mpzparams.start, mpzparams.end)).ToList();
             List<TimePeriod> inactivityDownCaptIntervals = new List<TimePeriod>();
             inactivityDownCaptIntervals.AddRange(captureIntervals);
@@ -645,12 +648,12 @@ namespace SatelliteSessions
 
             List<RouteParams> deleteRoutesParams
                 = TimePeriod.getRoutesParamsInIntervals(routesToDelete.Select(rout => rout.Parameters).ToList(), freeRangesForDelete, workType: WorkingType.Removal);//, startId: maxRoutesNumber);
- 
+
             maxMpzNum = Math.Max(maxMpzNum, downloadMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(0).Max());
 
             // создаем новые мпз удаления из маршрутов на удаление
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
-             
+
             deleteMpzParams.AddRange(MPZParams.FillMPZ(deleteRoutesParams, maxMpzNum));
 
             mpzArray = new List<MPZ>();
@@ -660,12 +663,12 @@ namespace SatelliteSessions
 
             // составим массив использованных сессий
             sessions = new List<CommunicationSession>();
-            
+
             // получим все интервалы сброса
             var downloadingIntervals = mpzArray
                 .SelectMany(mpz => mpz.Routes)
                 .Select(route => route.Parameters)
-                .Where(route_par => route_par.type == WorkingType.Downloading || route_par.type == WorkingType.ShootingSending) 
+                .Where(route_par => route_par.type == WorkingType.Downloading || route_par.type == WorkingType.ShootingSending)
                 .Select(route => new TimePeriod(route.start, route.end)).ToList();
 
             foreach (var interval in downloadingIntervals.ToArray())
@@ -679,9 +682,9 @@ namespace SatelliteSessions
                     downloadingIntervals.Remove(interval);
                     break;
                 }
-            }             
+            }
         }
-         
+
         /// <summary>
         /// Создание ПНб по набору маршрутов
         /// </summary>
@@ -770,7 +773,7 @@ namespace SatelliteSessions
                 coridorParams.Add(oneParam);
             }
         }
- 
+
         /// <summary>
         /// Рассчитать коридор съемки/видимости для заданной конфигурации СОЭНc
         /// </summary>
@@ -783,7 +786,7 @@ namespace SatelliteSessions
         /// <param name="wktPoly">Коридор в формате WKT</param>
         /// <param name="duration">Длительность съемки коридора [с]</param>
         /// <returns> полигон в формате WKT</returns>
-        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr, 
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr,
             out string wktPoly, out double duration)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
@@ -798,7 +801,7 @@ namespace SatelliteSessions
         public static CoridorParams getCoridorParams(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr, out double duration)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
-    
+
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
             Trajectory traj = getMaxTrajectory(managerDB, dateTime);
@@ -814,7 +817,7 @@ namespace SatelliteSessions
         }
 
 
-        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, GeoPoint end, string connectStr, 
+        public static void getCoridorPoly(DateTime dateTime, double rollAngle, double pitchAngle, GeoPoint end, string connectStr,
             out string wktPoly, out double duration, out double dist)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
@@ -1180,7 +1183,7 @@ namespace SatelliteSessions
                     if (!route.Parameters.isCompatible(routeParams))
                         conflicts.Add(Tuple.Create(mpz.Parameters.id, route.Parameters.NRoute));
                 }
-            } 
+            }
         }
 
         /// <summary>
@@ -1211,7 +1214,7 @@ namespace SatelliteSessions
                 foreach (var mpzRoute in mpz.Routes)
                 {
                     if (!mpzRoute.Parameters.isCompatible(routeParams))
-                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.NRoute.ToString());                       
+                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.NRoute.ToString());
                 }
             }
 
@@ -1227,13 +1230,13 @@ namespace SatelliteSessions
             {
                 var copyMpzParams = new MPZParams(mpz.Parameters);
                 if (copyMpzParams.InsertRoute(modRouteParams, sessionStart.Value, sessionEnd.Value))
-                    return;                       
+                    return;
             }
-            
+
             List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams });
 
             if (tmpList.Count > 0)
-                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connStringCup), new DIOS.Common.SqlManager(connStringCuks), new FlagsMPZ());                               
+                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connStringCup), new DIOS.Common.SqlManager(connStringCuks), new FlagsMPZ());
         }
 
         /// <summary>
@@ -1245,7 +1248,7 @@ namespace SatelliteSessions
         public static void deleteRouteFromPNB(List<MPZ> PNB, int MPZId, int routeId)
         {
             var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == MPZId);
-            
+
             if (mpz == null)
                 throw new ArgumentException("Mpz id is incorrect");
 
@@ -1291,7 +1294,7 @@ namespace SatelliteSessions
             DateTime dtTo = dtFrom.AddMilliseconds(duration);
             Trajectory trajectory = fetcher.GetTrajectorySat(dtFrom, dtTo);
             Polygon pol = SatLane.getRollPitchLanePolygon(trajectory, roll, pitch);
-            
+
             OptimalChain.StaticConf stConf = new StaticConf(
                 i: 0,
                 d1: dtFrom,
@@ -1338,7 +1341,7 @@ namespace SatelliteSessions
                 throw new ArgumentException("Unsupported working type");
             double duration;
             CoridorParams corrParams = getCoridorParams(from, roll, pitch, coridorLength, coridorAzimuth, connectStr, out duration);
-            
+
             OptimalChain.StaticConf stConf = new StaticConf(
                     i: 0,
                     d1: corrParams.StartTime,
@@ -1380,38 +1383,40 @@ namespace SatelliteSessions
                 throw new ArgumentException("Unsupported working type");
 
             DIOS.Common.SqlManager managerDb = new DIOS.Common.SqlManager(connectStr);
-           
-             List<CoridorParams> coridorParams;
-             var line = new Polygon(wktPolygon).getCenterLine();
-             getPiecewiseCoridorParams(from, line, managerDb, out coridorParams);
-
-             List<RouteParams> res = new List<RouteParams>();
-
-             foreach (CoridorParams corrParams in coridorParams)
-             {
-                 DateTime toDt = corrParams.EndTime;
-                 OptimalChain.StaticConf stConf = new StaticConf(
-                    i: 0,
-                    d1: corrParams.StartTime,
-                    d2: corrParams.EndTime,
-                    t: 0,
-                    r: 0,
-                    s: corrParams.Coridor.Area,
-                    o: new List<Order>(),
-                    polygon: corrParams.Coridor.ToWtk(),
-                    comp: 0,
-                    alb: 0,
-                    T: wType,
-                    channel: channel,
-                    stype: shType,
-                    _poliCoef: corrParams.CoridorCoefs);
-
-                 res.Add(new RouteParams(stConf));
-             } 
+            List<RouteParams> res = new List<RouteParams>();
+            List<CoridorParams> coridorParams;
+            var line = new Polygon(wktPolygon).getCenterLine();
             
+            if (line.Count < 2)
+                return res;
+
+            getPiecewiseCoridorParams(from, line, managerDb, out coridorParams);
+
+            foreach (CoridorParams corrParams in coridorParams)
+            {
+                DateTime toDt = corrParams.EndTime;
+                OptimalChain.StaticConf stConf = new StaticConf(
+                   i: 0,
+                   d1: corrParams.StartTime,
+                   d2: corrParams.EndTime,
+                   t: 0,
+                   r: 0,
+                   s: corrParams.Coridor.Area,
+                   o: new List<Order>(),
+                   polygon: corrParams.Coridor.ToWtk(),
+                   comp: 0,
+                   alb: 0,
+                   T: wType,
+                   channel: channel,
+                   stype: shType,
+                   _poliCoef: corrParams.CoridorCoefs);
+
+                res.Add(new RouteParams(stConf));
+            }
+
             return res;
         }
-        
+
         /// <summary>
         /// Создание памаетром маршрута на удаление или сброс (скачивание)
         /// </summary>
@@ -1431,27 +1436,27 @@ namespace SatelliteSessions
         {
             double actionTime = 0;
             if (wType == WorkingType.Downloading)
-                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS_Main).TotalSeconds; 
+                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS_Main).TotalSeconds;
             else if (wType == WorkingType.Removal)
                 actionTime = OptimalChain.Constants.routeDeleteTime;
             else
                 throw new ArgumentException("Unsupported working type");
 
-            DateTime toDt = fromDt.AddSeconds(actionTime+OptimalChain.Constants.min_Delta_time);
-             
-            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction);            
+            DateTime toDt = fromDt.AddSeconds(actionTime + OptimalChain.Constants.min_Delta_time);
+
+            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction);
             return curParam;
         }
-        
+
     }
-     
+
     public class wktPolygonLit
     {
         public string wktPolygon { get; set; }
         public bool sun { get; set; }
     }
 
-     
+
 
 }
 
