@@ -37,6 +37,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestLitSpans()
         {
+           /*
             DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
             DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
             //DateTime dt2 = DateTime.Parse("01.02.2019 2:39:30");
@@ -57,6 +58,7 @@ namespace GeometryTest
                 foreach (var period in shadowPeriods)
                     Console.WriteLine(period.dateFrom + " " + period.dateTo);
             }
+            */
         }
 
         [TestMethod]
@@ -108,6 +110,7 @@ namespace GeometryTest
         [TestMethod]
         public void Test123()
         {
+            /*
             DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
             DateTime dt2 = DateTime.Parse("25/02/2019 02:00:00");
 
@@ -126,7 +129,7 @@ namespace GeometryTest
             foreach (var w in partsLitAndNot[1].Item2.Where(p => p.sun))
                 Console.WriteLine(w.wktPolygon + ",");
             Console.WriteLine(")");
-
+            */
             //List<Vector3D> apexes = new List<Vector3D>
             //{
             //    new Vector3D(0.059364107809225,0.0915947881872375,0.0161908852832645),
@@ -543,6 +546,7 @@ namespace GeometryTest
         [TestMethod]
         public void Test_lalala()
         {
+            /*
             List<Vector3D> apexes = new List<Vector3D>
             {
                 new Vector3D(-0.0593525794717557, 0.0941882004842364, 0.0196600456640166),
@@ -579,6 +583,7 @@ namespace GeometryTest
                     double a = p.Area;
                 }
             }
+             */
         }
 
         [TestMethod]

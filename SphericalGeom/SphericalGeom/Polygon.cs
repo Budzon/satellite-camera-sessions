@@ -69,6 +69,11 @@ namespace SphericalGeom
             return (bool)_geography.STContains(pointGeography);
         }
 
+        public bool Contains(Vector3D testP)
+        {
+            return Contains(GeoPoint.FromCartesian(testP));
+        }
+
         public void Add(Polygon other)
         {           
             _geography = _geography.STUnion(other._geography);

@@ -141,8 +141,8 @@ namespace SatelliteSessions
             AbsMaxRequiredRoll = 0;
             AbsMaxRequiredPitch = 0;
 
-            Line[] rightLines = new Line[pointsPerSide - 1]; 
-            Line[] leftLines = new Line[pointsPerSide - 1]; 
+            SphericalVector[] rightLines = new SphericalVector[pointsPerSide - 1]; 
+            SphericalVector[] leftLines = new SphericalVector[pointsPerSide - 1]; 
            
             Coridor = prevKaPos.ViewPolygon;
 

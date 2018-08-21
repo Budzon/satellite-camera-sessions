@@ -226,8 +226,8 @@ namespace SatelliteSessions
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
                         {
                             List<CoridorParams> coridorParams;
-                           /// try
-                           // {
+                            try
+                            {
                                 getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
                                 //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
@@ -241,12 +241,12 @@ namespace SatelliteSessions
                                 {
                                     start = start.AddSeconds(20);
                                 }
-                          //  }
-                            //catch (Exception e)
-                            //{
-                            //    Console.WriteLine("!!!!!!!!!!!" + e.Message);
-                            //    start = start.AddSeconds(20);
-                            //}
+                            }
+                            catch (Curve.NotEnougPointsException e)
+                            {
+                                Console.WriteLine("!!!!!!!!!!!" + e.Message);
+                                start = start.AddSeconds(20);
+                            }
                         }
                     }
                 }

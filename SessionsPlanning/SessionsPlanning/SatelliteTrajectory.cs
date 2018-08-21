@@ -448,9 +448,7 @@ namespace SatelliteTrajectory
             fromDT = _fromDt;
             toDT = _toDt;
         }
-
-
-
+         
 
         public DateTime getPointTime(Vector3D point)
         {
@@ -1306,7 +1304,7 @@ namespace SatelliteTrajectory
         /// <returns> Tuple<правая точка, левая точка></returns>
         public Polygon getOptimalStrip(SatelliteCoordinates satTo)
         {
-            Line dirVect = new Line(GeoPoint.FromCartesian(MidViewPoint), GeoPoint.FromCartesian(satTo.MidViewPoint));
+            SphericalVector dirVect = new SphericalVector(GeoPoint.FromCartesian(MidViewPoint), GeoPoint.FromCartesian(satTo.MidViewPoint));
 
             GeoPoint[] fromPoints = new GeoPoint[4]
             {
@@ -1323,15 +1321,15 @@ namespace SatelliteTrajectory
                 GeoPoint.FromCartesian(satTo.BotLeftViewPoint),
                 GeoPoint.FromCartesian(satTo.BotRightViewPoint)
             };
+             
+            List<GeoPoint> fromPointsLeft = fromPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Left).ToList();
+            List<GeoPoint> fromPointsRight = fromPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Right).ToList();
 
-            List<GeoPoint> fromPointsLeft = fromPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Left).ToList();
-            List<GeoPoint> fromPointsRight = fromPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Right).ToList();
-
-            List<GeoPoint> toPointsLeft = toPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Left).ToList();
-            List<GeoPoint> toPointsRight = toPoints.Where(p => dirVect.getPointSide(p) == Line.PointSide.Right).ToList();
+            List<GeoPoint> toPointsLeft = toPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Left).ToList();
+            List<GeoPoint> toPointsRight = toPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Right).ToList();
             
-            Line left = findSideLine(fromPointsLeft, toPointsLeft, Line.PointSide.Left);
-            Line right = findSideLine(fromPointsRight, toPointsRight, Line.PointSide.Right);
+            SphericalVector left = findSideLine(fromPointsLeft, toPointsLeft, SphericalVector.PointSide.Left);
+            SphericalVector right = findSideLine(fromPointsRight, toPointsRight, SphericalVector.PointSide.Right);
              
             Polygon stripPol = new Polygon(
                 new List<GeoPoint>(){
@@ -1341,12 +1339,12 @@ namespace SatelliteTrajectory
             return stripPol;
         }
   
-        private static Line findSideLine(List<GeoPoint> fromPoints, List<GeoPoint> toPoints, Line.PointSide checkSign)
+        private static SphericalVector findSideLine(List<GeoPoint> fromPoints, List<GeoPoint> toPoints, SphericalVector.PointSide checkSign)
         {
             foreach (var pair in fromPoints.SelectMany(f => toPoints.Select(t => Tuple.Create(f, t))))
             {
                 bool ok = true;
-                Line testLine = new Line(pair.Item1, pair.Item2);
+                SphericalVector testLine = new SphericalVector(pair.Item1, pair.Item2);
                 foreach (var testP in fromPoints.Concat(toPoints))
                 {
                     if (testLine.getPointSide(testP) == checkSign)
@@ -1385,9 +1383,9 @@ namespace SatelliteTrajectory
 
 
 
-    public class Line
+    public class SphericalVector
     {
-        public Line(GeoPoint f, GeoPoint t)
+        public SphericalVector(GeoPoint f, GeoPoint t)
         {
             From = f;
             To = t;
@@ -1406,28 +1404,36 @@ namespace SatelliteTrajectory
         public GeoPoint To { get; private set; }
         private SqlGeography _geography;
 
-        private const double eps = 0.00001; // точность определения стороны точки
+        private const double eps = 0;// 0.00001; // точность определения стороны точки
 
         /// <summary>
         /// с какой стороны от вектора лежит прямая
         /// </summary>
         public enum PointSide { Right, Left, Between}
+
         public PointSide getPointSide(GeoPoint tstP)
-        {
+        {           
             if (tstP.Equals(From) || tstP.Equals(To))
                 return PointSide.Between;
 
-            double res = (To.Longitude - From.Longitude) * (tstP.Latitude - From.Latitude) - (To.Latitude - From.Latitude) * (tstP.Longitude - From.Longitude);
+            Vector3D p = GeoPoint.ToCartesian(tstP, 1);
+            Vector3D f = GeoPoint.ToCartesian(From, 1);
+            Vector3D t = GeoPoint.ToCartesian(To, 1);
+
+            double res = p.X * f.Y * t.Z - p.X * t.Y * f.Z - f.X * p.Y * t.Z
+                + f.X * t.Y * p.Z + t.X * p.Y * f.Z - t.X * f.Y * p.Z;
+
+           //  double res = (To.Longitude - From.Longitude) * (tstP.Latitude - From.Latitude) - (To.Latitude - From.Latitude) * (tstP.Longitude - From.Longitude);
 
             if (res < -eps)
                 return PointSide.Right;
             if (res > eps)
                 return PointSide.Left; 
-
+                                
             return PointSide.Between;
         }
 
-        public GeoPoint? getIntersectWith(Line other)
+        public GeoPoint? getIntersectWith(SphericalVector other)
         {
             SqlGeography intersection = _geography.STIntersection(other._geography);
             if (intersection.STNumGeometries() == 0)
@@ -1436,9 +1442,9 @@ namespace SatelliteTrajectory
                 return new GeoPoint((double)intersection.STPointN(1).Lat, (double)intersection.STPointN(1).Long);
         }
 
-        public Line getReverse()
+        public SphericalVector getReverse()
         {
-            return new Line(To, From);
+            return new SphericalVector(To, From);
         }
 
         /// <summary>
@@ -1446,7 +1452,7 @@ namespace SatelliteTrajectory
         /// </summary>
         /// <param name="lines">склеиваемые линии</param>
         /// <returns>массив точек</returns>
-        static public List<GeoPoint> getLineMerge(Line[] lines)
+        static public List<GeoPoint> getLineMerge(SphericalVector[] lines)
         {
             List<GeoPoint> polygonsPoints = new List<GeoPoint>();
             bool interToPrev = false;
@@ -1606,7 +1612,7 @@ namespace SatelliteTrajectory
             }
 
             if (parts.Any(curve => curve.Count < 3))
-                throw new ArgumentException("Add more intermediate points to the curve.");
+                throw new NotEnougPointsException("Add more intermediate points to the curve.");
             return parts;
 
             //double thresh = 10;
@@ -1846,6 +1852,13 @@ namespace SatelliteTrajectory
                     s += ",";
             }
             return s + ")";
+        }
+        
+        public class NotEnougPointsException : ArgumentException
+        {
+            public NotEnougPointsException(string message)
+                : base(message)
+            { }
         }
     }
 
