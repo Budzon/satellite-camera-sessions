@@ -11,6 +11,7 @@ using SatelliteTrajectory;
 
 namespace SatelliteSessions
 {
+    
     public class Parametrized2Curve
     {
         public double L1 { get; private set; }
@@ -100,7 +101,7 @@ namespace SatelliteSessions
     }
 
     public class CoridorParams
-    {
+    { 
         public PolinomCoef CoridorCoefs { get; private set; }
         public double StartRoll { get; private set; }
         public double StartPitch { get; private set; }
@@ -129,7 +130,7 @@ namespace SatelliteSessions
 
 
         public void ComputeCoridorPolygon(Trajectory traj, int pointsPerSide = 20)
-        {
+        { 
             TrajectoryPoint prevTP = traj.GetPoint(StartTime);
             SatelliteCoordinates prevKaPos = new SatelliteCoordinates(prevTP, StartRoll, StartPitch);
             GeoPoint prevCurveGeo = GeoPoint.FromCartesian(prevKaPos.MidViewPoint);
@@ -142,8 +143,8 @@ namespace SatelliteSessions
             AbsMaxRequiredPitch = 0;
 
             SphericalVector[] rightLines = new SphericalVector[pointsPerSide - 1]; 
-            SphericalVector[] leftLines = new SphericalVector[pointsPerSide - 1]; 
-           
+            SphericalVector[] leftLines = new SphericalVector[pointsPerSide - 1];
+             
             Coridor = prevKaPos.ViewPolygon;
 
             for (int i = 1; i < pointsPerSide; i++)
@@ -161,10 +162,11 @@ namespace SatelliteSessions
 
                 Polygon curPol = prevKaPos.getOptimalStrip(curKaPos);
                 Coridor.Add(curPol);
-                Coridor.Add(curKaPos.ViewPolygon);
-                
+                Coridor.Add(curKaPos.ViewPolygon); 
+
                 prevKaPos = curKaPos;
-            }             
+            }
+            
             if (!Coridor.IsValid())
             {
                 throw new Exception("Corridor formation error");

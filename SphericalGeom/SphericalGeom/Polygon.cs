@@ -201,7 +201,7 @@ namespace SphericalGeom
         public static string getMultipolFromWkts(List<string> wkts)
         {
             string res = "";
-            /*
+            
             if (wkts.Count == 0)
                 return res;
 
@@ -212,7 +212,7 @@ namespace SphericalGeom
                     res += ",";
             }
             res = "GEOMETRYCOLLECTION (" + res + ")";
-             */
+            
             return res;
         }
 
@@ -236,13 +236,7 @@ namespace SphericalGeom
 
 
         private void calcArea()
-        {
-            string b1 = _geography.IsValidDetailed();
-           // string b2 = other._geography.IsValidDetailed();
-
-            Console.WriteLine(b1);
-
-
+        { 
             Area = (double)_geography.STArea();
             if (Area >= maxArea)
                 throw new ArgumentException("Wrong points order");

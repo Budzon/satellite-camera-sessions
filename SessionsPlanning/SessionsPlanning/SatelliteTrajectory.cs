@@ -31,7 +31,6 @@ namespace SatelliteTrajectory
         private double rollAngle;
         private double viewAngle;
 
-
         public DateTime FromDt
         {
             get
