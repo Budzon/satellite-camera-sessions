@@ -239,9 +239,7 @@ namespace SatelliteTrajectory
                     foreach (var int_pol in intersections)
                     {
                         var verts = int_pol.Vertices;
-                        var en = verts.GetEnumerator();
-                        en.MoveNext();
-                        DateTime tFrom = sector.getPointTime(en.Current);
+                        DateTime tFrom = sector.getPointTime(verts[0]);
                         DateTime tTo = tFrom;
                         Vector3D pointFrom = verts[0];
                         Vector3D pointTo = verts[0];
@@ -1172,7 +1170,7 @@ namespace SatelliteTrajectory
         {
             if (angle == 0)
                 return;
-            Matrix rotMatr = Routines.getRotMatr(kaX, -angle);
+            Matrix rotMatr = Routines.getRotMatr(kaX, angle);
             kaY = Routines.applyRotMatr(kaY, rotMatr);
             kaZ = Routines.applyRotMatr(kaZ, rotMatr);
 
@@ -1303,29 +1301,16 @@ namespace SatelliteTrajectory
         /// <returns> Tuple<правая точка, левая точка></returns>
         public Polygon getOptimalStrip(SatelliteCoordinates satTo)
         {
-            SphericalVector dirVect = new SphericalVector(GeoPoint.FromCartesian(MidViewPoint), GeoPoint.FromCartesian(satTo.MidViewPoint));
+            SphericalVector dirVect = new SphericalVector(MidViewPoint, satTo.MidViewPoint);
 
-            GeoPoint[] fromPoints = new GeoPoint[4]
-            {
-                GeoPoint.FromCartesian(TopLeftViewPoint),
-                GeoPoint.FromCartesian(TopRightViewPoint),
-                GeoPoint.FromCartesian(BotLeftViewPoint),
-                GeoPoint.FromCartesian(BotRightViewPoint)
-            };
-                        
-            GeoPoint[] toPoints = new GeoPoint[4]
-            {
-                GeoPoint.FromCartesian(satTo.TopLeftViewPoint),
-                GeoPoint.FromCartesian(satTo.TopRightViewPoint),
-                GeoPoint.FromCartesian(satTo.BotLeftViewPoint),
-                GeoPoint.FromCartesian(satTo.BotRightViewPoint)
-            };
-             
-            List<GeoPoint> fromPointsLeft = fromPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Left).ToList();
-            List<GeoPoint> fromPointsRight = fromPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Right).ToList();
+            var fromPoints = ViewPolygon.Vertices.Where(p => !satTo.viewPolygon.Contains(p));
+            var toPoints = satTo.ViewPolygon.Vertices.Where(p => !this.viewPolygon.Contains(p));
 
-            List<GeoPoint> toPointsLeft = toPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Left).ToList();
-            List<GeoPoint> toPointsRight = toPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Right).ToList();
+            var fromPointsLeft = fromPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Left);
+            var fromPointsRight = fromPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Right);
+
+            var toPointsLeft = toPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Left);
+            var toPointsRight = toPoints.Where(p => dirVect.getPointSide(p) == SphericalVector.PointSide.Right);
             
             SphericalVector left = findSideLine(fromPointsLeft, toPointsLeft, SphericalVector.PointSide.Left);
             SphericalVector right = findSideLine(fromPointsRight, toPointsRight, SphericalVector.PointSide.Right);
@@ -1337,14 +1322,16 @@ namespace SatelliteTrajectory
             
             return stripPol;
         }
-  
-        private static SphericalVector findSideLine(List<GeoPoint> fromPoints, List<GeoPoint> toPoints, SphericalVector.PointSide checkSign)
+
+        private static SphericalVector findSideLine(IEnumerable<Vector3D> fromPoints, IEnumerable<Vector3D> toPoints, SphericalVector.PointSide checkSign)
         {
-            foreach (var pair in fromPoints.SelectMany(f => toPoints.Select(t => Tuple.Create(f, t))))
+            var allFromPoints = fromPoints.Concat(toPoints);
+            var pointPairs = fromPoints.SelectMany(f => toPoints.Select(t => Tuple.Create(f, t)));
+            foreach (var pair in pointPairs)
             {
                 bool ok = true;
                 SphericalVector testLine = new SphericalVector(pair.Item1, pair.Item2);
-                foreach (var testP in fromPoints.Concat(toPoints))
+                foreach (var testP in allFromPoints)
                 {
                     if (testLine.getPointSide(testP) == checkSign)
                     {
@@ -1357,7 +1344,7 @@ namespace SatelliteTrajectory
                     return testLine;
                 }
             }
-            throw new Exception("Corridor formation error");
+            throw new Exception("Corridor formation error"); // сюда мы дойти не должны при корректном исполнении
         }
 
         private void calculateViewPolygon()
@@ -1384,24 +1371,70 @@ namespace SatelliteTrajectory
 
     public class SphericalVector
     {
-        public SphericalVector(GeoPoint f, GeoPoint t)
+        public SphericalVector(Vector3D f, Vector3D t)            
         {
-            From = f;
-            To = t;
+            CartFrom = f;
+            CartTo = t; 
+        }
+
+        public GeoPoint From {
+            get
+            {
+                if (!spherKnown)                 
+                {
+                    calcSpherical();
+                }
+                return geoFrom;
+            }            
+        }
+        public GeoPoint To
+        {
+            get
+            {
+                if (!spherKnown)
+                {
+                    calcSpherical();
+                }
+                return geoTo;
+            }
+        }
+
+        private GeoPoint geoFrom;
+        private GeoPoint geoTo;
+
+        private bool spherKnown = false;
+
+        private void calcSpherical()
+        {
+            geoFrom = GeoPoint.FromCartesian(CartFrom);
+            geoTo = GeoPoint.FromCartesian(CartTo);
 
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
             builder.SetSrid(4326);
             builder.BeginGeography(OpenGisGeographyType.LineString);
-            builder.BeginFigure(f.Latitude, f.Longitude);
-            builder.AddLine(t.Latitude, t.Longitude);
+            builder.BeginFigure(geoFrom.Latitude, geoFrom.Longitude);
+            builder.AddLine(geoTo.Latitude, geoTo.Longitude);
             builder.EndFigure();
             builder.EndGeography();
-            _geography = builder.ConstructedGeography; 
+            _geography = builder.ConstructedGeography;
+            spherKnown = true;
         }
-
-        public GeoPoint From { get; private set; }
-        public GeoPoint To { get; private set; }
+ 
+        public Vector3D CartFrom { get; private set; }
+        public Vector3D CartTo { get; private set; }
+         
         private SqlGeography _geography;
+        private SqlGeography Geography
+        {
+            get
+            {
+                if (!spherKnown)
+                {
+                    calcSpherical();
+                }
+                return _geography;
+            }
+        }
 
         private const double eps = 0;// 0.00001; // точность определения стороны точки
 
@@ -1410,20 +1443,18 @@ namespace SatelliteTrajectory
         /// </summary>
         public enum PointSide { Right, Left, Between}
 
-        public PointSide getPointSide(GeoPoint tstP)
-        {           
-            if (tstP.Equals(From) || tstP.Equals(To))
+        public PointSide getPointSide(Vector3D tstP)
+        {
+            if (tstP.Equals(CartFrom) || tstP.Equals(CartTo))
                 return PointSide.Between;
 
-            Vector3D p = GeoPoint.ToCartesian(tstP, 1);
-            Vector3D f = GeoPoint.ToCartesian(From, 1);
-            Vector3D t = GeoPoint.ToCartesian(To, 1);
+            Vector3D p = tstP;
+            Vector3D f = CartFrom;
+            Vector3D t = CartTo;
 
             double res = p.X * f.Y * t.Z - p.X * t.Y * f.Z - f.X * p.Y * t.Z
                 + f.X * t.Y * p.Z + t.X * p.Y * f.Z - t.X * f.Y * p.Z;
-
-           //  double res = (To.Longitude - From.Longitude) * (tstP.Latitude - From.Latitude) - (To.Latitude - From.Latitude) * (tstP.Longitude - From.Longitude);
-
+             
             if (res < -eps)
                 return PointSide.Right;
             if (res > eps)
@@ -1434,7 +1465,7 @@ namespace SatelliteTrajectory
 
         public GeoPoint? getIntersectWith(SphericalVector other)
         {
-            SqlGeography intersection = _geography.STIntersection(other._geography);
+            SqlGeography intersection = Geography.STIntersection(other.Geography);
             if (intersection.STNumGeometries() == 0)
                 return null;
             else
@@ -1443,56 +1474,9 @@ namespace SatelliteTrajectory
 
         public SphericalVector getReverse()
         {
-            return new SphericalVector(To, From);
+            return new SphericalVector(CartTo, CartFrom);
         }
 
-        /// <summary>
-        /// составим одну линиую из нескольких с учётом пересечений
-        /// </summary>
-        /// <param name="lines">склеиваемые линии</param>
-        /// <returns>массив точек</returns>
-        static public List<GeoPoint> getLineMerge(SphericalVector[] lines)
-        {
-            List<GeoPoint> polygonsPoints = new List<GeoPoint>();
-            bool interToPrev = false;
-            for (int i = 0; i < lines.Count(); i++)
-            {
-                if (!interToPrev)
-                    polygonsPoints.Add(lines[i].From); // добавляем начальную точку только если на прошлой итерации не было обнаружено пересечения
-
-                if (i == lines.Count() - 1)
-                {
-                    polygonsPoints.Add(lines[i].To);
-                    break;
-                }
-
-                int j = i+1;
-                for (; j < lines.Count(); j++)
-                {
-                    if (j == i+1)
-                    {
-                        if (lines[i].To.Equals(lines[j].From))
-                            break;
-                    }
-
-                    GeoPoint? intersToNext = lines[i].getIntersectWith(lines[j]);
-                    if (intersToNext.HasValue)
-                    {
-                        polygonsPoints.Add(intersToNext.Value);
-                        interToPrev = true;
-                        i = j;
-                        break;
-                    }
-                }
-                if (j != i)
-                {
-                    polygonsPoints.Add(lines[i].To);
-                    interToPrev = false;
-                }
-            }
-            return polygonsPoints;
-        }
-        
     }
 
     public class Curve

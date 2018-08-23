@@ -1,4 +1,4 @@
-﻿#define  NOT_PARALLEL_
+﻿#define  _PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -169,6 +169,21 @@ namespace SatelliteSessions
         }
 
 
+        public static string getLineSringStr(List<GeoPoint> line)
+        {
+            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
+            string res = "LINESTRING (";
+            for (int i = 0; i < line.Count; i++)
+            {
+                var p = line[i];
+                res += string.Format("{0}  {1}", p.Longitude.ToString().Replace(separator, '.'), p.Latitude.ToString().Replace(separator, '.'));
+                if (i < line.Count - 1)
+                    res += string.Format(" , ");
+            }
+            res += string.Format(")");
+            return res;
+        }
+
         private static void getCaptureConfArrayForTrajectoryForCoridor(
            DIOS.Common.SqlManager managerDB,
            List<RequestParams> requests,
@@ -205,7 +220,7 @@ namespace SatelliteSessions
 
                 foreach (var conf in confs)
                 {
-                    int startEps = 1, endEps = 1; // если возможно, то немного удлинним сегмент полосы для того, чтобы точно замести полигон закакза целиком 
+                    int startEps = 1, endEps = 1; // если возможно, то немного удлинним сегмент полосы для того, чтобы точно замести полигон заказа целиком 
                     if (conf.dateFrom.AddSeconds(-startEps) < viewLane.FromDt)
                         startEps = 0;
                     if (conf.dateTo.AddSeconds(endEps) > viewLane.ToDt)
@@ -218,6 +233,7 @@ namespace SatelliteSessions
                     foreach (var p in interpols)
                     {
                         List<GeoPoint> line = p.getCenterLine();
+                         
                         if (line.Count < 2)
                             continue;
                         double deltaPitchTime = CaptureConf.getTimeDeltaFromPitch(trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
@@ -244,14 +260,13 @@ namespace SatelliteSessions
                             }
                             catch (Curve.NotEnougPointsException e)
                             {
-                                Console.WriteLine("!!!!!!!!!!!" + e.Message);
+                                // Console.WriteLine("!!!!!!!!!!!" + e.Message);
                                 start = start.AddSeconds(20);
                             }
                         }
                     }
                 }
-
-                Console.WriteLine(allCoridors.Count);
+                 
                 //allCoridors.RemoveAll(cor => SatelliteCoordinates ka = new SatelliteCoordinates(cor.AbsMaxRequiredRoll, cor.AbsMaxRequiredPitch);  Vector3D.AngleBetween(ka.ViewDir, ka.)   > req.Max_SOEN_anlge);
 
                 foreach (var cp in allCoridors)
@@ -550,8 +565,8 @@ namespace SatelliteSessions
                 shadowAndInactivityPeriods,
                 freeIntervalsForDownload);
 
-            List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
-            Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
+           // List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
+           // Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);

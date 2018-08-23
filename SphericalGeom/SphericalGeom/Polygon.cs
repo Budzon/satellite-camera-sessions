@@ -55,7 +55,10 @@ namespace SphericalGeom
        
         public Polygon(List<Vector3D> points)
             : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
-        {}
+        {
+            vertices = points.ToArray();
+            knownVertices = true;
+        }
         
         public bool Contains(GeoPoint testP)
         {
@@ -127,21 +130,35 @@ namespace SphericalGeom
             }
         }
 
-        public List<Vector3D> Vertices
+        public Vector3D[] Vertices
         {
             get
             {
-                List<Vector3D> vertices = new List<Vector3D>();
-                for (int i = 1; i <= _geography.STNumPoints() ; i++)
-                {
-                    GeoPoint gpoint = new GeoPoint(
-                        (double)_geography.STPointN(i).Lat,
-                        (double)_geography.STPointN(i).Long);
-                    vertices.Add(GeoPoint.ToCartesian(gpoint, 1));
-                }
+                if (!knownVertices)
+                    calcVertices();
                 return vertices;
             }
         }
+
+
+        private bool knownVertices = false;
+        private Vector3D[] vertices;
+
+        private void calcVertices()
+        {            
+            int size = (int)_geography.STNumPoints();
+            vertices = new Vector3D[size];
+            for (int i = 1; i <= size; i++)
+            {
+                GeoPoint gpoint = new GeoPoint(
+                    (double)_geography.STPointN(i).Lat,
+                    (double)_geography.STPointN(i).Long);
+                vertices[i-1] = GeoPoint.ToCartesian(gpoint, 1);
+            }
+            knownVertices = true;
+        }
+
+
 
         public static IList<Polygon> Intersect(Polygon p, Polygon q)
         {

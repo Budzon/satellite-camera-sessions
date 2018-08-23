@@ -219,6 +219,11 @@ namespace Common
             return string.Format("{0},{1}", lat.ToString(CultureInfo.InvariantCulture), lon.ToString(CultureInfo.InvariantCulture));
         }
 
+        public string ToWkt()
+        {
+            return String.Format("POINT({0} {1})", lon, lat).Replace(',', '.'); ;
+        }
+
         public string ToStringEx()
         {
             return string.Format("Lat: {0}В° Long: {1}В°", lat, lon);
