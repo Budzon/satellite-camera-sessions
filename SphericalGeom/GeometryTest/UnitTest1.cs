@@ -19,11 +19,11 @@ namespace GeometryTest
                 GeoPoint B = new GeoPoint(8.233237111274562, 30.98144531249999);
                 GeoPoint C = new GeoPoint(16.172472808397515, 44.5166015625);
 
-                SphericalVector AB = new SphericalVector(A, B);
-                SphericalVector BA = new SphericalVector(B, A);
+                SphericalVector AB = new SphericalVector(A.ToCartesian(), B.ToCartesian());
+                SphericalVector BA = new SphericalVector(B.ToCartesian(), A.ToCartesian());
 
-                Assert.IsTrue(AB.getPointSide(C) == SphericalVector.PointSide.Left);
-                Assert.IsTrue(BA.getPointSide(C) == SphericalVector.PointSide.Right);
+                Assert.IsTrue(AB.getPointSide(C.ToCartesian()) == SphericalVector.PointSide.Left);
+                Assert.IsTrue(BA.getPointSide(C.ToCartesian()) == SphericalVector.PointSide.Right);
             }
             ///////
 
@@ -31,10 +31,10 @@ namespace GeometryTest
                 GeoPoint A = new GeoPoint(74.8451787339525, -63.1348395505636);
                 GeoPoint B = new GeoPoint(75.3782839712454, -63.6369587442901);
                 GeoPoint C = new GeoPoint(74.91758915671994, -62.994824847441976);
-                
-                SphericalVector AB = new SphericalVector(A, B);
 
-                Assert.IsTrue(AB.getPointSide(C) == SphericalVector.PointSide.Right);
+                SphericalVector AB = new SphericalVector(A.ToCartesian(), B.ToCartesian());
+
+                Assert.IsTrue(AB.getPointSide(C.ToCartesian()) == SphericalVector.PointSide.Right);
             }
 
 

@@ -449,7 +449,7 @@ namespace OptimalChain
             int _Max_sun_angle, 
             int _Min_sun_angle,
             string _wktPolygon,
-            List<string> _polygonToSubtract = null,
+            List<string> _polygonsToSubtract = null,
             double _albedo = 0.36,
             int _compression = 0,
             ShootingType _shootingType = ShootingType.Normal,
@@ -471,12 +471,11 @@ namespace OptimalChain
             shootingType = _shootingType;
             requestChannel = _requestChannel;
             Cloudiness = _cloudiness;
-            polygonToSubtract = _polygonToSubtract;
+            polygonToSubtract = _polygonsToSubtract;
             Polygon comPolygon = new Polygon(wktPolygon);
-            if (_polygonToSubtract != null)
+            if (_polygonsToSubtract != null)
             {
-                Tuple<List<Polygon>, List<Polygon>> res = Polygon.IntersectAndSubtract(comPolygon, _polygonToSubtract.Select(str => new Polygon(str)).ToList());
-                polygons = res.Item2;
+                polygons = Polygon.Subtract(comPolygon, _polygonsToSubtract.Select(str => new Polygon(str)).ToList());
             }
             else
             {
@@ -488,7 +487,7 @@ namespace OptimalChain
 
         public RequestParams(RequestParams copyed)
         {
-            id = copyed.id;
+            id = copyed.id; 
             priority = copyed.priority;
             timeFrom = copyed.timeFrom;
             timeTo = copyed.timeTo;

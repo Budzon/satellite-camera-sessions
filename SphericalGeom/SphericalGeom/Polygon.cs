@@ -54,9 +54,12 @@ namespace SphericalGeom
         }
        
         public Polygon(IEnumerable<Vector3D> points)
-            : this(points.Select(p => GeoPoint.FromCartesian(p)))
-        {}
-
+            : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
+        {
+            vertices = points.ToArray();
+            knownVertices = true;
+        }
+        
         public bool Contains(GeoPoint testP)
         {
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
@@ -148,18 +151,12 @@ namespace SphericalGeom
             }
         }
 
-        public List<Vector3D> Vertices
+        public Vector3D[] Vertices
         {
             get
             {
-                List<Vector3D> vertices = new List<Vector3D>();
-                for (int i = 1; i <= _geography.STNumPoints() ; i++)
-                {
-                    GeoPoint gpoint = new GeoPoint(
-                        (double)_geography.STPointN(i).Lat,
-                        (double)_geography.STPointN(i).Long);
-                    vertices.Add(GeoPoint.ToCartesian(gpoint, 1));
-                }
+                if (!knownVertices)
+                    calcVertices();
                 return vertices;
             }
         }
@@ -185,6 +182,23 @@ namespace SphericalGeom
             return new Polygon(Vertices.Select(v => transpose ? frame.ToBaseFrame(v) : frame.ToThisFrame(v)));
         }
 
+        private bool knownVertices = false;
+        private Vector3D[] vertices;
+
+        private void calcVertices()
+        {            
+            int size = (int)_geography.STNumPoints();
+            vertices = new Vector3D[size];
+            for (int i = 1; i <= size; i++)
+            {
+                GeoPoint gpoint = new GeoPoint(
+                    (double)_geography.STPointN(i).Lat,
+                    (double)_geography.STPointN(i).Long);
+                vertices[i-1] = GeoPoint.ToCartesian(gpoint, 1);
+            }
+            knownVertices = true;
+        }
+
         public static List<Polygon> Intersect(Polygon p, Polygon q)
         {
             List<Polygon> intersects = new List<Polygon>();
@@ -201,44 +215,36 @@ namespace SphericalGeom
 
         public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
         {
-            List<Polygon> intersects = new List<Polygon>();
-            List<Polygon> differences = new List<Polygon>();
-            SqlGeography intersection = p._geography.STIntersection(q._geography);
-            SqlGeography difference = p._geography.STDifference(q._geography);
-            
-            for (int i = 1; i <= intersection.STNumGeometries(); i++)
+             return Tuple.Create(Intersect(p, q), Subtract(p, q));
+        }
+         
+        public static List<Polygon> Subtract(Polygon p, Polygon q)
+        {
+            List<Polygon> res = new List<Polygon>();
+            SqlGeography diff = p._geography.STDifference(q._geography);
+            for (int i = 1; i <= diff.STNumGeometries(); i++)
             {
-                intersects.Add( new Polygon(intersection.STGeometryN(i)) );
+                res.Add(new Polygon(diff.STGeometryN(i)));
             }
-
-            for (int i = 1; i <= difference.STNumGeometries(); i++)
-            {
-                differences.Add(new Polygon(difference.STGeometryN(i)));
-            }
-
-            return Tuple.Create(intersects, differences);
+            return res;
         }
 
-        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, List<Polygon> qs)
+
+        public static List<Polygon> Subtract(Polygon p, IEnumerable<Polygon> qs)
         {
-            List<Polygon> intersection = new List<Polygon>();
             List<Polygon> diff = new List<Polygon>() { p };
-            foreach (Polygon q in qs)
+            foreach (var q in qs)
             {
                 List<Polygon> newDiff = new List<Polygon>();
-                foreach (Polygon d in diff)
+                foreach (var d in diff)
                 {
-                    var intSub = IntersectAndSubtract(d, q);
-                    newDiff.AddRange(intSub.Item2);
-                    intersection.AddRange(intSub.Item1);
+                    newDiff.AddRange(Subtract(d, q));
                 }
                 diff.Clear();
                 diff = newDiff;
             }
-
-            return Tuple.Create(intersection, diff);
+            return diff;
         }
-          
 
         public static string getMultipolFromWkts(List<string> wkts)
         {
