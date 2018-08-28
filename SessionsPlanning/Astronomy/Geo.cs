@@ -258,6 +258,11 @@ namespace Common
             return new GeoPoint(lat, lon, false, GeoPoint.Range.RangeLong180 | GeoPoint.Range.RangeLat90);
         }
 
+        public Vector3D ToCartesian(double radius = 1)
+        {
+            return ToCartesian(this, radius);
+        }
+
         public static Vector3D ToCartesian(GeoPoint point, double radius)
         {
             double latitude = point.Latitude * DegToRad;
@@ -299,6 +304,14 @@ namespace Common
             longDistance = lon;
         }
 
+
+        /// <summary>
+        /// расстояние между двумя точками по большому кругу
+        /// </summary>
+        /// <remarks> в некоторых случаях для очень близких, но не тождественных точек res может получится NaN, для этого случая проверка на NaN</remarks>
+        /// <param name="p1">первая точка</param>
+        /// <param name="p2">вторая точка</param>
+        /// <returns>расстояние между точками в радианах</returns>
         public static double DistanceOverSurface(GeoPoint p1, GeoPoint p2)
         {
             if (p1 == p2)
@@ -307,8 +320,8 @@ namespace Common
             double lat2 = p2.lat * DegToRad;
             double lon1 = p1.lon * DegToRad;
             double lon2 = p2.lon * DegToRad;
-            double res = Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon1)); 
-            return res;
+            double res = Math.Acos(Math.Sin(lat1) * Math.Sin(lat2) + Math.Cos(lat1) * Math.Cos(lat2) * Math.Cos(lon2 - lon1));
+            return double.IsNaN(res) ? 0 : res;
         }
 
         public static double DistanceOverSurface(Vector3D p1, Vector3D p2)

@@ -160,9 +160,9 @@ namespace SphericalGeom
 
 
 
-        public static IList<Polygon> Intersect(Polygon p, Polygon q)
+        public static List<Polygon> Intersect(Polygon p, Polygon q)
         {
-            IList<Polygon> intersects = new List<Polygon>();
+            List<Polygon> intersects = new List<Polygon>();
 
             SqlGeography intersection = p._geography.STIntersection(q._geography);
 
@@ -176,44 +176,35 @@ namespace SphericalGeom
 
         public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
         {
-            List<Polygon> intersects = new List<Polygon>();
-            List<Polygon> differences = new List<Polygon>();
-            SqlGeography intersection = p._geography.STIntersection(q._geography);
-            SqlGeography difference = p._geography.STDifference(q._geography);
-            
-            for (int i = 1; i <= intersection.STNumGeometries(); i++)
+             return Tuple.Create(Intersect(p, q), Subtract(p, q));
+        }
+         
+        public static List<Polygon> Subtract(Polygon p, Polygon q)
+        {
+            List<Polygon> res = new List<Polygon>();
+            SqlGeography diff = p._geography.STDifference(q._geography);
+            for (int i = 1; i <= diff.STNumGeometries(); i++)
             {
-                intersects.Add( new Polygon(intersection.STGeometryN(i)) );
+                res.Add(new Polygon(diff.STGeometryN(i)));
             }
-
-            for (int i = 1; i <= difference.STNumGeometries(); i++)
-            {
-                differences.Add(new Polygon(difference.STGeometryN(i)));
-            }
-
-            return Tuple.Create(intersects, differences);
+            return res;
         }
 
-        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, IList<Polygon> qs)
+        public static List<Polygon> Subtract(Polygon p, IList<Polygon> qs)
         {
-            List<Polygon> intersection = new List<Polygon>();
             List<Polygon> diff = new List<Polygon>() { p };
-            foreach (Polygon q in qs)
+            foreach (var q in qs)
             {
                 List<Polygon> newDiff = new List<Polygon>();
-                foreach (Polygon d in diff)
+                foreach (var d in diff)
                 {
-                    var intSub = IntersectAndSubtract(d, q);
-                    newDiff.AddRange(intSub.Item2);
-                    intersection.AddRange(intSub.Item1);
+                    newDiff.AddRange(Subtract(d, q));
                 }
                 diff.Clear();
                 diff = newDiff;
             }
-
-            return Tuple.Create(intersection, diff);
+            return diff;
         }
-          
 
         public static string getMultipolFromWkts(List<string> wkts)
         {

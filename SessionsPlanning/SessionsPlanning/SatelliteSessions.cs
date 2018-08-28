@@ -1,4 +1,4 @@
-﻿#define  _PARALLEL_
+﻿#define  NOT_PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -260,7 +260,7 @@ namespace SatelliteSessions
                             }
                             catch (Curve.NotEnougPointsException e)
                             {
-                                // Console.WriteLine("!!!!!!!!!!!" + e.Message);
+                                // Console.WriteLine(e.Message);
                                 start = start.AddSeconds(20);
                             }
                         }
@@ -564,9 +564,12 @@ namespace SatelliteSessions
                 ManagerDbCUKS,
                 shadowAndInactivityPeriods,
                 freeIntervalsForDownload);
-
-           // List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
-           // Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
+            
+#if DEBUG
+#warning this is only for debug
+            List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
+            Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
+#endif
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);

@@ -17,22 +17,22 @@ namespace GeometryTest
     [TestClass]
     public class GeneralTest
     {
-        [TestMethod]
-        public void TestOrthogonality()
-        {
-            string cs = System.IO.File.ReadLines("DBstring.conf").First();
-            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
-            DBTables.DataFetcher fetcher = new DataFetcher(manager);
+        //[TestMethod]
+        //public void TestOrthogonality()
+        //{
+        //    string cs = System.IO.File.ReadLines("DBstring.conf").First();
+        //    DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+        //    DBTables.DataFetcher fetcher = new DataFetcher(manager);
 
-            DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
-            DateTime dt2 = DateTime.Parse("3/01/2019 02:00:00");
-            var traj = fetcher.GetTrajectorySat(dt1, dt2);
-            foreach (var tp in traj)
-            {
-                Vector3D v = tp.Position.ToVector();
-                Console.WriteLine(Vector3D.AngleBetween(v, tp.Velocity));
-            }
-        }
+        //    DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
+        //    DateTime dt2 = DateTime.Parse("3/01/2019 02:00:00");
+        //    var traj = fetcher.GetTrajectorySat(dt1, dt2);
+        //    foreach (var tp in traj)
+        //    {
+        //        Vector3D v = tp.Position.ToVector();
+        //        Console.WriteLine(Vector3D.AngleBetween(v, tp.Velocity));
+        //    }
+        //}
 
         [TestMethod]
         public void TestLitSpans()
@@ -366,7 +366,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 1; testi++)
+            for (int testi = 0; testi < 10; testi++)
             {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
@@ -428,7 +428,7 @@ namespace GeometryTest
         {
             List<Polygon> polygons = new List<Polygon>();
             Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 40; i++)
             {
                 Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
                 polygons.Add(randpol);
@@ -492,7 +492,7 @@ namespace GeometryTest
                 routeParamtoDelete.start = new DateTime(2019, 1, 4);
                 routeParamtoDelete.end = new DateTime(2019, 1, 5);
                 routeParamtoDelete.File_Size = 1000;
-                routeParamtoDelete.binded_route = null;
+                routeParamtoDelete.binded_route = routeParamtoDrop;
                 RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerCUP) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
@@ -678,7 +678,9 @@ namespace GeometryTest
                 verts[t] = vert;
             }
 
-            return new Polygon(verts.Values.ToList<Vector3D>());
+            var values = verts.Values.ToList();// verts.Reverse();
+            values.Reverse();
+            return new Polygon(values);
         }
     }
 }

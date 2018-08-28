@@ -267,7 +267,8 @@ namespace SatelliteTrajectory
                         if (outOfRange)
                             break;
 
-                        DateTime shootingFrom = tFrom.AddSeconds(getViewDeflect(tFrom, pointFrom));
+                        var vdefl = getViewDeflect(tFrom, pointFrom);
+                        DateTime shootingFrom = tFrom.AddSeconds(vdefl);
                         DateTime shootingTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
 
                         if (shootingTo <= shootingFrom) // полоса конфигурации съемки короче кадра, делаем снимок по центру                        
@@ -381,6 +382,14 @@ namespace SatelliteTrajectory
 
         /// <summary>
         /// возвращает время в секундах, характеризующее расстояние между серединой кадра и его границей по линии точки target
+        /// 
+        ///         ________R________
+        ///        /        |b       \
+        ///       /_________|         \
+        ///      / tDefl    |          \
+        ///     /           |a          \
+        ///    /____________|____________\ 
+        ///                 L
         /// </summary>
         /// <param name="dtime">время кадра</param>
         /// <param name="target">снимаемая точка</param>
@@ -389,8 +398,7 @@ namespace SatelliteTrajectory
         {
             TrajectoryPoint trajPoint = trajectory.GetPoint(dtime);
             LanePos curPos = new LanePos(trajPoint, viewAngle, rollAngle);
-            double a = GeoPoint.DistanceOverSurface(curPos.LeftCartPoint, target);
-            double b = GeoPoint.DistanceOverSurface(curPos.RightCartPoint, target);
+            double a = GeoPoint.DistanceOverSurface(curPos.LeftCartPoint, target);            
             double ab = GeoPoint.DistanceOverSurface(curPos.LeftGeoPoint, curPos.RightGeoPoint);
             double botTrapezBase = GeoPoint.DistanceOverSurface(curPos.KaCoords.BotLeftViewPoint, curPos.KaCoords.TopLeftViewPoint);
             double topTrapezBase = GeoPoint.DistanceOverSurface(curPos.KaCoords.BotRightViewPoint, curPos.KaCoords.TopRightViewPoint);

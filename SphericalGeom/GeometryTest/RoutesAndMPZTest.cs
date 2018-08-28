@@ -95,7 +95,7 @@ namespace GeometryTest
                 _Max_sun_angle: 90,
                 _Min_sun_angle: 10,
                 _wktPolygon: polwtk,
-                _polygonToSubtract: holes, _requestChannel: ShootingChannel.pk,
+                _polygonsToSubtract: holes, _requestChannel: ShootingChannel.pk,
                 _shootingType: ShootingType.Normal);
 
             List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
