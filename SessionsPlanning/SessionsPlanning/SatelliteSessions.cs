@@ -213,7 +213,7 @@ namespace SatelliteSessions
 
                     Polygon segment = viewLane.getSegment(conf.dateFrom.AddSeconds(-startEps), conf.dateTo.AddSeconds(endEps));
 
-                    IList<Polygon> interpols = Polygon.Intersect(segment, reqpol);
+                    List<Polygon> interpols = Polygon.Intersect(segment, reqpol);
 
                     foreach (var p in interpols)
                     {
@@ -942,15 +942,15 @@ namespace SatelliteSessions
             return wtk;
         }
 
-        /*
+        
 
-        /// <summary>
-        /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
-        /// </summary>
-        /// <param name="DBManager">Параметры подключения к БД</param>
-        /// <param name="timeFrom">Начало временного промежутка</param>
-        /// <param name="timeTo">Конец временного промежутка</param>
-        /// <param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
+        ///\<summary>
+        ///Разбиение полосы видимости КА под траекторией на полигоны освещенности.
+        ///</summary>
+        ///<param name="DBManager">Параметры подключения к БД</param>
+        ///<param name="timeFrom">Начало временного промежутка</param>
+        ///<param name="timeTo">Конец временного промежутка</param>
+        ///<param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
         public static void checkIfViewLaneIsLit(string connectStr, DateTime timeFrom, DateTime timeTo, out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot)
         {
             DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
@@ -979,7 +979,7 @@ namespace SatelliteSessions
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
 
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtractHemisphere(sector, sun);
+                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
                     bool allLit = LitAndNot.Item2.Count == 0;
                     bool allUnlit = LitAndNot.Item1.Count == 0;
 
@@ -1040,15 +1040,15 @@ namespace SatelliteSessions
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
             }
         }
-                
 
-        /// <summary>
-        /// Разбиение полосы видимости КА под траекторией на полигоны освещенности.
-        /// </summary>
-        /// <param name="DBManager">Параметры подключения к БД</param>
-        /// <param name="timeFrom">Начало временного промежутка</param>
-        /// <param name="timeTo">Конец временного промежутка</param>
-        /// <param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
+        
+        ///<summary>
+        ///Разбиение полосы видимости КА под траекторией на полигоны освещенности.
+        ///</summary>
+        ///<param name="DBManager">Параметры подключения к БД</param>
+        ///<param name="timeFrom">Начало временного промежутка</param>
+        ///<param name="timeTo">Конец временного промежутка</param>
+        ///<param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
         public static void checkIfViewLaneIsLitWithTimeSpans(
             DIOS.Common.SqlManager DBManager,
             DateTime timeFrom,
@@ -1082,7 +1082,7 @@ namespace SatelliteSessions
                     Vector3D sun = sunPositions[curSunPositionIndex].Position;
                     SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
                     
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtractHemisphere(sector, sun);
+                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
                     bool allLit = LitAndNot.Item2.Count == 0;
                     bool allUnlit = LitAndNot.Item1.Count == 0;
 
@@ -1159,8 +1159,6 @@ namespace SatelliteSessions
             }      
             TimePeriod.compressTimePeriods(shadowPeriods);
         }
-         
-        */
 
         /// <summary>
         /// Проверка маршрута на совместимость с ПНБ

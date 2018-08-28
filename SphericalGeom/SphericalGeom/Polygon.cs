@@ -35,7 +35,7 @@ namespace SphericalGeom
             return (bool)_geography.STIsValid();
         }
 
-        public Polygon(List<GeoPoint> points)
+        public Polygon(IEnumerable<GeoPoint> points)
         { 
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
             builder.SetSrid(4326);
@@ -53,10 +53,10 @@ namespace SphericalGeom
             calcArea();
         }
        
-        public Polygon(List<Vector3D> points)
-            : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
+        public Polygon(IEnumerable<Vector3D> points)
+            : this(points.Select(p => GeoPoint.FromCartesian(p)))
         {}
-        
+
         public bool Contains(GeoPoint testP)
         {
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
@@ -100,7 +100,28 @@ namespace SphericalGeom
             return res;
         }
 
-
+        public List<Polygon> BreakIntoLobes()
+        {
+            List<List<GeoPoint>> Lobes = new List<List<GeoPoint>>();
+            Lobes.Add(new List<GeoPoint>
+                {
+                    new GeoPoint(0, 0),
+                    new GeoPoint(90, 0),
+                    new GeoPoint(0, -179.9),
+                    new GeoPoint(-90, 0)
+                });
+            Lobes.Add(new List<GeoPoint>
+                {
+                    new GeoPoint(0, 179.9),
+                    new GeoPoint(90, 0),
+                    new GeoPoint(0, 0),
+                    new GeoPoint(-90, 0)
+                });
+            List<Polygon> output = new List<Polygon>();
+            foreach (var lobe in Lobes)
+                output.AddRange(Intersect(this, new Polygon(lobe)));
+            return output;
+        }
 
         [DllImport("CGALWrapper", EntryPoint = "getPolygonSpine", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr getPolygonSpine(string wktPolygon);
@@ -143,9 +164,30 @@ namespace SphericalGeom
             }
         }
 
-        public static IList<Polygon> Intersect(Polygon p, Polygon q)
+        public static Polygon Hemisphere(Vector3D capCenter)
         {
-            IList<Polygon> intersects = new List<Polygon>();
+            var basic = new Polygon(new List<GeoPoint>{
+                new GeoPoint(90, 0),
+                new GeoPoint(0, -90),
+                new GeoPoint(-90, 0),
+                new GeoPoint(0, 90)
+            });
+            Vector3D basisVec = Vector3D.CrossProduct(new Vector3D(0, 0, 1), capCenter); //Vector3D.CrossProduct(capCenter,  new Vector3D(rand.NextDouble(), rand.NextDouble(), rand.NextDouble()));
+            ReferenceFrame capFrame = new ReferenceFrame(
+                basisVec,
+                Vector3D.CrossProduct(basisVec, capCenter),
+                capCenter);
+            return basic.ToNewFrame(capFrame, true);
+        }
+
+        public Polygon ToNewFrame(ReferenceFrame frame, bool transpose)
+        {
+            return new Polygon(Vertices.Select(v => transpose ? frame.ToBaseFrame(v) : frame.ToThisFrame(v)));
+        }
+
+        public static List<Polygon> Intersect(Polygon p, Polygon q)
+        {
+            List<Polygon> intersects = new List<Polygon>();
 
             SqlGeography intersection = p._geography.STIntersection(q._geography);
 
@@ -177,7 +219,7 @@ namespace SphericalGeom
             return Tuple.Create(intersects, differences);
         }
 
-        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, IList<Polygon> qs)
+        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, List<Polygon> qs)
         {
             List<Polygon> intersection = new List<Polygon>();
             List<Polygon> diff = new List<Polygon>() { p };
@@ -233,7 +275,6 @@ namespace SphericalGeom
             res = "GEOMETRYCOLLECTION (" + res + ")";
             return res;
         }
-
 
         private void calcArea()
         { 

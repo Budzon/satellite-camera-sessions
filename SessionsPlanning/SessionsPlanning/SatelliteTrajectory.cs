@@ -235,7 +235,7 @@ namespace SatelliteTrajectory
             {
                 foreach (LaneSector sector in Sectors)
                 {
-                    IList<Polygon> intersections = Polygon.Intersect(sector.polygon, reqPol);
+                    List<Polygon> intersections = Polygon.Intersect(sector.polygon, reqPol);
                     foreach (var int_pol in intersections)
                     {
                         var verts = int_pol.Vertices;
@@ -763,6 +763,16 @@ namespace SatelliteTrajectory
             return new Polygon(vertices, apexes);
         }
         */
+
+        public static Polygon FormSectorFromLanePoints(List<LanePos> turn, int from, int to)
+        {
+            List<GeoPoint> vertices = new List<GeoPoint>();
+            for (int i = from; i <= to; i++)
+                vertices.Add(GeoPoint.FromCartesian(turn[i].RightCartPoint));
+            for (int i = to; i >= from; --i)
+                vertices.Add(GeoPoint.FromCartesian(turn[i].LeftCartPoint));
+            return new Polygon(vertices);
+        }
 
         /// <summary>
         /// Подсчёт коэффициентов полиномов для коридоров.

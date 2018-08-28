@@ -110,26 +110,50 @@ namespace GeometryTest
         [TestMethod]
         public void Test123()
         {
-            /*
-            DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
-            DateTime dt2 = DateTime.Parse("25/02/2019 02:00:00");
-
-            string cs = System.IO.File.ReadLines("DBstring.conf").First();
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
-            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-
-            string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
-            DIOS.Common.SqlManager managerDBCucs = new DIOS.Common.SqlManager(cs2);
-
-            List<TimePeriod> shadowPeriods;
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
+            DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-03-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLit(cs, dt1, dt2, out partsLitAndNot);//, out shadowPeriods);
+            Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
+            Console.WriteLine(partsLitAndNot.Count);
+            //Console.WriteLine();
+            //foreach (var tuple in partsLitAndNot)
+            //{
+            //    Console.WriteLine(tuple.Item1);
+            //    Console.WriteLine();
+            //    var lst = tuple.Item2.Where(wpl => wpl.sun).Select(wpl => new Polygon(wpl.wktPolygon)).ToList();
+            //    if (lst.Count > 0)
+            //    {
+            //        SphericalGeom.Polygon p = lst[0];
+            //        for (int i = 1; i < lst.Count; ++i)
+            //        {
+            //            p.Add(lst[i]);
+            //        }
+            //        Console.WriteLine(p.ToWtk());
+            //    }
+            //    //Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Where(wpl => wpl.sun).Select(wpl => new Polygon(wpl.wktPolygon)).Aggregate((u,v) => u.Add(v));//.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
+            //}
 
-            Console.Write("GEOMETRYCOLLECTION(");
-            foreach (var w in partsLitAndNot[1].Item2.Where(p => p.sun))
-                Console.WriteLine(w.wktPolygon + ",");
-            Console.WriteLine(")");
-            */
+
+            //DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
+            //DateTime dt2 = DateTime.Parse("25/02/2019 02:00:00");
+
+            //string cs = System.IO.File.ReadLines("DBstring.conf").First();
+            //DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            //DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
+
+            //string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            //DIOS.Common.SqlManager managerDBCucs = new DIOS.Common.SqlManager(cs2);
+
+            //List<TimePeriod> shadowPeriods;
+            //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            //Sessions.checkIfViewLaneIsLit(cs, dt1, dt2, out partsLitAndNot);//, out shadowPeriods);
+
+            //Console.Write("GEOMETRYCOLLECTION(");
+            //foreach (var w in partsLitAndNot[1].Item2.Where(p => p.sun))
+            //    Console.WriteLine(w.wktPolygon + ",");
+            //Console.WriteLine(")");
+            
             //List<Vector3D> apexes = new List<Vector3D>
             //{
             //    new Vector3D(0.059364107809225,0.0915947881872375,0.0161908852832645),

@@ -49,18 +49,18 @@ namespace ConsoleExecutor
         
         static public void test_checkIfViewLaneIsLit()
         {
-            //DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
-            //DateTime dt2 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
-            //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            //Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
-            //Console.WriteLine(partsLitAndNot.Count);
-            //Console.WriteLine();
-            //foreach (var tuple in partsLitAndNot)
-            //{
-            //    Console.WriteLine(tuple.Item1);
-            //    Console.WriteLine();
-            //    Console.WriteLine(Polygon.getMultipolFromPolygons(  tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList() ));
-            //}
+            DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
+            Console.WriteLine(partsLitAndNot.Count);
+            Console.WriteLine();
+            foreach (var tuple in partsLitAndNot)
+            {
+                Console.WriteLine(tuple.Item1);
+                Console.WriteLine();
+                Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
+            }
 
             return;
         }
@@ -777,9 +777,9 @@ namespace ConsoleExecutor
             DateTime start = DateTime.Now;
 
             // fixPolygons();
-            test_getCoridorMpzArray();
+            //test_getCoridorMpzArray();
             //test_Polygons();
-            
+            test_checkIfViewLaneIsLit();
             DateTime end = DateTime.Now;
             Console.WriteLine("Время выполнения : {0} ", (end - start).ToString());
             Console.ReadKey();
