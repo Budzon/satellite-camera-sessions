@@ -85,9 +85,9 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             DataFetcher fetcher = new DataFetcher(managerDbCUP);
 
-            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
+            List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-            // checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
@@ -532,7 +532,6 @@ namespace SatelliteSessions
             , FlagsMPZ flags = null
             )
         {
-
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
 
@@ -542,9 +541,22 @@ namespace SatelliteSessions
             Dictionary<CommunicationSessionStation, List<CommunicationSession>> nkpoiSessions
                 = CommunicationSession.createCommunicationSessions(timeFrom, timeTo, conStringCUP, enabledStations);
 
-            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
+            List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            //checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+
+            /*
+            var strings = partsLitAndNot.SelectMany(pair => pair.Item2.Where(part => part.sun).Select(part => new Polygon(part.wktPolygon).ToWebglearthString()));
+            int i = 0;
+            foreach (var s in strings)
+            {
+                Console.WriteLine("pol"+i.ToString() +" = " + s);
+                Console.WriteLine("pol" + i.ToString() + ".addTo(earth);");
+                Console.WriteLine();
+                i++;
+            }
+            */
+            
             List<TimePeriod> shadowAndInactivityPeriods = new List<TimePeriod>();
             shadowAndInactivityPeriods.AddRange(inactivityTimePeriods);
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
@@ -606,7 +618,7 @@ namespace SatelliteSessions
             int maxMpzNum = routesToDelete.Select(mpz => mpz.NPZ).DefaultIfEmpty(Nmax).Max();
             maxMpzNum = Math.Max(maxMpzNum, captureMPZParams.Select(mpz => mpz.id).DefaultIfEmpty(0).Max());
 
-            List<MPZParams> downloadMpzParams = new List<MPZParams>();
+             List<MPZParams> downloadMpzParams = new List<MPZParams>();
 
             // распределим маршруты на сброс по доступным интервалам
             foreach (CommunicationSessionStation station in sortedStationList)
@@ -623,14 +635,14 @@ namespace SatelliteSessions
                         if (capPrms.Station.Value != station)
                             continue;
 
-                    foreach (var routeToDownload in allRoutesToDownload)
+                    foreach (var routeToDownload in allRoutesToDownload.ToList())
                     {
                         RouteParams routeParams = new RouteParams(
                             WorkingType.Downloading,
                             routeToDownload.getDropTime(station).TotalSeconds,
                             routeToDownload);
 
-                        foreach (TimePeriod period in freeStationIntervals)
+                        foreach (TimePeriod period in freeStationIntervals.ToList())
                         {
                             if (!capPrms.InsertRoute(routeParams, TimePeriod.Max(routeToDownload.end, period.dateFrom), period.dateTo, null, null))
                                 continue;
@@ -656,7 +668,7 @@ namespace SatelliteSessions
             }
 
             // наёдем еще свободные временные промежутки, в которые можно произвести удаление
-            List<TimePeriod> downloadIntervals = downloadMpzParams.Select(mpzparams => new TimePeriod(mpzparams.start, mpzparams.end)).ToList();
+             List<TimePeriod> downloadIntervals = downloadMpzParams.Select(mpzparams => new TimePeriod(mpzparams.start, mpzparams.end)).ToList();
             List<TimePeriod> inactivityDownCaptIntervals = new List<TimePeriod>();
             inactivityDownCaptIntervals.AddRange(captureIntervals);
             inactivityDownCaptIntervals.AddRange(downloadIntervals);

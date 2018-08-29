@@ -16,7 +16,9 @@ namespace SphericalGeom
     public class Polygon
     {
         private SqlGeography _geography;
-        private const double maxArea = 2.5505e+14; // максимально возможная площадь
+        private const double maxArea = 2.5505e+14; // максимально возможная площадь (половина земной)
+        private bool knownVertices = false;
+        private Vector3D[] vertices;
 
         public double Area { get; private set; }
 
@@ -182,9 +184,6 @@ namespace SphericalGeom
             return new Polygon(Vertices.Select(v => transpose ? frame.ToBaseFrame(v) : frame.ToThisFrame(v)));
         }
 
-        private bool knownVertices = false;
-        private Vector3D[] vertices;
-
         private void calcVertices()
         {            
             int size = (int)_geography.STNumPoints();
@@ -212,11 +211,6 @@ namespace SphericalGeom
             return intersects;
         }
 
-
-        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
-        {
-             return Tuple.Create(Intersect(p, q), Subtract(p, q));
-        }
          
         public static List<Polygon> Subtract(Polygon p, Polygon q)
         {
@@ -230,7 +224,7 @@ namespace SphericalGeom
         }
 
 
-        public static List<Polygon> Subtract(Polygon p, IEnumerable<Polygon> qs)
+		public static List<Polygon> Subtract(Polygon p, IEnumerable<Polygon> qs)
         {
             List<Polygon> diff = new List<Polygon>() { p };
             foreach (var q in qs)
@@ -244,6 +238,12 @@ namespace SphericalGeom
                 diff = newDiff;
             }
             return diff;
+        }
+        
+
+        public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
+        {
+            return Tuple.Create(Intersect(p, q), Subtract(p, q));
         }
 
         public static string getMultipolFromWkts(List<string> wkts)
