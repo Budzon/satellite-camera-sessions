@@ -452,7 +452,7 @@ namespace GeometryTest
         {
             List<Polygon> polygons = new List<Polygon>();
             Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 40; i++)
+            for (int i = 0; i < 10; i++)
             {
                 Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
                 polygons.Add(randpol);
@@ -465,7 +465,7 @@ namespace GeometryTest
             DIOS.Common.SqlManager managerCUP = new DIOS.Common.SqlManager(cupConnStr);
 
             DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 4, 20, 0, 0);
+            DateTime dt2 = new DateTime(2019, 1, 8);
 
             DataFetcher fetcher = new DataFetcher(managerCUP);
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
