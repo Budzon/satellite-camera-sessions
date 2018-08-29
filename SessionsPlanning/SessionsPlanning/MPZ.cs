@@ -511,26 +511,25 @@ namespace SatelliteSessions
                 throw new Exception("No trajectory data.");
             }
             Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-            SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
-            Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
-
-            /* ---------- InitCoord -----------*/
-            if (REGka == 0)
+            
+            if ((inpParameters.type == SessionsPlanning.WorkingType.Shooting) || (inpParameters.type == SessionsPlanning.WorkingType.ShootingSending))
             {
+                SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+                Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
+
+                /* ---------- InitCoord -----------*/
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
-            /* ---------- Polinomial_coeff -----------*/
+                /* ---------- Polinomial_coeff -----------*/
                 if (Parameters.shooting_type == SessionsPlanning.ShootingType.Coridor) // коридорная
                 {
 					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
-                }
-                else
-                    Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0, 0);
-            }
+                }                    
 
-            /* ---------- N_PK -----------*/
-            double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
-            N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+                /* ---------- N_PK -----------*/
+                double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
+                N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+            }            
 
             /* ---------- Z -----------*/
             if (RegimeType == RegimeTypes.ZI || RegimeType == RegimeTypes.NP)
@@ -790,7 +789,7 @@ namespace SatelliteSessions
             }
 
             /* ---------- N_PK -----------*/
-            // отдельно
+            N_PK = 0;
 
             /* ---------- Z -----------*/
             Z = 0;
@@ -934,7 +933,7 @@ namespace SatelliteSessions
             Quant_InitValueMK = 0; // default
 
             /* ---------- Polinomial_coeff -----------*/
-            // отдельно
+            Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0);
 
             /* ---------- K01 -----------*/
             K01 = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
