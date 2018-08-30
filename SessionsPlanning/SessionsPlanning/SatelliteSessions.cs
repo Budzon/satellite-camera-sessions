@@ -1,4 +1,4 @@
-﻿#define  NOT_PARALLEL_
+﻿#define  _PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -166,22 +166,6 @@ namespace SatelliteSessions
                 coverage = 1;
             else
                 coverage = summ;
-        }
-
-
-        public static string getLineSringStr(List<GeoPoint> line)
-        {
-            Char separator = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator[0];
-            string res = "LINESTRING (";
-            for (int i = 0; i < line.Count; i++)
-            {
-                var p = line[i];
-                res += string.Format("{0}  {1}", p.Longitude.ToString().Replace(separator, '.'), p.Latitude.ToString().Replace(separator, '.'));
-                if (i < line.Count - 1)
-                    res += string.Format(" , ");
-            }
-            res += string.Format(")");
-            return res;
         }
 
         private static void getCaptureConfArrayForTrajectoryForCoridor(

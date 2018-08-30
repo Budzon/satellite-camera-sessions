@@ -559,7 +559,6 @@ namespace SatelliteSessions
                     break;
                 case RegimeTypes.ZI:
                     Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
-                    Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 case RegimeTypes.VI:
                     // Troute requires antenna data from Header
@@ -568,7 +567,6 @@ namespace SatelliteSessions
                     break;
                 case RegimeTypes.NP:
                     Troute = (int)((Parameters.end - Parameters.start).TotalMilliseconds);
-                    Parameters.File_Size = (int)Math.Ceiling(ComputeFileSize());
                     break;
                 default:
                     break;
@@ -659,6 +657,9 @@ namespace SatelliteSessions
             /* ---------- Delta_T -----------*/
             Delta_T = 0; //(byte)(parameters.Delta_T == null ? 0 : parameters.Delta_T);
 
+            /* ---------- Hroute -----------*/
+            Hroute = Parameters.Hroute;
+
             /* ---------- Compression -----------*/
             Compression = Math.Max(Parameters.zipPK, Parameters.zipMK);
 
@@ -692,15 +693,23 @@ namespace SatelliteSessions
                     Quant_InitValuePK = 2000;
                     break;
                 case 4:
+                    Quant_InitValuePK = 1350;
+                    break;
                 case 5:
                     Quant_InitValuePK = 700;
                     break;
                 case 6:
+                    Quant_InitValuePK = 600;
+                    break;
                 case 7:
                     Quant_InitValuePK = 500;
                     break;
                 case 8:
+                    Quant_InitValuePK = 433;
+                    break;
                 case 9:
+                    Quant_InitValuePK = 366;
+                    break;
                 case 10:
                     Quant_InitValuePK = 300;
                     break;
@@ -719,15 +728,23 @@ namespace SatelliteSessions
                     Quant_InitValueMK = 2000;
                     break;
                 case 4:
+                    Quant_InitValueMK = 1350;
+                    break;
                 case 5:
                     Quant_InitValueMK = 700;
                     break;
                 case 6:
+                    Quant_InitValueMK = 600;
+                    break;
                 case 7:
                     Quant_InitValueMK = 500;
                     break;
                 case 8:
+                    Quant_InitValueMK = 433;
+                    break;
                 case 9:
+                    Quant_InitValueMK = 366;
+                    break;
                 case 10:
                     Quant_InitValueMK = 300;
                     break;
@@ -1021,7 +1038,7 @@ namespace SatelliteSessions
             int zippk = Parameters.zipPK > 0 ? Parameters.zipPK : 1;
             return OptimalChain.RouteParams.InformationFluxInBits(
                 Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
-                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute / 1000) / (1 << 23);
+                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute / 1000.0) / (1 << 23);
         }
 
         /// <summary>
@@ -1036,52 +1053,53 @@ namespace SatelliteSessions
         private byte GetNpk(RegimeTypes type, double sunHeight, double albedo, double roll = 0, double pitch = 0)
         {
             if (type == RegimeTypes.SI || type == RegimeTypes.VI)
-            { 
-                // Согласно таблиц
-                double sunDeg = AstronomyMath.ToDegrees(sunHeight);
+            {
+                return 0;
+                //// Согласно таблиц
+                //double sunDeg = AstronomyMath.ToDegrees(sunHeight);
 
-                if (albedo < 0.2)
-                {
-                    return 4;
-                }
-                else if (albedo < 0.4)
-                {
-                    if (sunDeg < 40)
-                        return 4;
-                    else
-                        return 3;
-                }
-                else if (albedo < 0.6)
-                {
-                    if (sunDeg < 30)
-                        return 4;
-                    else if (sunDeg < 50)
-                        return 3;
-                    else
-                        return 2;
-                }
-                else if (albedo < 0.8)
-                {
-                    if (sunDeg < 20)
-                        return 4;
-                    else if (sunDeg < 40)
-                        return 3;
-                    else
-                        return 2;
-                }
-                else if (albedo <= 1.0)
-                {
-                    if (sunDeg < 20)
-                        return 4;
-                    else if (sunDeg < 30)
-                        return 3;
-                    else if (sunDeg < 70)
-                        return 2;
-                    else
-                        return 1;
-                }
-                else
-                    throw new ArgumentException(String.Format("Bad parameters sunHeight = {0}, albedo = {1}", sunHeight, albedo));
+                //if (albedo < 0.2)
+                //{
+                //    return 4;
+                //}
+                //else if (albedo < 0.4)
+                //{
+                //    if (sunDeg < 40)
+                //        return 4;
+                //    else
+                //        return 3;
+                //}
+                //else if (albedo < 0.6)
+                //{
+                //    if (sunDeg < 30)
+                //        return 4;
+                //    else if (sunDeg < 50)
+                //        return 3;
+                //    else
+                //        return 2;
+                //}
+                //else if (albedo < 0.8)
+                //{
+                //    if (sunDeg < 20)
+                //        return 4;
+                //    else if (sunDeg < 40)
+                //        return 3;
+                //    else
+                //        return 2;
+                //}
+                //else if (albedo <= 1.0)
+                //{
+                //    if (sunDeg < 20)
+                //        return 4;
+                //    else if (sunDeg < 30)
+                //        return 3;
+                //    else if (sunDeg < 70)
+                //        return 2;
+                //    else
+                //        return 1;
+                //}
+                //else
+                //    throw new ArgumentException(String.Format("Bad parameters sunHeight = {0}, albedo = {1}", sunHeight, albedo));
             } 
             else
             {
