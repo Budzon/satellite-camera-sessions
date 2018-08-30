@@ -131,7 +131,7 @@ namespace SatelliteSessions
             {
                 if (Routes[i].RegimeType == RegimeTypes.VI)
                 {
-                    var span = Routes[i].Parameters.getDropTime(Parameters.Station.Value);
+                    var span = Routes[i].Parameters.binded_route.getDropTime(Parameters.Station.Value);
                     Routes[i].Troute = (int)span.TotalMilliseconds;
                     Routes[i].Parameters.end = Routes[i].Parameters.start + span;
                     Routes[i].Parameters.duration = Routes[i].Troute;
