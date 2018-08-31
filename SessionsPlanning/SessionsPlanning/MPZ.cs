@@ -794,16 +794,8 @@ namespace SatelliteSessions
             }
 
             /* ---------- InitCoord -----------*/
-            switch (REGka)
-            {
-                case 0:
-                    //InitCoord = new Coord{Bc, Lc, Hc}
-                    //To be filled separately
-                    break;
-                case 1:
-                    InitCoord = new Coord { Bc = 0, Lc = 0, Hc = 0 };
-                    break;
-            }
+            InitCoord = new Coord { Bc = 0, Lc = 0, Hc = 0 };
+
 
             /* ---------- N_PK -----------*/
             N_PK = 0;
