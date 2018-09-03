@@ -340,7 +340,10 @@ namespace OptimalChain
             {
                 if (!know_hroute)
                 {
-                    hroute = 200;
+                    if ((type == WorkingType.Shooting) || (type == WorkingType.ShootingSending))
+                        hroute = 200;
+                    else
+                        hroute = 0;
                     know_hroute = true;
                 }
                 return hroute;
