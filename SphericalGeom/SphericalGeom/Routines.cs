@@ -31,7 +31,8 @@ namespace SphericalGeom
             Vector3D kaLookAt = kaFrame.ToThisFrame(lookAt);
             double angDirRoll = Math.Acos(Vector3D.DotProduct(rollAxis, eDirVect));
             pitch = Math.Asin(kaLookAt.Z) +AstronomyMath.ToRad(Vector3D.AngleBetween(eDirVect, rollAxis) - 90);
-            
+            pitch = -pitch; // @todo разобраться
+
             Vector3D newDirVect = (Math.Sin(-pitch) / Math.Sin(-pitch + angDirRoll)) * rollAxis + (Math.Sin(angDirRoll) / Math.Sin(-pitch + angDirRoll)) * lookAt;
             newDirVect.Normalize();
             Vector3D projOld = eDirVect - Vector3D.DotProduct(eDirVect, rollAxis) * rollAxis;

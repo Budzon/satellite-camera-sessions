@@ -275,7 +275,7 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
- 
+            Trajectory traj = fetcher.GetTrajectorySat(period.dateFrom, period.dateTo);
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
                 ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
  
@@ -283,8 +283,8 @@ namespace SessionsPlanning
 
             DateTime curDtFrom = period.dateFrom;
             while (period.isDtInPeriod(curDtFrom) && count < numFrames)
-            {                
-                var kaPoint = fetcher.GetSingleSatPoint(curDtFrom).Value;
+            {
+                var kaPoint = traj.GetPoint(curDtFrom);
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDtFrom.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
@@ -297,7 +297,7 @@ namespace SessionsPlanning
                     WorkingType.Shooting, null);
  
                 conf.setPolygon(new SatelliteCoordinates(kaPoint).ViewPolygon);
-                conf.calculatePitchArrays(kaPoint);
+                conf.calculatePitchArray(traj, kaPoint);
                 sconfs.Add(conf.CreateStaticConf(0, 1));
                 count++;
                 
@@ -373,7 +373,7 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-
+            var traj = fetcher.GetTrajectorySat(period.dateFrom, period.dateTo);
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
                 ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
  
@@ -381,7 +381,7 @@ namespace SessionsPlanning
             
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double deflectTimeDelta =
-                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSingleSatPoint(period.dateFrom).Value, 0, pitchAngle);
+                CaptureConf.getTimeDeltaFromPitch(traj, fetcher.GetSingleSatPoint(period.dateFrom).Value, 0, pitchAngle);
             DateTime curDt = period.dateFrom.AddSeconds(deflectTimeDelta); 
             while (period.isDtInPeriod(curDt.AddSeconds(deflectTimeDelta)) && count < numFrames)
             {                
@@ -402,7 +402,7 @@ namespace SessionsPlanning
                 double reconfigureMin = 38;  // секунда на поворот от -stereoPitchAngle до stereoPitchAngle
                 curDt = captureTo.AddSeconds(deflectTimeDelta + deflectTimeDelta + reconfigureMin);
 
-                if (!conf.converToStereo(kaPoint, new List<TimePeriod>() { period }, type))                                    
+                if (!conf.converToStereo(traj, new List<TimePeriod>() { period }, type))                                    
                     continue;
 
                 foreach (var p in conf.pitchArray)
@@ -496,7 +496,7 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
- 
+            Trajectory traj = fetcher.GetTrajectorySat(period.dateFrom, period.dateTo);
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
                 ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
  
@@ -504,13 +504,13 @@ namespace SessionsPlanning
 
             double pitchAngle = OptimalChain.Constants.stereoPitchAngle;
             double deflectTimeDelta =
-                CaptureConf.getTimeDeltaFromPitch(fetcher.GetSingleSatPoint(period.dateFrom).Value, 0,
+                CaptureConf.getTimeDeltaFromPitch(traj, fetcher.GetSingleSatPoint(period.dateFrom).Value, 0,
                     pitchAngle);
             DateTime curDt = period.dateFrom.AddSeconds(deflectTimeDelta);
             while (period.isDtInPeriod(curDt) && count < numFrames)
             {
                 double cam_angle = OptimalChain.Constants.camera_angle;
-                var kaPoint = fetcher.GetSingleSatPoint(curDt).Value;
+                var kaPoint = traj.GetPoint(curDt);
                 SatelliteCoordinates kaPosLeft = new SatelliteCoordinates(kaPoint, -1.5 * cam_angle, 0);
                 SatelliteCoordinates kaPosRight = new SatelliteCoordinates(kaPoint, 1.5 * cam_angle, 0);
                 Polygon framePol = new Polygon(new List<Vector3D>()
@@ -541,11 +541,11 @@ namespace SessionsPlanning
                 conf2.setPolygon(new SatelliteCoordinates(kaPoint, -0.5 * cam_angle, 0).ViewPolygon);
                 conf3.setPolygon(new SatelliteCoordinates(kaPoint,  0.5 * cam_angle, 0).ViewPolygon);
                 conf4.setPolygon(new SatelliteCoordinates(kaPoint,  1.5 * cam_angle, 0).ViewPolygon);
-                 
-                conf1.calculatePitchArrays(kaPoint);
-                conf2.calculatePitchArrays(kaPoint);
-                conf3.calculatePitchArrays(kaPoint);
-                conf4.calculatePitchArrays(kaPoint);
+
+                conf1.calculatePitchArray(traj, kaPoint);
+                conf2.calculatePitchArray(traj, kaPoint);
+                conf3.calculatePitchArray(traj, kaPoint);
+                conf4.calculatePitchArray(traj, kaPoint);
 
                 double shooting_time = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
                 ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;

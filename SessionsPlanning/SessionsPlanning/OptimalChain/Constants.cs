@@ -35,6 +35,7 @@ namespace OptimalChain
         public const double sunBlindingAngle = 0.17453; // 10 градусов - минимально допустимый угол между направлением взора камеры и направлением вектора  на солнце
         public const double max_roll_angle = 0.78540; // 45 градусов - максимально возможный угол крена
         public const double max_pitch_angle = 0.52360; // 30 градусов - максимально возможный угол тангажа
+        public const double roll_correction_epsilon = 0.001; // точность нахождения правки по крену в секундах 
         public const double earthRotSpeed = 7.2921158553e-5; // 1/c скорость вращения земли
         public const double orbital_inclination = 1.7104; // угол наклона орбиты в градусах
         public const double orbit_height = 720; // км (или 650?)

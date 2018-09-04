@@ -1190,7 +1190,7 @@ namespace SatelliteTrajectory
         {
             if (angle == 0)
                 return;
-            Matrix rotMatr = Routines.getRotMatr(kaX, angle);
+            Matrix rotMatr = Routines.getRotMatr(kaX, -angle);
             kaY = Routines.applyRotMatr(kaY, rotMatr);
             kaZ = Routines.applyRotMatr(kaZ, rotMatr);
 
@@ -1341,7 +1341,54 @@ namespace SatelliteTrajectory
             
             return stripPol;
         }
-         
+
+
+        /// <summary>
+        /// получить время и крен, при котором можно снять ту же область с другим тангажом (аргумент pitch)
+        /// </summary>
+        /// <param name="traj">объект траектории</param>
+        /// <param name="pitch">требуемый тангаж</param>
+        /// <param name="roll">начальный крен</param>
+        /// <param name="maxPitch">Максимально допустимый тангаж</param>
+        /// <returns> <время, крен> </returns>
+        public Tuple<DateTime, double> getPitchAlternative(Trajectory traj, double pitch, double roll)
+        {
+            MinimizeFunction func = (_1) => { return getPitchDelta(traj, pitch, _1); };
+            double eps = OptimalChain.Constants.roll_correction_epsilon;
+            
+            const double timeLimit = 70; //@todo constants // максимально возможное время 
+            double goalTime = goldenSectionSearch(func, -timeLimit, timeLimit, eps); 
+           
+            DateTime newDt = this.trajPos.Time.AddSeconds(goalTime);
+            TrajectoryPoint newPos = traj.GetPoint(newDt);
+            double newRoll, tmppitch;
+            Routines.GetRollPitch(newPos, GeoPoint.FromCartesian(MidViewPoint), out newRoll, out tmppitch);
+
+            return Tuple.Create(newDt, newRoll);
+        }
+        
+        /// <summary>
+        /// Вычислить угол тангажа съемки при времени t
+        /// </summary>        
+        /// <param name="goalPitch">целевой угол тангажа</param>
+        /// <param name="t">время в секундах относительно this.trajpos.Time</param>
+        /// <returns>разница по модулю между целевым тангажом и полученным</returns>
+        private double getPitchDelta(Trajectory traj, double goalPitch, double t)
+        {
+            double pitch = getPitchForTime(traj, t);
+            return Math.Abs(goalPitch - pitch);
+        }
+
+        private double getPitchForTime(Trajectory traj, double t)
+        {
+            DateTime newDt = this.trajPos.Time.AddSeconds(t);
+            TrajectoryPoint newPos = traj.GetPoint(newDt);
+
+            double roll, pitch;
+            Routines.GetRollPitch(newPos, GeoPoint.FromCartesian(MidViewPoint), out roll, out pitch);
+            return pitch;
+        }
+
         private static SphericalVector findSideLine(IEnumerable<Vector3D> fromPoints, IEnumerable<Vector3D> toPoints, SphericalVector.PointSide checkSign)
         {
             var allFromPoints = fromPoints.Concat(toPoints);

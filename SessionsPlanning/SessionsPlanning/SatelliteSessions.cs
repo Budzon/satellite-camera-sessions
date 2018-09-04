@@ -220,7 +220,7 @@ namespace SatelliteSessions
                          
                         if (line.Count < 2)
                             continue;
-                        double deltaPitchTime = CaptureConf.getTimeDeltaFromPitch(trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
+                        double deltaPitchTime = CaptureConf.getTimeDeltaFromPitch(trajectory, trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
                         DateTime start = conf.dateFrom.AddSeconds(-deltaPitchTime);
 
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
@@ -244,7 +244,7 @@ namespace SatelliteSessions
                             }
                             catch (Curve.NotEnougPointsException e)
                             {
-                                // Console.WriteLine(e.Message);
+                            //    Console.WriteLine(e.Message);
                                 start = start.AddSeconds(20);
                             }
                         }
@@ -373,9 +373,8 @@ namespace SatelliteSessions
                         if (ShootingType.StereoTriplet == request.shootingType || ShootingType.Stereo == request.shootingType)
                         {
                             for (int i = 0; i < confs.Count; i++)
-                            {
-                                TrajectoryPoint pointFrom = trajectory.GetPoint(confs[i].dateFrom);
-                                confs[i].converToStereo(pointFrom, capturePeriods, request.shootingType);
+                            {                                
+                                confs[i].converToStereo(trajectory, capturePeriods, request.shootingType);
                             }
                         }
                         groupConfs.AddRange(confs);
@@ -395,7 +394,7 @@ namespace SatelliteSessions
 
                     conf.setPolygon(pol);
                     if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)
-                        conf.calculatePitchArrays(pointFrom);
+                        conf.calculatePitchArray(trajectory, pointFrom);
 
                     if (conf.dateFrom == conf.dateTo)
                     {
@@ -427,16 +426,17 @@ namespace SatelliteSessions
             DataFetcher fetcher = new DataFetcher(managerDB);
             DateTime firstDt = timeFrom;
             List<Trajectory> posiibleTrajectoryParts = new List<Trajectory>();
+            
             foreach (var timeSpan in shadowPeriods)
             {
                 if (firstDt < timeSpan.dateFrom)
                     posiibleTrajectoryParts.Add(fetcher.GetTrajectorySat(firstDt, timeSpan.dateFrom));
                 firstDt = timeSpan.dateTo;
             }
-
+          
             if (firstDt < timeTo)
                 posiibleTrajectoryParts.Add(fetcher.GetTrajectorySat(firstDt, timeTo));
-
+ 
             return posiibleTrajectoryParts;
         }
 
@@ -471,8 +471,7 @@ namespace SatelliteSessions
 
             List<CaptureConf> captureConfsCoridor = new List<CaptureConf>();
             foreach (var trajectory in trajSpans)
-                getCaptureConfArrayForTrajectoryForCoridor(managerDbCUP, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDownoad, capturePeriods, meteoList
-                    );
+                getCaptureConfArrayForTrajectoryForCoridor(managerDbCUP, requestCoridor, trajectory, sunTrajectory, captureConfsCoridor, freeSessionPeriodsForDownoad, capturePeriods, meteoList);
 
             List<CaptureConf> captureConfs = captureConfsPlain.Concat(captureConfsCoridor).ToList();
 
@@ -515,7 +514,7 @@ namespace SatelliteSessions
             , List<SessionsPlanning.CommunicationSessionStation> enabledStations
             , FlagsMPZ flags = null
             )
-        {
+        { 
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
 
@@ -549,7 +548,7 @@ namespace SatelliteSessions
             // временные периоды, во время которых можно проводить съемку со сбросом
             List<TimePeriod> freeIntervalsForDownload
                 = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions.SelectMany(list => list.Value).ToList(), silentTimePeriods);
-
+ 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture
                 = getCaptureConfArray(
@@ -560,16 +559,12 @@ namespace SatelliteSessions
                 ManagerDbCUKS,
                 shadowAndInactivityPeriods,
                 freeIntervalsForDownload);
-            
-#if DEBUG
-#warning this is only for debug
-            List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
-            Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
-#endif
 
+            
+  
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
-
+ 
             // все параметры МПЗ на съемку, пришедшие из графа
             //List<MPZ> captureMpz = new Graph(confsToCapture).findOptimalChain(Nmax).Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
 

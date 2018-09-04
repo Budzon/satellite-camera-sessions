@@ -31,8 +31,9 @@ using DBTables;
 using Constants = OptimalChain.Constants;
 using Microsoft.SqlServer.Types;
 using System.Data.SqlTypes;
+using SessionsPlanning; 
 
-using SessionsPlanning;
+
 
 namespace ConsoleExecutor
 {
@@ -432,6 +433,46 @@ namespace ConsoleExecutor
             // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
             Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
             Console.Write(")");
+        }
+
+        static public void test_time()
+        {
+            //return;
+            DateTime timeFrom = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime timeTo = DateTime.Parse("2019-02-04T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            //DataFetcher fetcher = new DataFetcher(CUPmanagerDB);
+            //var trajs = fetcher.GetTrajectorySat(timeFrom, timeTo);
+            //Console.WriteLine(trajs.Count);
+            
+            Console.WriteLine("начало: " + DateTime.Now);
+            var s = DateTime.Now;
+            Console.WriteLine();
+
+            List<TimePeriod> shadowPeriods;
+            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+
+            Console.WriteLine("прошло (checkIfViewLaneIsLitWithTimeSpans): " + (DateTime.Now - s).TotalSeconds.ToString());
+           // Console.WriteLine("перед getLitTrajectoryParts: " + DateTime.Now);
+            s = DateTime.Now;
+            Console.WriteLine();
+
+            shadowPeriods = TimePeriod.compressTimePeriods(shadowPeriods);
+
+            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(timeFrom, timeTo, CUPmanagerDB, shadowPeriods);
+
+            Console.WriteLine("прошло (getLitTrajectoryParts): " + (DateTime.Now - s).TotalSeconds.ToString());
+           // Console.WriteLine("конец: " + DateTime.Now);
+            s = DateTime.Now;
+            Console.WriteLine();
+
+            Console.WriteLine(possibleTrajParts.Count);
         }
 
         static public void test_getPlainMpzArray()
@@ -892,16 +933,17 @@ namespace ConsoleExecutor
         static void testddl()
         { 
             List<string> str = new List<string>(){             
-"POLYGON  ((-140.90240551518033 -62.596681146184444, -142.28795449997176 -66.378177647253736, -140.06532810953229 -69.698507192331917, -140.90240551518033 -62.596681146184444))"
-,"POLYGON  ((11.132990788861918 -64.510946757679861, 9.4079630505447742 -65.69097625435451, 11.526762917570258 -69.567447401763047, 11.132990788861918 -64.510946757679861))"
-,"POLYGON  ((-113.59018450062918 24.055244508520257, -112.32935234166799 18.816300154247195, -108.6351831102097 19.642051275419036, -108.06623005193035 23.397688352921961, -113.59018450062918 24.055244508520257))"
-,"POLYGON  ((6.8977473068190269 84.900847269217024, 10.448857097041209 87.602101940227186, 8.9426753754422883 88.767992047840877, 6.8977473068190269 84.900847269217024))"
-,"POLYGON  ((123.55765361761642 -68.816670984569541, 127.17774646293752 -72.033830850200729, 127.42927429937774 -71.669460376331628, 124.03599940000302 -68.800109999083332, 123.55765361761642 -68.816670984569541))"
-,"POLYGON  ((-177.98859846743579 -62.103301410765447, -174.78714353180848 -67.438856111299671, -173.29225124025871 -64.342979938720873, -177.98859846743579 -62.103301410765447))"
-,"POLYGON  ((-85.597772421005658 -9.4179242876637073, -84.137655966004374 -11.472201371937871, -80.20338871828254 -8.1868985232738485, -85.597772421005658 -9.4179242876637073))"
-,"POLYGON  ((-146.7338204131002 58.318335594188646, -148.14509678131122 56.180852381294258, -143.80177050422626 51.36617408237457, -146.7338204131002 58.318335594188646))"
-,"POLYGON  ((-129.62739925769034 -31.6036756729262, -129.28857716996811 -34.626991363270371, -126.25273571843462 -35.14620702467839, -125.70235262702207 -35.033465232991418, -125.3106075313313 -31.090797804709172, -129.62739925769034 -31.6036756729262))"
-,"POLYGON  ((121.90905684397012 -11.805211161958368, 121.4758457632942 -12.57171662325081, 121.20106724796028 -13.908895212201102, 122.96556531607547 -17.066538877635608, 125.27205587552486 -16.939791360375906, 121.90905684397012 -11.805211161958368))"
+ 
+ "POLYGON ((95.373066940541 -6.97535987250439, 94.5111724791659 -12.010040323728795, 99.371440667026008 -12.204955236370186, 99.940673418364142 -10.712399732592795, 95.373066940541 -6.97535987250439))"
+,"POLYGON ((-127.82034580978255 2.26154296443522, -127.23806816906703 -3.1182096096471663, -126.91344078475771 -3.3956916720752215, -123.91014295893348 1.5450996646459256, -127.82034580978255 2.26154296443522))"
+,"POLYGON ((5.517932975254964 -67.216706727708456, 8.3143957575814653 -68.68092244243, 10.29091636198436 -67.4926886516999, 9.3204123417046 -61.652418846086135, 5.517932975254964 -67.216706727708456))"
+,"POLYGON ((-73.26964538958552 -48.408268658772812, -69.539375004982134 -49.186705198200123, -69.874448833441136 -44.6366890508453, -73.26964538958552 -48.408268658772812))"
+,"POLYGON ((103.73676802339546 29.889560287003047, 102.65404400661116 29.617165879901737, 102.17019532100267 29.35865042692993, 107.06758887901771 28.041127209881431, 103.73676802339546 29.889560287003047))"
+,"POLYGON ((166.23818852090759 -84.886102938834711, 164.78511277548577 -86.435872986826467, 164.70025325003846 -87.030971658657279, 164.70642035209571 -87.155871286517538, 169.06934199370306 -84.634894141179018, 166.23818852090759 -84.886102938834711))"
+,"POLYGON ((129.78598384249582 59.389587336368606, 132.16894584196703 56.201433010365982, 130.5690291062854 59.325389812105556, 129.78598384249582 59.389587336368606))"
+,"POLYGON ((-61.880652039805241 20.927312188582491, -63.868288153512559 19.279982896672724, -62.132095083570221 17.157864317857463, -61.880652039805241 20.927312188582491))"
+,"POLYGON ((132.24146748902021 55.223538752314575, 131.55557171127879 51.33949358338095, 131.75811681533182 51.135242039286631, 136.33222478682194 51.2212783942209, 132.24146748902021 55.223538752314575))"
+,"POLYGON ((101.26390339645445 0.47263813296569651, 101.78104246916418 0.0554481212466742, 105.6839166459348 2.6403437176084252, 101.26390339645445 0.47263813296569651))"
    };
 
             List<Polygon> polygons = str.Select(s => new Polygon(s)).ToList();
@@ -1038,6 +1080,104 @@ namespace ConsoleExecutor
         }
 
 
+        static void testError_03_09_18()
+        {
+            DateTime dt1 = DateTime.Parse("06/01/2019 10:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("06/01/2019 11:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            List<string> wktList = new List<string>(){
+            //"POLYGON((-5.689647031052209 18.43067548851792, -5.593535096548219 18.39569360520072, -5.5603529689477895 18.48686075151234, -5.656464903451779 18.521842634829554, -5.689647031052209 18.43067548851792))"
+            "POLYGON((-6.542358398437501 18.763313394613405,-6.49017333984375 18.609807415471877,-6.443481445312501 18.430107701569682,-6.33087158203125 18.30759580375384,-6.210021972656251 18.17194967991061,-6.015014648437501 18.11974996694643,-5.877685546875 18.091033487001283,-5.630493164062501 18.093644270502622,-5.3778076171875 18.16673041022193,-5.089416503906251 18.184997171309007,-4.930114746093751 18.294557510034196,-4.932861328125001 18.518678980869097,-4.9713134765625 18.79971808756919,-5.070190429687501 18.986817585497505,-5.259704589843751 19.127004504290554,-5.44097900390625 19.344836532905077,-5.74310302734375 19.38111371577189,-6.462707519531251 19.269665296502325,-6.542358398437501 18.763313394613405))"
+             };
+
+            List<string> holes = new List<string>();
+
+            List<RequestParams> reqlist = wktList.Select(polwtk =>
+             new RequestParams(0, 1,
+                  DateTime.Parse("2018-08-29T12:41:00"),
+                  DateTime.Parse("2019-02-28T12:41:00"),
+                _Max_SOEN_anlge: 0.95993108859688125,
+                _minCoverPerc: 10,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonsToSubtract: holes,
+                _requestChannel: ShootingChannel.cm,
+                _shootingType: ShootingType.Normal,
+                _compression: 1,
+                _albedo: 20
+                )
+             ).ToList();
+
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation> 
+            {   SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+          
+
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+            
+            foreach (var r in shootingRoutes)
+            {
+                
+                var routeParams = r.Parameters;
+                TrajectoryPoint first = new DataFetcher(CUPmanagerDB).GetSingleSatPoint(routeParams.start).Value;
+                SatelliteCoordinates coord = new SatelliteCoordinates(first, routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch);
+
+                Console.Write(",");
+                Console.Write(coord.ViewPolygon);
+                Console.Write(",");
+
+                Console.Write(new GeoPoint(AstronomyMath.ToDegrees( r.InitCoord.Bc), AstronomyMath.ToDegrees(r.InitCoord.Lc)).ToWkt());
+               // Console.Write(GeoPoint.FromCartesian(coord.MidViewPoint).ToWkt());
+            }
+
+            Console.Write(")");
+        }
+
 
         static void testGetRollPitch()
         {
@@ -1160,15 +1300,312 @@ namespace ConsoleExecutor
 
         }
 
+
+        static void test_coridor_03_09_18()
+        {
+            DateTime dt1 = DateTime.Parse("04/01/2019 00:00:00"); // new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("08/01/2019 00:00:00"); // new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+            RequestParams req0 = new RequestParams(569, 1,
+                DateTime.Parse("2010-02-04T00:00:00"),
+                DateTime.Parse("2029-02-04T00:00:00"),
+                _Max_SOEN_anlge: 12,
+                _minCoverPerc: 569,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: "POLYGON((-67.59949499356706 -46.26344267177983, -67.08527474992081 -45.50164275176088, -66.96442514054583 -45.386021353570364, -66.76667123429581 -45.30108172075142, -66.82160287492083 -45.20827495559716, -66.98639779679583 -45.27789424842663, -67.15119271867083 -45.46312861496092, -67.30286413419208 -45.583289756006245, -67.42371374356706 -45.82879925192127, -67.58850866544208 -45.98932892799947, -67.59949499356706 -46.26344267177983))",
+                _polygonsToSubtract: new List<string>(),
+                _requestChannel: 0,
+                _shootingType: ShootingType.Coridor,
+                _compression: 1,
+                _albedo: 0
+                );
+
+
+            RequestParams req1 = new RequestParams(570, 1,
+                DateTime.Parse("2010-02-04T00:00:00"),
+                DateTime.Parse("2029-02-04T00:00:00"),
+                _Max_SOEN_anlge: 12,
+                _minCoverPerc: 570,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: "POLYGON((-71.34889192273937 -32.929890555397286, -70.41771254836982 -33.17939931676813, -70.38981241588542 -33.07527460479839, -71.32099179025496 -32.82576584342755, -71.34889192273937 -32.929890555397286))",
+                _polygonsToSubtract: new List<string>(),
+                _requestChannel: 0,
+                _shootingType: ShootingType.Coridor,
+                _compression: 1,
+                _albedo: 0
+                );
+
+            RequestParams req2 = new RequestParams(571, 1,
+                DateTime.Parse("2010-02-04T00:00:00"),
+                DateTime.Parse("2029-02-04T00:00:00"),
+                _Max_SOEN_anlge: 12,
+                _minCoverPerc: 571,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: "POLYGON((-70.70121366933904 -27.81652354506305, -71.49487956973809 -28.27474676630507, -71.44098065269091 -28.368102429103708, -70.64731475229186 -27.909879207861685, -70.70121366933904 -27.81652354506305))",
+                _polygonsToSubtract: new List<string>(),
+                _requestChannel: 0,
+                _shootingType: ShootingType.Coridor,
+                _compression: 2,
+                _albedo: 0
+                );
+
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+            var reqlist = new List<RequestParams>() {
+              //  req0,
+                req1
+            //    req2 
+            };
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation> 
+            {  
+                SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            // var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+            Console.Write("GEOMETRYCOLLECTION(");
+
+            var shootingPolygons = shootingRoutes.Select(r => r.Parameters.ShootingConf.wktPolygon);
+            foreach (var p in shootingPolygons)
+            {
+                Console.WriteLine(p);
+                Console.Write(",");
+            }
+
+            
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+           // Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            //Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+            Console.Write(")");
+        }
+
+
+        static void testAreaShooting_03_09_18()
+        {
+
+            DateTime dt1 = DateTime.Parse("04/01/2019 00:00:00"); // new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("06/01/2019 00:00:00"); // new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            List<string> wktList = new List<string>(){
+            "POLYGON((-6.01776123046875 18.820517235471073,-6.166076660156249 18.117139572348535,-4.96307373046875 18.085811803412284,-5.001525878906249 18.742507183305506,-6.01776123046875 18.820517235471073))"
+             };
+
+            List<string> holes = new List<string>();
+
+            List<RequestParams> reqlist = wktList.Select(polwtk =>
+             new RequestParams(0, 1,
+                DateTime.Parse("2018-08-29T12:41:00"),
+                DateTime.Parse("2019-02-28T12:41:00"),
+                _Max_SOEN_anlge: 0.95993108859688125,
+                _minCoverPerc: 10,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonsToSubtract: holes,
+                _requestChannel: ShootingChannel.cm,
+                _shootingType: ShootingType.Normal,
+                _compression: 1,
+                _albedo: 20
+                )
+             ).ToList();
+
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation> 
+            {  
+                SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+            Console.Write(")");
+        }
+         
+
+        static void testStereo()
+        {           
+
+            DateTime dt1 = DateTime.Parse("06/01/2019 10:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("06/01/2019 11:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            List<string> wktList = new List<string>(){            
+       //   "POLYGON((-5.7685089111328125 18.830265950453352,-5.80902099609375 18.80231812168813,-5.7630157470703125 18.79711801328409,-5.7685089111328125 18.830265950453352))"
+            "POLYGON((-5.767822265625001 18.8971918367816,-5.81451416015625 18.81531768962499,-5.799407958984375 18.70739088900227,-5.74859619140625 18.709992346117588,-5.695037841796875 18.910184055628548,-5.767822265625001 18.8971918367816))"
+             };
+
+            List<string> holes = new List<string>();
+
+            List<RequestParams> reqlist = wktList.Select(polwtk =>
+             new RequestParams(0, 1,
+                  DateTime.Parse("2018-08-29T12:41:00"),
+                  DateTime.Parse("2019-02-28T12:41:00"),
+                _Max_SOEN_anlge: 0.95993108859688125,
+                _minCoverPerc: 10,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonsToSubtract: holes,
+                _requestChannel: ShootingChannel.cm,
+                _shootingType: ShootingType.Stereo,
+                _compression: 1,
+                _albedo: 20
+                )
+             ).ToList();
+
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation> 
+            {   SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+
+
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+
+            foreach (var r in shootingRoutes)
+            {
+
+                var routeParams = r.Parameters;
+                TrajectoryPoint first = new DataFetcher(CUPmanagerDB).GetSingleSatPoint(routeParams.start).Value;
+                SatelliteCoordinates coord = new SatelliteCoordinates(first, routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch);
+
+                Console.Write(",");
+                Console.Write(coord.ViewPolygon);
+                Console.Write(",");
+
+                Console.Write(new GeoPoint(AstronomyMath.ToDegrees(r.InitCoord.Bc), AstronomyMath.ToDegrees(r.InitCoord.Lc)).ToWkt());
+                // Console.Write(GeoPoint.FromCartesian(coord.MidViewPoint).ToWkt());
+            }
+
+            Console.Write(")");
+        }
+
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
 
             // fixPolygons();
-            testddl();
+            testError_03_09_18();
             //test_Polygons();
 
             DateTime end = DateTime.Now;
+            Console.WriteLine();
             Console.WriteLine("Время выполнения : {0} ", (end - start).ToString());
             Console.ReadKey();
         }
