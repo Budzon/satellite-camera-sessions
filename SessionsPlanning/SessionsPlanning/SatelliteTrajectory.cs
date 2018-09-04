@@ -13,6 +13,8 @@ using Microsoft.Research.Oslo;
 using SessionsPlanning;
 //using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
+using Microsoft.SolverFoundation.Services;
+
 
 namespace SatelliteTrajectory
 {
@@ -1125,7 +1127,7 @@ namespace SatelliteTrajectory
 
 
     public class SatelliteCoordinates
-    {
+    {        
         private Vector3D kaX;
         private Vector3D kaY;
         private Vector3D kaZ;
@@ -1137,7 +1139,7 @@ namespace SatelliteTrajectory
         private Polygon viewPolygon;
         private bool knowViewPolygon;
 
-        public TrajectoryPoint trajPos { get; private set; }
+        public TrajectoryPoint trajPos { get; private set; } 
 
         public SatelliteCoordinates(TrajectoryPoint _trajPos)
         {
@@ -1148,7 +1150,7 @@ namespace SatelliteTrajectory
 
             kaX.Normalize();
             kaY.Normalize();
-            kaZ.Normalize();
+            kaZ.Normalize(); 
 
             knowViewPolygon = false;
         }
@@ -1164,7 +1166,7 @@ namespace SatelliteTrajectory
             trajPos = posCopy.trajPos;
             kaX = posCopy.kaX;
             kaY = posCopy.kaY;
-            kaZ = posCopy.kaZ;
+            kaZ = posCopy.kaZ; 
             knowViewPolygon = false;
         }
 
@@ -1203,11 +1205,10 @@ namespace SatelliteTrajectory
             /// поворачиваем в обратную сторону, так как за положительный крен принят поворот по часовой
             Matrix rotMatr = Routines.getRotMatr(kaZ, -angle);
             kaX = Routines.applyRotMatr(kaX, rotMatr);
-            kaY = Routines.applyRotMatr(kaY, rotMatr);
+            kaY = Routines.applyRotMatr(kaY, rotMatr);            
             knowViewPolygon = false;
         }
 
-         
 
         /// <summary>
         /// получить переднюю (по направлению скорости) левую точку полигона видимости
@@ -1341,6 +1342,57 @@ namespace SatelliteTrajectory
             return stripPol;
         }
 
+
+        /// <summary>
+        /// получить время и крен, при котором можно снять ту же область с другим тангажом (аргумент pitch)
+        /// </summary>
+        /// <param name="traj">объект траектории</param>
+        /// <param name="pitch">требуемый тангаж</param>
+        /// <param name="roll">начальный крен</param>
+        /// <param name="maxPitch">Максимально допустимый тангаж</param>
+        /// <returns> <время, крен> </returns>
+        public Tuple<DateTime, double> getPitchAlternative(Trajectory traj, double pitch, double roll, double maxPitch)
+        {
+            if (Math.Abs(pitch) > maxPitch)
+                throw new ArgumentException("pitch value cannot be less than maxPitch");
+
+            MinimizeFunction func = (_1) => { return getPitchDelta(traj, pitch, _1); };
+            double eps = OptimalChain.Constants.roll_correction_epsilon;
+            double timeDelta = CaptureConf.getTimeDeltaFromPitch(this.trajPos, roll, maxPitch);
+            // @todo  некритично, но разобраться, почему timeDelta не является крайним значением в действительности
+            double goalTime = goldenSectionSearch(func, -timeDelta - 10, timeDelta + 10, eps);
+
+            DateTime newDt = this.trajPos.Time.AddSeconds(goalTime);
+            TrajectoryPoint newPos = traj.GetPoint(newDt);
+            double newRoll, tmppitch;
+            Routines.GetRollPitch(newPos, GeoPoint.FromCartesian(MidViewPoint), out newRoll, out tmppitch);
+
+            return Tuple.Create(newDt, newRoll);
+        }
+
+
+        /// <summary>
+        /// Вычислить угол тангажа съемки при времени t
+        /// </summary>        
+        /// <param name="goalPitch">целевой угол тангажа</param>
+        /// <param name="t">время в секундах относительно this.trajpos.Time</param>
+        /// <returns>разница по модулю между целевым тангажом и полученным</returns>
+        private double getPitchDelta(Trajectory traj, double goalPitch, double t)
+        {
+            double pitch = getPitchForTime(traj, t);
+            return Math.Abs(goalPitch - pitch);
+        }
+
+        private double getPitchForTime(Trajectory traj, double t)
+        {
+            DateTime newDt = this.trajPos.Time.AddSeconds(t);
+            TrajectoryPoint newPos = traj.GetPoint(newDt);
+
+            double roll, pitch;
+            Routines.GetRollPitch(newPos, GeoPoint.FromCartesian(MidViewPoint), out roll, out pitch);
+            return pitch;
+        }
+
         private static SphericalVector findSideLine(IEnumerable<Vector3D> fromPoints, IEnumerable<Vector3D> toPoints, SphericalVector.PointSide checkSign)
         {
             var allFromPoints = fromPoints.Concat(toPoints);
@@ -1382,7 +1434,29 @@ namespace SatelliteTrajectory
             viewPolygon = new Polygon(new List<Vector3D>() { topRightViewPoint, topLeftViewPoint, botLeftViewPoint, botRightViewPoint });
             midViewPoint = Routines.SphereVectIntersect(kaY, trajPos.Position, Astronomy.Constants.EarthRadius);
             knowViewPolygon = true;
+        } 
+
+        private delegate double MinimizeFunction(double x);
+        private double goldenSectionSearch(MinimizeFunction function, double min, double max, double eps)
+        {
+            double prop = (1 + Math.Sqrt(5)) / 2;
+            double delta = (max - min) / prop;
+            double x1 = max - delta;
+            double x2 = min + delta;
+            double y1 = function(x1);
+            double y2 = function(x2);
+            if (y1 >= y2)
+                min = x1;
+            else
+                max = x2;
+
+            if (Math.Abs(max - min) < eps)
+                return (min + max) / 2;
+            else
+                return goldenSectionSearch(function, min, max, eps);
         }
+
+
     }
 
 
