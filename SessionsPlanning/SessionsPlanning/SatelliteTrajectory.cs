@@ -13,7 +13,6 @@ using Microsoft.Research.Oslo;
 using SessionsPlanning;
 //using System.Data.SqlTypes;
 using Microsoft.SqlServer.Types;
-using Microsoft.SolverFoundation.Services;
 
 
 namespace SatelliteTrajectory
