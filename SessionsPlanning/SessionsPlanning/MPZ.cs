@@ -148,7 +148,7 @@ namespace SatelliteSessions
             
             try
             {
-                RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
+                RouteMPZ firstVideo = Routes.First(route => (route.RegimeType == RegimeTypes.ZI) || (route.RegimeType == RegimeTypes.NP));
                 Header.Tvideo = (uint)(firstVideo.Ts - 100*1000);
             }
             catch
@@ -574,7 +574,7 @@ namespace SatelliteSessions
             }
 
             /* ---------- REGta -----------*/
-            if (REGka == 0)
+            if ((RegimeType == RegimeTypes.ZI) || (RegimeType == RegimeTypes.NP))
             {
                 switch (Parameters.shooting_type)
                 {
@@ -644,7 +644,7 @@ namespace SatelliteSessions
             }
 
             /* ---------- IDFile -----------*/
-            if (REGka == 1)
+            if ((RegimeType == RegimeTypes.VI) || (RegimeType == RegimeTypes.SI))
             {
                 IDFile = new IdFile
                 {
