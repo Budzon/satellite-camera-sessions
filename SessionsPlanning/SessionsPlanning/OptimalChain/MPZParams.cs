@@ -488,8 +488,25 @@ namespace OptimalChain
         /// <returns>Код проверки: true--маршруты совместимы, false--маршруты несовместимы</returns>
         public bool isCompatible(RouteParams r)
         {
+            //RouteParams r1, r2;
+            //if (this.start < r.start)
+            //{
+            //    r1 = this;
+            //    r2 = r;
+            //}
+            //else
+            //{
+            //    r1 = r;
+            //    r2 = this;
+            //}
+
+            //double pause = (r2.start - r1.end).TotalMilliseconds;
+            //double rotationTime = StaticConf.reConfigureMilisecinds(r1.roll, r1.pitch, r2.roll, r2.pitch);
+
+
+
             StaticConf c1, c2;
-           
+
             if (r.start > this.start)
             {
                 c2 = r.ShootingConf;
