@@ -25,6 +25,7 @@ namespace OptimalChain
         public const int min_shooting_time = 2000;
         public const int min_Delta_time = 8000;
         public const int minDeltaT = 19000;
+        public const int stabilizationAfterRotationTime = 10000; // мс
          
         // максимальный промежуток (в секундах) между двумя конфигурациями, при котором они объединяются в одну
         public const int maxCConfInterval = 2;
@@ -81,3 +82,4 @@ namespace OptimalChain
         }
     }
 }
+
