@@ -89,6 +89,11 @@ namespace SphericalGeom
             return _geography.ToString();
         }
 
+        public override string ToString()
+        {
+            return ToWtk();
+        }
+
         public string ToWebglearthString()
         {
             string res = "WE.polygon([";

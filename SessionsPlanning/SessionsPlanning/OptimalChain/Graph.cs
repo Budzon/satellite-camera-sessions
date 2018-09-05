@@ -120,7 +120,6 @@ namespace OptimalChain
             vertices = new List<Vertex>();
             additional_vertices = new List<Vertex>();
             
-
             foreach(CaptureConf s in strips)
             {
             //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
@@ -347,6 +346,7 @@ namespace OptimalChain
                 }
 
             }
+#if DEBUG
             Console.WriteLine("MPZ num = " + vertices.Last().path.Count);
             foreach (MPZParams m in vertices.Last().path)
             {
@@ -360,6 +360,7 @@ namespace OptimalChain
             }
 
             Console.WriteLine("Graph did his very best ");
+#endif
             return vertices.Last().path;
         }
     }
