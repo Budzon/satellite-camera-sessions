@@ -302,6 +302,9 @@ namespace OptimalChain
 
         public RouteParams binded_route { get; set; }
 
+        public double roll { get; set; }
+        public double pitch { get; set; }
+
         private int fileSize;
         private bool know_fileSize = false;
         /// <summary>
@@ -425,27 +428,35 @@ namespace OptimalChain
             TNPos = copyed.TNPos;
             Delta_T = copyed.Delta_T;
             coridorLength = copyed.coridorLength;
-            coridorAzimuth = copyed.coridorAzimuth; 
+            coridorAzimuth = copyed.coridorAzimuth;
+            roll = copyed.roll;
+            pitch = copyed.pitch;
         }
 
 
         public RouteParams(
             WorkingType t,
             double dur,
-            RouteParams _binded_route)
+            RouteParams _binded_route,
+            double roll = 0,
+            double pitch = 0)
         { 
             type = t;
             binded_route = _binded_route;
             duration = dur;
             NRoute = -1;
             NPZ = -1;
+            this.roll = roll;
+            this.pitch = pitch;
         }
 
         public RouteParams(
             WorkingType t,
             DateTime d1,
             DateTime d2,
-            RouteParams _binded_route)
+            RouteParams _binded_route,
+            double roll = 0,
+            double pitch = 0)
         { 
             type = t;        
             start = d1;
@@ -453,11 +464,13 @@ namespace OptimalChain
             binded_route = _binded_route; 
             duration = (end - start).TotalMilliseconds;
             NRoute = -1;
-            NPZ = -1;  
+            NPZ = -1;
+            this.roll = roll;
+            this.pitch = pitch;
         }
 
         public RouteParams(StaticConf c)
-            : this(c.type, c.dateFrom, c.dateTo, c.connected_route)
+            : this(c.type, c.dateFrom, c.dateTo, c.connected_route, c.roll, c.pitch)
         {           
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
