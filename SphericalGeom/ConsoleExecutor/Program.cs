@@ -1146,6 +1146,8 @@ namespace ConsoleExecutor
             if (mpzArray.Count() == 0)
                 return;
 
+            Console.WriteLine("MPZ[0].Routes.Count = {0}", mpzArray[0].Routes.Count());
+
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
@@ -1559,10 +1561,13 @@ namespace ConsoleExecutor
                 SessionsPlanning.CommunicationSessionStation.MIGS }
             );
 
-            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+            Console.WriteLine("MPZ.Count = {0}", mpzArray.Count());
+                   
 
             if (mpzArray.Count() == 0)
                 return;
+
+            Console.WriteLine("MPZ[0].Routes.Count = {0}", mpzArray[0].Routes.Count());
 
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
@@ -1601,8 +1606,9 @@ namespace ConsoleExecutor
             DateTime start = DateTime.Now;
 
             // fixPolygons();
-            testError_03_09_18();
+            //testError_03_09_18();
             //test_Polygons();
+            //testStereo();
 
             DateTime end = DateTime.Now;
             Console.WriteLine();

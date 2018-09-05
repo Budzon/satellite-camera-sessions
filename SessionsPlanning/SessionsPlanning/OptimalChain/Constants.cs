@@ -52,7 +52,7 @@ namespace OptimalChain
 
         public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {
-            int d = Constants.min_Delta_time;
+            int d = Constants.min_Delta_time/1000; // в константах время указано в милисекундах, а тут мы все считаем в секундах
             if (t1 == WorkingType.Shooting)
             {
                 if (channel1 != ShootingChannel.pk)
