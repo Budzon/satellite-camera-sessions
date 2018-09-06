@@ -428,6 +428,7 @@ namespace SessionsPlanning
             int numFrames, ref int count)
         {
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
+          
 
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
                 ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
@@ -439,6 +440,7 @@ namespace SessionsPlanning
             double t = lenght / velo;
             DateTime curDtFrom = period.dateFrom;
             DateTime curDtTo = curDtFrom.AddSeconds(t);
+            Trajectory trajectory = fetcher.GetTrajectorySat(curDtFrom, curDtTo);
             while (period.isDtInPeriod(curDtTo) && count < numFrames)
             {
                 var traj = fetcher.GetTrajectorySat(curDtFrom, curDtTo);
@@ -447,7 +449,8 @@ namespace SessionsPlanning
                 List<GeoPoint> line = traj.Points.Select(point => GeoPoint.FromCartesian(point.Position.ToVector()))
                     .ToList();
                 List<CoridorParams> coridorParams;
-                Sessions.getPiecewiseCoridorParams(curDtFrom, line, managerDB, out coridorParams);
+                
+                Sessions.getPiecewiseCoridorParams(curDtFrom, line, trajectory, out coridorParams);
                 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     corPol.ToWtk(), _shootingType: ShootingType.Coridor, _requestChannel: ShootingChannel.pk);

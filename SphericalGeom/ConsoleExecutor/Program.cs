@@ -465,7 +465,7 @@ namespace ConsoleExecutor
 
             shadowPeriods = TimePeriod.compressTimePeriods(shadowPeriods);
 
-            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(fetcher.GetTrajectorySat(timeFrom, timeTo), timeFrom, timeTo, shadowPeriods);
+            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(new DataFetcher(CUPmanagerDB).GetTrajectorySat(timeFrom, timeTo), timeFrom, timeTo, shadowPeriods);
 
             Console.WriteLine("прошло (getLitTrajectoryParts): " + (DateTime.Now - s).TotalSeconds.ToString());
            // Console.WriteLine("конец: " + DateTime.Now);
@@ -603,9 +603,9 @@ namespace ConsoleExecutor
                 RequestParams reqparams = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
                 requests.Add(reqparams);
                 id++;
-            }
-            var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
+            } 
 
+            var res = Sessions.getCaptureConfArray(requests, dt1, dt2, trajectory, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
         }
 
 

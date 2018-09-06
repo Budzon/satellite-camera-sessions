@@ -230,7 +230,7 @@ namespace SatelliteSessions
                             List<CoridorParams> coridorParams;
                             try
                             {
-                                getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
+                                getPiecewiseCoridorParams(start, line, satTrajectory, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
                                 //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
                                 //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
@@ -557,10 +557,10 @@ namespace SatelliteSessions
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture
                 = getCaptureConfArray(                
-                requests,
-                trajectory,
+                requests,                
                 timeFrom,
                 timeTo,
+                trajectory,
                 ManagerDbCUP,
                 ManagerDbCUKS,
                 shadowAndInactivityPeriods,
@@ -728,7 +728,8 @@ namespace SatelliteSessions
         public static void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, /*out List<GeoPoint> satPos,*/ double maxSubCurveLengthMeters = 1.5e5/*, bool custom = false*/)
         {
             List<CoridorParams> coridorParams;
-            getPiecewiseCoridorParams(dateTime, vertices, managerDB, out coridorParams, maxSubCurveLengthMeters);
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
+            getPiecewiseCoridorParams(dateTime, vertices, trajectory, out coridorParams, maxSubCurveLengthMeters);
             wkts = new List<string>();
 
             foreach (var cp in coridorParams)
@@ -807,23 +808,23 @@ namespace SatelliteSessions
             out string wktPoly, out double duration)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
-            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.Add()  );
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration)  );
 
             if (dist > 97e3)
                 throw new ArgumentException("Coridor length cannot exceed 97km.");
 
             CoridorParams coridorParams = getCoridorParams(dateTime, rollAngle, pitchAngle, dist, az, connectStr, out duration);
-            coridorParams.ComputeCoridorPolygon(getMaxTrajectory(managerDB, dateTime));
+            coridorParams.ComputeCoridorPolygon(getMaxTrajectory(trajectory, dateTime));
             wktPoly = coridorParams.Coridor.ToWtk();
         }
 
         public static CoridorParams getCoridorParams(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr, out double duration)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
 
-            DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            Trajectory traj = getMaxTrajectory(trajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
@@ -840,9 +841,9 @@ namespace SatelliteSessions
             out string wktPoly, out double duration, out double dist)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            DataFetcher fetcher = new DataFetcher(managerDB);            
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
+            Trajectory traj = getMaxTrajectory(fullTrajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
@@ -861,7 +862,8 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
+            Trajectory traj = getMaxTrajectory(fullTrajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
             TrajectoryRoutines.GetCoridorParams(
@@ -1407,7 +1409,9 @@ namespace SatelliteSessions
             if (line.Count < 2)
                 return res;
 
-            getPiecewiseCoridorParams(from, line, managerDb, out coridorParams);
+            Trajectory trajectory = new DataFetcher(managerDb).GetTrajectorySat(from, from.AddSeconds(OptimalChain.Constants.max_route_duration));
+
+            getPiecewiseCoridorParams(from, line, trajectory, out coridorParams);
 
             foreach (CoridorParams corrParams in coridorParams)
             {
