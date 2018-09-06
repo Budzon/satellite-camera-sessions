@@ -28,102 +28,142 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static void get14PlainFrames1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get14PlainFrames1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal);
             test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 14);
             checkRoutesCount(mpzArray, 14);
+            return mpzArray;
         }
 
         /// <summary>
         /// Кадровая съемка. 45 кадров на 5-ти витках по 9 кадров
         /// </summary>
         /// <param name="fromDt">дата начала первого витка</param>
-        public static void get45PlainFrames4Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get45PlainFrames4Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal);
             test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 9, 5);
             checkRoutesCount(mpzArray, 45);
+            return mpzArray;
         }
 
         /// <summary>
         /// Стереосъемка. 8 стереотриплетов  на одном витке
         /// </summary>
-        public static void get8StereoTriplets1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get8StereoTriplets1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.StereoTriplet);
             test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 24);
+            return mpzArray;
         }
 
         /// <summary>
         /// Стереосъемка. 8 стереопар на одном витке
         /// </summary>
-        public static void get8StereoPairs1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get8StereoPairs1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Stereo);
             test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 16);
+            return mpzArray;
         }
 
         /// <summary>
         /// Стереосъемка. 20 стереотриплетов на 5-ти витках по 4 стереотриплетов
         /// </summary>
-        public static void get20StereoTriplets5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get20StereoTriplets5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.StereoTriplet);
             test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 60);
+            return mpzArray;
         }
 
         /// <summary>
         ///  Стереосъемка. 20 стереопар на 5-ти витках по 4 стереопар
         /// </summary>
-        public static void get20StereoPairs5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get20StereoPairs5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Stereo);
             test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 40);
+            return mpzArray;
         }
 
         /// <summary>
         /// Коридорная съемка. 8 коридоров на одном витке
         /// </summary>
-        public static void get8Coridors1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get8Coridors1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Coridor);
             test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 8);
+            return mpzArray;
         }
 
         /// <summary>
         /// Коридорная съемка. 20 коридоров на 5-ти витках по 4 коридора
         /// </summary>
-        public static void get20Coridors5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get20Coridors5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Coridor);
             test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 20);
+            return mpzArray;
         }
 
         /// <summary>
         /// Площадная съемка. 8 площадных съемок на одном витке
         /// </summary>
-        public static void get8AreaShooting1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get8AreaShooting1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Area);
             test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 8);
             checkRoutesCount(mpzArray, 32);
+            return mpzArray;
         }
 
         /// <summary>
         /// Площадная съемка. 20 площадных съемок на 5-ти витках по 4 коридора
         /// </summary>
-        public static void get20AreaShooting5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> get20AreaShooting5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Area);
             test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 4);
             checkRoutesCount(mpzArray, 80);
+            return mpzArray;
         }
 
 
@@ -133,27 +173,35 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static void getStrip4150km1Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> getStrip4150km1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal, true);
             test.getFramesForOneTurn(fromDt, managerDB, managerDbCUKS, out mpzArray, 4150);
             checkRoutesCount(mpzArray, 1);
+            return mpzArray;
         }
 
         /// <summary>
         /// Кадровая съемка. 45 кадров на 5-ти витках по 9 кадров
         /// </summary>
         /// <param name="fromDt">дата начала первого витка</param>
-        public static void getStrip12050km5Turn(DateTime fromDt, DIOS.Common.SqlManager managerDB, DIOS.Common.SqlManager managerDbCUKS, out List<MPZ> mpzArray)
+        public static List<MPZ> getStrip12050km5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
         {
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+            List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal, true);
             test.getFrames(fromDt, managerDB, managerDbCUKS, out mpzArray, 5, 2410);
             checkRoutesCount(mpzArray, 5);
+            return mpzArray;
         }
 
         private static void checkRoutesCount(List<MPZ> mpzArray, int count)
         {
-            if (mpzArray.Sum(mpz => mpz.Routes.Count) != count)
+            if (mpzArray.Sum(mpz => mpz.Routes.Count) < count)
                 throw new TestSequensesException("It is impossible to compose a test sequence for a given time");
         }
     }
@@ -515,8 +563,8 @@ namespace SessionsPlanning
                 SatelliteCoordinates kaPosRight = new SatelliteCoordinates(kaPoint, 1.5 * cam_angle, 0);
                 Polygon framePol = new Polygon(new List<Vector3D>()
                     {
-                        kaPosLeft.BotLeftViewPoint, kaPosLeft.TopLeftViewPoint,
-                        kaPosRight.TopRightViewPoint, kaPosRight.BotRightViewPoint
+                        kaPosLeft.BotLeftViewPoint, kaPosRight.BotRightViewPoint,
+                        kaPosRight.TopRightViewPoint,  kaPosLeft.TopLeftViewPoint
                     });
                 
                 DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);

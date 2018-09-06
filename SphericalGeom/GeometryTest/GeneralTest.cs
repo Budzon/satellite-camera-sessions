@@ -500,7 +500,7 @@ namespace GeometryTest
                 routeParamtoDrop.start = new DateTime(2019, 1, 4);
                 routeParamtoDrop.end = new DateTime(2019, 1, 5);
                 //routeParamtoDrop.File_Size = 1000;
-                routeParamtoDrop.binded_route = null;
+                routeParamtoDrop.binded_route = routeParamtoDrop; // @wtf
                 // double timedrop = routeParam.getDropTime();
 
                 RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };

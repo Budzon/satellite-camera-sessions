@@ -745,61 +745,73 @@ namespace ConsoleExecutor
             string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(cs2);
 
+            //List<MPZ> mpzs;
+            //{
+
+            //    SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2);
+            //    Console.WriteLine(mpzs.SelectMany(m => m.Routes).Count());
+            //}
+            //var shootings = mpzs.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
+
+            //var orders = new List<string>(mpzs.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.request.wktPolygon))).Distinct());
+           
+            //return;
+
+            List<MPZ> allMpz = new List<MPZ>();
 
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray =  SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
 
-            List<MPZ> mpzArray2;
-            SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray2);
 
-            var orderPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
-            var shootingPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
+            var orderPolsList = allMpz.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
+            var shootingPolsList = allMpz.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(orderPolsList));
@@ -814,7 +826,7 @@ namespace ConsoleExecutor
             string lineWkt = "POLYGON((249.290771484375 43.91372326852402,249.3017578125 44.621754096233246,249.38964843750003 45.52944081525669,249.8291015625 46.308995694198586,251.47705078125003 46.58906908309183,254.168701171875 46.59661864884464,257.794189453125 46.98025235521882,259.63989257812506 47.36859434521338,261.826171875 47.702368466573716,263.946533203125 48.18806348121143,266.890869140625 48.900837902340896,270.098876953125 49.80254124506294,275.350341796875 50.6599083609394,277.84423828125 51.213765926935025,284.91943359375 52.30176096373671,287.11669921875 52.50953477032729,289.0283203125 52.542955066421285,289.31396484375 52.38901106223457,288.96240234375 52.34876318198809,288.006591796875 52.27488013068054,286.787109375 52.221069523572794,284.4580078125 52.03897658307622,282.315673828125 51.611194610484034,281.2060546875 51.542918822373906,278.89892578125006 51.06211251399776,276.43798828125006 50.6181029049248,275.0537109375 50.2682767372753,273.570556640625 49.98655213050617,271.32934570312494 49.88047763874255,267.91259765624994 48.91527985344385,265.133056640625 48.3270391306348,263.90258789062494 47.931066347509784,261.968994140625 47.45037978769005,259.266357421875 46.98025235521882,255.22338867187497 46.45299704748288,253.44360351562497 46.2634426717799,252.35595703125 46.11132565729798,251.070556640625 45.91294412737392,250.24658203125 45.544831492424635,250.07080078125 45.034714778688624,249.78515624999994 43.73935207915471,248.939208984375 42.27730877423707,247.51098632812494 41.170384477816185,244.99511718749991 40.40513069752788,240.12817382812503 39.36827914916017,239.82055664062503 39.77476948529545,241.95190429687503 40.17887331434699,245.06103515625 40.9964840143779,248.35693359375 43.30919109985686,248.785400390625 43.580390855607874,249.290771484375 43.91372326852402))";
 
             List<string> wktList = new List<string>()
-            {              
+            {  
 "POLYGON((248.73046874999997 36.4566360115962,240.556640625 47.813154517527664,243.45703125 48.107431188480376,250.83984375000003 36.597889133070225,248.73046874999997 36.4566360115962))",
 
 "POLYGON((251.80664062500003 41.17865397233169,272.46093749999994 42.42345651793826,272.98828125 39.23225314171492,254.00390625 39.300299186150255,251.80664062500003 41.17865397233169))",
@@ -1432,8 +1444,27 @@ namespace ConsoleExecutor
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
 
+
+            //Trajectory traj = new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2);
+            //var startp = traj.GetPoint(DateTime.Parse("06/01/2019 10:10:42"));
+
+            //SatelliteCoordinates start = new SatelliteCoordinates(startp, 0, 0);
+            //GeoPoint startgeo = GeoPoint.FromCartesian(start.MidViewPoint);
+            //Console.WriteLine(startgeo.ToWkt());
+
+            //for (int i = 0; i < 100; i++)
+            //{
+            //    var curp = traj.GetPoint(DateTime.Parse("06/01/2019 10:10:42").AddSeconds((double)i/5));
+            //    SatelliteCoordinates cur = new SatelliteCoordinates(curp, 0, 0);
+            //    GeoPoint curgeo = GeoPoint.FromCartesian(cur.MidViewPoint);
+            //    double dist = GeoPoint.DistanceOverSurface(startgeo, curgeo) * Astronomy.Constants.EarthRadius;
+            //    Console.WriteLine("{0}  :   {1}", dist, curgeo.ToWkt());
+            //}
+
+
             List<string> wktList = new List<string>(){
-            "POLYGON((-5.784301757812499 18.955648870479024,-7.149353027343749 18.708691622559954,-7.220764160156249 18.114529138838506,-6.333618164062501 17.889886818625328,-3.9770507812500004 18.156291402835436,-4.8065185546875 18.984220415249737,-5.784301757812499 18.955648870479024))"
+           // "POLYGON((-5.784301757812499 18.955648870479024,-7.149353027343749 18.708691622559954,-7.220764160156249 18.114529138838506,-6.333618164062501 17.889886818625328,-3.9770507812500004 18.156291402835436,-4.8065185546875 18.984220415249737,-5.784301757812499 18.955648870479024))"
+           "POLYGON((-2.6339721679687496 20.04045035416948,-2.757568359375 19.508020154916778,-2.3675537109375 19.422563460676187,-2.2467041015625 19.96044136012341,-2.6339721679687496 20.04045035416948))"
              };
 
             List<string> holes = new List<string>();
@@ -1608,12 +1639,15 @@ namespace ConsoleExecutor
         {
             DateTime start = DateTime.Now;
 
+            test_TestSessionsSequenses();
+
+            //test_getPlainMpzArray();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
             //Polygon tp = np.increasePointsNumber(2);
 
             //Console.WriteLine(tp);
-            testAreaShooting_03_09_18();
+           // testAreaShooting_03_09_18();
 
             // fixPolygons();
             //testError_03_09_18();
