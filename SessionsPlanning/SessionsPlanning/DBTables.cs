@@ -1163,9 +1163,8 @@ namespace DBTables
                 velo = velo * veloScalar;
                 trajectoryPoints[i] = new TrajectoryPoint(points[i].Time, points[i].Position.ToPoint(), velo);
             }
-
-            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
-            return Trajectory.changeMaximumTimeStep(trajectory, minStep);
+                        
+            return Trajectory.Create(trajectoryPoints, minStep);
         }
     }
 

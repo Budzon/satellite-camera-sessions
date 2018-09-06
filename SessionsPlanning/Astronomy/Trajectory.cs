@@ -131,6 +131,32 @@ namespace Astronomy
             return new Trajectory(points.ToArray());
         }
 
+        public static Trajectory Create(TrajectoryPoint[] points, double maxTimeStep)
+        {
+            Trajectory simpleTraj = new Trajectory(points.ToArray());
+
+            // максимальный шаг по времени между точками траектории
+            double maxStep = simpleTraj.Points.Skip(1).Zip(simpleTraj.Points, (curr, prev) => (curr.Time - prev.Time).TotalSeconds).Max();
+
+            if (maxStep <= maxTimeStep)
+                return simpleTraj;
+
+            int size = (int)Math.Ceiling(simpleTraj.Duration / maxTimeStep) + 1;
+            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+
+            for (int i = 0; i < size - 1; i++)
+            {
+                DateTime t = simpleTraj.points[0].Time.AddSeconds(i * maxTimeStep);
+                newTrajsPoints[i] = simpleTraj.GetPoint(t);
+            }
+
+            newTrajsPoints[size - 1] = simpleTraj.GetPoint(simpleTraj.points.Last().Time);
+
+            return Trajectory.Create(newTrajsPoints.ToArray());
+        }
+
+        
+
         /// <summary>
         /// Computes the orbit with the starting time moment <paramref name="startTime"/>, <paramref name="location"/> 
         /// in the Greenwich coordinate system (km) and <paramref name="velocity"/> (km/s) for the given <paramref name="duration"/>.
@@ -296,7 +322,8 @@ namespace Astronomy
         { 
             // максимальный шаг по времени между точками траектории
             double maxStep = trajectory.Points.Skip(1).Zip(trajectory.Points, (curr, prev) => (curr.Time - prev.Time).TotalSeconds).Max();
- 
+             
+   
             if (maxStep <= maxTimeStep)
                 return trajectory;
              
@@ -314,9 +341,28 @@ namespace Astronomy
             return Trajectory.Create(newTrajsPoints.ToArray());
         }
 
-        //public static Trajectory calculateVelocity(Trajectory trajectory, double maxTimeStep)
-        //{
-        //}
+
+        public Trajectory getSubTrajectory(DateTime fromDt, DateTime toDt)
+        {
+            // int size = 
+            //TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+#warning perfomance
+            List<TrajectoryPoint> newPoints = this.points.Where(p => (fromDt <= p.Time) && (p.Time <= toDt)).ToList();  //@todo perfomance!
+
+            if (!newPoints.First().Time.Equals(fromDt))
+            {
+                newPoints.Insert(0, this.GetPoint(fromDt));
+            }
+            if (!newPoints.Last().Time.Equals(toDt))
+            {
+                newPoints.Add(this.GetPoint(toDt));
+            }
+
+#warning perfomance
+            return Create(newPoints.ToArray()); //@todo perfomance!
+        }
+
+         
 
         #region IEnumerable<TrajectoryPoint> Members
 
