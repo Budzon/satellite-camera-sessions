@@ -428,7 +428,7 @@ namespace GeometryTest
                         requests.Add(reqparams);
                         id++;
                     }
-                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
+                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, trajectory, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
                 }
 
                 catch (Exception ex)

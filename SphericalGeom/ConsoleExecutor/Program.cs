@@ -464,8 +464,8 @@ namespace ConsoleExecutor
             Console.WriteLine();
 
             shadowPeriods = TimePeriod.compressTimePeriods(shadowPeriods);
-
-            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(new DataFetcher(CUPmanagerDB).GetTrajectorySat(timeFrom, timeTo), timeFrom, timeTo, shadowPeriods);
+            var trajectory = new DataFetcher(CUPmanagerDB).GetTrajectorySat(timeFrom, timeTo);
+            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(trajectory, timeFrom, timeTo, shadowPeriods);
 
             Console.WriteLine("прошло (getLitTrajectoryParts): " + (DateTime.Now - s).TotalSeconds.ToString());
            // Console.WriteLine("конец: " + DateTime.Now);
@@ -489,13 +489,13 @@ namespace ConsoleExecutor
 
             List<string> wktList = new List<string>(){
             "POLYGON((153.17138671875 -28.557988492481016, 153.20983886718747 -28.021075462659887, 153.10546874999997 -28.01137657176146, 153.03955078124997 -28.548338387631418, 153.17138671875 -28.557988492481016))"
-        //    ,"POLYGON((154.3393780386478 8.456259424457386,153.88343525756835 7.531485504923765,154.98209256137423 7.346285806781779,154.53713635333284 8.075724865506643,154.3393780386478 8.456259424457386))"
-        //    ,"POLYGON((38.583984375 -10.57422207833281,37.529296875 -11.910353555774094,38.3203125 -11.609193407938946,38.583984375 -10.57422207833281))"
-        //    ,"POLYGON((175.93505859375 52.70301871296326,175.30883789062497 52.2008737173322,176.1767578125 51.99841038239032,176.451416015625 52.43592058359013,175.93505859375 52.70301871296326))"
-        //    ,"POLYGON((293.88977050781244 18.672267305093754,293.8623046875 18.536908560288467,293.97216796874994 18.531700307384043,294.049072265625 18.67747125852607,293.88977050781244 18.672267305093754))"
-        //    ,"POLYGON((316.38427734375 59.88893689676584,316.351318359375 59.81444699201484,316.48315429687506 59.80616004020658,316.59301757812506 60.00722509306874,316.38427734375 59.88893689676584))"
-        //    ,"POLYGON((356.5118408203125 48.81228985866255,356.48712158203125 48.78515199804312,356.56127929687506 48.7742927426751,356.5667724609375 48.81228985866255,356.5118408203125 48.81228985866255))"
-        //    ,"POLYGON((370.19531249999994 49.52164252537975,370.16784667968744 49.475263243038,370.2227783203124 49.45741335279223,370.19531249999994 49.52164252537975))"
+            ,"POLYGON((154.3393780386478 8.456259424457386,153.88343525756835 7.531485504923765,154.98209256137423 7.346285806781779,154.53713635333284 8.075724865506643,154.3393780386478 8.456259424457386))"
+            ,"POLYGON((38.583984375 -10.57422207833281,37.529296875 -11.910353555774094,38.3203125 -11.609193407938946,38.583984375 -10.57422207833281))"
+            ,"POLYGON((175.93505859375 52.70301871296326,175.30883789062497 52.2008737173322,176.1767578125 51.99841038239032,176.451416015625 52.43592058359013,175.93505859375 52.70301871296326))"
+            ,"POLYGON((293.88977050781244 18.672267305093754,293.8623046875 18.536908560288467,293.97216796874994 18.531700307384043,294.049072265625 18.67747125852607,293.88977050781244 18.672267305093754))"
+            ,"POLYGON((316.38427734375 59.88893689676584,316.351318359375 59.81444699201484,316.48315429687506 59.80616004020658,316.59301757812506 60.00722509306874,316.38427734375 59.88893689676584))"
+            ,"POLYGON((356.5118408203125 48.81228985866255,356.48712158203125 48.78515199804312,356.56127929687506 48.7742927426751,356.5667724609375 48.81228985866255,356.5118408203125 48.81228985866255))"
+            ,"POLYGON((370.19531249999994 49.52164252537975,370.16784667968744 49.475263243038,370.2227783203124 49.45741335279223,370.19531249999994 49.52164252537975))"
             };
 
             List<string> holes = new List<string>();
@@ -603,9 +603,9 @@ namespace ConsoleExecutor
                 RequestParams reqparams = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, pol.ToWtk());
                 requests.Add(reqparams);
                 id++;
-            } 
-
+            }
             var res = Sessions.getCaptureConfArray(requests, dt1, dt2, trajectory, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
+
         }
 
 
@@ -745,61 +745,73 @@ namespace ConsoleExecutor
             string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(cs2);
 
+            //List<MPZ> mpzs;
+            //{
+
+            //    SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2);
+            //    Console.WriteLine(mpzs.SelectMany(m => m.Routes).Count());
+            //}
+            //var shootings = mpzs.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
+
+            //var orders = new List<string>(mpzs.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.request.wktPolygon))).Distinct());
+           
+            //return;
+
+            List<MPZ> allMpz = new List<MPZ>();
 
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray =  SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray;
-                SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, cs, cs2);
+                allMpz.AddRange(mpzArray);
             }
 
-            List<MPZ> mpzArray2;
-            SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, managerDB, managerDbCUKS, out mpzArray2);
 
-            var orderPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
-            var shootingPolsList = mpzArray2.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
+            var orderPolsList = allMpz.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
+            var shootingPolsList = allMpz.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon))).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(orderPolsList));
@@ -814,7 +826,7 @@ namespace ConsoleExecutor
             string lineWkt = "POLYGON((249.290771484375 43.91372326852402,249.3017578125 44.621754096233246,249.38964843750003 45.52944081525669,249.8291015625 46.308995694198586,251.47705078125003 46.58906908309183,254.168701171875 46.59661864884464,257.794189453125 46.98025235521882,259.63989257812506 47.36859434521338,261.826171875 47.702368466573716,263.946533203125 48.18806348121143,266.890869140625 48.900837902340896,270.098876953125 49.80254124506294,275.350341796875 50.6599083609394,277.84423828125 51.213765926935025,284.91943359375 52.30176096373671,287.11669921875 52.50953477032729,289.0283203125 52.542955066421285,289.31396484375 52.38901106223457,288.96240234375 52.34876318198809,288.006591796875 52.27488013068054,286.787109375 52.221069523572794,284.4580078125 52.03897658307622,282.315673828125 51.611194610484034,281.2060546875 51.542918822373906,278.89892578125006 51.06211251399776,276.43798828125006 50.6181029049248,275.0537109375 50.2682767372753,273.570556640625 49.98655213050617,271.32934570312494 49.88047763874255,267.91259765624994 48.91527985344385,265.133056640625 48.3270391306348,263.90258789062494 47.931066347509784,261.968994140625 47.45037978769005,259.266357421875 46.98025235521882,255.22338867187497 46.45299704748288,253.44360351562497 46.2634426717799,252.35595703125 46.11132565729798,251.070556640625 45.91294412737392,250.24658203125 45.544831492424635,250.07080078125 45.034714778688624,249.78515624999994 43.73935207915471,248.939208984375 42.27730877423707,247.51098632812494 41.170384477816185,244.99511718749991 40.40513069752788,240.12817382812503 39.36827914916017,239.82055664062503 39.77476948529545,241.95190429687503 40.17887331434699,245.06103515625 40.9964840143779,248.35693359375 43.30919109985686,248.785400390625 43.580390855607874,249.290771484375 43.91372326852402))";
 
             List<string> wktList = new List<string>()
-            {              
+            {  
 "POLYGON((248.73046874999997 36.4566360115962,240.556640625 47.813154517527664,243.45703125 48.107431188480376,250.83984375000003 36.597889133070225,248.73046874999997 36.4566360115962))",
 
 "POLYGON((251.80664062500003 41.17865397233169,272.46093749999994 42.42345651793826,272.98828125 39.23225314171492,254.00390625 39.300299186150255,251.80664062500003 41.17865397233169))",
@@ -933,17 +945,19 @@ namespace ConsoleExecutor
         static void testddl()
         { 
             List<string> str = new List<string>(){             
- 
- "POLYGON ((95.373066940541 -6.97535987250439, 94.5111724791659 -12.010040323728795, 99.371440667026008 -12.204955236370186, 99.940673418364142 -10.712399732592795, 95.373066940541 -6.97535987250439))"
-,"POLYGON ((-127.82034580978255 2.26154296443522, -127.23806816906703 -3.1182096096471663, -126.91344078475771 -3.3956916720752215, -123.91014295893348 1.5450996646459256, -127.82034580978255 2.26154296443522))"
-,"POLYGON ((5.517932975254964 -67.216706727708456, 8.3143957575814653 -68.68092244243, 10.29091636198436 -67.4926886516999, 9.3204123417046 -61.652418846086135, 5.517932975254964 -67.216706727708456))"
-,"POLYGON ((-73.26964538958552 -48.408268658772812, -69.539375004982134 -49.186705198200123, -69.874448833441136 -44.6366890508453, -73.26964538958552 -48.408268658772812))"
-,"POLYGON ((103.73676802339546 29.889560287003047, 102.65404400661116 29.617165879901737, 102.17019532100267 29.35865042692993, 107.06758887901771 28.041127209881431, 103.73676802339546 29.889560287003047))"
-,"POLYGON ((166.23818852090759 -84.886102938834711, 164.78511277548577 -86.435872986826467, 164.70025325003846 -87.030971658657279, 164.70642035209571 -87.155871286517538, 169.06934199370306 -84.634894141179018, 166.23818852090759 -84.886102938834711))"
-,"POLYGON ((129.78598384249582 59.389587336368606, 132.16894584196703 56.201433010365982, 130.5690291062854 59.325389812105556, 129.78598384249582 59.389587336368606))"
-,"POLYGON ((-61.880652039805241 20.927312188582491, -63.868288153512559 19.279982896672724, -62.132095083570221 17.157864317857463, -61.880652039805241 20.927312188582491))"
-,"POLYGON ((132.24146748902021 55.223538752314575, 131.55557171127879 51.33949358338095, 131.75811681533182 51.135242039286631, 136.33222478682194 51.2212783942209, 132.24146748902021 55.223538752314575))"
-,"POLYGON ((101.26390339645445 0.47263813296569651, 101.78104246916418 0.0554481212466742, 105.6839166459348 2.6403437176084252, 101.26390339645445 0.47263813296569651))"
+  
+"POLYGON ((48.657663278773093 56.085689510701968, 50.233261368528176 49.219593167234059, 51.263517503782388 49.824762646900652, 48.657663278773093 56.085689510701968))"
+,"POLYGON ((166.89340277131947 44.476878617461409, 168.49850761064528 46.912401433096136, 168.24929138537209 48.114979616781596, 167.69758607614639 48.911453432595749, 166.89340277131947 44.476878617461409))"
+,"POLYGON ((9.4659458197300381 -49.936300825583523, 12.56281005410588 -55.11127322957217, 12.486236453461629 -50.818079521478069, 11.829405301257307 -50.357173981615531, 9.4659458197300381 -49.936300825583523))"
+,"POLYGON ((-34.388786603319105 -40.440632600916182, -34.65743344652104 -40.8299637483915, -34.560309058443053 -45.326420038345667, -32.559494033612104 -46.233171447750259, -30.83523091687735 -43.588211983643326, -34.388786603319105 -40.440632600916182))"
+,"POLYGON ((-1.3839072492721902 -11.185511419940239, 3.4941503823360494 -11.000516926502206, 1.0599960000799995 -5.4007199760003211, -1.3839072492721902 -11.185511419940239))"
+,"POLYGON ((-45.699792795423072 -20.039643723081248, -45.494795028552609 -21.223670136680578, -40.304730469180392 -20.189341099885276, -45.699792795423072 -20.039643723081248))"
+,"POLYGON ((-133.98428847822402 -84.265746454826939, -133.55382020280672 -85.364278239499129, -133.28990294830123 -85.679711904350881, -128.17253359420491 -83.13098190947629, -129.6413411438628 -81.681922450692142, -133.98428847822402 -84.265746454826939))"
+,"POLYGON ((-128.80797031021629 22.720851381350325, -127.22073057045654 21.712887769819933, -124.60382179230271 24.058876104491432, -128.80797031021629 22.720851381350325))"
+,"POLYGON ((73.846448013647347 85.39089871174626, 71.902881176464248 81.821958934851835, 72.923184454552981 79.081010125276833, 74.129262806602824 78.606447174876521, 73.846448013647347 85.39089871174626))"
+,"POLYGON ((-170.71320209463963 24.864387177831073, -167.85420032491834 24.536416424241718, -166.80668465304305 28.678346914330792, -170.71320209463963 24.864387177831073))"
+
+
    };
 
             List<Polygon> polygons = str.Select(s => new Polygon(s)).ToList();
@@ -982,6 +996,7 @@ namespace ConsoleExecutor
 
             List<Order> orders = new List<Order>() { order };
 
+             
             CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
             StaticConf sc = ccToDrop.DefaultStaticConf();
             RouteParams routeParamtoDrop = new RouteParams(sc);
@@ -990,7 +1005,7 @@ namespace ConsoleExecutor
             routeParamtoDrop.start = new DateTime(2019, 1, 4);
             routeParamtoDrop.end = new DateTime(2019, 1, 5);
             //routeParamtoDrop.File_Size = 1000;
-            routeParamtoDrop.binded_route = null;
+            routeParamtoDrop.binded_route = routeParamtoDrop; // @wtf
             // double timedrop = routeParam.getDropTime();
 
             RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };
@@ -1145,6 +1160,8 @@ namespace ConsoleExecutor
 
             if (mpzArray.Count() == 0)
                 return;
+
+            Console.WriteLine("MPZ[0].Routes.Count = {0}", mpzArray[0].Routes.Count());
 
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
@@ -1419,16 +1436,35 @@ namespace ConsoleExecutor
         static void testAreaShooting_03_09_18()
         {
 
-            DateTime dt1 = DateTime.Parse("04/01/2019 00:00:00"); // new DateTime(2019, 2, 18, 2, 0, 0);
-            DateTime dt2 = DateTime.Parse("06/01/2019 00:00:00"); // new DateTime(2019, 2, 18, 3, 0, 0);
+            DateTime dt1 = DateTime.Parse("06/01/2019 10:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("06/01/2019 11:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
 
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
 
+
+            //Trajectory traj = new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2);
+            //var startp = traj.GetPoint(DateTime.Parse("06/01/2019 10:10:42"));
+
+            //SatelliteCoordinates start = new SatelliteCoordinates(startp, 0, 0);
+            //GeoPoint startgeo = GeoPoint.FromCartesian(start.MidViewPoint);
+            //Console.WriteLine(startgeo.ToWkt());
+
+            //for (int i = 0; i < 100; i++)
+            //{
+            //    var curp = traj.GetPoint(DateTime.Parse("06/01/2019 10:10:42").AddSeconds((double)i/5));
+            //    SatelliteCoordinates cur = new SatelliteCoordinates(curp, 0, 0);
+            //    GeoPoint curgeo = GeoPoint.FromCartesian(cur.MidViewPoint);
+            //    double dist = GeoPoint.DistanceOverSurface(startgeo, curgeo) * Astronomy.Constants.EarthRadius;
+            //    Console.WriteLine("{0}  :   {1}", dist, curgeo.ToWkt());
+            //}
+
+
             List<string> wktList = new List<string>(){
-            "POLYGON((-6.01776123046875 18.820517235471073,-6.166076660156249 18.117139572348535,-4.96307373046875 18.085811803412284,-5.001525878906249 18.742507183305506,-6.01776123046875 18.820517235471073))"
+           // "POLYGON((-5.784301757812499 18.955648870479024,-7.149353027343749 18.708691622559954,-7.220764160156249 18.114529138838506,-6.333618164062501 17.889886818625328,-3.9770507812500004 18.156291402835436,-4.8065185546875 18.984220415249737,-5.784301757812499 18.955648870479024))"
+           "POLYGON((-2.6339721679687496 20.04045035416948,-2.757568359375 19.508020154916778,-2.3675537109375 19.422563460676187,-2.2467041015625 19.96044136012341,-2.6339721679687496 20.04045035416948))"
              };
 
             List<string> holes = new List<string>();
@@ -1444,7 +1480,7 @@ namespace ConsoleExecutor
                 _wktPolygon: polwtk,
                 _polygonsToSubtract: holes,
                 _requestChannel: ShootingChannel.cm,
-                _shootingType: ShootingType.Normal,
+                _shootingType: ShootingType.Area,
                 _compression: 1,
                 _albedo: 20
                 )
@@ -1559,10 +1595,13 @@ namespace ConsoleExecutor
                 SessionsPlanning.CommunicationSessionStation.MIGS }
             );
 
-            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+            Console.WriteLine("MPZ.Count = {0}", mpzArray.Count());
+                   
 
             if (mpzArray.Count() == 0)
                 return;
+
+            Console.WriteLine("MPZ[0].Routes.Count = {0}", mpzArray[0].Routes.Count());
 
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
@@ -1600,9 +1639,21 @@ namespace ConsoleExecutor
         {
             DateTime start = DateTime.Now;
 
-            // fixPolygons();
+            //test_TestSessionsSequenses();
+
             test_getPlainMpzArray();
+            //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
+
+            //Polygon tp = np.increasePointsNumber(2);
+
+            //Console.WriteLine(tp);
+           // testAreaShooting_03_09_18();
+
+            // fixPolygons();
+            //testError_03_09_18();
             //test_Polygons();
+            //testStereo();
+            //test_coridor_03_09_18();
 
             DateTime end = DateTime.Now;
             Console.WriteLine();

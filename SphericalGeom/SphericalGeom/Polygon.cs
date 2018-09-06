@@ -133,6 +133,33 @@ namespace SphericalGeom
             return output;
         }
 
+
+        public Polygon increasePointsNumber(int k)
+        {
+//            Vector3D[] newVerts = new Vector3D[k * Vertices.Count()];
+            List<Vector3D> newVerts = new List<Vector3D>();
+
+            for (int i = 0; i < Vertices.Count()-2; i++ )
+            {
+
+                double fullAngle = Astronomy.AstronomyMath.ToRad(Vector3D.AngleBetween(Vertices[i], Vertices[i + 1]));
+
+                Vector3D rotAxis = Vector3D.CrossProduct(Vertices[i], Vertices[i+1]);
+                
+                newVerts.Add(Vertices[i]);
+                for (int j = 1; j < k; j++)
+                {
+                    double angle = fullAngle * j / k;
+                    var rotMatr = Routines.getRotMatr(rotAxis, angle);
+                    Vector3D newVect = Routines.applyRotMatr(Vertices[i], rotMatr);
+                    newVerts.Add(newVect);
+                }                
+            }
+
+            return new Polygon(newVerts);
+        }
+
+
         [DllImport("CGALWrapper", EntryPoint = "getPolygonSpine", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr getPolygonSpine(string wktPolygon);
         public List<GeoPoint> getCenterLine()
@@ -140,7 +167,7 @@ namespace SphericalGeom
             IntPtr pstr = getPolygonSpine(this.ToWtk());
             string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
             List<GeoPoint> points = new List<GeoPoint>();
-
+            
             try
             {
                 SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);

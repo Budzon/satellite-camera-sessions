@@ -21,6 +21,7 @@ namespace OptimalChain
 
            // Console.WriteLine("Vertices number = " + vertices.Count);
             int count = 1;
+            int edge_count = 0;
 
             foreach (Vertex v1 in vertices)
             {
@@ -28,9 +29,9 @@ namespace OptimalChain
                 count++;
                 A.addEdge(v1, v1.value);
 
-                foreach (Vertex v2 in vertices.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) >= v1.cs.dateTo.AddSeconds(Constants.min_Delta_time/1000 - v1.cs.timeDelta))))
+                foreach (Vertex v2 in vertices.Where(i => (i.s.dateFrom >= v1.s.dateTo.AddSeconds(Constants.min_Delta_time/1000))))
                 {
-                    if ((v1.s.shooting_type == ShootingType.StereoTriplet) && (v1.s.pitch >= -0.0872665))
+                    if (((v1.s.shooting_type == ShootingType.StereoTriplet) || (v1.s.shooting_type == ShootingType.Stereo)))
                     {
                         if((v2.s.id == v1.s.id))
                         {
@@ -40,6 +41,7 @@ namespace OptimalChain
                             {
                                 // Console.WriteLine("OOOOO");
                                 v1.addEdge(v2, w);
+                                edge_count++;
                             }
                         }
                     }
@@ -53,6 +55,7 @@ namespace OptimalChain
                              {
                                 // Console.WriteLine("OOOOO");
                                  v1.addEdge(v2, w);
+                                 edge_count++;
                              }
                         }
                     }
@@ -114,6 +117,8 @@ namespace OptimalChain
 
             vertices.Insert(0, A);
             vertices.Add(B);
+
+            Console.WriteLine("Internal edges = " + edge_count);
         }
         public Graph (List<CaptureConf> strips)
         {
@@ -122,6 +127,8 @@ namespace OptimalChain
             
             foreach(CaptureConf s in strips)
             {
+                Console.WriteLine("From {0} To {1} ", s.dateFrom.AddMilliseconds(-s.timeDelta), s.dateTo.AddMilliseconds(s.timeDelta));
+
             //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
                 if ((s.shootingType != ShootingType.StereoTriplet) && (s.shootingType != ShootingType.Stereo))
                 {
@@ -142,7 +149,7 @@ namespace OptimalChain
               
                                     
             }
-            Console.WriteLine("Number of Verices = " + vertices.Count);
+            Console.WriteLine("Number of Vertices = " + vertices.Count);
             CreateEdges();
 
         }
@@ -297,7 +304,7 @@ namespace OptimalChain
                             }
                             else
                             {
-                                if((!ids.Contains(v.s.id))||v.s.shooting_type== ShootingType.StereoTriplet)
+                                if ((!ids.Contains(v.s.id)) || (v.s.shooting_type == ShootingType.StereoTriplet || v.s.shooting_type == ShootingType.Stereo))
                                 {
                                     if ((e.v1.path.Count > 0))
                                         {

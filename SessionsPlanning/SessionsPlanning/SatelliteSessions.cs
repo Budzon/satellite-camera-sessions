@@ -566,7 +566,26 @@ namespace SatelliteSessions
                 shadowAndInactivityPeriods,
                 freeIntervalsForDownload);
 
-            
+#if DEBUG
+#warning this is only for debug
+
+            //   Console.WriteLine("DEBUG, pols.Count() = {0}  \n\n", pols.Count());
+
+            Console.Write("GEOMETRYCOLLECTION(");
+
+
+
+            List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
+
+            Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
+
+
+
+
+            Console.Write(")");
+
+
+#endif
   
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
@@ -717,12 +736,11 @@ namespace SatelliteSessions
             return mpzParams.Select(param => new MPZ(param, managerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
         }
 
-        public static Trajectory getMaxTrajectory(Trajectory trajectory, DateTime start)
+        public static Trajectory getMaxCorridorTrajectory(Trajectory trajectory, DateTime start)
         {
-            if (trajectory.Last().Time < start.AddSeconds(OptimalChain.Constants.max_route_duration))
-                throw new ArgumentException("incorrect start time");
+            double routeMaxDuration = Math.Min(OptimalChain.Constants.max_route_duration, (trajectory.EndDt - start).TotalSeconds);
 
-            return trajectory.getSubTrajectory(start, start.AddSeconds(OptimalChain.Constants.max_route_duration)); // максимальная длительность маршрута
+            return trajectory.getSubTrajectory(start, start.AddSeconds(routeMaxDuration)); // максимальная длительность маршрута
         }
 
         public static void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, /*out List<GeoPoint> satPos,*/ double maxSubCurveLengthMeters = 1.5e5/*, bool custom = false*/)
@@ -778,7 +796,7 @@ namespace SatelliteSessions
         public static void getPiecewiseCoridorParams(DateTime dateTime, List<GeoPoint> vertices, Trajectory trajectory, out List<CoridorParams> coridorParams, double maxSubCurveLengthMeters = 3.5e5)
         {
             DateTime now = dateTime;
-            Trajectory traj = getMaxTrajectory(trajectory, dateTime);
+            Trajectory traj = getMaxCorridorTrajectory(trajectory, dateTime);
 
             var curves = new Curve(vertices).BreakByCurvatureAndDistance(maxSubCurveLengthMeters);
             coridorParams = new List<CoridorParams>();
@@ -814,7 +832,7 @@ namespace SatelliteSessions
                 throw new ArgumentException("Coridor length cannot exceed 97km.");
 
             CoridorParams coridorParams = getCoridorParams(dateTime, rollAngle, pitchAngle, dist, az, connectStr, out duration);
-            coridorParams.ComputeCoridorPolygon(getMaxTrajectory(trajectory, dateTime));
+            coridorParams.ComputeCoridorPolygon(getMaxCorridorTrajectory(trajectory, dateTime));
             wktPoly = coridorParams.Coridor.ToWtk();
         }
 
@@ -824,7 +842,7 @@ namespace SatelliteSessions
             Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
 
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(trajectory, dateTime);
+            Trajectory traj = getMaxCorridorTrajectory(trajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
@@ -843,7 +861,7 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(managerDB);            
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
-            Trajectory traj = getMaxTrajectory(fullTrajectory, dateTime);
+            Trajectory traj = getMaxCorridorTrajectory(fullTrajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
@@ -863,7 +881,7 @@ namespace SatelliteSessions
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
-            Trajectory traj = getMaxTrajectory(fullTrajectory, dateTime);
+            Trajectory traj = getMaxCorridorTrajectory(fullTrajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
             TrajectoryRoutines.GetCoridorParams(
@@ -964,7 +982,6 @@ namespace SatelliteSessions
         }
 
         
-
         ///\<summary>
         ///Разбиение полосы видимости КА под траекторией на полигоны освещенности.
         ///</summary>
@@ -1204,7 +1221,6 @@ namespace SatelliteSessions
                 }
             }
         }
-
         /// <summary>
         /// Добавление мрашрута в ПНБ
         /// </summary>
@@ -1220,9 +1236,7 @@ namespace SatelliteSessions
             string connStringCup,
             string connStringCuks,
             out RouteParams modRouteParams,
-            out MPZ newMPZ,
-            DateTime? sessionStart = null,
-            DateTime? sessionEnd = null)
+            out MPZ newMPZ)
         {
             foreach (var mpz in PNB)
             {
@@ -1237,26 +1251,93 @@ namespace SatelliteSessions
                 }
             }
 
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(connStringCup);
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(connStringCuks);
+
             modRouteParams = new RouteParams(routeParams);
             newMPZ = null;
-
-            if (!sessionStart.HasValue)
-                sessionStart = DateTime.MinValue;
-            if (!sessionEnd.HasValue)
-                sessionEnd = DateTime.MaxValue;
-
-            foreach (var mpz in PNB)
+          
+            for (int i = 0; i < PNB.Count; i++)
             {
+                var mpz = PNB[i];
                 var copyMpzParams = new MPZParams(mpz.Parameters);
-                if (copyMpzParams.InsertRoute(modRouteParams, sessionStart.Value, sessionEnd.Value))
+                if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))
+                {
+                    mpz = new MPZ(copyMpzParams, CUPmanagerDB, CUKSmanagerDB, mpz.Flags);
                     return;
+                }
             }
 
             List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams });
 
             if (tmpList.Count > 0)
-                newMPZ = new MPZ(tmpList.First(), new DIOS.Common.SqlManager(connStringCup), new DIOS.Common.SqlManager(connStringCuks), new FlagsMPZ());
+                newMPZ = new MPZ(tmpList.First(), CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ());
+            else
+                throw new ArgumentException("Cannot create a route with the specified parameters.");
         }
+
+
+        /// <summary>
+        /// Добавление маршрута сброса/съемки со сбросом к сеансу связи
+        /// 1) В случае несовмесимости маршрута и ПНБ выкидывает исключения.
+        /// 2) Вставляет маршрут в ту МПЗ, в которой сессия свзи совпадает с заданной или не задана
+        /// 3) Перезаписывает использованную МПЗ, если она была использована.
+        /// </summary>
+        /// <param name="Session">сессия связи </param>
+        /// <param name="routeParams">параметры сбрасываемого маршрута</param>
+        /// <param name="PNB">Вся ПНБ (мпз, маршруты, который уже есть)</param>
+        /// <param name="connStringCup">строка подключения к БД цуп</param>
+        /// <param name="connStringCuks">строка подключения к БД цукс</param>        
+        public static void addRouteToPNBWithSession(
+           CommunicationSession Session,
+           RouteParams routeParams,
+           List<MPZ> PNB,
+           string connStringCup,
+           string connStringCuks)
+        {
+            foreach (var mpz in PNB)
+            {
+                if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
+                {
+                    throw new ArgumentException("Route has conflict with FTA #" + mpz.Parameters.id.ToString());
+                }
+                foreach (var mpzRoute in mpz.Routes)
+                {
+                    if (!mpzRoute.Parameters.isCompatible(routeParams))
+                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.NRoute.ToString());
+                }
+            }
+
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(connStringCup);
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(connStringCuks);
+
+            for (int i = 0; i < PNB.Count; i++ )
+            {
+                var mpz = PNB[i];
+                if (mpz.Parameters.Station.HasValue)
+                {
+                    if (mpz.Parameters.Station.Value != Session.Station)
+                        continue;
+                }
+
+                MPZParams mpzparams = new MPZParams(mpz.Parameters);
+                mpzparams.Station = Session.Station;
+
+                if (mpzparams.InsertRoute(routeParams, Session.Zone7timeFrom, Session.Zone7timeTo))
+                {
+                    mpz = new MPZ(mpzparams, CUPmanagerDB, CUKSmanagerDB, mpz.Flags);
+                    return;
+                }                                
+            }
+
+            List<MPZParams> newMPZs = MPZParams.FillMPZ(new List<RouteParams>() { routeParams });
+            
+            if (newMPZs.Count == 0 )
+                throw new ArgumentException("Cannot create a route with the specified parameters.");
+
+            PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));            
+        }
+      
 
         /// <summary>
         /// Удаление маршрута из ПНБ
@@ -1278,9 +1359,7 @@ namespace SatelliteSessions
 
             mpz.Routes.Remove(route);
         }
-
-
-
+                
 
         /// <summary>
         /// Создание параметров маршрута для обычной съемки

@@ -52,6 +52,9 @@ namespace Astronomy
 
         public int Count { get { return points.Length; } }
 
+        public DateTime StartDt { get { return points.First().Time;  } }
+        public DateTime EndDt { get { return points.Last().Time; } }
+
         /// <summary>
         /// продолжительность траектории в секундах
         /// </summary>

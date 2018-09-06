@@ -17,9 +17,10 @@ namespace SatelliteSessions
         public HeaderMPZ Header { get; set; }
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
-
+        public FlagsMPZ Flags { get; private set; }
         public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, DIOS.Common.SqlManager DBmanagerCUKS, FlagsMPZ flags)
         {
+            Flags = flags;
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
             foreach (var rout_params in inpParameters.routes)
