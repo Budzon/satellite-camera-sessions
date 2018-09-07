@@ -342,35 +342,7 @@ namespace DBTables
         {
             return GetTrajectory<SunTableFacade>(from, to, minStep);
         }
-
-        /// <summary>
-        /// Fetches the satellite's view lane from the coverage table.
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="to"></param>
-        /// <returns></returns>
-        public List<SatelliteTrajectory.LanePos> GetViewLane(DateTime from, DateTime to)
-        {
-            List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
-            // Coverage table contains not what we need.
-            //foreach (DataChunk chunk in GetDataBetweenDatesInChunks(CoverageTable.Name, CoverageTable.NadirTime, from, to, true))
-            //    if (chunk.Rows.Length > 0)
-            //    {
-            //        foreach (DataRow row in chunk.Rows)
-            //            res.Add(CoverageTable.GetLanePos(row));
-            //    }
-            //    else
-            //    {
-            //        // db is empty, generate view lane from sat positions
-            //    }
-
-            Trajectory traj = GetTrajectorySat(from, to);
-            foreach (TrajectoryPoint p in traj.Points)
-                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
-
-            return res;
-        }
-
+ 
         public List<CloudinessData> GetMeteoData(DateTime from, DateTime to)
         {
             List<CloudinessData> res = new List<CloudinessData>();
@@ -385,9 +357,9 @@ namespace DBTables
             return res;
         }
 
-        public List<Tuple<int, List<SatelliteTrajectory.LanePos>>> GetViewLaneBrokenIntoTurns(DateTime from, DateTime to)
+        public List<Tuple<int, SatelliteSessions.TimePeriod>> GetTurns(DateTime from, DateTime to)
         {
-            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
+            var res = new List<Tuple<int, SatelliteSessions.TimePeriod>>();
             List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
             DataRow[] preRows;
             var turnsData = GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false);
@@ -422,7 +394,7 @@ namespace DBTables
 
                 while (i + 1 < times.Count - 1 && (times[i + 1].Item1 == -1 || times[i + 1].Item1 == cur_turn))
                     ++i;
-                res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2)));
+                res.Add(Tuple.Create(cur_turn, new SatelliteSessions.TimePeriod(start, times[i + 1].Item2)));
             }
 
             if (res.Count() == 0)

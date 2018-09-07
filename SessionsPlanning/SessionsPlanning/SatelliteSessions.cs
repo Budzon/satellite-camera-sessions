@@ -88,7 +88,7 @@ namespace SatelliteSessions
 
             List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
@@ -531,7 +531,7 @@ namespace SatelliteSessions
 
             List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
 
             /*
             var strings = partsLitAndNot.SelectMany(pair => pair.Item2.Where(part => part.sun).Select(part => new Polygon(part.wktPolygon).ToWebglearthString()));
@@ -993,7 +993,14 @@ namespace SatelliteSessions
         {
             DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
-            var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
+
+
+            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+            var turns = fetcher.GetTurns(timeFrom, timeTo);
+            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> laneParts
+                = turns.Select(turn => Tuple.Create(turn.Item1, SatLane.GetViewLane(trajectory, turn.Item2))).ToList();
+
+
             List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
             partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
 
@@ -1089,38 +1096,74 @@ namespace SatelliteSessions
         ///<param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
         public static void checkIfViewLaneIsLitWithTimeSpans(
             DIOS.Common.SqlManager DBManager,
+            Trajectory trajectory,
             DateTime timeFrom,
             DateTime timeTo,
             out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot,
             out List<TimePeriod> shadowPeriods)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
-            var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
+            
+            var turns = fetcher.GetTurns(timeFrom, timeTo);
+            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> laneParts 
+                = turns.Select(turn => Tuple.Create(turn.Item1, SatLane.GetViewLane(trajectory, turn.Item2))).ToList();
+            
             List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
             partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
             shadowPeriods = new List<TimePeriod>();
 
             int sunPositionsCount = sunPositions.Count();
-            int curSunPositionIndex = 0;
-
-            foreach (var lanePart in laneParts)
+             
+            var concurrentDict = new ConcurrentDictionary<
+                 int, ConcurrentDictionary<
+                 int, Tuple<List<Polygon>, List<Polygon>>>>();
+            
+            int num_steps = laneParts.Take(laneParts.Count - 1).Sum(turn => turn.Item2.Count == 0 ? 0 : turn.Item2.Count - 1);
+            Tuple<int, int>[] numberList = new Tuple<int, int>[num_steps];
+            int[] SunPositionsIndexes = new int[num_steps];
+            int curSunPositionIndex = 0;            
+            int totalNum = 0;
+            for (int turnInd = 0; turnInd < laneParts.Count-1; ++turnInd)
             {
+                concurrentDict[turnInd] = new ConcurrentDictionary<int, Tuple<List<Polygon>, List<Polygon>>>();
+                var lanePart = laneParts[turnInd];
+                var lane = lanePart.Item2;                                                      
+                for (int pointInd = 0; pointInd < lane.Count-1; ++pointInd)
+                {
+                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[pointInd].Time)
+                        curSunPositionIndex++;
+                    SunPositionsIndexes[totalNum] = curSunPositionIndex;
+                    numberList[totalNum] = Tuple.Create(turnInd, pointInd);
+                    totalNum++;
+                }                
+            }                         
+
+            Parallel.For(0, num_steps, index =>
+            {
+                int turnInd = numberList[index].Item1;
+                int pointInd = numberList[index].Item2;
+                var lanePart = laneParts[turnInd];
+                var lane = lanePart.Item2;
+                int curSunPosIndex = SunPositionsIndexes[index];
+                Vector3D sun = sunPositions[curSunPosIndex].Position;
+                SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, pointInd, pointInd + 1);
+                Tuple<List<Polygon>, List<Polygon>> LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
+                concurrentDict[turnInd][pointInd] = LitAndNot;
+            });
+ 
+            for (int turn = 0; turn < laneParts.Count - 1; ++turn)
+            {
+                var lanePart = laneParts[turn];
                 var lane = lanePart.Item2;
                 List<wktPolygonLit> turnPartsLitAndNot = new List<wktPolygonLit>();
 
                 bool onLitStreak = false;
                 int streakBegin = -1;
+                 
 
                 for (int i = 0; i < lane.Count - 1; ++i)
-                {
-                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
-                        curSunPositionIndex++;
-
-                    // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
-                    Vector3D sun = sunPositions[curSunPositionIndex].Position;
-                    SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
-                    
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
+                {                                                    
+                    Tuple<List<Polygon>, List<Polygon>> LitAndNot = concurrentDict[turn][i];// 
                     bool allLit = LitAndNot.Item2.Count == 0;
                     bool allUnlit = LitAndNot.Item1.Count == 0;
 
