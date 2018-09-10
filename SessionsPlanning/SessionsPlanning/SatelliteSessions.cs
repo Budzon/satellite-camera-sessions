@@ -1,4 +1,4 @@
-﻿#define  NOT_PARALLEL_
+﻿#define  _PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -993,14 +993,12 @@ namespace SatelliteSessions
         {
             DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
-
-
+            
             Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
             var turns = fetcher.GetTurns(timeFrom, timeTo);
             List<Tuple<int, List<SatelliteTrajectory.LanePos>>> laneParts
                 = turns.Select(turn => Tuple.Create(turn.Item1, SatLane.GetViewLane(trajectory, turn.Item2))).ToList();
-
-
+            
             List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
             partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
 
@@ -1389,6 +1387,19 @@ namespace SatelliteSessions
 
             PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));            
         }
+
+
+        //public static void removeRouteFromPNBWithSession(
+        //    CommunicationSession Session,
+        //    RouteParams routeParams,
+        //    List<MPZ> PNB,
+        //    string connStringCup,
+        //    string connStringCuks)
+        //{
+
+        //}
+
+
       
 
         /// <summary>
