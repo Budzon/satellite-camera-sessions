@@ -63,4 +63,4 @@
 #*.RTF   diff=astextplain
 
 ## концы строк всегда win-style
-text eol=crlf
+text eol=lf
