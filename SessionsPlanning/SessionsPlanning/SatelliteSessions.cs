@@ -1136,10 +1136,15 @@ namespace SatelliteSessions
                     numberList[totalNum] = Tuple.Create(turnInd, pointInd);
                     totalNum++;
                 }                
-            }                         
+            }
 
-            Parallel.For(0, num_steps, index =>
-            {
+
+
+#if _PARALLEL_
+            Parallel.For(0, num_steps, index =>{
+#else
+            for (int index = 0; index <= num_steps; index++){
+#endif
                 int turnInd = numberList[index].Item1;
                 int pointInd = numberList[index].Item2;
                 var lanePart = laneParts[turnInd];
@@ -1149,8 +1154,13 @@ namespace SatelliteSessions
                 SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, pointInd, pointInd + 1);
                 Tuple<List<Polygon>, List<Polygon>> LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
                 concurrentDict[turnInd][pointInd] = LitAndNot;
+#if _PARALLEL_
             });
- 
+#else
+            }
+#endif
+
+
             for (int turn = 0; turn < laneParts.Count - 1; ++turn)
             {
                 var lanePart = laneParts[turn];
@@ -1160,7 +1170,6 @@ namespace SatelliteSessions
                 bool onLitStreak = false;
                 int streakBegin = -1;
                  
-
                 for (int i = 0; i < lane.Count - 1; ++i)
                 {                                                    
                     Tuple<List<Polygon>, List<Polygon>> LitAndNot = concurrentDict[turn][i];// 
