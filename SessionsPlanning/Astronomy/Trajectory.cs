@@ -347,22 +347,31 @@ namespace Astronomy
 
         public Trajectory getSubTrajectory(DateTime fromDt, DateTime toDt)
         {
-            // int size = 
-            //TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
-#warning perfomance
-            List<TrajectoryPoint> newPoints = this.points.Where(p => (fromDt <= p.Time) && (p.Time <= toDt)).ToList();  //@todo perfomance!
+            var pointsList = this.points.Where(p => (fromDt <= p.Time) && (p.Time <= toDt));
+            int size = pointsList.Count();
 
-            if (!newPoints.First().Time.Equals(fromDt))
+            bool needInterFirst = !pointsList.First().Time.Equals(fromDt);
+            bool needInterLast  = !pointsList.Last().Time.Equals(toDt);
+            
+            size += needInterFirst ? 1 : 0;
+            size += needInterLast ? 1 : 0;
+
+            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+
+            if (needInterFirst)            
+                newTrajsPoints[0] = this.GetPoint(fromDt);            
+            if (needInterLast)            
+                newTrajsPoints[size-1] = this.GetPoint(toDt);           
+
+            int ind = needInterFirst ? 1 : 0;
+
+            foreach (var p in pointsList)
             {
-                newPoints.Insert(0, this.GetPoint(fromDt));
-            }
-            if (!newPoints.Last().Time.Equals(toDt))
-            {
-                newPoints.Add(this.GetPoint(toDt));
+                newTrajsPoints[ind] = p;
+                ind++;
             }
 
-#warning perfomance
-            return Create(newPoints.ToArray()); //@todo perfomance!
+            return Create(newTrajsPoints); // @todo perfomance!
         }
 
          

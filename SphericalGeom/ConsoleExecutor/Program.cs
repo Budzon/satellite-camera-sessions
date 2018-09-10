@@ -1785,7 +1785,7 @@ namespace ConsoleExecutor
 
             Console.Write(")");
         }
-
+         
 
         static void Main(string[] args)
         {
@@ -1793,7 +1793,7 @@ namespace ConsoleExecutor
 
             //test_TestSessionsSequenses();
 
-            test_removeRouteFromPNBWithSession();
+            test_getPlainMpzArray();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
             //Polygon tp = np.increasePointsNumber(2);

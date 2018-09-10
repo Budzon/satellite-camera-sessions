@@ -1294,6 +1294,15 @@ namespace SatelliteSessions
         }
 
 
+        /// <summary>
+        /// Удаление маршрута сброса/съемки со сбросом из сеанса связи 
+        /// </summary>
+        /// <param name="routeToDelete">маршрут, который унжно удалить из ПНБ</param>
+        /// <param name="PNB">ПНБ</param>
+        /// <param name="sessionStart">время начала сессии связи</param>
+        /// <param name="sessionEnd">время конца сессии связи</param>
+        /// <param name="connStringCup">строка подключения к бд ЦУП</param>
+        /// <param name="connStringCuks">*временно* строка подключения к бд ЦУКС</param>
         public static void removeRouteFromPNBWithSession(            
             RouteMPZ routeToDelete,
             List<MPZ> PNB,
