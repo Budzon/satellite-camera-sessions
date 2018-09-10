@@ -63,6 +63,16 @@ namespace SatelliteSessions
             return dateFrom <= dt && dt <= dateTo;
         }
 
+        public bool isContains(TimePeriod p)
+        {
+            return TimePeriod.isPeriodInPeriod(p, this);
+        }
+
+        public bool isOverlap(TimePeriod p)
+        {
+            return TimePeriod.isPeriodsOverlap(this, p);
+        }
+
         public List<TimePeriod> erase(TimePeriod periodToErase)
         {
             List<TimePeriod> res = new List<TimePeriod>();
@@ -166,13 +176,10 @@ namespace SatelliteSessions
             return false;
         }
 
-        public static bool isPeriodInPeriod(TimePeriod checkPeriod, TimePeriod period)
+        public static bool isPeriodInPeriod(TimePeriod smallPeriod, TimePeriod bigPeriod)
         {
-            if (period.dateFrom <= checkPeriod.dateFrom && checkPeriod.dateFrom <= period.dateTo
-             && period.dateFrom <= checkPeriod.dateTo && checkPeriod.dateTo <= period.dateTo)
-                return true;
-            else
-                return false;
+            return (bigPeriod.dateFrom <= smallPeriod.dateFrom && smallPeriod.dateFrom <= bigPeriod.dateTo
+             && bigPeriod.dateFrom <= smallPeriod.dateTo && smallPeriod.dateTo <= bigPeriod.dateTo);                
         }
 
         public static bool isPeriodsOverlap(TimePeriod p1, TimePeriod p2)

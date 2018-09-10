@@ -568,22 +568,11 @@ namespace SatelliteSessions
 
 #if DEBUG
 #warning this is only for debug
-
             //   Console.WriteLine("DEBUG, pols.Count() = {0}  \n\n", pols.Count());
-
             Console.Write("GEOMETRYCOLLECTION(");
-
-
-
             List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
-
             Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
-
-
-
-
             Console.Write(")");
-
 
 #endif
   
@@ -1385,19 +1374,61 @@ namespace SatelliteSessions
             if (newMPZs.Count == 0 )
                 throw new ArgumentException("Cannot create a route with the specified parameters.");
 
-            PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));            
+            PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));
         }
 
 
-        //public static void removeRouteFromPNBWithSession(
-        //    CommunicationSession Session,
-        //    RouteParams routeParams,
-        //    List<MPZ> PNB,
-        //    string connStringCup,
-        //    string connStringCuks)
-        //{
+        public static void removeRouteFromPNBWithSession(            
+            RouteMPZ routeToDelete,
+            List<MPZ> PNB,
+            DateTime sessionStart,
+            DateTime sessionEnd,
+            string connStringCup,
+            string connStringCuks)
+        {
+            RouteParams routePrms = routeToDelete.Parameters;
+            TimePeriod sessionPeriod = new TimePeriod(sessionStart, sessionEnd);
+            if (!sessionPeriod.isContains(new TimePeriod(routePrms.start, routePrms.end)))
+                throw new ArgumentException("Route is not in this commutication session period");
+            
+            if (PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ) == null)
+                throw new ArgumentException("There is no target MPZ in PNB");
 
-        //}
+            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ);
+            if (mpz == null)
+                throw new ArgumentException("There is no target MPZ in PNB");
+
+            List<RouteParams> routesParams = mpz.Routes.Select(r => r.Parameters).ToList();
+            //IEnumerable<RouteParams> newRoutesParams = routesParams.Where(r => r.NRoute != routeToDelete.NRoute);
+            int rcount = routesParams.RemoveAll(r => r.NRoute == routePrms.NRoute);
+            // теперь в routesParams лежат все маршруты (кроме удаляемого) на основе которых создастся новые мпз
+
+            if (rcount == 0)
+                throw new ArgumentException("There is no target Route in PNB");
+
+            //TimePeriod testPeriod = new TimePeriod(routeToDelete.end, Session.DropInterval.dateTo);
+
+            //// все оставшиеся маршруты на сброс в заданной сессии связи, стоящие после удалённого маршрута
+            //IEnumerable<RouteParams> downRoutes
+            //    = routesParams.Where(r => r.type == WorkingType.Downloading
+            //        && testPeriod.isContains(new TimePeriod(r.start, r.end)));
+
+            //TimePeriod lastRoutePeriod = new TimePeriod(downRoutes.Last().start, downRoutes.Last().end);
+            //TimePeriod deletedRoutePeriod = new TimePeriod(routeToDelete.start, routeToDelete.end);
+           
+            //if (deletedRoutePeriod.isContains(lastRoutePeriod)) // вместо удалённого маршрута можно подставить последний
+            //    downRoutes.Last().
+                        
+            List<MPZParams> newMPZParams = OptimalChain.MPZParams.FillMPZ(routesParams.ToList());
+
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(connStringCup);
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(connStringCuks);
+
+            IEnumerable<MPZ> newMPZs = newMPZParams.Select(prms => new MPZ(prms, CUPmanagerDB, CUKSmanagerDB, mpz.Flags));
+
+            PNB.Remove(mpz);
+            PNB.AddRange(newMPZs);
+        }
 
 
       
