@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -293,6 +293,46 @@ namespace DBTables
             return SpaceTime.createTrajectory(preTrajectory, minStep);
         }
 
+
+        private Trajectory GetTrajectorySimple(
+           DateTime from,
+           DateTime to,
+           double minStep)
+        {
+            List<SpaceTime> preTrajectory = GetPositions<SatTableFacade>(from, to);
+
+            DateTime lastTime = preTrajectory.Last().Time;
+            if ((to - lastTime).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+
+            DateTime firstTime = preTrajectory.First().Time;
+            if ((firstTime - from).TotalSeconds > OptimalChain.Constants.minTrajectoryPassInterval)
+                throw new ArgumentException("Not enough ballistic data from " + from.ToString() + " to " + to.ToString());
+
+            if (preTrajectory[0].Time != from) // если время первой точки не совпадает с from, то получим точку для from интерполяцией
+            {
+                TrajectoryPoint? firstPoint = GetSinglePoint<SatTableFacade>(from, minStep);
+                if (firstPoint != null)
+                {
+                    TrajectoryPoint trajPoint = (TrajectoryPoint)firstPoint;
+                    SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = from };
+                    preTrajectory.Insert(0, spt);
+                }
+            }
+
+            if (preTrajectory.Last().Time != to)  // если время последней точки не совпадает с to, то получим точку для to интерполяцией
+            {
+                TrajectoryPoint? secondPoint = GetSinglePoint<SatTableFacade>(to, minStep);
+                if (secondPoint != null)
+                {
+                    TrajectoryPoint trajPoint = (TrajectoryPoint)secondPoint;
+                    SpaceTime spt = new SpaceTime() { Position = trajPoint.Position.ToVector(), Time = to };
+                    preTrajectory.Add(spt);
+                }
+            }
+            return SpaceTime.createTrajectory(preTrajectory, minStep);
+        }
+
         public Trajectory GetTrajectorySat(DateTime from, DateTime to, double minStep = OptimalChain.Constants.minTrajectoryStep)
         {
             return GetTrajectory<SatTableFacade>(from, to, minStep);
@@ -302,35 +342,7 @@ namespace DBTables
         {
             return GetTrajectory<SunTableFacade>(from, to, minStep);
         }
-
-        /// <summary>
-        /// Fetches the satellite's view lane from the coverage table.
-        /// </summary>
-        /// <param name="from"></param>
-        /// <param name="to"></param>
-        /// <returns></returns>
-        public List<SatelliteTrajectory.LanePos> GetViewLane(DateTime from, DateTime to)
-        {
-            List<SatelliteTrajectory.LanePos> res = new List<SatelliteTrajectory.LanePos>();
-            // Coverage table contains not what we need.
-            //foreach (DataChunk chunk in GetDataBetweenDatesInChunks(CoverageTable.Name, CoverageTable.NadirTime, from, to, true))
-            //    if (chunk.Rows.Length > 0)
-            //    {
-            //        foreach (DataRow row in chunk.Rows)
-            //            res.Add(CoverageTable.GetLanePos(row));
-            //    }
-            //    else
-            //    {
-            //        // db is empty, generate view lane from sat positions
-            //    }
-
-            Trajectory traj = GetTrajectorySat(from, to);
-            foreach (TrajectoryPoint p in traj.Points)
-                res.Add(new SatelliteTrajectory.LanePos(p, 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle, 0));
-
-            return res;
-        }
-
+ 
         public List<CloudinessData> GetMeteoData(DateTime from, DateTime to)
         {
             List<CloudinessData> res = new List<CloudinessData>();
@@ -345,9 +357,9 @@ namespace DBTables
             return res;
         }
 
-        public List<Tuple<int, List<SatelliteTrajectory.LanePos>>> GetViewLaneBrokenIntoTurns(DateTime from, DateTime to)
+        public List<Tuple<int, SatelliteSessions.TimePeriod>> GetTurns(DateTime from, DateTime to)
         {
-            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> res = new List<Tuple<int, List<SatelliteTrajectory.LanePos>>>();
+            var res = new List<Tuple<int, SatelliteSessions.TimePeriod>>();
             List<Tuple<int, DateTime>> times = new List<Tuple<int, DateTime>>();
             DataRow[] preRows;
             var turnsData = GetDataBetweenDatesInChunks(OrbitTable.Name, OrbitTable.TimeEquator, from, to, false);
@@ -382,7 +394,7 @@ namespace DBTables
 
                 while (i + 1 < times.Count - 1 && (times[i + 1].Item1 == -1 || times[i + 1].Item1 == cur_turn))
                     ++i;
-                res.Add(Tuple.Create(cur_turn, GetViewLane(start, times[i + 1].Item2)));
+                res.Add(Tuple.Create(cur_turn, new SatelliteSessions.TimePeriod(start, times[i + 1].Item2)));
             }
 
             if (res.Count() == 0)
@@ -1081,7 +1093,6 @@ namespace DBTables
         }
     }
 
-
     public class SpaceTime
     {
         public Vector3D Position { get; set; }
@@ -1100,17 +1111,31 @@ namespace DBTables
             for (int i = 0; i < points.Count; i++)
             {
                 Vector3D toNeighbor;
+                double veloScalar;
                 if (i == points.Count - 1) // для последней точки берём вектор на предыдущую точку
+                {
                     toNeighbor = points.Last().Position - points[points.Count - 2].Position;
+                    double angle = AstronomyMath.ToRad(Vector3D.AngleBetween(points.Last().Position, points[points.Count - 2].Position));
+                    double time = (points.Last().Time - points[points.Count - 2].Time).TotalSeconds;
+                    veloScalar = angle * points.Last().Position.Length / time;
+                }
                 else // для остальныйх на следюущую
+                {
                     toNeighbor = points[i + 1].Position - points[i].Position;
+                    double angle = AstronomyMath.ToRad(Vector3D.AngleBetween( points[i + 1].Position, points[i].Position));
+                    double time = (points[i + 1].Time - points[i].Time).TotalSeconds;
+                    veloScalar = angle * points[i + 1].Position.Length / time;
+                }
+
                 Vector3D prod = Vector3D.CrossProduct(toNeighbor, points[i].Position);
                 Vector3D velo = Vector3D.CrossProduct(points[i].Position, prod);
+                velo.Normalize();
+               
+                velo = velo * veloScalar;
                 trajectoryPoints[i] = new TrajectoryPoint(points[i].Time, points[i].Position.ToPoint(), velo);
             }
-
-            Trajectory trajectory = Trajectory.Create(trajectoryPoints);
-            return Trajectory.changeMaximumTimeStep(trajectory, minStep);
+                        
+            return Trajectory.Create(trajectoryPoints, minStep);
         }
     }
 

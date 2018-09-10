@@ -172,28 +172,28 @@ namespace SessionsPlanning
         //    }
         //}
 
-        public Int16 GetAverageHeight(Polygon p, uint samples = 1000)
-        {
-            int height = 0;
-            Vector3D v;
-            Dictionary<string, RasterData> data = new Dictionary<string,RasterData>();
+        //public Int16 GetAverageHeight(Polygon p, uint samples = 1000)
+        //{
+        //    int height = 0;
+        //    Vector3D v;
+        //    Dictionary<string, RasterData> data = new Dictionary<string,RasterData>();
 
-            for (int i = 0; i < samples; ++i)
-            {
-                do
-                {
-                    v = RandomConvexCombination(p.Vertices);
-                } while (!p.Contains(v));
-                GeoPoint gp = GeoPoint.FromCartesian(v);
-                Tile tile = new Tile(gp);
-                if (!data.ContainsKey(tile.Name))
-                {
-                    data.Add(tile.Name, GetRaster(tile));
-                }
-                height += GetHeight(data[tile.Name], gp);
-            }
-            return (Int16) (height / samples);
-        }
+        //    for (int i = 0; i < samples; ++i)
+        //    {
+        //        do
+        //        {
+        //            v = RandomConvexCombination(p.Vertices);
+        //        } while (!p.Contains(v));
+        //        GeoPoint gp = GeoPoint.FromCartesian(v);
+        //        Tile tile = new Tile(gp);
+        //        if (!data.ContainsKey(tile.Name))
+        //        {
+        //            data.Add(tile.Name, GetRaster(tile));
+        //        }
+        //        height += GetHeight(data[tile.Name], gp);
+        //    }
+        //    return (Int16) (height / samples);
+        //}
 
         private Vector3D RandomConvexCombination(IList<Vector3D> verts)
         {

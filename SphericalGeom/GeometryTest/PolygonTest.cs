@@ -8,6 +8,7 @@ using Common;
 
 namespace GeometryTest
 {
+    /*
     [TestClass]
     public class PolygonTest
     {
@@ -347,4 +348,5 @@ namespace GeometryTest
         //    Assert.IsTrue(true);
         //}
     }
+    */
 }

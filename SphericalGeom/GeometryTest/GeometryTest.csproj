@@ -91,6 +91,7 @@
     <Compile Include="TrajectoryTest.cs" />
     <Compile Include="RequestParamsTest.cs" />
     <Compile Include="DataBaseTest.cs" />
+    <Compile Include="UnitTest1.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\SessionsPlanning\Astronomy\Astronomy.csproj">

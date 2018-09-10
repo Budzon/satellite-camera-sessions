@@ -302,6 +302,9 @@ namespace OptimalChain
 
         public RouteParams binded_route { get; set; }
 
+        public double roll { get; set; }
+        public double pitch { get; set; }
+
         private int fileSize;
         private bool know_fileSize = false;
         /// <summary>
@@ -340,7 +343,10 @@ namespace OptimalChain
             {
                 if (!know_hroute)
                 {
-                    hroute = 200;
+                    if ((type == WorkingType.Shooting) || (type == WorkingType.ShootingSending))
+                        hroute = 200;
+                    else
+                        hroute = 0;
                     know_hroute = true;
                 }
                 return hroute;
@@ -422,27 +428,35 @@ namespace OptimalChain
             TNPos = copyed.TNPos;
             Delta_T = copyed.Delta_T;
             coridorLength = copyed.coridorLength;
-            coridorAzimuth = copyed.coridorAzimuth; 
+            coridorAzimuth = copyed.coridorAzimuth;
+            roll = copyed.roll;
+            pitch = copyed.pitch;
         }
 
 
         public RouteParams(
             WorkingType t,
             double dur,
-            RouteParams _binded_route)
+            RouteParams _binded_route,
+            double roll = 0,
+            double pitch = 0)
         { 
             type = t;
             binded_route = _binded_route;
             duration = dur;
             NRoute = -1;
             NPZ = -1;
+            this.roll = roll;
+            this.pitch = pitch;
         }
 
         public RouteParams(
             WorkingType t,
             DateTime d1,
             DateTime d2,
-            RouteParams _binded_route)
+            RouteParams _binded_route,
+            double roll = 0,
+            double pitch = 0)
         { 
             type = t;        
             start = d1;
@@ -450,11 +464,13 @@ namespace OptimalChain
             binded_route = _binded_route; 
             duration = (end - start).TotalMilliseconds;
             NRoute = -1;
-            NPZ = -1;  
+            NPZ = -1;
+            this.roll = roll;
+            this.pitch = pitch;
         }
 
         public RouteParams(StaticConf c)
-            : this(c.type, c.dateFrom, c.dateTo, c.connected_route)
+            : this(c.type, c.dateFrom, c.dateTo, c.connected_route, c.roll, c.pitch)
         {           
             ShootingConf = c;
             shooting_channel = c.shooting_channel;
@@ -472,8 +488,25 @@ namespace OptimalChain
         /// <returns>Код проверки: true--маршруты совместимы, false--маршруты несовместимы</returns>
         public bool isCompatible(RouteParams r)
         {
+            //RouteParams r1, r2;
+            //if (this.start < r.start)
+            //{
+            //    r1 = this;
+            //    r2 = r;
+            //}
+            //else
+            //{
+            //    r1 = r;
+            //    r2 = this;
+            //}
+
+            //double pause = (r2.start - r1.end).TotalMilliseconds;
+            //double rotationTime = StaticConf.reConfigureMilisecinds(r1.roll, r1.pitch, r2.roll, r2.pitch);
+
+
+
             StaticConf c1, c2;
-           
+
             if (r.start > this.start)
             {
                 c2 = r.ShootingConf;

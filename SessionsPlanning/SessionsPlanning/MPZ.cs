@@ -17,9 +17,10 @@ namespace SatelliteSessions
         public HeaderMPZ Header { get; set; }
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
-
+        public FlagsMPZ Flags { get; private set; }
         public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, DIOS.Common.SqlManager DBmanagerCUKS, FlagsMPZ flags)
         {
+            Flags = flags;
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
             foreach (var rout_params in inpParameters.routes)
@@ -131,7 +132,7 @@ namespace SatelliteSessions
             {
                 if (Routes[i].RegimeType == RegimeTypes.VI)
                 {
-                    var span = Routes[i].Parameters.getDropTime(Parameters.Station.Value);
+                    var span = Routes[i].Parameters.binded_route.getDropTime(Parameters.Station.Value);
                     Routes[i].Troute = (int)span.TotalMilliseconds;
                     Routes[i].Parameters.end = Routes[i].Parameters.start + span;
                     Routes[i].Parameters.duration = Routes[i].Troute;
@@ -148,7 +149,7 @@ namespace SatelliteSessions
             
             try
             {
-                RouteMPZ firstVideo = Routes.First(route => route.REGka == 0);
+                RouteMPZ firstVideo = Routes.First(route => (route.RegimeType == RegimeTypes.ZI) || (route.RegimeType == RegimeTypes.NP));
                 Header.Tvideo = (uint)(firstVideo.Ts - 100*1000);
             }
             catch
@@ -511,26 +512,25 @@ namespace SatelliteSessions
                 throw new Exception("No trajectory data.");
             }
             Astronomy.TrajectoryPoint KAbegin = KAbegin_.Value;
-            SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
-            Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
-
-            /* ---------- InitCoord -----------*/
-            if (REGka == 0)
+            
+            if ((inpParameters.type == SessionsPlanning.WorkingType.Shooting) || (inpParameters.type == SessionsPlanning.WorkingType.ShootingSending))
             {
+                SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+                Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
+
+                /* ---------- InitCoord -----------*/
                 InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
 
-            /* ---------- Polinomial_coeff -----------*/
+                /* ---------- Polinomial_coeff -----------*/
                 if (Parameters.shooting_type == SessionsPlanning.ShootingType.Coridor) // коридорная
                 {
 					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
-                }
-                else
-                    Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0, 0);
-            }
+                }                    
 
-            /* ---------- N_PK -----------*/
-            double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
-            N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+                /* ---------- N_PK -----------*/
+                double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
+                N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+            }            
 
             /* ---------- Z -----------*/
             if (RegimeType == RegimeTypes.ZI || RegimeType == RegimeTypes.NP)
@@ -575,7 +575,7 @@ namespace SatelliteSessions
             }
 
             /* ---------- REGta -----------*/
-            if (REGka == 0)
+            if ((RegimeType == RegimeTypes.ZI) || (RegimeType == RegimeTypes.NP))
             {
                 switch (Parameters.shooting_type)
                 {
@@ -645,7 +645,7 @@ namespace SatelliteSessions
             }
 
             /* ---------- IDFile -----------*/
-            if (REGka == 1)
+            if ((RegimeType == RegimeTypes.VI) || (RegimeType == RegimeTypes.SI))
             {
                 IDFile = new IdFile
                 {
@@ -795,19 +795,11 @@ namespace SatelliteSessions
             }
 
             /* ---------- InitCoord -----------*/
-            switch (REGka)
-            {
-                case 0:
-                    //InitCoord = new Coord{Bc, Lc, Hc}
-                    //To be filled separately
-                    break;
-                case 1:
-                    InitCoord = new Coord { Bc = 0, Lc = 0, Hc = 0 };
-                    break;
-            }
+            InitCoord = new Coord { Bc = 0, Lc = 0, Hc = 0 };
+
 
             /* ---------- N_PK -----------*/
-            // отдельно
+            N_PK = 0;
 
             /* ---------- Z -----------*/
             Z = 0;
@@ -951,7 +943,7 @@ namespace SatelliteSessions
             Quant_InitValueMK = 0; // default
 
             /* ---------- Polinomial_coeff -----------*/
-            // отдельно
+            Polinomial_Coeff = new PolinomCoef(0, 0, 0, 0, 0, 0, 0);
 
             /* ---------- K01 -----------*/
             K01 = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

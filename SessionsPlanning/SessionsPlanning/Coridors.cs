@@ -11,6 +11,7 @@ using SatelliteTrajectory;
 
 namespace SatelliteSessions
 {
+    
     public class Parametrized2Curve
     {
         public double L1 { get; private set; }
@@ -100,7 +101,7 @@ namespace SatelliteSessions
     }
 
     public class CoridorParams
-    {
+    { 
         public PolinomCoef CoridorCoefs { get; private set; }
         public double StartRoll { get; private set; }
         public double StartPitch { get; private set; }
@@ -110,7 +111,7 @@ namespace SatelliteSessions
         /// In seconds.
         /// </summary>
         public double Duration { get { return (EndTime - StartTime).TotalSeconds; } }
-        
+
         public Polygon Coridor { get; private set; }
         public double AbsMaxRequiredRoll { get; private set; }
         public double AbsMaxRequiredPitch { get; private set; }
@@ -127,174 +128,50 @@ namespace SatelliteSessions
             EndTime = endTime;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <param name="traj">Отрезок траектории КА покрывающий время съемки коридора</param>
-        /// <param name="pointsPerSide">Число точек на боковинах коридора</param>
+
         public void ComputeCoridorPolygon(Trajectory traj, int pointsPerSide = 20)
-        {
-            int vertNum = pointsPerSide * 2 + 2;
-            Vector3D[] points = new Vector3D[vertNum];
-
-            TrajectoryPoint curTP = traj.GetPoint(StartTime);
-            SatelliteCoordinates curKaPos = new SatelliteCoordinates(curTP, StartRoll, StartPitch);
-            GeoPoint nexCurveGeo = GeoPoint.FromCartesian(curKaPos.MidViewPoint);
-            Vector3D nexCurveVec = GeoPoint.ToCartesian(nexCurveGeo, 1);
-            Parametrized2Curve curve = new Parametrized2Curve(nexCurveGeo, CoridorCoefs);
-
-            GeoPoint curCurveGeo;
-            Vector3D curCurveVec;
+        { 
+            TrajectoryPoint prevTP = traj.GetPoint(StartTime);
+            SatelliteCoordinates prevKaPos = new SatelliteCoordinates(prevTP, StartRoll, StartPitch);
+            GeoPoint prevCurveGeo = GeoPoint.FromCartesian(prevKaPos.MidViewPoint);
+            Vector3D prevCurveVec = GeoPoint.ToCartesian(prevCurveGeo, 1);
+            Parametrized2Curve curve = new Parametrized2Curve(prevCurveGeo, CoridorCoefs);
 
             double dt = Duration / pointsPerSide;
             double rollAngle, pitchAngle;
             AbsMaxRequiredRoll = 0;
             AbsMaxRequiredPitch = 0;
-            bool left = false, forward = false, preLeft, preForward;
-            for (int i = 0; i < pointsPerSide; i++)
-            {
-                curCurveVec = nexCurveVec;
-                curCurveGeo = nexCurveGeo;
 
+            SphericalVector[] rightLines = new SphericalVector[pointsPerSide - 1]; 
+            SphericalVector[] leftLines = new SphericalVector[pointsPerSide - 1];
+             
+            Coridor = prevKaPos.ViewPolygon;
+
+            for (int i = 1; i < pointsPerSide; i++)
+            {
                 double t = dt * i;
-                curTP = traj.GetPoint(StartTime.AddSeconds(t));
+                TrajectoryPoint curTP = traj.GetPoint(StartTime.AddSeconds(t));
+                GeoPoint curCurveGeo = curve.GetPoint(t);
                 Routines.GetRollPitch(curTP, curCurveGeo, out rollAngle, out pitchAngle);
 
                 AbsMaxRequiredRoll = Math.Max(AbsMaxRequiredRoll, Math.Abs(rollAngle));
                 AbsMaxRequiredPitch = Math.Max(AbsMaxRequiredPitch, Math.Abs(pitchAngle));
 
-                curKaPos = new SatelliteCoordinates(curTP);
-                Vector3D rAxis = curKaPos.RollAxis;
-                Vector3D pAxis = curKaPos.PitchAxis;
-                curKaPos.addRollPitchRot(rollAngle, pitchAngle);
+                SatelliteCoordinates curKaPos = new SatelliteCoordinates(curTP);
+                curKaPos.addRollPitchRot(rollAngle, pitchAngle);        
 
-                nexCurveGeo = curve.GetPoint(t + dt);
-                nexCurveVec = GeoPoint.ToCartesian(nexCurveGeo, 1);
-                Vector3D dVec = nexCurveVec - curCurveVec;
+                Polygon curPol = prevKaPos.getOptimalStrip(curKaPos);
+                Coridor.Add(curPol);
+                Coridor.Add(curKaPos.ViewPolygon); 
 
-                double along = Vector3D.DotProduct(dVec, rAxis);
-                double perp = Vector3D.DotProduct(dVec, pAxis);
-
-                preForward = forward;
-                preLeft = left;
-                bool straightLeft = Comparison.IsZero(perp);
-                bool straightForw = Comparison.IsZero(along);
-                forward = Comparison.IsPositive(along);
-                left = !Comparison.IsPositive(perp);
-
-                if (i == 0)
-                {
-                    // points[0] is an extra beggining point
-                    if (forward && left)
-                    {
-                        points[0] = curKaPos.BotRightViewPoint;
-                        points[1] = curKaPos.BotLeftViewPoint;
-                        points[vertNum - 1] = curKaPos.TopRightViewPoint;
-                    }
-                    else if (forward && !left)
-                    {
-                        points[0] = curKaPos.BotLeftViewPoint;
-                        points[1] = curKaPos.TopLeftViewPoint;
-                        points[vertNum - 1] = curKaPos.BotRightViewPoint;
-                    }
-                    else if (!forward && left)
-                    {
-                        points[0] = curKaPos.TopRightViewPoint;
-                        points[1] = curKaPos.BotRightViewPoint;
-                        points[vertNum - 1] = curKaPos.TopLeftViewPoint;
-                    }
-                    else // if (!forward && !left)
-                    {
-                        points[0] = curKaPos.TopLeftViewPoint;
-                        points[1] = curKaPos.TopRightViewPoint;
-                        points[vertNum - 1] = curKaPos.BotLeftViewPoint;
-                    }
-                }
-                else if (i == pointsPerSide - 1)
-                {
-                    // points[pointsPerSide + 1] is an extra ending point
-                    if (forward && left)
-                    {
-                        points[pointsPerSide] = curKaPos.BotLeftViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.TopLeftViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.TopRightViewPoint;
-                    }
-                    else if (forward && !left)
-                    {
-                        points[pointsPerSide] = curKaPos.TopLeftViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.TopRightViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.BotRightViewPoint;
-                    }
-                    else if (!forward && left)
-                    {
-                        points[pointsPerSide] = curKaPos.BotRightViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.BotLeftViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.TopLeftViewPoint;
-                    }
-                    else // if (!forward && !left)
-                    {
-                        points[pointsPerSide] = curKaPos.TopRightViewPoint;
-                        points[pointsPerSide + 1] = curKaPos.BotRightViewPoint;
-                        points[pointsPerSide + 2] = curKaPos.BotLeftViewPoint;
-                    }
-                }
-                else
-                {
-                    if (forward != preForward)
-                    {
-                        Vector3D botMid = curKaPos.BotLeftViewPoint + curKaPos.BotRightViewPoint;
-                        Vector3D topMid = curKaPos.TopLeftViewPoint + curKaPos.TopRightViewPoint;
-                        
-                        if (left)
-                        {
-                            points[i + 1] = botMid;
-                            points[vertNum - 1 - i] = topMid;
-                        }
-                        else
-                        {
-                            points[i + 1] = topMid;
-                            points[vertNum - 1 - i] = botMid;
-                        }
-                    }
-                    else if (left != preLeft)
-                    {
-                        Vector3D leftMid = curKaPos.BotLeftViewPoint + curKaPos.TopLeftViewPoint;
-                        Vector3D rightMid = curKaPos.BotRightViewPoint + curKaPos.TopRightViewPoint;
-
-                        if (forward)
-                        {
-                            points[i + 1] = leftMid;
-                            points[vertNum - 1 - i] = rightMid;
-                        }
-                        else
-                        {
-                            points[i + 1] = rightMid;
-                            points[vertNum - 1 - i] = leftMid;
-                        }
-                    }
-                    else if (forward && left)
-                    {
-                        points[i + 1] = curKaPos.BotLeftViewPoint;
-                        points[vertNum - 1 - i] = curKaPos.TopRightViewPoint;
-                    }
-                    else if (forward && !left)
-                    {
-                        points[i + 1] = curKaPos.TopLeftViewPoint;
-                        points[vertNum - 1 - i] = curKaPos.BotRightViewPoint;
-                    }
-                    else if (!forward && left)
-                    {
-                        points[i + 1] = curKaPos.BotRightViewPoint;
-                        points[vertNum - 1 - i] = curKaPos.TopLeftViewPoint;
-                    }
-                    else // if (!forward && !left)
-                    {
-                        points[i + 1] = curKaPos.TopRightViewPoint;
-                        points[vertNum - 1 - i] = curKaPos.BotLeftViewPoint;
-                    }
-                }
+                prevKaPos = curKaPos;
             }
-
-            Coridor = new Polygon(points.ToList());
-        }
+            
+            if (!Coridor.IsValid())
+            {
+                throw new Exception("Corridor formation error");
+            }
+        }       
     }
 }
+

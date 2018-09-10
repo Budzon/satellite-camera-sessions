@@ -300,19 +300,19 @@ namespace GeometryTest
             Assert.IsTrue(noCrop && crop);
         }
 
-        [TestMethod]
-        public void TestSliceIntoSquaresPoly()
-        {
-            double t = 1 / Math.Sqrt(2);
-            Vector3D a = new Vector3D(t, 0, t);
-            Vector3D b = new Vector3D(0, -t, t);
-            Vector3D c = new Vector3D(-t, 0, t);
-            Vector3D d = new Vector3D(0, t, t);
-            Polygon p = new Polygon(new List<Vector3D> { a, b, c, d });
+        //[TestMethod]
+        //public void TestSliceIntoSquaresPoly()
+        //{
+        //    double t = 1 / Math.Sqrt(2);
+        //    Vector3D a = new Vector3D(t, 0, t);
+        //    Vector3D b = new Vector3D(0, -t, t);
+        //    Vector3D c = new Vector3D(-t, 0, t);
+        //    Vector3D d = new Vector3D(0, t, t);
+        //    Polygon p = new Polygon(new List<Vector3D> { a, b, c, d });
 
-            List<Polygon> squares = Routines.SliceIntoSquares(p,
-                a, Astronomy.AstronomyMath.ToDegrees(Math.Acos(Math.Sqrt(2.0 / 3))), 35.3);
-            Assert.IsTrue(squares.Count == 4);
-        }
+        //    List<Polygon> squares = Routines.SliceIntoSquares(p,
+        //        a, Astronomy.AstronomyMath.ToDegrees(Math.Acos(Math.Sqrt(2.0 / 3))), 35.3);
+        //    Assert.IsTrue(squares.Count == 4);
+        //}
     }
 }

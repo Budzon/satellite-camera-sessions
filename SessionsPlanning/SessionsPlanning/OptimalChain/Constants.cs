@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,16 +25,18 @@ namespace OptimalChain
         public const int min_shooting_time = 2000;
         public const int min_Delta_time = 8000;
         public const int minDeltaT = 19000;
+        public const int stabilizationAfterRotationTime = 10000; // мс
          
         // максимальный промежуток (в секундах) между двумя конфигурациями, при котором они объединяются в одну
         public const int maxCConfInterval = 2;
-
+        public const int  max_route_duration = 1000; // секунды
         public const double angle_velocity_max = Math.PI / 60;
         public const double min_degree = Math.PI / 30;
         public const double camera_angle = 0.016616; // ~0.952 градуса - угол обзора камеры
         public const double sunBlindingAngle = 0.17453; // 10 градусов - минимально допустимый угол между направлением взора камеры и направлением вектора  на солнце
         public const double max_roll_angle = 0.78540; // 45 градусов - максимально возможный угол крена
         public const double max_pitch_angle = 0.52360; // 30 градусов - максимально возможный угол тангажа
+        public const double roll_correction_epsilon = 0.001; // точность нахождения правки по крену в секундах 
         public const double earthRotSpeed = 7.2921158553e-5; // 1/c скорость вращения земли
         public const double orbital_inclination = 1.7104; // угол наклона орбиты в градусах
         public const double orbit_height = 720; // км (или 650?)
@@ -51,7 +53,7 @@ namespace OptimalChain
 
         public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {
-            int d = Constants.min_Delta_time;
+            int d = Constants.min_Delta_time/1000; // в константах время указано в милисекундах, а тут мы все считаем в секундах
             if (t1 == WorkingType.Shooting)
             {
                 if (channel1 != ShootingChannel.pk)
@@ -80,3 +82,4 @@ namespace OptimalChain
         }
     }
 }
+

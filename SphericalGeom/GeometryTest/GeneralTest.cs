@@ -17,26 +17,27 @@ namespace GeometryTest
     [TestClass]
     public class GeneralTest
     {
-        [TestMethod]
-        public void TestOrthogonality()
-        {
-            string cs = System.IO.File.ReadLines("DBstring.conf").First();
-            DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
-            DBTables.DataFetcher fetcher = new DataFetcher(manager);
+        //[TestMethod]
+        //public void TestOrthogonality()
+        //{
+        //    string cs = System.IO.File.ReadLines("DBstring.conf").First();
+        //    DIOS.Common.SqlManager manager = new DIOS.Common.SqlManager(cs);
+        //    DBTables.DataFetcher fetcher = new DataFetcher(manager);
 
-            DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
-            DateTime dt2 = DateTime.Parse("3/01/2019 02:00:00");
-            var traj = fetcher.GetTrajectorySat(dt1, dt2);
-            foreach (var tp in traj)
-            {
-                Vector3D v = tp.Position.ToVector();
-                Console.WriteLine(Vector3D.AngleBetween(v, tp.Velocity));
-            }
-        }
+        //    DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
+        //    DateTime dt2 = DateTime.Parse("3/01/2019 02:00:00");
+        //    var traj = fetcher.GetTrajectorySat(dt1, dt2);
+        //    foreach (var tp in traj)
+        //    {
+        //        Vector3D v = tp.Position.ToVector();
+        //        Console.WriteLine(Vector3D.AngleBetween(v, tp.Velocity));
+        //    }
+        //}
 
         [TestMethod]
         public void TestLitSpans()
         {
+           /*
             DateTime dt1 = DateTime.Parse("01.02.2019 0:47:50");
             DateTime dt2 = DateTime.Parse("01.02.2019 1:39:30");
             //DateTime dt2 = DateTime.Parse("01.02.2019 2:39:30");
@@ -57,6 +58,7 @@ namespace GeometryTest
                 foreach (var period in shadowPeriods)
                     Console.WriteLine(period.dateFrom + " " + period.dateTo);
             }
+            */
         }
 
         [TestMethod]
@@ -108,25 +110,50 @@ namespace GeometryTest
         [TestMethod]
         public void Test123()
         {
-            DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
-            DateTime dt2 = DateTime.Parse("25/02/2019 02:00:00");
-
-            string cs = System.IO.File.ReadLines("DBstring.conf").First();
-            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
-            DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
-
-            string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
-            DIOS.Common.SqlManager managerDBCucs = new DIOS.Common.SqlManager(cs2);
-
-            List<TimePeriod> shadowPeriods;
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
+            DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-03-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLit(cs, dt1, dt2, out partsLitAndNot);//, out shadowPeriods);
+            Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
+            Console.WriteLine(partsLitAndNot.Count);
+            //Console.WriteLine();
+            //foreach (var tuple in partsLitAndNot)
+            //{
+            //    Console.WriteLine(tuple.Item1);
+            //    Console.WriteLine();
+            //    var lst = tuple.Item2.Where(wpl => wpl.sun).Select(wpl => new Polygon(wpl.wktPolygon)).ToList();
+            //    if (lst.Count > 0)
+            //    {
+            //        SphericalGeom.Polygon p = lst[0];
+            //        for (int i = 1; i < lst.Count; ++i)
+            //        {
+            //            p.Add(lst[i]);
+            //        }
+            //        Console.WriteLine(p.ToWtk());
+            //    }
+            //    //Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Where(wpl => wpl.sun).Select(wpl => new Polygon(wpl.wktPolygon)).Aggregate((u,v) => u.Add(v));//.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
+            //}
 
-            Console.Write("GEOMETRYCOLLECTION(");
-            foreach (var w in partsLitAndNot[1].Item2.Where(p => p.sun))
-                Console.WriteLine(w.wktPolygon + ",");
-            Console.WriteLine(")");
 
+            //DateTime dt1 = DateTime.Parse("1/01/2019 18:31:21");
+            //DateTime dt2 = DateTime.Parse("25/02/2019 02:00:00");
+
+            //string cs = System.IO.File.ReadLines("DBstring.conf").First();
+            //DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
+            //DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
+
+            //string cs2 = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            //DIOS.Common.SqlManager managerDBCucs = new DIOS.Common.SqlManager(cs2);
+
+            //List<TimePeriod> shadowPeriods;
+            //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            //Sessions.checkIfViewLaneIsLit(cs, dt1, dt2, out partsLitAndNot);//, out shadowPeriods);
+
+            //Console.Write("GEOMETRYCOLLECTION(");
+            //foreach (var w in partsLitAndNot[1].Item2.Where(p => p.sun))
+            //    Console.WriteLine(w.wktPolygon + ",");
+            //Console.WriteLine(")");
+            
             //List<Vector3D> apexes = new List<Vector3D>
             //{
             //    new Vector3D(0.059364107809225,0.0915947881872375,0.0161908852832645),
@@ -363,7 +390,7 @@ namespace GeometryTest
         [TestMethod]
         public void TestGetCaptureConfArrayOnRandomPolygons()
         {
-            for (int testi = 0; testi < 1; testi++)
+            for (int testi = 0; testi < 10; testi++)
             {
                 List<Polygon> polygons = new List<Polygon>();
                 Random rand = new Random((int)DateTime.Now.Ticks);
@@ -401,7 +428,7 @@ namespace GeometryTest
                         requests.Add(reqparams);
                         id++;
                     }
-                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
+                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, trajectory, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
                 }
 
                 catch (Exception ex)
@@ -425,7 +452,7 @@ namespace GeometryTest
         {
             List<Polygon> polygons = new List<Polygon>();
             Random rand = new Random((int)DateTime.Now.Ticks);
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 10; i++)
             {
                 Polygon randpol = getRandomPolygon(rand, 3, 6, 2, 4);
                 polygons.Add(randpol);
@@ -438,7 +465,7 @@ namespace GeometryTest
             DIOS.Common.SqlManager managerCUP = new DIOS.Common.SqlManager(cupConnStr);
 
             DateTime dt1 = new DateTime(2019, 1, 4);
-            DateTime dt2 = new DateTime(2019, 1, 4, 20, 0, 0);
+            DateTime dt2 = new DateTime(2019, 1, 8);
 
             DataFetcher fetcher = new DataFetcher(managerCUP);
             Trajectory trajectory = fetcher.GetTrajectorySat(dt1, dt2);
@@ -488,8 +515,10 @@ namespace GeometryTest
                 routeParamtoDelete.NRoute = 0;
                 routeParamtoDelete.start = new DateTime(2019, 1, 4);
                 routeParamtoDelete.end = new DateTime(2019, 1, 5);
+ 
                 //routeParamtoDelete.File_Size = 1000;
                 routeParamtoDelete.binded_route = null;
+ 
                 RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerCUP) { NPZ = 0, Nroute = 0 };
 
                 List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
@@ -543,6 +572,7 @@ namespace GeometryTest
         [TestMethod]
         public void Test_lalala()
         {
+            /*
             List<Vector3D> apexes = new List<Vector3D>
             {
                 new Vector3D(-0.0593525794717557, 0.0941882004842364, 0.0196600456640166),
@@ -579,6 +609,7 @@ namespace GeometryTest
                     double a = p.Area;
                 }
             }
+             */
         }
 
         [TestMethod]
@@ -673,7 +704,9 @@ namespace GeometryTest
                 verts[t] = vert;
             }
 
-            return new Polygon(verts.Values.ToList<Vector3D>());
+            var values = verts.Values.ToList();// verts.Reverse();
+            values.Reverse();
+            return new Polygon(values);
         }
     }
 }
