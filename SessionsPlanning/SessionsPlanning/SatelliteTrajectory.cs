@@ -117,6 +117,15 @@ namespace SatelliteTrajectory
             return new Polygon(points.ToList());
         }
 
+       
+        public static List<LanePos> GetViewLane(Trajectory trajectory, TimePeriod period)
+        {
+            Trajectory traj = trajectory.getSubTrajectory(period.dateFrom, period.dateTo);
+            double angle = 2 * OptimalChain.Constants.max_roll_angle + OptimalChain.Constants.camera_angle;
+            List<LanePos> res = traj.Points.Select(p => new LanePos(p, angle, 0)).ToList();
+            return res;
+        }
+
         public SatLane(Astronomy.Trajectory _trajectory, double _rollAngle, double _viewAngle)
         {
             if (_trajectory.Count <= 1)

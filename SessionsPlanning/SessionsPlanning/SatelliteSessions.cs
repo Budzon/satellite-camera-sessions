@@ -84,14 +84,16 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             DataFetcher fetcher = new DataFetcher(managerDbCUP);
+            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
             possibleConfs = getCaptureConfArray(
                 new List<RequestParams>() { request },
                 timeFrom,
                 timeTo,
+                trajectory,
                 managerDbCUP,
                 managerDbCUKS,
                 shadowPeriods,
@@ -106,7 +108,7 @@ namespace SatelliteSessions
             double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, request.Max_SOEN_anlge);
             double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
 
-            List<Trajectory> possibleTrajParts = getLitTrajectoryParts(timeFrom, timeTo, managerDbCUP, shadowPeriods);
+            List<Trajectory> possibleTrajParts = getLitTrajectoryParts(trajectory, timeFrom, timeTo, shadowPeriods);
             List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
             foreach (var traj in possibleTrajParts)
             {
@@ -171,7 +173,7 @@ namespace SatelliteSessions
         private static void getCaptureConfArrayForTrajectoryForCoridor(
            DIOS.Common.SqlManager managerDB,
            List<RequestParams> requests,
-           Trajectory trajectory,
+           Trajectory satTrajectory,
            Trajectory sunTrajectory,
            List<CaptureConf> captureConfs,
            List<TimePeriod> freeSessionPeriodsForDrop,
@@ -194,7 +196,7 @@ namespace SatelliteSessions
                 double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, req.Max_SOEN_anlge);
                 double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
 
-                SatLane viewLane = new SatLane(trajectory, 0, viewAngle);
+                SatLane viewLane = new SatLane(satTrajectory, 0, viewAngle);
 
                 List<CaptureConf> confs = viewLane.getCaptureConfs(req);
 
@@ -220,7 +222,7 @@ namespace SatelliteSessions
                          
                         if (line.Count < 2)
                             continue;
-                        double deltaPitchTime = CaptureConf.getTimeDeltaFromPitch(trajectory, trajectory.GetPoint(conf.dateFrom), 0, maxpitch);
+                        double deltaPitchTime = CaptureConf.getTimeDeltaFromPitch(satTrajectory, satTrajectory.GetPoint(conf.dateFrom), 0, maxpitch);
                         DateTime start = conf.dateFrom.AddSeconds(-deltaPitchTime);
 
                         while (start < conf.dateTo.AddSeconds(deltaPitchTime))
@@ -228,7 +230,7 @@ namespace SatelliteSessions
                             List<CoridorParams> coridorParams;
                             try
                             {
-                                getPiecewiseCoridorParams(start, line, managerDB, out coridorParams);
+                                getPiecewiseCoridorParams(start, line, satTrajectory, out coridorParams);
                                 start = coridorParams.Max(cor => cor.EndTime);
                                 //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredPitch > maxpitch);
                                 //  coridorParams.RemoveAll(cor => cor.AbsMaxRequiredRoll > maxroll);
@@ -281,14 +283,14 @@ namespace SatelliteSessions
                     // зададим угол солнца
                     if (cc.dateFrom == cc.dateTo)
                     {
-                        TrajectoryPoint pointFrom = trajectory.GetPoint(cc.dateFrom);
+                        TrajectoryPoint pointFrom = satTrajectory.GetPoint(cc.dateFrom);
                         cc.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(cc.dateFrom).ToVector());
                     }
                     else
                     {
                         DateTime midTime;
                         midTime = cc.dateFrom.AddSeconds((cc.dateTo - cc.dateFrom).TotalSeconds);
-                        cc.setSun(trajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
+                        cc.setSun(satTrajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
                     }
 
                     cc.setPolygon(cp.Coridor);
@@ -418,24 +420,24 @@ namespace SatelliteSessions
         }
 
         public static List<Trajectory> getLitTrajectoryParts(
+           Trajectory trajectory,
            DateTime timeFrom,
-           DateTime timeTo,
-           DIOS.Common.SqlManager managerDB,
+           DateTime timeTo,           
            List<TimePeriod> shadowPeriods)
         {
-            DataFetcher fetcher = new DataFetcher(managerDB);
+            //DataFetcher fetcher = new DataFetcher(managerDB);
             DateTime firstDt = timeFrom;
             List<Trajectory> posiibleTrajectoryParts = new List<Trajectory>();
             
             foreach (var timeSpan in shadowPeriods)
             {
                 if (firstDt < timeSpan.dateFrom)
-                    posiibleTrajectoryParts.Add(fetcher.GetTrajectorySat(firstDt, timeSpan.dateFrom));
+                    posiibleTrajectoryParts.Add(trajectory.getSubTrajectory(firstDt, timeSpan.dateFrom));
                 firstDt = timeSpan.dateTo;
             }
           
             if (firstDt < timeTo)
-                posiibleTrajectoryParts.Add(fetcher.GetTrajectorySat(firstDt, timeTo));
+                posiibleTrajectoryParts.Add(trajectory.getSubTrajectory(firstDt, timeTo));
  
             return posiibleTrajectoryParts;
         }
@@ -444,6 +446,7 @@ namespace SatelliteSessions
             List<RequestParams> requests,
             DateTime timeFrom,
             DateTime timeTo,
+            Trajectory satTrajectory,
             DIOS.Common.SqlManager managerDbCUP,
             DIOS.Common.SqlManager managerDbCUKS,
             List<TimePeriod> inactivityRanges,
@@ -455,7 +458,7 @@ namespace SatelliteSessions
             inactivityRanges.Sort(delegate(TimePeriod span1, TimePeriod span2) { return span1.dateFrom.CompareTo(span2.dateFrom); });
 
             Trajectory sunTrajectory = new DataFetcher(managerDbCUP).GetTrajectorySun(timeFrom, timeTo);
-            List<Trajectory> trajSpans = getLitTrajectoryParts(timeFrom, timeTo, managerDbCUP, inactivityRanges);
+            List<Trajectory> trajSpans = getLitTrajectoryParts(satTrajectory, timeFrom, timeTo, inactivityRanges);
 
             // периоды, во время которых можно проводить съемку.
             List<TimePeriod> capturePeriods = TimePeriod.getFreeIntervals(inactivityRanges, timeFrom, timeTo);
@@ -518,6 +521,8 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
 
+            Trajectory trajectory = new DataFetcher(ManagerDbCUP).GetTrajectorySat(timeFrom, timeTo);
+
             List<TimePeriod> silentTimePeriods = silentRanges.Select(tuple => new TimePeriod(tuple.Item1, tuple.Item2)).ToList();
             List<TimePeriod> inactivityTimePeriods = inactivityRanges.Select(tuple => new TimePeriod(tuple.Item1, tuple.Item2)).ToList();
 
@@ -526,7 +531,7 @@ namespace SatelliteSessions
 
             List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
 
             /*
             var strings = partsLitAndNot.SelectMany(pair => pair.Item2.Where(part => part.sun).Select(part => new Polygon(part.wktPolygon).ToWebglearthString()));
@@ -551,10 +556,11 @@ namespace SatelliteSessions
  
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture
-                = getCaptureConfArray(
-                requests,
+                = getCaptureConfArray(                
+                requests,                
                 timeFrom,
                 timeTo,
+                trajectory,
                 ManagerDbCUP,
                 ManagerDbCUKS,
                 shadowAndInactivityPeriods,
@@ -562,22 +568,11 @@ namespace SatelliteSessions
 
 #if DEBUG
 #warning this is only for debug
-
             //   Console.WriteLine("DEBUG, pols.Count() = {0}  \n\n", pols.Count());
-
             Console.Write("GEOMETRYCOLLECTION(");
-
-
-
             List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
-
             Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
-
-
-
-
             Console.Write(")");
-
 
 #endif
   
@@ -730,16 +725,18 @@ namespace SatelliteSessions
             return mpzParams.Select(param => new MPZ(param, managerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
         }
 
-        public static Trajectory getMaxTrajectory(DIOS.Common.SqlManager managerDB, DateTime start)
+        public static Trajectory getMaxCorridorTrajectory(Trajectory trajectory, DateTime start)
         {
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            return fetcher.GetTrajectorySat(start, start.AddSeconds(1000)); // максимальная длительность маршрута
+            double routeMaxDuration = Math.Min(OptimalChain.Constants.max_route_duration, (trajectory.EndDt - start).TotalSeconds);
+
+            return trajectory.getSubTrajectory(start, start.AddSeconds(routeMaxDuration)); // максимальная длительность маршрута
         }
 
         public static void getPieciwiseCoridor(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<string> wkts, /*out List<GeoPoint> satPos,*/ double maxSubCurveLengthMeters = 1.5e5/*, bool custom = false*/)
         {
             List<CoridorParams> coridorParams;
-            getPiecewiseCoridorParams(dateTime, vertices, managerDB, out coridorParams, maxSubCurveLengthMeters);
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
+            getPiecewiseCoridorParams(dateTime, vertices, trajectory, out coridorParams, maxSubCurveLengthMeters);
             wkts = new List<string>();
 
             foreach (var cp in coridorParams)
@@ -785,10 +782,10 @@ namespace SatelliteSessions
             //}
         }
 
-        public static void getPiecewiseCoridorParams(DateTime dateTime, List<GeoPoint> vertices, DIOS.Common.SqlManager managerDB, out List<CoridorParams> coridorParams, double maxSubCurveLengthMeters = 3.5e5)
+        public static void getPiecewiseCoridorParams(DateTime dateTime, List<GeoPoint> vertices, Trajectory trajectory, out List<CoridorParams> coridorParams, double maxSubCurveLengthMeters = 3.5e5)
         {
             DateTime now = dateTime;
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            Trajectory traj = getMaxCorridorTrajectory(trajectory, dateTime);
 
             var curves = new Curve(vertices).BreakByCurvatureAndDistance(maxSubCurveLengthMeters);
             coridorParams = new List<CoridorParams>();
@@ -818,21 +815,23 @@ namespace SatelliteSessions
             out string wktPoly, out double duration)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration)  );
+
             if (dist > 97e3)
                 throw new ArgumentException("Coridor length cannot exceed 97km.");
 
             CoridorParams coridorParams = getCoridorParams(dateTime, rollAngle, pitchAngle, dist, az, connectStr, out duration);
-            coridorParams.ComputeCoridorPolygon(getMaxTrajectory(managerDB, dateTime));
+            coridorParams.ComputeCoridorPolygon(getMaxCorridorTrajectory(trajectory, dateTime));
             wktPoly = coridorParams.Coridor.ToWtk();
         }
 
         public static CoridorParams getCoridorParams(DateTime dateTime, double rollAngle, double pitchAngle, double dist, double az, string connectStr, out double duration)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
 
-            DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            Trajectory traj = getMaxCorridorTrajectory(trajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
@@ -849,9 +848,9 @@ namespace SatelliteSessions
             out string wktPoly, out double duration, out double dist)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
-            DataFetcher fetcher = new DataFetcher(managerDB);
-            //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            DataFetcher fetcher = new DataFetcher(managerDB);            
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
+            Trajectory traj = getMaxCorridorTrajectory(fullTrajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3;
             TrajectoryRoutines.GetCoridorParams(
@@ -870,7 +869,8 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(managerDB);
             //TrajectoryPoint? p0_ = fetcher.GetPositionSat(dateTime);
-            Trajectory traj = getMaxTrajectory(managerDB, dateTime);
+            Trajectory fullTrajectory = fetcher.GetTrajectorySat(dateTime, dateTime.AddSeconds(OptimalChain.Constants.max_route_duration));
+            Trajectory traj = getMaxCorridorTrajectory(fullTrajectory, dateTime);
 
             double l1, l2, b1, b2, s1, s2, s3, roll, pitch;
             TrajectoryRoutines.GetCoridorParams(
@@ -982,90 +982,9 @@ namespace SatelliteSessions
         {
             DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
-            var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
-            List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
-            partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
-
-            int sunPositionsCount = sunPositions.Count();
-            int curSunPositionIndex = 0;
-
-            foreach (var lanePart in laneParts)
-            {
-                var lane = lanePart.Item2;
-                List<wktPolygonLit> turnPartsLitAndNot = new List<wktPolygonLit>();
-
-                bool onLitStreak = false;
-                int streakBegin = -1;
-
-                for (int i = 0; i < lane.Count - 1; ++i)
-                {
-                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
-                        curSunPositionIndex++;
-
-                    // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
-                    Vector3D sun = sunPositions[curSunPositionIndex].Position;
-                    SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
-
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
-                    bool allLit = LitAndNot.Item2.Count == 0;
-                    bool allUnlit = LitAndNot.Item1.Count == 0;
-
-                    if (streakBegin != -1)
-                    {
-                        // On streak -- either continue one or make a master-sector.
-                        if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).BreakIntoLobes();
-                            foreach (Polygon piece in pieces)
-                                turnPartsLitAndNot.Add(new wktPolygonLit
-                                {
-                                    wktPolygon = piece.ToWtk(),
-                                    sun = onLitStreak
-                                });
-                            streakBegin = -1;
-                        }
-                    }
-
-                    // Not on streak here -- either start one or just add to output lists.
-                    if (allLit)
-                    {
-                        onLitStreak = true;
-                        streakBegin = i;
-                    }
-                    else if (allUnlit) // totally unlit
-                    {
-                        onLitStreak = false;
-                        streakBegin = i;
-                    }
-                    else
-                    {
-                        foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
-                            foreach (Polygon piece in p.BreakIntoLobes())
-                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
-                        foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
-                            foreach (Polygon piece in p.BreakIntoLobes())
-                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = false });
-                    }
-                }
-
-                // If no more data on this turn, but we are on streak. Write it down
-                if (streakBegin != -1)
-                {
-                    List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, lane.Count - 1).BreakIntoLobes();
-                    foreach (Polygon piece in pieces)
-                        turnPartsLitAndNot.Add(new wktPolygonLit
-                        {
-                            wktPolygon = piece.ToWtk(),
-                            sun = onLitStreak
-                        });
-                }
-
-                partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
-            }
+            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+            List<TimePeriod> shadowPeriods;
+            checkIfViewLaneIsLitWithTimeSpans(DBManager, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods, shadow:false);
         }
 
         
@@ -1078,38 +997,84 @@ namespace SatelliteSessions
         ///<param name="partsLitAndNot">Список объектов: номер витка и полигоны, помеченные флагом освещенности</param>
         public static void checkIfViewLaneIsLitWithTimeSpans(
             DIOS.Common.SqlManager DBManager,
+            Trajectory trajectory,
             DateTime timeFrom,
             DateTime timeTo,
             out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot,
-            out List<TimePeriod> shadowPeriods)
+            out List<TimePeriod> shadowPeriods,
+            bool shadow=true)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
-            var laneParts = fetcher.GetViewLaneBrokenIntoTurns(timeFrom, timeTo);
+            
+            var turns = fetcher.GetTurns(timeFrom, timeTo);
+            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> laneParts 
+                = turns.Select(turn => Tuple.Create(turn.Item1, SatLane.GetViewLane(trajectory, turn.Item2))).ToList();
+            
             List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
             partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
             shadowPeriods = new List<TimePeriod>();
 
             int sunPositionsCount = sunPositions.Count();
-            int curSunPositionIndex = 0;
-
-            foreach (var lanePart in laneParts)
+             
+            var concurrentDict = new ConcurrentDictionary<
+                 int, ConcurrentDictionary<
+                 int, Tuple<List<Polygon>, List<Polygon>>>>();
+            
+            int num_steps = laneParts.Take(laneParts.Count - 1).Sum(turn => turn.Item2.Count == 0 ? 0 : turn.Item2.Count - 1);
+            Tuple<int, int>[] numberList = new Tuple<int, int>[num_steps];
+            int[] SunPositionsIndexes = new int[num_steps];
+            int curSunPositionIndex = 0;            
+            int totalNum = 0;
+            for (int turnInd = 0; turnInd < laneParts.Count-1; ++turnInd)
             {
+                concurrentDict[turnInd] = new ConcurrentDictionary<int, Tuple<List<Polygon>, List<Polygon>>>();
+                var lanePart = laneParts[turnInd];
+                var lane = lanePart.Item2;                                                      
+                for (int pointInd = 0; pointInd < lane.Count-1; ++pointInd)
+                {
+                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[pointInd].Time)
+                        curSunPositionIndex++;
+                    SunPositionsIndexes[totalNum] = curSunPositionIndex;
+                    numberList[totalNum] = Tuple.Create(turnInd, pointInd);
+                    totalNum++;
+                }                
+            }
+
+
+
+#if _PARALLEL_
+            Parallel.For(0, num_steps, index =>{
+#else
+            for (int index = 0; index < num_steps; index++){
+#endif
+                int turnInd = numberList[index].Item1;
+                int pointInd = numberList[index].Item2;
+                var lanePart = laneParts[turnInd];
+                var lane = lanePart.Item2;
+                int curSunPosIndex = SunPositionsIndexes[index];
+                Vector3D sun = sunPositions[curSunPosIndex].Position;
+                SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, pointInd, pointInd + 1);
+                Tuple<List<Polygon>, List<Polygon>> LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
+                concurrentDict[turnInd][pointInd] = LitAndNot;
+#if _PARALLEL_
+            });
+#else
+            }
+#endif
+
+
+            for (int turn = 0; turn < laneParts.Count - 1; ++turn)
+            {
+                var lanePart = laneParts[turn];
                 var lane = lanePart.Item2;
                 List<wktPolygonLit> turnPartsLitAndNot = new List<wktPolygonLit>();
 
                 bool onLitStreak = false;
                 int streakBegin = -1;
-
+                 
                 for (int i = 0; i < lane.Count - 1; ++i)
-                {
-                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
-                        curSunPositionIndex++;
-
-                    // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
-                    Vector3D sun = sunPositions[curSunPositionIndex].Position;
-                    SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
-                    
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
+                {                                                    
+                    Tuple<List<Polygon>, List<Polygon>> LitAndNot = concurrentDict[turn][i];// 
                     bool allLit = LitAndNot.Item2.Count == 0;
                     bool allUnlit = LitAndNot.Item1.Count == 0;
 
@@ -1131,7 +1096,7 @@ namespace SatelliteSessions
                                     sun = onLitStreak
                                 });
 
-                            if (!onLitStreak) // в тени
+                            if (shadow && !onLitStreak) // в тени
                             {
                                 DateTime dtfrom = lane[streakBegin].Time;
                                 DateTime dtto = lane[i].Time;
@@ -1174,7 +1139,7 @@ namespace SatelliteSessions
                             wktPolygon = piece.ToWtk(),
                             sun = onLitStreak
                         });
-                    if (!onLitStreak) // в тени
+                    if (shadow && !onLitStreak) // в тени
                     {
                         DateTime dtfrom = lane[streakBegin].Time;
                         DateTime dtto = lane[lane.Count - 1].Time;
@@ -1183,8 +1148,9 @@ namespace SatelliteSessions
                 }
 
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
-            }      
-            TimePeriod.compressTimePeriods(shadowPeriods);
+            }
+            if (shadow)
+                TimePeriod.compressTimePeriods(shadowPeriods);
         }
 
         /// <summary>
@@ -1324,8 +1290,72 @@ namespace SatelliteSessions
             if (newMPZs.Count == 0 )
                 throw new ArgumentException("Cannot create a route with the specified parameters.");
 
-            PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));            
+            PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));
         }
+
+
+        /// <summary>
+        /// Удаление маршрута сброса/съемки со сбросом из сеанса связи 
+        /// </summary>
+        /// <param name="routeToDelete">маршрут, который унжно удалить из ПНБ</param>
+        /// <param name="PNB">ПНБ</param>
+        /// <param name="sessionStart">время начала сессии связи</param>
+        /// <param name="sessionEnd">время конца сессии связи</param>
+        /// <param name="connStringCup">строка подключения к бд ЦУП</param>
+        /// <param name="connStringCuks">*временно* строка подключения к бд ЦУКС</param>
+        public static void removeRouteFromPNBWithSession(            
+            RouteMPZ routeToDelete,
+            List<MPZ> PNB,
+            DateTime sessionStart,
+            DateTime sessionEnd,
+            string connStringCup,
+            string connStringCuks)
+        {
+            RouteParams routePrms = routeToDelete.Parameters;
+            TimePeriod sessionPeriod = new TimePeriod(sessionStart, sessionEnd);
+            if (!sessionPeriod.isContains(new TimePeriod(routePrms.start, routePrms.end)))
+                throw new ArgumentException("Route is not in this commutication session period");
+            
+            if (PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ) == null)
+                throw new ArgumentException("There is no target MPZ in PNB");
+
+            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ);
+            if (mpz == null)
+                throw new ArgumentException("There is no target MPZ in PNB");
+
+            List<RouteParams> routesParams = mpz.Routes.Select(r => r.Parameters).ToList();
+            //IEnumerable<RouteParams> newRoutesParams = routesParams.Where(r => r.NRoute != routeToDelete.NRoute);
+            int rcount = routesParams.RemoveAll(r => r.NRoute == routePrms.NRoute);
+            // теперь в routesParams лежат все маршруты (кроме удаляемого) на основе которых создастся новые мпз
+
+            if (rcount == 0)
+                throw new ArgumentException("There is no target Route in PNB");
+
+            //TimePeriod testPeriod = new TimePeriod(routeToDelete.end, Session.DropInterval.dateTo);
+
+            //// все оставшиеся маршруты на сброс в заданной сессии связи, стоящие после удалённого маршрута
+            //IEnumerable<RouteParams> downRoutes
+            //    = routesParams.Where(r => r.type == WorkingType.Downloading
+            //        && testPeriod.isContains(new TimePeriod(r.start, r.end)));
+
+            //TimePeriod lastRoutePeriod = new TimePeriod(downRoutes.Last().start, downRoutes.Last().end);
+            //TimePeriod deletedRoutePeriod = new TimePeriod(routeToDelete.start, routeToDelete.end);
+           
+            //if (deletedRoutePeriod.isContains(lastRoutePeriod)) // вместо удалённого маршрута можно подставить последний
+            //    downRoutes.Last().
+                        
+            List<MPZParams> newMPZParams = OptimalChain.MPZParams.FillMPZ(routesParams.ToList());
+
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(connStringCup);
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(connStringCuks);
+
+            IEnumerable<MPZ> newMPZs = newMPZParams.Select(prms => new MPZ(prms, CUPmanagerDB, CUKSmanagerDB, mpz.Flags));
+
+            PNB.Remove(mpz);
+            PNB.AddRange(newMPZs);
+        }
+
+
       
 
         /// <summary>
@@ -1477,7 +1507,9 @@ namespace SatelliteSessions
             if (line.Count < 2)
                 return res;
 
-            getPiecewiseCoridorParams(from, line, managerDb, out coridorParams);
+            Trajectory trajectory = new DataFetcher(managerDb).GetTrajectorySat(from, from.AddSeconds(OptimalChain.Constants.max_route_duration));
+
+            getPiecewiseCoridorParams(from, line, trajectory, out coridorParams);
 
             foreach (CoridorParams corrParams in coridorParams)
             {

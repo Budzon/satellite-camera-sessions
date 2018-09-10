@@ -50,17 +50,32 @@ namespace ConsoleExecutor
 
         static public void test_checkIfViewLaneIsLit()
         {
+            // 37 сек
+            // 81 сек
+
+            //1.5
+            //2.7
+            
             DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
-            DateTime dt2 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-01-02T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLit(System.IO.File.ReadLines("DBstring.conf").First(), dt1, dt2, out partsLitAndNot);
+            List<TimePeriod> shadowPeriods;
+            var traj = new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2);
+            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, traj, dt1, dt2, out partsLitAndNot, out shadowPeriods);
             Console.WriteLine(partsLitAndNot.Count);
             Console.WriteLine();
             foreach (var tuple in partsLitAndNot)
             {
-                Console.WriteLine(tuple.Item1);
-                Console.WriteLine();
-                Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
+              //  Console.WriteLine(tuple.Item1);
+              //  Console.WriteLine();
+              //  Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
             }
 
             return;
@@ -356,6 +371,7 @@ namespace ConsoleExecutor
 
         }
 
+
         static public void test_getCoridorMpzArray()
         {
             DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
@@ -435,6 +451,7 @@ namespace ConsoleExecutor
             Console.Write(")");
         }
 
+
         static public void test_time()
         {
             //return;
@@ -445,7 +462,7 @@ namespace ConsoleExecutor
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
-
+            var trajectory = new DataFetcher(CUPmanagerDB).GetTrajectorySat(timeFrom, timeTo);
             //DataFetcher fetcher = new DataFetcher(CUPmanagerDB);
             //var trajs = fetcher.GetTrajectorySat(timeFrom, timeTo);
             //Console.WriteLine(trajs.Count);
@@ -456,7 +473,7 @@ namespace ConsoleExecutor
 
             List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
 
             Console.WriteLine("прошло (checkIfViewLaneIsLitWithTimeSpans): " + (DateTime.Now - s).TotalSeconds.ToString());
            // Console.WriteLine("перед getLitTrajectoryParts: " + DateTime.Now);
@@ -464,8 +481,8 @@ namespace ConsoleExecutor
             Console.WriteLine();
 
             shadowPeriods = TimePeriod.compressTimePeriods(shadowPeriods);
-
-            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(timeFrom, timeTo, CUPmanagerDB, shadowPeriods);
+            
+            List<Trajectory> possibleTrajParts = Sessions.getLitTrajectoryParts(trajectory, timeFrom, timeTo, shadowPeriods);
 
             Console.WriteLine("прошло (getLitTrajectoryParts): " + (DateTime.Now - s).TotalSeconds.ToString());
            // Console.WriteLine("конец: " + DateTime.Now);
@@ -475,17 +492,27 @@ namespace ConsoleExecutor
             Console.WriteLine(possibleTrajParts.Count);
         }
 
+
         static public void test_getPlainMpzArray()
         {
             //test_checkIfViewLaneIsLit();
             //return;
             DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
-            DateTime dt2 = DateTime.Parse("2019-02-04T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-02-02T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
 
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+
+            //List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
+            //List<TimePeriod> shadowPeriods;
+            //Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2), dt1, dt2, out partsLitAndNot, out shadowPeriods);
+            //Console.WriteLine(partsLitAndNot.Count);
+            //Console.WriteLine(shadowPeriods.Count);
+            //return;
+
 
             List<string> wktList = new List<string>(){
             "POLYGON((153.17138671875 -28.557988492481016, 153.20983886718747 -28.021075462659887, 153.10546874999997 -28.01137657176146, 153.03955078124997 -28.548338387631418, 153.17138671875 -28.557988492481016))"
@@ -496,6 +523,21 @@ namespace ConsoleExecutor
             ,"POLYGON((316.38427734375 59.88893689676584,316.351318359375 59.81444699201484,316.48315429687506 59.80616004020658,316.59301757812506 60.00722509306874,316.38427734375 59.88893689676584))"
             ,"POLYGON((356.5118408203125 48.81228985866255,356.48712158203125 48.78515199804312,356.56127929687506 48.7742927426751,356.5667724609375 48.81228985866255,356.5118408203125 48.81228985866255))"
             ,"POLYGON((370.19531249999994 49.52164252537975,370.16784667968744 49.475263243038,370.2227783203124 49.45741335279223,370.19531249999994 49.52164252537975))"
+            ,"POLYGON((-6.542358398437501 18.763313394613405,-6.49017333984375 18.609807415471877,-6.443481445312501 18.430107701569682,-6.33087158203125 18.30759580375384,-6.210021972656251 18.17194967991061,-6.015014648437501 18.11974996694643,-5.877685546875 18.091033487001283,-5.630493164062501 18.093644270502622,-5.3778076171875 18.16673041022193,-5.089416503906251 18.184997171309007,-4.930114746093751 18.294557510034196,-4.932861328125001 18.518678980869097,-4.9713134765625 18.79971808756919,-5.070190429687501 18.986817585497505,-5.259704589843751 19.127004504290554,-5.44097900390625 19.344836532905077,-5.74310302734375 19.38111371577189,-6.462707519531251 19.269665296502325,-6.542358398437501 18.763313394613405))"
+            ,"POLYGON((-67.59949499356706 -46.26344267177983, -67.08527474992081 -45.50164275176088, -66.96442514054583 -45.386021353570364, -66.76667123429581 -45.30108172075142, -66.82160287492083 -45.20827495559716, -66.98639779679583 -45.27789424842663, -67.15119271867083 -45.46312861496092, -67.30286413419208 -45.583289756006245, -67.42371374356706 -45.82879925192127, -67.58850866544208 -45.98932892799947, -67.59949499356706 -46.26344267177983))"
+            ,"POLYGON((-5.767822265625001 18.8971918367816,-5.81451416015625 18.81531768962499,-5.799407958984375 18.70739088900227,-5.74859619140625 18.709992346117588,-5.695037841796875 18.910184055628548,-5.767822265625001 18.8971918367816))"
+            ,"POLYGON((-70.70121366933904 -27.81652354506305, -71.49487956973809 -28.27474676630507, -71.44098065269091 -28.368102429103708, -70.64731475229186 -27.909879207861685, -70.70121366933904 -27.81652354506305))"
+            ,"POLYGON((132.451171875 -11.587669416896205,132.64892578125 -11.329253026617309,132.29736328125 -11.221510260010547,132.1435546875 -11.480024648555812,132.451171875 -11.587669416896205))"
+            ,"POLYGON((143.94287109375 -13.15437605541851,144.11865234375 -12.897489183755894,144.00878906249997 -12.854648905588945,143.72314453125 -12.854648905588945,143.59130859374997 -13.111580118251652,143.94287109375 -13.15437605541851))"
+            ,"POLYGON((123.73352050781247 -33.82251188219803,123.79943847656246 -33.78599582629229,123.77197265624999 -33.76316538009659,123.72528076171872 -33.76088200086918,123.73352050781247 -33.82251188219803))"
+            ,"POLYGON((122.26135253906251 -33.988918483762156,122.3052978515625 -33.9752534850759,122.2833251953125 -33.925129700071984,122.24761962890625 -33.918292351521956,122.26135253906251 -33.988918483762156))"
+            ,"POLYGON((28.19091796875 -32.805744732906874,28.322753906249996 -32.759562025650126,28.157958984375004 -32.64862578373671,27.960205078124996 -32.71335535317754,27.938232421874996 -32.83344284664949,28.19091796875 -32.805744732906874))"
+            ,"POLYGON((33.03588867187499 -25.93828707492375,33.32153320312499 -25.789999562873604,33.18969726562499 -25.591994180254716,32.89306640625 -25.51270000762051,32.72827148437499 -25.611809521055463,32.68432617187499 -25.84933689170761,32.84912109374999 -25.977798955464365,33.03588867187499 -25.93828707492375))"
+            ,"POLYGON((50.19653320312499 -16.02997535690521,50.30090332031249 -15.956047623050551,50.262451171875 -15.892659274817092,50.1690673828125 -15.866241564066613,50.05920410156249 -15.892659274817092,50.05920410156249 -15.987734284909877,50.11962890625 -16.077485869088704,50.19653320312499 -16.02997535690521))"
+            ,"POLYGON((-40.155029296875 -20.2931134475441,-40.03417968749999 -20.148784632164165,-40.1220703125 -20.045610827439717,-40.30883789062499 -20.045610827439717,-40.45166015624999 -20.19003509582258,-40.29785156249999 -20.41671698894571,-40.155029296875 -20.2931134475441))"
+            //,"POLYGON((-70.46630859374999 -23.200960808078563,-70.235595703125 -23.029187346744592,-70.34545898437499 -22.87744046489712,-70.49926757812499 -22.847070687839064,-70.62011718749999 -22.928041665651747,-70.675048828125 -23.160563309048314,-70.69702148437499 -23.433009077420365,-70.477294921875 -23.41284706430993,-70.46630859374999 -23.200960808078563))"
+            //,"POLYGON((-64.46777343750001 -54.87660665410868,-64.22607421875001 -54.64841250231668,-64.40185546875001 -54.61025498157913,-64.46777343750001 -54.87660665410868))"
+            //,"POLYGON((-197.896728515625 -10.811724143275512,-197.51220703125 -10.703791711680722,-197.54516601562497 -10.531020008464978,-197.76489257812497 -10.57422207833281,-197.896728515625 -10.811724143275512))"
             };
 
             List<string> holes = new List<string>();
@@ -559,6 +601,7 @@ namespace ConsoleExecutor
             Console.Write(")");
         }
 
+
         static public void test_getCaptureConf()
         {
 
@@ -604,10 +647,10 @@ namespace ConsoleExecutor
                 requests.Add(reqparams);
                 id++;
             }
-            var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
+            var res = Sessions.getCaptureConfArray(requests, dt1, dt2, trajectory, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
 
         }
-
+        
 
         static public void Test_getMPZArray()
         {
@@ -733,9 +776,8 @@ namespace ConsoleExecutor
                 , out sessions
                 , enabled);
         }
-
-
-
+        
+         
         static public void test_TestSessionsSequenses()
         {
             DateTime fromDt = DateTime.Parse("20.02.2019 0:0:0");
@@ -821,6 +863,7 @@ namespace ConsoleExecutor
             Console.Write(")");
         }
 
+
         static void test_Polygons()
         {
             string lineWkt = "POLYGON((249.290771484375 43.91372326852402,249.3017578125 44.621754096233246,249.38964843750003 45.52944081525669,249.8291015625 46.308995694198586,251.47705078125003 46.58906908309183,254.168701171875 46.59661864884464,257.794189453125 46.98025235521882,259.63989257812506 47.36859434521338,261.826171875 47.702368466573716,263.946533203125 48.18806348121143,266.890869140625 48.900837902340896,270.098876953125 49.80254124506294,275.350341796875 50.6599083609394,277.84423828125 51.213765926935025,284.91943359375 52.30176096373671,287.11669921875 52.50953477032729,289.0283203125 52.542955066421285,289.31396484375 52.38901106223457,288.96240234375 52.34876318198809,288.006591796875 52.27488013068054,286.787109375 52.221069523572794,284.4580078125 52.03897658307622,282.315673828125 51.611194610484034,281.2060546875 51.542918822373906,278.89892578125006 51.06211251399776,276.43798828125006 50.6181029049248,275.0537109375 50.2682767372753,273.570556640625 49.98655213050617,271.32934570312494 49.88047763874255,267.91259765624994 48.91527985344385,265.133056640625 48.3270391306348,263.90258789062494 47.931066347509784,261.968994140625 47.45037978769005,259.266357421875 46.98025235521882,255.22338867187497 46.45299704748288,253.44360351562497 46.2634426717799,252.35595703125 46.11132565729798,251.070556640625 45.91294412737392,250.24658203125 45.544831492424635,250.07080078125 45.034714778688624,249.78515624999994 43.73935207915471,248.939208984375 42.27730877423707,247.51098632812494 41.170384477816185,244.99511718749991 40.40513069752788,240.12817382812503 39.36827914916017,239.82055664062503 39.77476948529545,241.95190429687503 40.17887331434699,245.06103515625 40.9964840143779,248.35693359375 43.30919109985686,248.785400390625 43.580390855607874,249.290771484375 43.91372326852402))";
@@ -868,6 +911,7 @@ namespace ConsoleExecutor
             Console.WriteLine("Вариант с  SqlGeography быстрее в {0} раз", ours / theirs);
         }
 
+
         static double ours_Polygons(string wkt, List<string> wktList)
         {
             Polygon mainPol = new Polygon(wkt);
@@ -886,6 +930,7 @@ namespace ConsoleExecutor
             return (end - start).TotalMilliseconds;
         }
 
+
         static double theirs_Polygons(string wkt, List<string> wktList)
         {
             SqlGeography mainPol = SqlGeography.STGeomFromText(new SqlChars(wkt), 4326);
@@ -903,6 +948,7 @@ namespace ConsoleExecutor
             //  Console.WriteLine("theirs_Polygons : {0} ", (end - start).ToString());
             return (end - start).TotalMilliseconds;
         }
+
 
         static void test_ours_Polygons_smallcircle()
         {
@@ -923,6 +969,7 @@ namespace ConsoleExecutor
             Console.WriteLine(")");
         }
 
+
         static void test_theirs_Polygons_smallcircle()
         {
             string pol1wkt = "POLYGON((-125.5517578125 53.64463782485652,-71.3232421875 52.66972038368817,-71.2353515625 53.54030739150022,-125.4638671875 54.54657953840504,-125.5517578125 53.64463782485652))";
@@ -941,6 +988,7 @@ namespace ConsoleExecutor
             Console.WriteLine(pol2.ToString());
             Console.WriteLine(")");
         }
+
 
         static void testddl()
         { 
@@ -1635,13 +1683,117 @@ namespace ConsoleExecutor
             Console.Write(")");
         }
 
+
+        static void test_removeRouteFromPNBWithSession()
+        {
+            DateTime dt1 = DateTime.Parse("06/01/2019 5:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("06/01/2019 21:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            List<string> wktList = new List<string>(){
+            //"POLYGON((-5.689647031052209 18.43067548851792, -5.593535096548219 18.39569360520072, -5.5603529689477895 18.48686075151234, -5.656464903451779 18.521842634829554, -5.689647031052209 18.43067548851792))"
+            "POLYGON((-6.542358398437501 18.763313394613405,-6.49017333984375 18.609807415471877,-6.443481445312501 18.430107701569682,-6.33087158203125 18.30759580375384,-6.210021972656251 18.17194967991061,-6.015014648437501 18.11974996694643,-5.877685546875 18.091033487001283,-5.630493164062501 18.093644270502622,-5.3778076171875 18.16673041022193,-5.089416503906251 18.184997171309007,-4.930114746093751 18.294557510034196,-4.932861328125001 18.518678980869097,-4.9713134765625 18.79971808756919,-5.070190429687501 18.986817585497505,-5.259704589843751 19.127004504290554,-5.44097900390625 19.344836532905077,-5.74310302734375 19.38111371577189,-6.462707519531251 19.269665296502325,-6.542358398437501 18.763313394613405))"
+             };
+
+            List<string> holes = new List<string>();
+
+            List<RequestParams> reqlist = wktList.Select(polwtk =>
+             new RequestParams(0, 1,
+                  DateTime.Parse("2018-08-29T12:41:00"),
+                  DateTime.Parse("2019-02-28T12:41:00"),
+                _Max_SOEN_anlge: 0.95993108859688125,
+                _minCoverPerc: 10,
+                _Max_sun_angle: 90,
+                _Min_sun_angle: 10,
+                _wktPolygon: polwtk,
+                _polygonsToSubtract: holes,
+                _requestChannel: ShootingChannel.cm,
+                _shootingType: ShootingType.Normal,
+                _compression: 1,
+                _albedo: 20
+                )
+             ).ToList();
+
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation> 
+            {   SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            Console.WriteLine("MPZ[0].Routes.Count = {0}", mpzArray[0].Routes.Count());
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.ShootingConf.wktPolygon)).ToList();
+
+
+            var routeToDelete = mpzArray[1].Routes[0];
+            Sessions.removeRouteFromPNBWithSession(routeToDelete, mpzArray, DateTime.MinValue, DateTime.MaxValue, cupConnStr, cuksConnStr);
+
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+
+            foreach (var r in shootingRoutes)
+            {
+
+                var routeParams = r.Parameters;
+                TrajectoryPoint first = new DataFetcher(CUPmanagerDB).GetSingleSatPoint(routeParams.start).Value;
+                SatelliteCoordinates coord = new SatelliteCoordinates(first, routeParams.ShootingConf.roll, routeParams.ShootingConf.pitch);
+
+                Console.Write(",");
+                Console.Write(coord.ViewPolygon);
+                Console.Write(",");
+
+                Console.Write(new GeoPoint(AstronomyMath.ToDegrees(r.InitCoord.Bc), AstronomyMath.ToDegrees(r.InitCoord.Lc)).ToWkt());
+                // Console.Write(GeoPoint.FromCartesian(coord.MidViewPoint).ToWkt());
+            }
+
+            Console.Write(")");
+        }
+         
+
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
 
-            test_TestSessionsSequenses();
+            //test_TestSessionsSequenses();
 
-            //test_getPlainMpzArray();
+            test_getPlainMpzArray();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
             //Polygon tp = np.increasePointsNumber(2);

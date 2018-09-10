@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,7 +29,7 @@ namespace OptimalChain
          
         // максимальный промежуток (в секундах) между двумя конфигурациями, при котором они объединяются в одну
         public const int maxCConfInterval = 2;
-
+        public const int  max_route_duration = 1000; // секунды
         public const double angle_velocity_max = Math.PI / 60;
         public const double min_degree = Math.PI / 30;
         public const double camera_angle = 0.016616; // ~0.952 градуса - угол обзора камеры

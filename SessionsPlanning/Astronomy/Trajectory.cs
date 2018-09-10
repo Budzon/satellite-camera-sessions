@@ -52,6 +52,9 @@ namespace Astronomy
 
         public int Count { get { return points.Length; } }
 
+        public DateTime StartDt { get { return points.First().Time;  } }
+        public DateTime EndDt { get { return points.Last().Time; } }
+
         /// <summary>
         /// продолжительность траектории в секундах
         /// </summary>
@@ -131,6 +134,30 @@ namespace Astronomy
             return new Trajectory(points.ToArray());
         }
 
+        public static Trajectory Create(TrajectoryPoint[] points, double maxTimeStep)
+        {
+            Trajectory simpleTraj = new Trajectory(points.ToArray());
+
+            // максимальный шаг по времени между точками траектории
+            double maxStep = simpleTraj.Points.Skip(1).Zip(simpleTraj.Points, (curr, prev) => (curr.Time - prev.Time).TotalSeconds).Max();
+
+            if (maxStep <= maxTimeStep)
+                return simpleTraj;
+
+            int size = (int)Math.Ceiling(simpleTraj.Duration / maxTimeStep) + 1;
+            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+
+            for (int i = 0; i < size - 1; i++)
+            {
+                DateTime t = simpleTraj.points[0].Time.AddSeconds(i * maxTimeStep);
+                newTrajsPoints[i] = simpleTraj.GetPoint(t);
+            }
+
+            newTrajsPoints[size - 1] = simpleTraj.GetPoint(simpleTraj.points.Last().Time);
+
+            return Trajectory.Create(newTrajsPoints.ToArray());
+        }
+        
         /// <summary>
         /// Computes the orbit with the starting time moment <paramref name="startTime"/>, <paramref name="location"/> 
         /// in the Greenwich coordinate system (km) and <paramref name="velocity"/> (km/s) for the given <paramref name="duration"/>.
@@ -314,9 +341,37 @@ namespace Astronomy
             return Trajectory.Create(newTrajsPoints.ToArray());
         }
 
-        //public static Trajectory calculateVelocity(Trajectory trajectory, double maxTimeStep)
-        //{
-        //}
+
+        public Trajectory getSubTrajectory(DateTime fromDt, DateTime toDt)
+        {
+            var pointsList = this.points.Where(p => (fromDt <= p.Time) && (p.Time <= toDt));
+            int size = pointsList.Count();
+
+            bool needInterFirst = !pointsList.First().Time.Equals(fromDt);
+            bool needInterLast  = !pointsList.Last().Time.Equals(toDt);
+            
+            size += needInterFirst ? 1 : 0;
+            size += needInterLast ? 1 : 0;
+
+            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+
+            if (needInterFirst)            
+                newTrajsPoints[0] = this.GetPoint(fromDt);            
+            if (needInterLast)            
+                newTrajsPoints[size-1] = this.GetPoint(toDt);           
+
+            int ind = needInterFirst ? 1 : 0;
+
+            foreach (var p in pointsList)
+            {
+                newTrajsPoints[ind] = p;
+                ind++;
+            }
+
+            return Create(newTrajsPoints); // @todo perfomance!
+        }
+
+         
 
         #region IEnumerable<TrajectoryPoint> Members
 

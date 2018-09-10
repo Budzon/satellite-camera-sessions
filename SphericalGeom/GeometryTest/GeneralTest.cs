@@ -428,7 +428,7 @@ namespace GeometryTest
                         requests.Add(reqparams);
                         id++;
                     }
-                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
+                    var res = Sessions.getCaptureConfArray(requests, dt1, dt2, trajectory, managerCUP, CUKSmanager, inactivityRanges, new List<TimePeriod>());
                 }
 
                 catch (Exception ex)
@@ -500,7 +500,7 @@ namespace GeometryTest
                 routeParamtoDrop.start = new DateTime(2019, 1, 4);
                 routeParamtoDrop.end = new DateTime(2019, 1, 5);
                 //routeParamtoDrop.File_Size = 1000;
-                routeParamtoDrop.binded_route = routeParamtoDrop; // @wtf
+                routeParamtoDrop.binded_route = null;
                 // double timedrop = routeParam.getDropTime();
 
                 RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };
