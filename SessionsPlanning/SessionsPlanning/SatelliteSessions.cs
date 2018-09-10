@@ -1,4 +1,4 @@
-﻿#define  _PARALLEL_
+﻿#define  NOT_PARALLEL_
 
 using System;
 using System.Collections.Generic;
@@ -1143,7 +1143,7 @@ namespace SatelliteSessions
 #if _PARALLEL_
             Parallel.For(0, num_steps, index =>{
 #else
-            for (int index = 0; index <= num_steps; index++){
+            for (int index = 0; index < num_steps; index++){
 #endif
                 int turnInd = numberList[index].Item1;
                 int pointInd = numberList[index].Item2;
