@@ -993,95 +993,9 @@ namespace SatelliteSessions
         {
             DIOS.Common.SqlManager DBManager = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(DBManager);
-            
             Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
-            var turns = fetcher.GetTurns(timeFrom, timeTo);
-            List<Tuple<int, List<SatelliteTrajectory.LanePos>>> laneParts
-                = turns.Select(turn => Tuple.Create(turn.Item1, SatLane.GetViewLane(trajectory, turn.Item2))).ToList();
-            
-            List<SpaceTime> sunPositions = fetcher.GetPositionSun(timeFrom, timeTo);
-            partsLitAndNot = new List<Tuple<int, List<wktPolygonLit>>>();
-
-            int sunPositionsCount = sunPositions.Count();
-            int curSunPositionIndex = 0;
-
-            foreach (var lanePart in laneParts)
-            {
-                var lane = lanePart.Item2;
-                List<wktPolygonLit> turnPartsLitAndNot = new List<wktPolygonLit>();
-
-                bool onLitStreak = false;
-                int streakBegin = -1;
-
-                for (int i = 0; i < lane.Count - 1; ++i)
-                {
-                    while ((curSunPositionIndex < sunPositionsCount - 1) && sunPositions[curSunPositionIndex].Time < lane[i].Time)
-                        curSunPositionIndex++;
-
-                    // can ignore scaling here as the distances are enormous both in kms and in units of Earth radius
-                    Vector3D sun = sunPositions[curSunPositionIndex].Position;
-                    SphericalGeom.Polygon sector = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, i, i + 1);
-
-                    var LitAndNot = SphericalGeom.Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
-                    bool allLit = LitAndNot.Item2.Count == 0;
-                    bool allUnlit = LitAndNot.Item1.Count == 0;
-
-                    if (streakBegin != -1)
-                    {
-                        // On streak -- either continue one or make a master-sector.
-                        if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, i).BreakIntoLobes();
-                            foreach (Polygon piece in pieces)
-                                turnPartsLitAndNot.Add(new wktPolygonLit
-                                {
-                                    wktPolygon = piece.ToWtk(),
-                                    sun = onLitStreak
-                                });
-                            streakBegin = -1;
-                        }
-                    }
-
-                    // Not on streak here -- either start one or just add to output lists.
-                    if (allLit)
-                    {
-                        onLitStreak = true;
-                        streakBegin = i;
-                    }
-                    else if (allUnlit) // totally unlit
-                    {
-                        onLitStreak = false;
-                        streakBegin = i;
-                    }
-                    else
-                    {
-                        foreach (SphericalGeom.Polygon p in LitAndNot.Item1)
-                            foreach (Polygon piece in p.BreakIntoLobes())
-                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = true });
-                        foreach (SphericalGeom.Polygon p in LitAndNot.Item2)
-                            foreach (Polygon piece in p.BreakIntoLobes())
-                                turnPartsLitAndNot.Add(new wktPolygonLit { wktPolygon = piece.ToWtk(), sun = false });
-                    }
-                }
-
-                // If no more data on this turn, but we are on streak. Write it down
-                if (streakBegin != -1)
-                {
-                    List<Polygon> pieces = SatelliteTrajectory.TrajectoryRoutines.FormSectorFromLanePoints(lane, streakBegin, lane.Count - 1).BreakIntoLobes();
-                    foreach (Polygon piece in pieces)
-                        turnPartsLitAndNot.Add(new wktPolygonLit
-                        {
-                            wktPolygon = piece.ToWtk(),
-                            sun = onLitStreak
-                        });
-                }
-
-                partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
-            }
+            List<TimePeriod> shadowPeriods;
+            checkIfViewLaneIsLitWithTimeSpans(DBManager, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods, shadow:false);
         }
 
         
@@ -1098,7 +1012,8 @@ namespace SatelliteSessions
             DateTime timeFrom,
             DateTime timeTo,
             out List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot,
-            out List<TimePeriod> shadowPeriods)
+            out List<TimePeriod> shadowPeriods,
+            bool shadow=true)
         {
             DataFetcher fetcher = new DataFetcher(DBManager);
             
@@ -1192,7 +1107,7 @@ namespace SatelliteSessions
                                     sun = onLitStreak
                                 });
 
-                            if (!onLitStreak) // в тени
+                            if (shadow && !onLitStreak) // в тени
                             {
                                 DateTime dtfrom = lane[streakBegin].Time;
                                 DateTime dtto = lane[i].Time;
@@ -1235,7 +1150,7 @@ namespace SatelliteSessions
                             wktPolygon = piece.ToWtk(),
                             sun = onLitStreak
                         });
-                    if (!onLitStreak) // в тени
+                    if (shadow && !onLitStreak) // в тени
                     {
                         DateTime dtfrom = lane[streakBegin].Time;
                         DateTime dtto = lane[lane.Count - 1].Time;
@@ -1244,8 +1159,9 @@ namespace SatelliteSessions
                 }
 
                 partsLitAndNot.Add(Tuple.Create(lanePart.Item1, turnPartsLitAndNot));
-            }      
-            TimePeriod.compressTimePeriods(shadowPeriods);
+            }
+            if (shadow)
+                TimePeriod.compressTimePeriods(shadowPeriods);
         }
 
         /// <summary>
