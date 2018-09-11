@@ -398,7 +398,8 @@ namespace OptimalChain
         /// <param name="_albedo">  характеристика отражательной способности поверхности. </param>
         ///  <param name="_shootingType"> тип съемка </param>
         /// <param name="_compression"> коэффициент сжатия заказа 0 - сжатие без потерь, 1 - без сжатия, 2-10 - сжатие с потерями</param>
-        public RequestParams(int _id,
+        public RequestParams(
+            int _id,
             int _priority,
             DateTime _timeFrom,
             DateTime _timeTo,
@@ -466,15 +467,24 @@ namespace OptimalChain
 
     public class Order
     {
+
+
+        public Order(RequestParams req, SphericalGeom.Polygon capt, double coef)
+        {
+            request = req;
+            captured = capt;
+            intersection_coeff = coef;
+        }
+
         /// <summary>
         /// параметры заказа
         /// </summary>
-        public RequestParams request { get; set; }
+        public RequestParams request { get; private set; }
 
         /// <summary>
         /// захваченная (заснятая) область
         /// </summary>
-        public SphericalGeom.Polygon captured { get; set; }
-        public double intersection_coeff { get; set; }
+        public SphericalGeom.Polygon captured { get; private set; }
+        public double intersection_coeff { get; private set; }
     }
 }

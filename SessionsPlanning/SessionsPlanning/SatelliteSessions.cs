@@ -259,7 +259,7 @@ namespace SatelliteSessions
                 {
                     double interCoeff = cp.Coridor.Area / req.polygons.First().Area;
 
-                    var orders = new List<Order>() { new Order() { request = req, captured = cp.Coridor, intersection_coeff = interCoeff } };
+                    var orders = new List<Order>() { new Order(req, cp.Coridor, interCoeff) };
                     WorkingType confType = WorkingType.Shooting;
                     if (req.compression == OptimalChain.Constants.compressionDropCapture)
                         confType = WorkingType.ShootingSending;
@@ -1219,16 +1219,25 @@ namespace SatelliteSessions
                 if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))
                 {
                     mpz = new MPZ(copyMpzParams, CUPmanagerDB, CUKSmanagerDB, mpz.Flags);
+                    modRouteParams.NPZ = mpz.Header.NPZ;
                     return;
                 }
             }
 
-            List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams });
+
+            int maxMPZNum = PNB.Max(mpz => mpz.Header.NPZ);
+
+            List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams }, maxMPZNum);
 
             if (tmpList.Count > 0)
+            {
                 newMPZ = new MPZ(tmpList.First(), CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ());
+                modRouteParams.NPZ = newMPZ.Header.NPZ;
+            }
             else
+            {
                 throw new ArgumentException("Cannot create a route with the specified parameters.");
+            }
         }
 
 
@@ -1395,15 +1404,16 @@ namespace SatelliteSessions
         public static RouteParams createNormalCaptureRoute(
             string connectStr,
             DateTime dtFrom,
-            double duration,
-            ShootingChannel channel,
-            ShootingType shType,
+            double duration,            
+            ShootingChannel channel,            
             WorkingType wType,
             double roll,
             double pitch)
         {
             if (!(wType == WorkingType.ShootingSending || wType == WorkingType.Shooting))
                 throw new ArgumentException("Unsupported working type");
+
+            ShootingType shType = ShootingType.Normal;
 
             DIOS.Common.SqlManager managerDb = new DIOS.Common.SqlManager(connectStr);
             DataFetcher fetcher = new DataFetcher(managerDb);
@@ -1431,6 +1441,56 @@ namespace SatelliteSessions
             return route;
         }
 
+
+        public static List<RouteParams> createStereoCaptureRoute(
+            string connectStr,
+            DateTime dtFrom,
+            double duration,
+            ShootingType shType,
+            ShootingChannel channel,
+            WorkingType wType,
+            double roll,
+            double pitch)
+        {
+            if (!(wType == WorkingType.ShootingSending || wType == WorkingType.Shooting))
+                throw new ArgumentException("Unsupported working type");
+
+            if (!(shType == ShootingType.Stereo || shType == ShootingType.StereoTriplet))
+                throw new ArgumentException("Unsupported working type");
+
+            DIOS.Common.SqlManager managerDb = new DIOS.Common.SqlManager(connectStr);
+            DataFetcher fetcher = new DataFetcher(managerDb);
+            DateTime dtTo = dtFrom.AddMilliseconds(duration);
+
+            Trajectory captureTraj = fetcher.GetTrajectorySat(dtFrom, dtTo);
+            Polygon pol = SatLane.getRollPitchLanePolygon(captureTraj, roll, pitch);
+
+            RequestParams req = new RequestParams(1, 1, dtFrom, dtTo, 1.0, 1.0, 1, 1,  pol.ToWtk(), _shootingType: shType, _requestChannel: channel);            
+            Order order = new Order(req, pol, 1);            
+            var orders = new List<Order>() { order };
+            CaptureConf conf = new CaptureConf(dtFrom, dtTo, roll, orders, wType, null);
+            conf.setPolygon(pol);
+
+            DateTime fictStart = dtFrom.AddSeconds(- OptimalChain.Constants.maxPitchTimeDelta);
+            DateTime fictEnd = dtTo.AddSeconds(OptimalChain.Constants.maxPitchTimeDelta);
+            Trajectory trajectory = fetcher.GetTrajectorySat(fictStart, fictEnd);
+
+            var avaliable = new List<TimePeriod>() { new TimePeriod(DateTime.MinValue, DateTime.MaxValue) };
+            
+            if (!conf.converToStereo(trajectory, avaliable, shType))            
+                throw new ArgumentException("Cannot create stereo capture route");
+            
+            List<StaticConf> cconfs = new List<StaticConf>();
+
+            cconfs.Add(conf.CreateStaticConf(conf.timeDelta, -1));
+            if (shType == ShootingType.StereoTriplet)
+                cconfs.Add(conf.CreateStaticConf(0, 1));
+            cconfs.Add(conf.CreateStaticConf(conf.timeDelta, 1));
+            
+            return cconfs.Select(cc => new RouteParams(cc)).ToList();
+        }
+
+
         /// <summary>
         /// создание параметров маршрута коридорной съемки
         /// </summary>
@@ -1444,7 +1504,8 @@ namespace SatelliteSessions
         /// <param name="roll">крен</param>
         /// <param name="pitch">тангаж</param>
         /// <returns>параметры маршрута</returns>
-        public static RouteParams createCorridorCaptureRoute(string connectStr,
+        public static RouteParams createCorridorCaptureRoute(
+            string connectStr,
             DateTime from,
             ShootingChannel channel,
             ShootingType shType,
@@ -1477,6 +1538,8 @@ namespace SatelliteSessions
 
             return new RouteParams(stConf);
         }
+
+ 
 
         /// <summary>
         /// Создание параметров маршрута коридорной съемки

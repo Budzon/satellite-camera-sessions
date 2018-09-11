@@ -708,10 +708,9 @@ namespace ConsoleExecutor
             }
             //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
 
-            Order order = new Order();
-            order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
-            order.intersection_coeff = 0.1;
-            order.request = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+            var req = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"); 
+            Order order = new Order(req ,  new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"), 0.1);
+                        
 
             List<Order> orders = new List<Order>() { order };
 
@@ -1037,10 +1036,12 @@ namespace ConsoleExecutor
             }
             //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
 
-            Order order = new Order();
-            order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
-            order.intersection_coeff = 0.1;
-            order.request = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
+            Order order = new Order(
+                new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"),
+                new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))"),
+                0.1
+                );
+            
 
             List<Order> orders = new List<Order>() { order };
 
@@ -1785,7 +1786,39 @@ namespace ConsoleExecutor
 
             Console.Write(")");
         }
-         
+
+
+        static void testNewApi()
+        {
+            DateTime dt1 = DateTime.Parse("2019-02-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("2019-02-03T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+
+
+            List<RouteParams> res= Sessions.createStereoCaptureRoute(cupConnStr, dt1, 5, ShootingType.StereoTriplet, ShootingChannel.cm, WorkingType.Shooting, 0, 0);
+
+            Console.WriteLine(res.Count());
+
+            //Sessions.createNormalCaptureRoute(cupConnStr, dt1,dt2, ShootingChannel.cm, ShootingType.Normal, WorkingType.Shooting,0,0);
+
+
+            if (res.Count() == 0)
+                return;
+
+            var shootingRoutes = res.Where(r => r.type == WorkingType.Shooting || r.type == WorkingType.ShootingSending).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.ShootingConf.wktPolygon)).ToList();
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            //Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            //Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+            Console.Write(")");
+
+        }
 
         static void Main(string[] args)
         {
@@ -1793,7 +1826,7 @@ namespace ConsoleExecutor
 
             //test_TestSessionsSequenses();
 
-            test_getPlainMpzArray();
+            testNewApi();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
             //Polygon tp = np.increasePointsNumber(2);

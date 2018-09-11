@@ -282,13 +282,11 @@ namespace SatelliteTrajectory
                         DateTime shootingTo = tTo.AddSeconds(-getViewDeflect(tTo, pointTo));
 
                         if (shootingTo <= shootingFrom) // полоса конфигурации съемки короче кадра, делаем снимок по центру                        
-                             shootingTo = shootingFrom = tFrom.AddSeconds((tTo - tFrom).TotalSeconds / 2);                        
+                             shootingTo = shootingFrom = tFrom.AddSeconds((tTo - tFrom).TotalSeconds / 2);
 
-                        Order order = new Order();
-                        order.captured = int_pol;
-                        order.request = request;
                         double subsquare = int_pol.Area;
-                        order.intersection_coeff = subsquare / request.Square;
+                        Order order = new Order(request, int_pol, subsquare / request.Square); 
+                        
                         var orders = new List<Order>() { order };                        
                         CaptureConf newcc = new CaptureConf(shootingFrom, shootingTo, rollAngle, orders, WorkingType.Shooting, null);
 
@@ -1363,9 +1361,8 @@ namespace SatelliteTrajectory
         {
             MinimizeFunction func = (_1) => { return getPitchDelta(traj, pitch, _1); };
             double eps = OptimalChain.Constants.roll_correction_epsilon;
-            
-            const double timeLimit = 70; //@todo constants // максимально возможное время 
-            double goalTime = goldenSectionSearch(func, -timeLimit, timeLimit, eps); 
+
+            double goalTime = goldenSectionSearch(func, -OptimalChain.Constants.maxPitchTimeDelta, OptimalChain.Constants.maxPitchTimeDelta, eps); 
            
             DateTime newDt = this.trajPos.Time.AddSeconds(goalTime);
             TrajectoryPoint newPos = traj.GetPoint(newDt);

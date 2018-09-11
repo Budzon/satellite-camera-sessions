@@ -336,11 +336,11 @@ namespace SessionsPlanning
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDtFrom.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
-                Order order = new Order();
-                order.captured = framePol;
-                order.intersection_coeff = 1;
-                order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
+
+                var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
+                Order order = new Order(req, framePol, 1);               
+                
                 CaptureConf conf = new CaptureConf(curDtFrom, captureTo, 0, new List<Order>() {order},
                     WorkingType.Shooting, null);
  
@@ -390,11 +390,9 @@ namespace SessionsPlanning
 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     corPol.ToWtk(), _shootingType: ShootingType.Coridor, _requestChannel: ShootingChannel.pk);
-                Order order = new Order();
-                order.captured = corPol;
-                order.intersection_coeff = 1;
-                order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    corPol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
+
+                Order order = new Order(req, corPol, 1);
+                                
                 CaptureConf conf = new CaptureConf(curDtFrom, curDtTo, 0, new List<Order>() { order },
                     WorkingType.Shooting, null);
  
@@ -437,11 +435,11 @@ namespace SessionsPlanning
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
                 DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
-                Order order = new Order();
-                order.captured = framePol;
-                order.intersection_coeff = 1;
-                order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
+
+                var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _requestChannel: ShootingChannel.pk);
+                Order order = new Order(req, framePol,1);
+                                
                 CaptureConf conf = new CaptureConf(curDt, captureTo, 0, new List<Order>() {order},
                     WorkingType.Shooting, null);
  
@@ -507,7 +505,7 @@ namespace SessionsPlanning
                     double interCoeff = cp.Coridor.Area / req.polygons.First().Area;
                     var orders = new List<Order>()
                     {
-                        new Order() {request = req, captured = cp.Coridor, intersection_coeff = interCoeff}
+                        new Order(req, cp.Coridor, interCoeff)
                     };
 
                     WorkingType confType = WorkingType.Shooting;
@@ -571,12 +569,11 @@ namespace SessionsPlanning
                     });
                 
                 DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
-                Order order = new Order();
-                order.captured = framePol;
-                order.intersection_coeff = 1;
-                order.request = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
+
+                var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
 
+                Order order = new Order(req, framePol,1);
                 
                 CaptureConf conf1 = new CaptureConf(curDt, captureTo, -1.5 * cam_angle, new List<Order>() { order },
                     WorkingType.Shooting, null);                

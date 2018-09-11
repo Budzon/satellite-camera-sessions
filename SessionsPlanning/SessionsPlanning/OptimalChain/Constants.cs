@@ -26,7 +26,7 @@ namespace OptimalChain
         public const int min_Delta_time = 8000;
         public const int minDeltaT = 19000;
         public const int stabilizationAfterRotationTime = 10000; // мс
-         
+        public const double maxPitchTimeDelta = 70; // ПРИБЛИЗИТЕЛЬНОЕ максимально возможное время, которое можно компенсировать тангажом
         // максимальный промежуток (в секундах) между двумя конфигурациями, при котором они объединяются в одну
         public const int maxCConfInterval = 2;
         public const int  max_route_duration = 1000; // секунды
