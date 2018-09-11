@@ -197,21 +197,12 @@ namespace DBTables
         /// <param name="toDT"> конец диапазона </param>
         /// <returns> список точек</returns>
         private List<SpaceTime> IncreasePointsNumber(DateTime fromDT, DateTime toDT)
-        {
-            int minNumPoints = Trajectory.minNumPoints;
+        {            
             List<SpaceTime> positions = GetMinimumPointsArray<SatTableFacade>(fromDT, toDT);
             TrajectoryPoint[] trajectoryPoints = positions.Select(pos => new TrajectoryPoint(pos.Time, pos.Position.ToPoint(), new Vector3D(0, 0, 0))).ToArray();
             Trajectory trajectory = Trajectory.Create(trajectoryPoints);
-
-            long timeStep = (toDT - fromDT).Ticks / (minNumPoints - 1);
-
-            SpaceTime[] resPoints = new SpaceTime[minNumPoints];
-            for (int i = 0; i < minNumPoints; i++)
-            {
-                DateTime dt = fromDT.AddTicks(i * timeStep);
-                resPoints[i] = new SpaceTime() { Position = trajectory.GetPosition(dt).ToVector(), Time = dt };
-            }
-            return resPoints.ToList();
+            Trajectory subTrajectory = trajectory.getSubTrajectory(fromDT, toDT);
+            return subTrajectory.Points.Select(p => new SpaceTime() { Position = p.Position.ToVector(), Time = p.Time }).ToList();             
         }
 
 

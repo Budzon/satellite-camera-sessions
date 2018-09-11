@@ -353,7 +353,21 @@ namespace Astronomy
             size += needInterFirst ? 1 : 0;
             size += needInterLast ? 1 : 0;
 
-            TrajectoryPoint[] newTrajsPoints = new TrajectoryPoint[size];
+            TrajectoryPoint[] newTrajsPoints;
+            if (size < minNumPoints)
+            {
+                newTrajsPoints = new TrajectoryPoint[minNumPoints];
+                double duration = (toDt - fromDt).TotalSeconds;
+                double step = duration / (minNumPoints - 1);
+                for (int i=0; i < minNumPoints; i++)
+                {
+                    DateTime curDt = fromDt.AddSeconds(i * step);
+                    newTrajsPoints[i] = this.GetPoint(curDt);
+                }
+                return Create(newTrajsPoints);
+            }
+            
+            newTrajsPoints = new TrajectoryPoint[size];
 
             if (needInterFirst)            
                 newTrajsPoints[0] = this.GetPoint(fromDt);            
@@ -368,7 +382,7 @@ namespace Astronomy
                 ind++;
             }
 
-            return Create(newTrajsPoints); // @todo perfomance!
+            return Create(newTrajsPoints); 
         }
 
          
