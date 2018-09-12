@@ -1797,7 +1797,7 @@ namespace ConsoleExecutor
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
 
 
-            List<RouteParams> res = Sessions.createStereoCaptureRoute(cupConnStr, dt1, 5, ShootingType.StereoTriplet, ShootingChannel.cm, WorkingType.Shooting, 0, 0);
+            List<RouteParams> res = Sessions.createStereoCaptureRoute(cupConnStr, dt1, 5, ShootingType.StereoTriplet, ShootingChannel.cm, WorkingType.Shooting, 0);
 
             Console.WriteLine(res.Count());
 

@@ -11,7 +11,7 @@ namespace OptimalChain
 {
 
     public struct FormattingOptions
-    {
+    { 
         public bool Bank1Cell1 {get;set;}
         public bool Bank1Cell2 {get;set;}
         public bool Bank1Cell3 {get;set;}
