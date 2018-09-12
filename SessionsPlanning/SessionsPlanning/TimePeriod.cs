@@ -204,8 +204,8 @@ namespace SatelliteSessions
         public static List<RouteParams> getRoutesParamsInIntervals(
             List<RouteParams> routes,
             List<TimePeriod> freeCompressedIntervals,
-            WorkingType workType,
-            CommunicationSessionStation station = CommunicationSessionStation.FIGS_Main)
+            WorkingType workType,            
+            CommunicationSessionStation station = CommunicationSessionStation.FIGS)
         {  
             List<RouteParams> res = new List<RouteParams>();
             // отсортируем свободные промежутки по продолжительности в порядке возрастания по прищнаку продолжительности

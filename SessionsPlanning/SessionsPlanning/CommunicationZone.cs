@@ -193,7 +193,7 @@ namespace SatelliteSessions
             {
                 return new List<SessionsPlanning.CommunicationSessionStation>() 
                 {
-                    SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+                    SessionsPlanning.CommunicationSessionStation.FIGS,
                     SessionsPlanning.CommunicationSessionStation.FIGS_Backup
                 }; 
             } 

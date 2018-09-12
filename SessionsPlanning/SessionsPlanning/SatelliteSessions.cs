@@ -1224,7 +1224,6 @@ namespace SatelliteSessions
                 }
             }
 
-
             int maxMPZNum = PNB.Max(mpz => mpz.Header.NPZ);
 
             List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams }, maxMPZNum);
@@ -1252,7 +1251,7 @@ namespace SatelliteSessions
         /// <param name="PNB">Вся ПНБ (мпз, маршруты, который уже есть)</param>
         /// <param name="connStringCup">строка подключения к БД цуп</param>
         /// <param name="connStringCuks">строка подключения к БД цукс</param>        
-        public static void addRouteToPNBWithSession(
+        public static List<MPZ> addRouteToPNBWithSession(
            CommunicationSession Session,
            RouteParams routeParams,
            List<MPZ> PNB,
@@ -1290,7 +1289,8 @@ namespace SatelliteSessions
                 if (mpzparams.InsertRoute(routeParams, Session.Zone7timeFrom, Session.Zone7timeTo))
                 {
                     mpz = new MPZ(mpzparams, CUPmanagerDB, CUKSmanagerDB, mpz.Flags);
-                    return;
+                    PNB.Add(mpz);
+                    return PNB;
                 }                                
             }
 
@@ -1300,6 +1300,7 @@ namespace SatelliteSessions
                 throw new ArgumentException("Cannot create a route with the specified parameters.");
 
             PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));
+            return PNB;
         }
 
 
@@ -1312,7 +1313,7 @@ namespace SatelliteSessions
         /// <param name="sessionEnd">время конца сессии связи</param>
         /// <param name="connStringCup">строка подключения к бд ЦУП</param>
         /// <param name="connStringCuks">*временно* строка подключения к бд ЦУКС</param>
-        public static void removeRouteFromPNBWithSession(            
+        public static List<MPZ> removeRouteFromPNBWithSession(            
             RouteMPZ routeToDelete,
             List<MPZ> PNB,
             DateTime sessionStart,
@@ -1362,10 +1363,9 @@ namespace SatelliteSessions
 
             PNB.Remove(mpz);
             PNB.AddRange(newMPZs);
+            return PNB;
         }
-
-
-      
+              
 
         /// <summary>
         /// Удаление маршрута из ПНБ
@@ -1600,7 +1600,7 @@ namespace SatelliteSessions
         }
 
         /// <summary>
-        /// Создание памаетром маршрута на удаление или сброс (скачивание)
+        /// Создание параметром маршрута на удаление или сброс (скачивание)
         /// </summary>
         /// <param name="fromDt">время начала съемки </param>
         /// <param name="channel">канал</param>
@@ -1611,14 +1611,12 @@ namespace SatelliteSessions
         /// <returns>маршрут на удаление или сброс</returns>
         public static RouteParams createServiceRoute(
             DateTime fromDt,
-            ShootingChannel channel, /// @toso зачем эти параметры
-            ShootingType shType, /// @toso зачем эти параметры
             WorkingType wType,
             RouteParams routeToAction)
         {
             double actionTime = 0;
             if (wType == WorkingType.Downloading)
-                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS_Main).TotalSeconds;
+                actionTime = routeToAction.getDropTime(CommunicationSessionStation.FIGS).TotalSeconds;
             else if (wType == WorkingType.Removal)
                 actionTime = OptimalChain.Constants.routeDeleteTime;
             else
@@ -1627,6 +1625,40 @@ namespace SatelliteSessions
             DateTime toDt = fromDt.AddSeconds(actionTime + OptimalChain.Constants.min_Delta_time);
 
             RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction);
+            return curParam;
+        }
+
+        /// <summary>
+        /// Создание маршрута на удаление всей МПЗ
+        /// </summary>
+        /// <param name="dtime">время начала удаления</param>
+        /// <param name="mpzId">номер МПЗ</param>
+        /// <returns>Маршрут</returns>
+        public static RouteParams createRemovingMPZRoute(DateTime dtime, int mpzId)
+        {
+            WorkingType wType = WorkingType.Removal;
+            double actionTime = OptimalChain.Constants.routeDeleteTime;
+            DateTime toDt = dtime.AddSeconds(actionTime + OptimalChain.Constants.min_Delta_time);
+            RouteParams routeToAction = new RouteParams(wType, dtime, toDt, null);
+            routeToAction.NPZ = mpzId;
+            routeToAction.NRoute = -1;
+            RouteParams curParam = new RouteParams(wType, dtime, toDt, routeToAction);
+            return curParam;
+        }
+
+
+        /// <summary>
+        /// Создать маршрут на форматирование ячейки памяти (обоих)
+        /// </summary>
+        /// <param name="dtime">время начала форматирования</param>
+        /// <param name="bankId">номер ячейки памяти</param>
+        /// <returns>маршрут</returns>
+        public static RouteParams createFormattingRoute(DateTime dtime, int bankId)
+        {
+            WorkingType wType = WorkingType.Formatting;
+            DateTime toDt = dtime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
+
+            RouteParams curParam = new RouteParams(wType, dtime, toDt, null);
             return curParam;
         }
 

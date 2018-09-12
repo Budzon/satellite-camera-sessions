@@ -289,6 +289,11 @@ namespace OptimalChain
         /// </summary>
         public int NPZ { get; set; }
 
+        /// <summary>
+        /// номер ячейки памяти
+        /// </summary>
+        public int BankID { get; set; }
+
         public WorkingType type { get; set; } // тип работы
         public ShootingChannel shooting_channel { get; set; } // канал
 
@@ -405,7 +410,7 @@ namespace OptimalChain
 
         public TimeSpan getDropTime(CommunicationSessionStation station)
         {
-            double speed = station == CommunicationSessionStation.FIGS_Main ? 1024.0 : 512.0; // Mb per sec
+            double speed = station == CommunicationSessionStation.FIGS ? 1024.0 : 512.0; // Mb per sec
             return new TimeSpan(0, 0, 0, (int)(File_Size / speed * 8 + 1)); // время на сброс этого роута
         }
 

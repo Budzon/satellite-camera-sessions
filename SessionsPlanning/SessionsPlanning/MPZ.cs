@@ -61,7 +61,7 @@ namespace SatelliteSessions
             else
             {
                 Header.CONF_RLCI += 32; // ВКЛЮЧИТЬ СВРЛ
-                if (Parameters.Station == SessionsPlanning.CommunicationSessionStation.FIGS_Main)
+                if (Parameters.Station == SessionsPlanning.CommunicationSessionStation.FIGS)
                     Header.CONF_RLCI += 3; // два подканала, 1024мб/с, обе поляризации
                 else
                     Header.CONF_RLCI += 1; // один подканал, 512мб/с, с правой поляризацией

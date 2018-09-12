@@ -20,6 +20,7 @@ namespace SatelliteSessions
         ///  тип сессии
         /// </summary>       
         public SessionsPlanning.CommunicationSessionStation Station { get; private set; }
+        public SessionsPlanning.WorkingType tg = WorkingType.Formatting;
         /// <summary>
         ///  Время начала 7-градусной зоны
         /// </summary>

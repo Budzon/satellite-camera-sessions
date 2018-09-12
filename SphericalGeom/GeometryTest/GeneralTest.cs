@@ -536,7 +536,7 @@ namespace GeometryTest
                 List<MPZ> mpzArray;
                 List<CommunicationSession> sessions;
                 var enabled = new List<SessionsPlanning.CommunicationSessionStation>  
-            { SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+            { SessionsPlanning.CommunicationSessionStation.FIGS,
                 SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
                 SessionsPlanning.CommunicationSessionStation.MIGS };
                 Sessions.getMPZArray(requests, dt1, dt2

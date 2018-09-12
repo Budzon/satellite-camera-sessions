@@ -33,7 +33,7 @@ namespace GeometryTest
             Trajectory fullTrajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
 
             var enabled = new List<SessionsPlanning.CommunicationSessionStation>  
-            { SessionsPlanning.CommunicationSessionStation.FIGS_Main,
+            { SessionsPlanning.CommunicationSessionStation.FIGS,
                 SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
                 SessionsPlanning.CommunicationSessionStation.MIGS };
             var sessions = new Dictionary<SessionsPlanning.CommunicationSessionStation, List<CommunicationSession>>();
