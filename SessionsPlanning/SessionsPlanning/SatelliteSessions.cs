@@ -1657,8 +1657,8 @@ namespace SatelliteSessions
         {
             WorkingType wType = WorkingType.Formatting;
             DateTime toDt = dtime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
-
             RouteParams curParam = new RouteParams(wType, dtime, toDt, null);
+            curParam.BankID = bankId;
             return curParam;
         }
 
