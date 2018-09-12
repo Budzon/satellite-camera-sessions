@@ -10,6 +10,19 @@ using System.Collections.Specialized;
 namespace OptimalChain
 {
 
+    public struct FormattingOptions
+    {
+        public bool Bank1Cell1 {get;set;}
+        public bool Bank1Cell2 {get;set;}
+        public bool Bank1Cell3 {get;set;}
+        public bool Bank2Cell1 {get;set;}
+        public bool Bank2Cell2 {get;set;}
+        public bool Bank2Cell3 {get;set;}
+
+        public bool Bank1 { get { return Bank1Cell1 || Bank1Cell2 || Bank1Cell3; } }
+        public bool Bank2 { get { return Bank2Cell1 || Bank2Cell2 || Bank2Cell3; } }
+    };
+
     public class MPZParams
     {
         public int id { get; set; }
@@ -290,9 +303,9 @@ namespace OptimalChain
         public int NPZ { get; set; }
 
         /// <summary>
-        /// номер ячейки памяти
+        /// флаги форматирования ячеек памяти
         /// </summary>
-        public int BankID { get; set; }
+        public FormattingOptions formatting_options { get; set; }
 
         public WorkingType type { get; set; } // тип работы
         public ShootingChannel shooting_channel { get; set; } // канал

@@ -81,7 +81,9 @@ namespace SatelliteSessions
             /* ---------- REGta_Param -----------*/
             for (int i = 0; i < Routes.Count; ++i)
             {
-                if (Routes[i].RegimeType == RegimeTypes.VI || Routes[i].RegimeType == RegimeTypes.SI)
+                if (Routes[i].RegimeType == RegimeTypes.BBZU_control)
+                    continue;
+                else if (Routes[i].RegimeType == RegimeTypes.VI || Routes[i].RegimeType == RegimeTypes.SI)
                 {
                     Routes[i].REGta_Param_bytes[0] = 0;
                     Routes[i].REGta_Param_bytes[1] = 0;
@@ -553,6 +555,7 @@ namespace SatelliteSessions
             switch (RegimeType)
             {
                 case RegimeTypes.SI:
+                case RegimeTypes.BBZU_control:
                     int seconds = 5;
                     Troute = seconds * 1000;
                     Parameters.end = Parameters.start.AddSeconds(seconds);
@@ -639,6 +642,43 @@ namespace SatelliteSessions
                     // 7-9 -- нули по умолчанию
                     // 10-13 -- БУДУТ ЗАПОЛНЕНЫ В МПЗ НА ОСНОВЕ CONF_B
                     // 14-15 -- нули по умолчанию
+                    break;
+                case 3:
+                    if (inpParameters.formatting_options.Bank1)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 0);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 0);
+                    if (inpParameters.formatting_options.Bank1Cell1)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 1);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 1);
+                    if (inpParameters.formatting_options.Bank1Cell2)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 2);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 2);
+                    if (inpParameters.formatting_options.Bank1Cell3)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 3);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 3);
+
+                    if (inpParameters.formatting_options.Bank2)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 4);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 4);
+                    if (inpParameters.formatting_options.Bank2Cell1)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 5);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 5);
+                    if (inpParameters.formatting_options.Bank2Cell2)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 6);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 6);
+                    if (inpParameters.formatting_options.Bank2Cell3)
+                        ByteRoutines.SetBitOne(REGta_Param_bytes, 7);
+                    else
+                        ByteRoutines.SetBitZero(REGta_Param_bytes, 7);
+                    // 8-11 -- нули по умолчанию
+                    // 12-15 -- нули тк форматирование
                     break;
                 default:
                     break;
@@ -819,19 +859,19 @@ namespace SatelliteSessions
             ByteRoutines.SetBitZero(REGta_bytes, 0); //
             ByteRoutines.SetBitZero(REGta_bytes, 1); // Штатный ЗИ и НП -- отдельно 
             ByteRoutines.SetBitZero(REGta_bytes, 2); //
-            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+            if ((regimeType != RegimeTypes.ZI) && (regimeType != RegimeTypes.NP))
                 ByteRoutines.SetBitZero(REGta_bytes, 3);
             else
                 ByteRoutines.SetBitOne(REGta_bytes, 3);
             ByteRoutines.SetBitZero(REGta_bytes, 4);
             ByteRoutines.SetBitZero(REGta_bytes, 5);
             ByteRoutines.SetBitZero(REGta_bytes, 6);
-            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+            if ((regimeType != RegimeTypes.ZI) && (regimeType != RegimeTypes.NP))
                 ByteRoutines.SetBitZero(REGta_bytes, 7);
             else
                 ByteRoutines.SetBitOne(REGta_bytes, 7);
             ByteRoutines.SetBitZero(REGta_bytes, 8);
-            if ((regimeType == RegimeTypes.VI) || (regimeType == RegimeTypes.SI))
+            if ((regimeType != RegimeTypes.ZI) && (regimeType != RegimeTypes.NP))
                 ByteRoutines.SetBitZero(REGta_bytes, 9);
             else
                 ByteRoutines.SetBitOne(REGta_bytes, 9);
@@ -1000,6 +1040,8 @@ namespace SatelliteSessions
                 case SessionsPlanning.WorkingType.ShootingSending:
                     return RegimeTypes.NP;
                     // return RegimeTypes.NP; так написано в OptimalChain.MPZ, но просят поменять
+                case SessionsPlanning.WorkingType.Formatting:
+                    return RegimeTypes.BBZU_control;
                 default:
                     throw new Exception(String.Format("Invalid route type {0}", type));
             }
