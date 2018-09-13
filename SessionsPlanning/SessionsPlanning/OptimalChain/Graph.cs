@@ -291,7 +291,7 @@ namespace OptimalChain
                         {
                             foreach (RouteParams r in m.routes)
                             {
-                                ids.Add(r.ShootingConf.id);
+                                ids.Add(r.id);
                             }
                         }
 

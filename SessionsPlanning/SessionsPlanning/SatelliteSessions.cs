@@ -633,7 +633,7 @@ namespace SatelliteSessions
                         RouteParams routeParams = new RouteParams(
                             WorkingType.Downloading,
                             routeToDownload.getDropTime(station).TotalSeconds,
-                            routeToDownload);
+                            routeToDownload, 0, 0);
 
                         foreach (TimePeriod period in freeStationIntervals.ToList())
                         {
@@ -1210,7 +1210,7 @@ namespace SatelliteSessions
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(connStringCup);
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(connStringCuks);
 
-            modRouteParams = new RouteParams(routeParams);
+            modRouteParams = routeParams;//new RouteParams(routeParams);
             newMPZ = null;
 
             for (int i = 0; i < PNB.Count; i++)
@@ -1632,7 +1632,7 @@ namespace SatelliteSessions
 
             DateTime toDt = fromDt.AddSeconds(actionTime + OptimalChain.Constants.min_Delta_time);
 
-            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction);
+            RouteParams curParam = new RouteParams(wType, fromDt, toDt, routeToAction, 0, 0);
             return curParam;
         }
 
@@ -1648,10 +1648,10 @@ namespace SatelliteSessions
             WorkingType wType = WorkingType.Removal;
             double actionTime = OptimalChain.Constants.routeDeleteTime;
             DateTime toDt = dtime.AddSeconds(actionTime + OptimalChain.Constants.min_Delta_time);
-            RouteParams routeToAction = new RouteParams(wType, dtime, toDt, null);
+            RouteParams routeToAction = new RouteParams(wType, dtime, toDt, null, 0, 0);
             routeToAction.NPZ = mpzId;
             routeToAction.NRoute = -1;
-            RouteParams curParam = new RouteParams(wType, dtime, toDt, routeToAction);
+            RouteParams curParam = new RouteParams(wType, dtime, toDt, routeToAction, 0, 0);
             return curParam;
         }
 
@@ -1669,7 +1669,7 @@ namespace SatelliteSessions
 
             WorkingType wType = WorkingType.Formatting;
             DateTime toDt = dtime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
-            RouteParams curParam = new RouteParams(wType, dtime, toDt, null);
+            RouteParams curParam = new RouteParams(wType, dtime, toDt, null, 0, 0);
             FormattingOptions options = new FormattingOptions
             {
                 Bank1Cell1 = cellId == 1,

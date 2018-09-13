@@ -39,7 +39,7 @@ namespace OptimalChain
         public int MinCompression { get; set; }
         public double AverAlbedo { get; set; }
 
-        public RouteParams connected_route { get; set; } // связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
+        public RouteParams binded_route { get; set; } // связанные маршруты. Список непустой только для маршрутов на удаление и сброс.
 
         public string wktPolygon { get; set; }
         /// <summary>
@@ -78,7 +78,7 @@ namespace OptimalChain
             pitch = t;
             square = s;
             orders = o;
-            connected_route = CR;
+            binded_route = CR;
             wktPolygon = polygon;
             type = T;
             shooting_type = stype;

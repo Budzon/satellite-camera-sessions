@@ -517,7 +517,7 @@ namespace SatelliteSessions
             
             if ((inpParameters.type == SessionsPlanning.WorkingType.Shooting) || (inpParameters.type == SessionsPlanning.WorkingType.ShootingSending))
             {
-                SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+                SatelliteTrajectory.SatelliteCoordinates satCoord = new SatelliteTrajectory.SatelliteCoordinates(KAbegin, Parameters.roll, Parameters.pitch);
                 Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
 
                 /* ---------- InitCoord -----------*/
@@ -526,12 +526,12 @@ namespace SatelliteSessions
                 /* ---------- Polinomial_coeff -----------*/
                 if (Parameters.shooting_type == SessionsPlanning.ShootingType.Coridor) // коридорная
                 {
-					Polinomial_Coeff = Parameters.ShootingConf.poliCoef;
+					Polinomial_Coeff = Parameters.poli_coef;
                 }                    
 
                 /* ---------- N_PK -----------*/
                 double sunHeight = SatelliteTrajectory.TrajectoryRoutines.getSunHeight(fetcher, geoBegin, startTime);
-                N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch);
+                N_PK = GetNpk(RegimeType, sunHeight, Parameters.albedo, Parameters.roll, Parameters.pitch);
             }            
 
             /* ---------- Z -----------*/
@@ -1072,7 +1072,7 @@ namespace SatelliteSessions
             int zipmk = Parameters.zipMK > 0 ? Parameters.zipMK : 1;
             int zippk = Parameters.zipPK > 0 ? Parameters.zipPK : 1;
             return OptimalChain.RouteParams.InformationFluxInBits(
-                Parameters.ShootingConf.roll, Parameters.ShootingConf.pitch,
+                Parameters.roll, Parameters.pitch,
                 Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (Troute / 1000.0) / (1 << 23);
         }
 

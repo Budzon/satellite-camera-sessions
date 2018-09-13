@@ -316,13 +316,11 @@ namespace OptimalChain
         public DateTime start { get; set; }
         public DateTime end { get; set; }
 
-        public StaticConf ShootingConf { get; set; }
-
         public RouteParams binded_route { get; set; }
 
         public double roll { get; set; }
         public double pitch { get; set; }
-
+        public string shootingPolygon { get; set; }
         private int fileSize;
         private bool know_fileSize = false;
         /// <summary>
@@ -345,7 +343,7 @@ namespace OptimalChain
                     int Np = shooting_channel == ShootingChannel.mk ? 0 : 1;
                     int zipmk = Math.Max(1, zipMK);
                     int zippk = Math.Max(1, zipPK);
-                    fileSize = (int)(InformationFluxInBits(ShootingConf.roll, ShootingConf.pitch,
+                    fileSize = (int)(InformationFluxInBits(roll, pitch,
                         Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (end - start).TotalSeconds / (1 << 23));
                     know_fileSize = true;
                 }
@@ -370,6 +368,12 @@ namespace OptimalChain
                 return hroute;
             }
         }
+
+
+        /// <summary>
+        /// внутренний id маршрута для графа (не NRoute)
+        /// </summary>
+        public int id;
 
         /// <summary>
         /// Длительность в милисекундах
@@ -417,9 +421,10 @@ namespace OptimalChain
         /// </summary>
         public double albedo { get; set; }
 
-        // Ставятся на основе CONF_B
-        //public int memoryCellMZU1 { get; set; }
-        //public int memoryCellMZU2 { get; set; }
+        /// <summary>
+        /// полиноминальные коэффициенты
+        /// </summary>
+        public SatelliteSessions.PolinomCoef poli_coef { get; set; }
 
         public TimeSpan getDropTime(CommunicationSessionStation station)
         {
@@ -427,38 +432,74 @@ namespace OptimalChain
             return new TimeSpan(0, 0, 0, (int)(File_Size / speed * 8 + 1)); // время на сброс этого роута
         }
 
-        public RouteParams(RouteParams copyed)
-        {
-            NRoute = copyed.NRoute;
-            NPZ = copyed.NPZ;
-            type = copyed.type;
-            start = copyed.start;
-            end = copyed.end;
-            binded_route = copyed.binded_route;
-            ShootingConf = copyed.ShootingConf;
-            shooting_channel = copyed.shooting_channel;
-            shooting_type = copyed.shooting_type;
-            albedo = copyed.albedo;
-            zipMK = copyed.zipMK;
-            zipPK = copyed.zipPK;
-            duration = copyed.duration;
-            energo_save_mode = copyed.energo_save_mode; 
-            TNPos = copyed.TNPos;
-            Delta_T = copyed.Delta_T;
-            coridorLength = copyed.coridorLength;
-            coridorAzimuth = copyed.coridorAzimuth;
-            roll = copyed.roll;
-            pitch = copyed.pitch;
-        }
 
+        /// <summary>
+        /// Конструктор для создания параметров маршрута на съемку
+        /// </summary>
+        /// <param name="_type">тип работы (съемка или съемка со сбросом)</param>
+        /// <param name="_shooting_type"></param>
+        /// <param name="_shooting_channel"></param>
+        /// <param name="_start"></param>
+        /// <param name="_end"></param>
+        /// <param name="_roll"></param>
+        /// <param name="_pitch"></param>
+        /// <param name="_binded_route"></param>
+        /// <param name="_poli_coef"></param>
+        public RouteParams(
+            WorkingType _type,
+            ShootingType _shooting_type,
+            ShootingChannel _shooting_channel,
+            DateTime _start,
+            DateTime _end,
+            double _roll,
+            double _pitch,
+            string _shootingPolygon,
+            SatelliteSessions.PolinomCoef _poli_coef = null)
+        {
+            if (!(_type == WorkingType.Shooting || _type == WorkingType.ShootingSending))
+                throw new ArgumentException("This ctr can create only shooting route");
+
+            if (_shooting_type == ShootingType.Coridor && _poli_coef == null)
+                throw new ArgumentException("PolinomCoef must be != null for Coridor shoooting ");
+
+            type = _type;
+            start = _start;
+            end = _end;
+            roll = _roll;
+            pitch = _pitch;
+            shooting_channel = _shooting_channel;
+            shooting_type = _shooting_type;
+            poli_coef = _poli_coef;
+            shootingPolygon = _shootingPolygon;
+        }
+         
+
+        public RouteParams(StaticConf conf)
+            : this(
+            conf.type,
+            conf.shooting_type,
+            conf.shooting_channel,
+            conf.dateFrom,
+            conf.dateTo,
+            conf.roll,
+            conf.pitch,
+            conf.wktPolygon,
+            conf.poliCoef)
+        {
+            id = conf.id;
+            shootingPolygon = conf.wktPolygon;
+        }
 
         public RouteParams(
             WorkingType t,
             double dur,
             RouteParams _binded_route,
-            double roll = 0,
-            double pitch = 0)
-        { 
+            double roll,
+            double pitch)
+        {
+            if (t == WorkingType.Shooting || t == WorkingType.ShootingSending)
+                throw new ArgumentException("Cannot create shooting route whit this ctr");
+
             type = t;
             binded_route = _binded_route;
             duration = dur;
@@ -473,31 +514,42 @@ namespace OptimalChain
             DateTime d1,
             DateTime d2,
             RouteParams _binded_route,
-            double roll = 0,
-            double pitch = 0)
-        { 
-            type = t;        
+            double roll,
+            double pitch)
+            : this (t, (d2-d1).TotalSeconds, _binded_route, roll, pitch)
+        {                
             start = d1;
-            end = d2;
-            binded_route = _binded_route; 
-            duration = (end - start).TotalMilliseconds;
-            NRoute = -1;
-            NPZ = -1;
-            this.roll = roll;
-            this.pitch = pitch;
+            end = d2;            
         }
 
-        public RouteParams(StaticConf c)
-            : this(c.type, c.dateFrom, c.dateTo, c.connected_route, c.roll, c.pitch)
-        {           
-            ShootingConf = c;
-            shooting_channel = c.shooting_channel;
-            shooting_type = c.shooting_type;
-            albedo = c.AverAlbedo;
-            zipMK = c.MinCompression;
-            zipPK = c.MinCompression;  
+
+        public RouteParams(RouteParams copyed)
+        {
+            id = copyed.id;
+            NRoute = copyed.NRoute;
+            NPZ = copyed.NPZ;
+            type = copyed.type;
+            start = copyed.start;
+            end = copyed.end;
+            binded_route = copyed.binded_route;
+            shooting_channel = copyed.shooting_channel;
+            shooting_type = copyed.shooting_type;
+            albedo = copyed.albedo;
+            zipMK = copyed.zipMK;
+            zipPK = copyed.zipPK;
+            duration = copyed.duration;
+            energo_save_mode = copyed.energo_save_mode;
+            TNPos = copyed.TNPos;
+            Delta_T = copyed.Delta_T;
+            coridorLength = copyed.coridorLength;
+            coridorAzimuth = copyed.coridorAzimuth;
+            roll = copyed.roll;
+            pitch = copyed.pitch;
+            poli_coef = copyed.poli_coef;
+            formatting_options = copyed.formatting_options;
+            shootingPolygon = shootingPolygon;
         }
-         
+
 
         /// <summary>
         /// Проверка совместимоси двух маршрутов
@@ -506,48 +558,35 @@ namespace OptimalChain
         /// <returns>Код проверки: true--маршруты совместимы, false--маршруты несовместимы</returns>
         public bool isCompatible(RouteParams r)
         {
-            //RouteParams r1, r2;
-            //if (this.start < r.start)
-            //{
-            //    r1 = this;
-            //    r2 = r;
-            //}
-            //else
-            //{
-            //    r1 = r;
-            //    r2 = this;
-            //}
-
-            //double pause = (r2.start - r1.end).TotalMilliseconds;
-            //double rotationTime = StaticConf.reConfigureMilisecinds(r1.roll, r1.pitch, r2.roll, r2.pitch);
-
-
-
-            StaticConf c1, c2;
+            RouteParams r1, r2;
 
             if (r.start > this.start)
             {
-                c2 = r.ShootingConf;
-                c1 = this.ShootingConf;
+                r2 = r;
+                r1 = this;
             }
             else
             {
-                c1 = r.ShootingConf;
-                c2 = this.ShootingConf;
+                r1 = r;
+                r2 = this;
             }
 
-            if (c1 == null || c2 == null)
+            if (r1 == null || r2 == null)
                 return true;
 
-            double ms = c1.reConfigureMilisecinds(c2);
+            double ms = r1.reConfigureMilisecinds(r2);
             if (r.type != 0 || this.type != 0) ms = 0;
             //double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
-            double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
+            double dms = (r2.start - r1.end).TotalMilliseconds;
 
             return (ms < dms);
 
         }
 
+        public double reConfigureMilisecinds(RouteParams r2)
+        {
+            return StaticConf.reConfigureMilisecinds(this.roll, this.pitch, r2.roll, r2.pitch);
+        }
 
 
         /// <summary>

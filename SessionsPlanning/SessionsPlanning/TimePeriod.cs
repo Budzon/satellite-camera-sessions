@@ -243,8 +243,8 @@ namespace SatelliteSessions
 
                     nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
 
-                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, routePrms);
-                    curParam.ShootingConf = routePrms.ShootingConf;
+                    RouteParams curParam = new RouteParams(workType, prevDt, nextDt, routePrms, 0, 0);
+                    
                     res.Add(curParam);
                     
                     routes.Remove(routePrms);
