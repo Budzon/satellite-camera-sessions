@@ -70,7 +70,7 @@ namespace OptimalChain
             ShootingType stype = ShootingType.Normal,
             RouteParams CR = null,
             SatelliteSessions.PolinomCoef _poliCoef = null)
-        {
+        { 
             id = i;
             dateFrom = d1;
             dateTo = d2;
@@ -467,8 +467,10 @@ namespace OptimalChain
 
     public class Order
     {
+        public Order()
+        {
 
-
+        }
         public Order(RequestParams req, SphericalGeom.Polygon capt, double coef)
         {
             request = req;
@@ -479,7 +481,7 @@ namespace OptimalChain
         /// <summary>
         /// параметры заказа
         /// </summary>
-        public RequestParams request { get; private set; }
+        public RequestParams request { get; set; }
 
         /// <summary>
         /// захваченная (заснятая) область

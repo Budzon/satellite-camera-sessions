@@ -28,7 +28,7 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static List<MPZ> get14PlainFrames1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get14PlainFrames1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
@@ -389,7 +389,7 @@ namespace SessionsPlanning
                 Polygon corPol = SatLane.getRollPitchLanePolygon(traj, 0, 0);
 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
-                    corPol.ToWtk(), _shootingType: ShootingType.Coridor, _requestChannel: ShootingChannel.pk);
+                    corPol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
 
                 Order order = new Order(req, corPol, 1);
                                 

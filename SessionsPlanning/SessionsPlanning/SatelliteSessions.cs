@@ -1315,28 +1315,27 @@ namespace SatelliteSessions
         /// <param name="connStringCup">строка подключения к бд ЦУП</param>
         /// <param name="connStringCuks">*временно* строка подключения к бд ЦУКС</param>
         public static List<MPZ> removeRouteFromPNBWithSession(
-            RouteMPZ routeToDelete,
+            RouteParams routeToDelete,
             List<MPZ> PNB,
             DateTime sessionStart,
             DateTime sessionEnd,
             string connStringCup,
             string connStringCuks)
-        {
-            RouteParams routePrms = routeToDelete.Parameters;
+        { 
             TimePeriod sessionPeriod = new TimePeriod(sessionStart, sessionEnd);
-            if (!sessionPeriod.isContains(new TimePeriod(routePrms.start, routePrms.end)))
+            if (!sessionPeriod.isContains(new TimePeriod(routeToDelete.start, routeToDelete.end)))
                 throw new ArgumentException("Route is not in this commutication session period");
 
-            if (PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ) == null)
+            if (PNB.FirstOrDefault(m => m.Header.NPZ == routeToDelete.NPZ) == null)
                 throw new ArgumentException("There is no target MPZ in PNB");
 
-            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ);
+            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == routeToDelete.NPZ);
             if (mpz == null)
                 throw new ArgumentException("There is no target MPZ in PNB");
 
             List<RouteParams> routesParams = mpz.Routes.Select(r => r.Parameters).ToList();
             //IEnumerable<RouteParams> newRoutesParams = routesParams.Where(r => r.NRoute != routeToDelete.NRoute);
-            int rcount = routesParams.RemoveAll(r => r.NRoute == routePrms.NRoute);
+            int rcount = routesParams.RemoveAll(r => r.NRoute == routeToDelete.NRoute);
             // теперь в routesParams лежат все маршруты (кроме удаляемого) на основе которых создастся новые мпз
 
             if (rcount == 0)

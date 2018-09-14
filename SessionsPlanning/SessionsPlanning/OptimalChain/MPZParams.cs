@@ -290,7 +290,9 @@ namespace OptimalChain
             return FTAs;
         }
     }
+
  
+
     public class RouteParams
     {
         /// <summary>
@@ -318,9 +320,11 @@ namespace OptimalChain
 
         public RouteParams binded_route { get; set; }
 
+        public List<RequestParams> Requests { get; private set; }
+
         public double roll { get; set; }
         public double pitch { get; set; }
-        public string shootingPolygon { get; set; }
+        public string wktPolygon { get; set; }
         private int fileSize;
         private bool know_fileSize = false;
         /// <summary>
@@ -437,14 +441,14 @@ namespace OptimalChain
         /// Конструктор для создания параметров маршрута на съемку
         /// </summary>
         /// <param name="_type">тип работы (съемка или съемка со сбросом)</param>
-        /// <param name="_shooting_type"></param>
-        /// <param name="_shooting_channel"></param>
-        /// <param name="_start"></param>
-        /// <param name="_end"></param>
-        /// <param name="_roll"></param>
-        /// <param name="_pitch"></param>
-        /// <param name="_binded_route"></param>
-        /// <param name="_poli_coef"></param>
+        /// <param name="_shooting_type">тип съемки</param>
+        /// <param name="_shooting_channel">канал </param>
+        /// <param name="_start">время начала маршрута</param>
+        /// <param name="_end">время конца маршрута</param>
+        /// <param name="_roll">крен</param>
+        /// <param name="_pitch">тангаж</param>        
+        /// <param name="_wktPolygon">полигон, снимаемый этим маршрутом</param>        
+        /// <param name="_poli_coef">полиноминальные коэффициенты (если крен)</param>
         public RouteParams(
             WorkingType _type,
             ShootingType _shooting_type,
@@ -453,7 +457,7 @@ namespace OptimalChain
             DateTime _end,
             double _roll,
             double _pitch,
-            string _shootingPolygon,
+            string _wktPolygon,
             SatelliteSessions.PolinomCoef _poli_coef = null)
         {
             if (!(_type == WorkingType.Shooting || _type == WorkingType.ShootingSending))
@@ -470,24 +474,24 @@ namespace OptimalChain
             shooting_channel = _shooting_channel;
             shooting_type = _shooting_type;
             poli_coef = _poli_coef;
-            shootingPolygon = _shootingPolygon;
+            wktPolygon = _wktPolygon;
         }
          
 
         public RouteParams(StaticConf conf)
-            : this(
-            conf.type,
-            conf.shooting_type,
-            conf.shooting_channel,
-            conf.dateFrom,
-            conf.dateTo,
-            conf.roll,
-            conf.pitch,
-            conf.wktPolygon,
-            conf.poliCoef)
+        : this(conf.type,
+               conf.shooting_type,
+               conf.shooting_channel,
+               conf.dateFrom,
+               conf.dateTo,
+               conf.roll,
+               conf.pitch,
+               conf.wktPolygon,
+               conf.poliCoef)
         {
             id = conf.id;
-            shootingPolygon = conf.wktPolygon;
+            wktPolygon = conf.wktPolygon;
+            Requests = conf.orders.Select(o => o.request).ToList();
         }
 
         public RouteParams(
@@ -519,7 +523,7 @@ namespace OptimalChain
             : this (t, (d2-d1).TotalSeconds, _binded_route, roll, pitch)
         {                
             start = d1;
-            end = d2;            
+            end = d2;                 
         }
 
 
@@ -547,7 +551,7 @@ namespace OptimalChain
             pitch = copyed.pitch;
             poli_coef = copyed.poli_coef;
             formatting_options = copyed.formatting_options;
-            shootingPolygon = shootingPolygon;
+            wktPolygon = wktPolygon;
         }
 
 
@@ -580,7 +584,6 @@ namespace OptimalChain
             double dms = (r2.start - r1.end).TotalMilliseconds;
 
             return (ms < dms);
-
         }
 
         public double reConfigureMilisecinds(RouteParams r2)

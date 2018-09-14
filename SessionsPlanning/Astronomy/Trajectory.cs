@@ -347,12 +347,6 @@ namespace Astronomy
             var pointsList = this.points.Where(p => (fromDt <= p.Time) && (p.Time <= toDt));
             int size = pointsList.Count();
 
-            bool needInterFirst = !pointsList.First().Time.Equals(fromDt);
-            bool needInterLast  = !pointsList.Last().Time.Equals(toDt);
-            
-            size += needInterFirst ? 1 : 0;
-            size += needInterLast ? 1 : 0;
-
             TrajectoryPoint[] newTrajsPoints;
             if (size < minNumPoints)
             {
@@ -366,7 +360,13 @@ namespace Astronomy
                 }
                 return Create(newTrajsPoints);
             }
-            
+
+            bool needInterFirst = !pointsList.First().Time.Equals(fromDt);
+            bool needInterLast = !pointsList.Last().Time.Equals(toDt);
+
+            size += needInterFirst ? 1 : 0;
+            size += needInterLast ? 1 : 0;
+
             newTrajsPoints = new TrajectoryPoint[size];
 
             if (needInterFirst)            

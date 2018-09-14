@@ -354,7 +354,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
 
             Console.Write("GEOMETRYCOLLECTION(");
@@ -436,7 +436,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
@@ -586,7 +586,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
@@ -847,7 +847,7 @@ namespace ConsoleExecutor
 
 
             //var orderPolsList = allMpz.SelectMany(mpz => mpz.Routes.SelectMany(r => r.Parameters.ShootingConf.orders.Select(order => order.captured))).ToList();
-            var shootingPolsList = allMpz.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.shootingPolygon))).ToList();
+            var shootingPolsList = allMpz.SelectMany(mpz => mpz.Routes.Select(r => new Polygon(r.Parameters.wktPolygon))).ToList();
 
             //Console.Write("GEOMETRYCOLLECTION(");
             //Console.Write(Polygon.getMultipolFromPolygons(orderPolsList));
@@ -1210,7 +1210,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
 
 
@@ -1350,7 +1350,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(reqlist.SelectMany(r => r.polygons).ToList()));
@@ -1461,7 +1461,7 @@ namespace ConsoleExecutor
 
             Console.Write("GEOMETRYCOLLECTION(");
 
-            var shootingPolygons = shootingRoutes.Select(r => r.Parameters.shootingPolygon);
+            var shootingPolygons = shootingRoutes.Select(r => r.Parameters.wktPolygon);
             foreach (var p in shootingPolygons)
             {
                 Console.WriteLine(p);
@@ -1566,7 +1566,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
@@ -1650,7 +1650,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
 
 
@@ -1751,11 +1751,11 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
 
 
             var routeToDelete = mpzArray[1].Routes[0];
-            Sessions.removeRouteFromPNBWithSession(routeToDelete, mpzArray, DateTime.MinValue, DateTime.MaxValue, cupConnStr, cuksConnStr);
+            Sessions.removeRouteFromPNBWithSession(routeToDelete.Parameters, mpzArray, DateTime.MinValue, DateTime.MaxValue, cupConnStr, cuksConnStr);
 
 
             Console.Write("GEOMETRYCOLLECTION(");
@@ -1804,7 +1804,7 @@ namespace ConsoleExecutor
 
             var shootingRoutes = res.Where(r => r.type == WorkingType.Shooting || r.type == WorkingType.ShootingSending).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.wktPolygon)).ToList();
 
             Console.Write("GEOMETRYCOLLECTION(");
             //Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
@@ -1888,7 +1888,7 @@ namespace ConsoleExecutor
             var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
                     .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
 
-            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.shootingPolygon)).ToList();
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
              
             Console.Write("GEOMETRYCOLLECTION(");
             Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
@@ -1908,7 +1908,7 @@ namespace ConsoleExecutor
             DateTime start = DateTime.Now;
 
             //test_TestSessionsSequenses();
-            test_getPlainMpzArray();
+            test_TestSessionsSequenses();
             //testMPZError_11_09_18();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
