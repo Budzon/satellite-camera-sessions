@@ -51,26 +51,31 @@ namespace ConsoleExecutor
             //1.5
             //2.7
 
-            DateTime dt1 = DateTime.Parse("2019-01-01T00:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
-            DateTime dt2 = DateTime.Parse("2019-01-02T00:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+            DateTime dt1 = DateTime.Parse("02/02/2019 00:48:26");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("02/02/2019 02:26:18");// new DateTime(2019, 2, 18, 3, 0, 0);
 
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
 
+            string str = "Server=188.44.42.188;Database=MCCDB_TEST;user=1gb_barmahlot;password=a77668ecsgh";
+
 
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            List<TimePeriod> shadowPeriods;
-            var traj = new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2);
-            Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, traj, dt1, dt2, out partsLitAndNot, out shadowPeriods);
-            Console.WriteLine(partsLitAndNot.Count);
-            Console.WriteLine();
+            Sessions.checkIfViewLaneIsLit(str, dt1, dt2, out partsLitAndNot);
+
+                        
+            //List<TimePeriod> shadowPeriods;
+            //var traj = new DataFetcher(CUPmanagerDB).GetTrajectorySat(dt1, dt2);
+            //Sessions.checkIfViewLaneIsLitWithTimeSpans(CUPmanagerDB, traj, dt1, dt2, out partsLitAndNot, out shadowPeriods);
+            //Console.WriteLine(partsLitAndNot.Count);
+            //Console.WriteLine();
             foreach (var tuple in partsLitAndNot)
             {
-                //  Console.WriteLine(tuple.Item1);
-                //  Console.WriteLine();
-                //  Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
+                  Console.WriteLine(tuple.Item1);
+                  Console.WriteLine();
+                  Console.WriteLine(Polygon.getMultipolFromPolygons(tuple.Item2.Select(wpl => new Polygon(wpl.wktPolygon)).ToList()));
             }
 
             return;
@@ -1908,7 +1913,7 @@ namespace ConsoleExecutor
             DateTime start = DateTime.Now;
 
             //test_TestSessionsSequenses();
-            test_TestSessionsSequenses();
+            test_checkIfViewLaneIsLit();
             //testMPZError_11_09_18();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 

@@ -971,7 +971,7 @@ namespace SatelliteSessions
         }
 
 
-        ///\<summary>
+        ///<summary>
         ///Разбиение полосы видимости КА под траекторией на полигоны освещенности.
         ///</summary>
         ///<param name="DBManager">Параметры подключения к БД</param>
@@ -1020,12 +1020,12 @@ namespace SatelliteSessions
                  int, ConcurrentDictionary<
                  int, Tuple<List<Polygon>, List<Polygon>>>>();
 
-            int num_steps = laneParts.Take(laneParts.Count - 1).Sum(turn => turn.Item2.Count == 0 ? 0 : turn.Item2.Count - 1);
+            int num_steps = laneParts.Sum(turn => turn.Item2.Count == 0 ? 0 : turn.Item2.Count - 1);
             Tuple<int, int>[] numberList = new Tuple<int, int>[num_steps];
             int[] SunPositionsIndexes = new int[num_steps];
             int curSunPositionIndex = 0;
             int totalNum = 0;
-            for (int turnInd = 0; turnInd < laneParts.Count - 1; ++turnInd)
+            for (int turnInd = 0; turnInd < laneParts.Count; ++turnInd)
             {
                 concurrentDict[turnInd] = new ConcurrentDictionary<int, Tuple<List<Polygon>, List<Polygon>>>();
                 var lanePart = laneParts[turnInd];
@@ -1064,7 +1064,7 @@ namespace SatelliteSessions
 #endif
 
 
-            for (int turn = 0; turn < laneParts.Count - 1; ++turn)
+            for (int turn = 0; turn < laneParts.Count; ++turn)
             {
                 var lanePart = laneParts[turn];
                 var lane = lanePart.Item2;
