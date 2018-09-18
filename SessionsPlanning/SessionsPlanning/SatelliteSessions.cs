@@ -1040,7 +1040,7 @@ namespace SatelliteSessions
                 }
             }
 
-
+            
 
 #if _PARALLEL_
             Parallel.For(0, num_steps, index =>

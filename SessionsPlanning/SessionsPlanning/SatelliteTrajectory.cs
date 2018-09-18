@@ -514,33 +514,9 @@ namespace SatelliteTrajectory
     /// класс, содержащий в себе положение в полосе в момент времени, то есть "правую" и "левую" точку и время этого положения
     /// </summary>
     public class LanePos
-    {
-        //enum RollOrientation
-        //{ // в какую сторону от надир осуществлен наклон съемки
-        //    left, right
-        //};
-
-        private Vector3D leftCartPoint;
-        private Vector3D rightCartPoint;
-        private Vector3D cartKAPoint;
-        private Vector3D leftControlPoint;
-        private Vector3D rightControlPoint;
-        private bool knowLeftConrol;
-        private bool knowRightConrol;
-
-        private GeoPoint leftGeoPoint;
-        private GeoPoint rightGeoPoint;
-        private GeoPoint geoKAPoint;
-        private double rollAngle;
-
-        private double width;
-        private DateTime time;
-
+    {       
         public LanePos(Vector3D _leftPoint, Vector3D _kaPoint, Vector3D _rightPoint, DateTime _time)
-        {
-            knowLeftConrol = false;
-            knowRightConrol = false;
-
+        { 
             leftCartPoint = _leftPoint;
             rightCartPoint = _rightPoint;
             cartKAPoint = _kaPoint;
@@ -586,9 +562,6 @@ namespace SatelliteTrajectory
             width = GeoPoint.DistanceOverSurface(leftGeoPoint, rightGeoPoint);
 
             time = pointKA.Time;
-
-            knowLeftConrol = false;
-            knowRightConrol = false;
         }
 
         public DateTime Time { get { return time; } }
@@ -606,44 +579,7 @@ namespace SatelliteTrajectory
         public GeoPoint GeoKAPoint { get { return geoKAPoint; } }
 
         public SatelliteCoordinates KaCoords { get; private set; }
-
-        public Vector3D LeftControlPoint
-        {
-            get
-            {
-                if (!knowLeftConrol)
-                {
-                    leftControlPoint = getControlPoint(CartKAPoint, leftCartPoint);
-                    knowLeftConrol = true;
-                }
-                return leftControlPoint;
-            }
-        }
-
-        public Vector3D RightControlPoint
-        {
-            get
-            {
-                if (!knowRightConrol)
-                {
-                    rightControlPoint = getControlPoint(CartKAPoint, rightCartPoint);
-                    knowRightConrol = true;
-                }
-                return rightControlPoint;
-            }
-        }
-
-        private Vector3D getControlPoint(Vector3D KAPoint, Vector3D sidePoint)
-        {
-            Vector3D rotAx = Vector3D.CrossProduct(KAPoint, sidePoint);
-            Matrix rotMatr = Routines.getRotMatr(rotAx, Math.PI / 2);
-            Vector3D controlPoint = Routines.applyRotMatr(KAPoint, rotMatr);
-            double lenth = Vector3D.DotProduct(sidePoint, controlPoint) / controlPoint.Length;
-            controlPoint.Normalize();
-            controlPoint = controlPoint * lenth;
-            return controlPoint;
-        }
-
+ 
         /// <summary>
         /// Return distance from gpoint to line [leftGeoPoint - rightGeoPoint] in radians
         /// </summary>
@@ -678,14 +614,26 @@ namespace SatelliteTrajectory
             ka.addPitchRot(pitchAngle);
             return ka.ViewDir;
         }
-
-
+        
         public static Vector3D getSurfacePoint(TrajectoryPoint point, double rollAngle, double pitchAngle)
         {
             Vector3D dirVector = getDirectionVector(point, rollAngle, pitchAngle);
             return Routines.SphereVectIntersect(dirVector, point.Position, Astronomy.Constants.EarthRadius);
         }
 
+        #region Private part
+        private Vector3D leftCartPoint;
+        private Vector3D rightCartPoint;
+        private Vector3D cartKAPoint;
+
+        private GeoPoint leftGeoPoint;
+        private GeoPoint rightGeoPoint;
+        private GeoPoint geoKAPoint;
+        private double rollAngle;
+
+        private double width;
+        private DateTime time;
+        #endregion
     }
 
     public class TargetWorkInterval
@@ -1424,74 +1372,27 @@ namespace SatelliteTrajectory
         public SphericalVector(Vector3D f, Vector3D t)            
         {
             CartFrom = f;
-            CartTo = t; 
+            CartTo = t;
+            lazyParams = new Lazy<LazyParams>(() => calcSpherical());
         }
 
-        public GeoPoint From {
-            get
-            {
-                if (!spherKnown)                 
-                {
-                    calcSpherical();
-                }
-                return geoFrom;
-            }            
-        }
-        public GeoPoint To
-        {
-            get
-            {
-                if (!spherKnown)
-                {
-                    calcSpherical();
-                }
-                return geoTo;
-            }
-        }
-
-        private GeoPoint geoFrom;
-        private GeoPoint geoTo;
-
-        private bool spherKnown = false;
-
-        private void calcSpherical()
-        {
-            geoFrom = GeoPoint.FromCartesian(CartFrom);
-            geoTo = GeoPoint.FromCartesian(CartTo);
-
-            SqlGeographyBuilder builder = new SqlGeographyBuilder();
-            builder.SetSrid(4326);
-            builder.BeginGeography(OpenGisGeographyType.LineString);
-            builder.BeginFigure(geoFrom.Latitude, geoFrom.Longitude);
-            builder.AddLine(geoTo.Latitude, geoTo.Longitude);
-            builder.EndFigure();
-            builder.EndGeography();
-            _geography = builder.ConstructedGeography;
-            spherKnown = true;
-        }
- 
         public Vector3D CartFrom { get; private set; }
         public Vector3D CartTo { get; private set; }
-         
-        private SqlGeography _geography;
-        private SqlGeography Geography
+
+        public GeoPoint From
         {
-            get
-            {
-                if (!spherKnown)
-                {
-                    calcSpherical();
-                }
-                return _geography;
-            }
+            get { return lazyParams.Value.geoFrom;} 
         }
 
-        private const double eps = 0;// 0.00001; // точность определения стороны точки
-
+        public GeoPoint To
+        {
+            get { return lazyParams.Value.geoTo; }
+        }
+         
         /// <summary>
         /// с какой стороны от вектора лежит прямая
         /// </summary>
-        public enum PointSide { Right, Left, Between}
+        public enum PointSide { Right, Left, Between }
 
         public PointSide getPointSide(Vector3D tstP)
         {
@@ -1504,12 +1405,12 @@ namespace SatelliteTrajectory
 
             double res = p.X * f.Y * t.Z - p.X * t.Y * f.Z - f.X * p.Y * t.Z
                 + f.X * t.Y * p.Z + t.X * p.Y * f.Z - t.X * f.Y * p.Z;
-             
+
             if (res < -eps)
                 return PointSide.Right;
             if (res > eps)
-                return PointSide.Left; 
-                                
+                return PointSide.Left;
+
             return PointSide.Between;
         }
 
@@ -1527,6 +1428,41 @@ namespace SatelliteTrajectory
             return new SphericalVector(CartTo, CartFrom);
         }
 
+        #region Private part
+
+        private const double eps = 0;// 0.00001; // точность определения стороны точки
+
+        private Lazy<LazyParams> lazyParams;
+
+        private struct LazyParams
+        {
+            public SqlGeography geography;
+            public GeoPoint geoFrom;
+            public GeoPoint geoTo;
+        }
+        
+        private LazyParams calcSpherical()
+        {
+            LazyParams res = new LazyParams();
+            res.geoFrom = GeoPoint.FromCartesian(CartFrom);
+            res.geoTo = GeoPoint.FromCartesian(CartTo);
+
+            SqlGeographyBuilder builder = new SqlGeographyBuilder();
+            builder.SetSrid(4326);
+            builder.BeginGeography(OpenGisGeographyType.LineString);
+            builder.BeginFigure(res.geoFrom.Latitude, res.geoFrom.Longitude);
+            builder.AddLine(res.geoTo.Latitude, res.geoTo.Longitude);
+            builder.EndFigure();
+            builder.EndGeography();
+            res.geography = builder.ConstructedGeography;
+            return res;
+        }
+
+        public SqlGeography Geography
+        {
+            get { return lazyParams.Value.geography; }
+        } 
+        #endregion
     }
 
     public class Curve

@@ -466,11 +466,7 @@ namespace OptimalChain
     }
 
     public class Order
-    {
-        public Order()
-        {
-
-        }
+    {       
         public Order(RequestParams req, SphericalGeom.Polygon capt, double coef)
         {
             request = req;
@@ -481,7 +477,7 @@ namespace OptimalChain
         /// <summary>
         /// параметры заказа
         /// </summary>
-        public RequestParams request { get; set; }
+        public RequestParams request { get; private set; }
 
         /// <summary>
         /// захваченная (заснятая) область
