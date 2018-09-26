@@ -89,11 +89,21 @@ namespace SessionsPlanning
         public string Prefix { get; private set; }
         public bool Zip { get; private set; }
         public bool Ftp { get; private set; }
-        private Random rand;
+        private static Random rand = new Random();
 
-        public DemHandler(string path, bool zip, bool ftp)
+        public static HashSet<string> nonzeroDems = null;
+        private static Dictionary<string, RasterData> loadedRasters = new Dictionary<string, RasterData>();
+        //private static const int maxNumOfLoadedRasters = 100;
+
+        public DemHandler(string path, string pathToNonzeroDemList) : this(path, true, true, pathToNonzeroDemList) { }
+
+        public DemHandler(string path, bool zip, bool ftp, string pathToNonzeroDemList)
         {
-            rand = new Random();
+            if (nonzeroDems == null)
+            {
+                nonzeroDems = new HashSet<string>(System.IO.File.ReadLines(pathToNonzeroDemList));
+            }
+            
             Path = path;
             Prefix = "";
             Zip = zip;
@@ -112,25 +122,31 @@ namespace SessionsPlanning
 
         private RasterData GetRaster(Tile tile)
         {
-            var dataSet = Gdal.Open(Prefix + Path + tile.Name + (Zip ? ".zip" : ""), OSGeo.GDAL.Access.GA_ReadOnly);
-            
-            if (dataSet.RasterCount != 1)
-                throw new Exception(String.Format("Wrong number of raster bands: {0}", dataSet.RasterCount));
+            if (!loadedRasters.ContainsKey(tile.Name))
+            {
+                var dataSet = Gdal.Open(Prefix + Path + tile.Name + (Zip ? ".zip" : ""), OSGeo.GDAL.Access.GA_ReadOnly);
 
-            var rasterBand = dataSet.GetRasterBand(1);
-            int xs = rasterBand.XSize;
-            int ys = rasterBand.YSize;
+                if (dataSet.RasterCount != 1)
+                    throw new Exception(String.Format("Wrong number of raster bands: {0}", dataSet.RasterCount));
 
-            if (rasterBand.DataType != OSGeo.GDAL.DataType.GDT_Int16)
-                throw new Exception(String.Format("Wrong data format: {0}", rasterBand.DataType));
+                var rasterBand = dataSet.GetRasterBand(1);
+                int xs = rasterBand.XSize;
+                int ys = rasterBand.YSize;
 
-            Int16[] data = new Int16[xs * ys];
-            rasterBand.ReadRaster(0, 0, xs, ys, data, xs, ys, 0, 0);
+                if (rasterBand.DataType != OSGeo.GDAL.DataType.GDT_Int16)
+                    throw new Exception(String.Format("Wrong data format: {0}", rasterBand.DataType));
 
-            double[] geoTransform = new double[6];
-            dataSet.GetGeoTransform(geoTransform);
-            
-            return new RasterData { Data = data, xSize = xs, ySize = ys, GeoTransform = geoTransform };
+                Int16[] data = new Int16[xs * ys];
+                rasterBand.ReadRaster(0, 0, xs, ys, data, xs, ys, 0, 0);
+
+                double[] geoTransform = new double[6];
+                dataSet.GetGeoTransform(geoTransform);
+
+                RasterData loaded = new RasterData { Data = data, xSize = xs, ySize = ys, GeoTransform = geoTransform };
+                loadedRasters.Add(tile.Name, loaded);
+            }
+
+            return loadedRasters[tile.Name];
         }
 
         private Int16 GetHeight(RasterData rasterData, double lat, double lon)
@@ -147,74 +163,49 @@ namespace SessionsPlanning
             return GetHeight(rasterData, gp.Latitude, gp.Longitude);
         }
 
-        public OSGeo.GDAL.Dataset Open(string path)
+        private OSGeo.GDAL.Dataset Open(string path)
         {
             return Gdal.Open(path, OSGeo.GDAL.Access.GA_ReadOnly);
         }
 
         public Int16 GetHeight(GeoPoint gp)
         {
-            RasterData rasterData = GetRaster(new Tile(gp));
-            return GetHeight(rasterData, gp.Latitude, gp.Longitude);
+            Tile tile = new Tile(gp);
+            if (nonzeroDems.Contains(tile.Name))
+                return GetHeight(GetRaster(new Tile(gp)), gp);
+            else
+                return 0;
         }
 
-        //private List<Int16> GetCoveredHeights(Polygon p)
-        //{
-        //    GeoPoint inner = GeoPoint.FromCartesian(p.PointInside());
-        //    var data = GetRaster(inner);
+        public Int16 GetAverageHeight(Polygon p, uint samples = 1000)
+        {
+            int height = 0;
+            Vector3D v;
 
-        //    // if less than 3 arcseconds
-        //    if (p.Diameter < 3.5 / 60 / 180 * Math.PI)
-        //        return new List<Int16> { GetHeight(data, inner) };
-        //    else
-        //    {
-                
-        //    }
-        //}
-
-        //public Int16 GetAverageHeight(Polygon p, uint samples = 1000)
-        //{
-        //    int height = 0;
-        //    Vector3D v;
-        //    Dictionary<string, RasterData> data = new Dictionary<string,RasterData>();
-
-        //    for (int i = 0; i < samples; ++i)
-        //    {
-        //        do
-        //        {
-        //            v = RandomConvexCombination(p.Vertices);
-        //        } while (!p.Contains(v));
-        //        GeoPoint gp = GeoPoint.FromCartesian(v);
-        //        Tile tile = new Tile(gp);
-        //        if (!data.ContainsKey(tile.Name))
-        //        {
-        //            data.Add(tile.Name, GetRaster(tile));
-        //        }
-        //        height += GetHeight(data[tile.Name], gp);
-        //    }
-        //    return (Int16) (height / samples);
-        //}
+            for (int i = 0; i < samples; ++i)
+            {
+                do
+                {
+                    v = RandomConvexCombination(p.Vertices);
+                } while (!p.Contains(v));
+                GeoPoint gp = GeoPoint.FromCartesian(v);
+                height += GetHeight(gp);
+            }
+            return (Int16)(height / samples);
+        }
 
         private Vector3D RandomConvexCombination(IList<Vector3D> verts)
         {
             int from = rand.Next(0, verts.Count - 1);
             Vector3D v = new Vector3D(0, 0, 0);
-            double curLambda, leftLambda = 1;
+            double curLambda, remainingLambda = 1;
             for (int i = 0; i < verts.Count - 1; ++i)
             {
-                curLambda = rand.NextDouble() * leftLambda;
+                curLambda = rand.NextDouble() * remainingLambda;
                 v += curLambda * verts[(from + i) % verts.Count];
-                leftLambda -= curLambda;
+                remainingLambda -= curLambda;
             }
             return v;
         }
-
-        //private List<GeoPoint> SampleSquare(GeoPoint lowerLeft, uint count = 1000)
-        //{
-        //    var output = new List<GeoPoint>();
-        //    for (uint i = 0; i < count; ++i)
-        //        output.Add(new GeoPoint(lowerLeft.Latitude + rand.NextDouble(), lowerLeft.Longitude + rand.NextDouble()));
-        //    return output;
-        //}
     }
 }
