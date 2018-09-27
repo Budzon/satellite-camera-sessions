@@ -1760,7 +1760,8 @@ namespace ConsoleExecutor
 
 
             var routeToDelete = mpzArray[1].Routes[0];
-            Sessions.removeRouteFromPNBWithSession(routeToDelete.Parameters, mpzArray, DateTime.MinValue, DateTime.MaxValue, cupConnStr, cuksConnStr);
+            List<MPZParams> PNB =  mpzArray.Select(m => m.Parameters).ToList();
+            Sessions.removeRouteFromPNBWithSession(routeToDelete.Parameters, PNB, DateTime.MinValue, DateTime.MaxValue, cupConnStr, cuksConnStr);
 
 
             Console.Write("GEOMETRYCOLLECTION(");
@@ -1913,7 +1914,7 @@ namespace ConsoleExecutor
             DateTime start = DateTime.Now;
 
             //test_TestSessionsSequenses();
-            test_checkIfViewLaneIsLit();
+            test_removeRouteFromPNBWithSession();
             //testMPZError_11_09_18();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 

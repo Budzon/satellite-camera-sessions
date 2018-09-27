@@ -45,20 +45,36 @@ namespace OptimalChain
             Station = copyed.Station;
         }
 
-        public MPZParams(int i)
+        public MPZParams(int ID)
         {
-            id = i;
+            id = ID;
             PWR_ON = false;
             routes = new ObservableCollection<RouteParams>();
             routes.CollectionChanged += renumerateRoutes;
         }
 
-        public MPZParams(int i, RouteParams r) : this(i)
+        public MPZParams(int ID, RouteParams r) 
+            : this(ID)
         {                       
             routes.Add(r);            
             start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);            
         }
+
+        /// <summary>
+        /// Конструктор МПЗ на основе готовых маршрутов (без пересчёта времён)
+        /// </summary>
+        /// <param name="ID">NPZ, номер МПЗ</param>
+        /// <param name="routesList">массив маршрутов</param>
+        /// <param name="PWR_ON"></param>
+        public MPZParams(int ID, List<RouteParams> routesList, bool PWR_ON)
+            : this(ID)
+        {
+            routes = new ObservableCollection<RouteParams>(routesList);
+            start = routesList.First().start.AddMilliseconds(-Constants.MPZ_starting_Time);
+            end = routesList.Last().end.AddMilliseconds(Constants.MPZ_ending_Time);
+        }
+        
       
         public bool AddRoute(RouteParams r)
         {

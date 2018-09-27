@@ -423,27 +423,7 @@ namespace SatelliteTrajectory
             TrajectoryPoint trajPoint = trajectory.GetPoint(time);
             return new LanePos(trajPoint, viewAngle, rollAngle);
         }
-
-        /*
-        public LanePos this[int ind]
-        {
-            get
-            {
-                int global_ind = 0;
-                foreach (var sector in Sectors)
-                {
-                    int scount = sector.sectorPoints.Count;
-                    global_ind += scount;
-                    int sect_ind = ind + scount - global_ind;
-                    if (sect_ind >= 0)
-                    {
-                        return sector.sectorPoints[sect_ind];
-                    }
-                }
-                return null;
-            }
-        }
-        */
+ 
     }
 
 
@@ -646,85 +626,7 @@ namespace SatelliteTrajectory
 
     
     public class TrajectoryRoutines
-    {
-        /*
-        public static List<PolygonLit> GetOneSatTurnLitParts(List<LanePos> turn)
-        {
-            List<PolygonLit> res = new List<PolygonLit> { };
-
-            bool onLitStreak = false;
-            int streakBegin = -1;
-
-            for (int i = 0; i < turn.Count - 1; ++i)
-            {
-                Vector3D sun = Astronomy.SunPosition.GetPositionGreenwich(turn[i].Time).ToVector();
-                Polygon sector = FormSectorFromLanePoints(turn, i, i + 1);
-
-                var LitAndNot = Polygon.IntersectAndSubtract(sector, Polygon.Hemisphere(sun));
-                bool allLit = LitAndNot.Item2.Count == 0;
-                bool allUnlit = LitAndNot.Item1.Count == 0;
-
-                if (streakBegin != -1)
-                {
-                    // On streak -- either continue one or make a master-sector.
-                    if ((allLit && onLitStreak) || (allUnlit && !onLitStreak))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        Polygon masterSector = FormSectorFromLanePoints(turn, streakBegin, i);
-                        res.Add(new PolygonLit { Polygon = masterSector, Lit = onLitStreak });
-                        streakBegin = -1;
-                    }
-                }
-
-                // Not on streak here -- either start one or just add to output lists.
-                if (allLit)
-                {
-                    onLitStreak = true;
-                    streakBegin = i;
-                }
-                else if (allUnlit) // totally unlit
-                {
-                    onLitStreak = false;
-                    streakBegin = i;
-                }
-                else
-                {
-                    foreach (Polygon p in LitAndNot.Item1)
-                        res.Add(new PolygonLit { Polygon = p, Lit = true });
-                    foreach (Polygon p in LitAndNot.Item2)
-                        res.Add(new PolygonLit { Polygon = p, Lit = false });
-                }
-            }
-
-            return res;
-        }
-
-        public static Polygon FormSectorFromLanePoints(List<LanePos> turn, int from, int to, int step = 1)
-        {
-            List<Vector3D> vertices = new List<Vector3D>();
-            List<Vector3D> apexes = new List<Vector3D>();
-
-            for (int i = from; i < to; i += step)
-            {
-                vertices.Add(turn[i].RightCartPoint);
-                apexes.Add(turn[i].RightControlPoint);
-            }
-            vertices.Add(turn[to].RightCartPoint);
-            apexes.Add(new Vector3D(0, 0, 0));
-            for (int i = to; i > from; i -= step)
-            {
-                vertices.Add(turn[i].LeftCartPoint);
-                apexes.Add(turn[i].LeftControlPoint);
-            }
-            vertices.Add(turn[from].LeftCartPoint);
-            apexes.Add(new Vector3D(0, 0, 0));
-
-            return new Polygon(vertices, apexes);
-        }
-        */
+    { 
 
         public static Polygon FormSectorFromLanePoints(List<LanePos> turn, int from, int to)
         {
@@ -1175,7 +1077,6 @@ namespace SatelliteTrajectory
         {
             get { return viewParams.Value.topRightViewPoint; }
         }
-
 
         /// <summary>
         /// получить заднюю (по направлению скорости) правую точку полигона видимости
