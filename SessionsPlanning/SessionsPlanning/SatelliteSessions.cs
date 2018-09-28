@@ -60,7 +60,7 @@ namespace SatelliteSessions
                         }
             var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
             FlagsMPZ flags = new FlagsMPZ();
-            mpzs = mpzParams.Select(p => new MPZ(p, managerDB, managerDbCUKS, flags)).ToList();
+            mpzs = mpzParams.Select(p => new MPZ(p, managerDB.sqlConnection.ConnectionString, managerDbCUKS.sqlConnection.ConnectionString, flags)).ToList();
         }
 
         /// <summary>
@@ -678,11 +678,11 @@ namespace SatelliteSessions
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
 
             deleteMpzParams.AddRange(MPZParams.FillMPZ(deleteRoutesParams, maxMpzNum));
-
+             
             mpzArray = new List<MPZ>();
-            mpzArray.AddRange(captureMPZParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
-            mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
-            mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(captureMPZParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
 
             // составим массив использованных сессий
             sessions = new List<CommunicationSession>();
@@ -722,7 +722,7 @@ namespace SatelliteSessions
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, Nmax);
             DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
-            return mpzParams.Select(param => new MPZ(param, managerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
+            return mpzParams.Select(param => new MPZ(param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())).ToList();
         }
 
         public static Trajectory getMaxCorridorTrajectory(Trajectory trajectory, DateTime start)
