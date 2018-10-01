@@ -1233,6 +1233,7 @@ namespace SatelliteSessions
             {
                 newMPZ = tmpList.First();
                 modRouteParams.NPZ = newMPZ.id;
+                PNB.Add(newMPZ);
             }
             else
             {

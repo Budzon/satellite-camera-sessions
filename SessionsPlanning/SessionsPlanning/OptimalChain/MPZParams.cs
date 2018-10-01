@@ -67,12 +67,13 @@ namespace OptimalChain
         /// <param name="ID">NPZ, номер МПЗ</param>
         /// <param name="routesList">массив маршрутов</param>
         /// <param name="PWR_ON"></param>
-        public MPZParams(int ID, List<RouteParams> routesList, bool PWR_ON)
+        public MPZParams(int ID, List<RouteParams> routesList, bool PWR_ON, CommunicationSessionStation mpzStation)
             : this(ID)
-        {
+        {            
             routes = new ObservableCollection<RouteParams>(routesList);
             start = routesList.First().start.AddMilliseconds(-Constants.MPZ_starting_Time);
             end = routesList.Last().end.AddMilliseconds(Constants.MPZ_ending_Time);
+            Station = mpzStation;
         }
         
       
