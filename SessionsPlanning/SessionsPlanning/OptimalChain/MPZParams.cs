@@ -30,6 +30,7 @@ namespace OptimalChain
         public DateTime start { get; set; }
         public DateTime end { get; set; }
         public int N_routes { get { return routes.Count; } }
+        public bool is_reserve_conf { get { return false; } }
        // public List<RouteParams> routes { get; set; }
         public CommunicationSessionStation? Station { get; set; }
         public ObservableCollection<RouteParams> routes { get; set; }
@@ -45,20 +46,37 @@ namespace OptimalChain
             Station = copyed.Station;
         }
 
-        public MPZParams(int i)
+        public MPZParams(int ID)
         {
-            id = i;
+            id = ID;
             PWR_ON = false;
             routes = new ObservableCollection<RouteParams>();
             routes.CollectionChanged += renumerateRoutes;
         }
 
-        public MPZParams(int i, RouteParams r) : this(i)
+        public MPZParams(int ID, RouteParams r) 
+            : this(ID)
         {                       
             routes.Add(r);            
-            start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
+            start = r.start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);            
         }
+
+        /// <summary>
+        /// Конструктор МПЗ на основе готовых маршрутов (без пересчёта времён)
+        /// </summary>
+        /// <param name="ID">NPZ, номер МПЗ</param>
+        /// <param name="routesList">массив маршрутов</param>
+        /// <param name="PWR_ON"></param>
+        public MPZParams(int ID, List<RouteParams> routesList, bool PWR_ON, CommunicationSessionStation mpzStation)
+            : this(ID)
+        {            
+            routes = new ObservableCollection<RouteParams>(routesList);
+            start = routesList.First().start.AddMilliseconds(-Constants.MPZ_starting_Time);
+            end = routesList.Last().end.AddMilliseconds(Constants.MPZ_ending_Time);
+            Station = mpzStation;
+        }
+        
       
         public bool AddRoute(RouteParams r)
         {
@@ -68,7 +86,7 @@ namespace OptimalChain
             routes.Add(r);            
 
             if (N_routes < 2)
-                start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
+                start = r.start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
 
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);
             return true;
@@ -112,7 +130,7 @@ namespace OptimalChain
             }
 
             double delta_time = (r.start - this.end).TotalMilliseconds;
-            double dt_mpz = delta_time - Constants.MPZ_starting_Time - Constants.MPZ_init_Time;
+            double dt_mpz = delta_time - Constants.SOEN_turning_on_Time - Constants.MPZ_init_Time;
 
             return (dt_mpz > 0);
         }
@@ -121,17 +139,17 @@ namespace OptimalChain
         {
             if(r==null)
             {
-                if((m2.start- m1.end).TotalMilliseconds > Constants.MPZ_ending_Time_PWRON + Constants.MPZ_starting_Time + 2 * Constants.MPZ_delta)
+                if((m2.start- m1.end).TotalMilliseconds > Constants.MPZ_ending_Time_PWRON + Constants.SOEN_turning_on_Time + 2 * Constants.MPZ_delta)
                 {
                     MPZParams m = new MPZParams(0);
-                    m.start = m1.end.AddMilliseconds(Constants.MPZ_starting_Time + Constants.MPZ_delta);
+                    m.start = m1.end.AddMilliseconds(Constants.SOEN_turning_on_Time + Constants.MPZ_delta);
                     m.end = m.start;
                     return m;
                 }
             }
             else
             {
-                double Tmpz = (r.Last().end - r[0].start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON + Constants.MPZ_starting_Time + 2 * Constants.MPZ_delta;
+                double Tmpz = (r.Last().end - r[0].start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON + Constants.SOEN_turning_on_Time + 2 * Constants.MPZ_delta;
                 if ((m2.start - m1.end).TotalMilliseconds < Tmpz)
                     return null;
 
@@ -290,9 +308,132 @@ namespace OptimalChain
             return FTAs;
         }
     }
+
  
+
     public class RouteParams
     {
+
+        /// <summary>
+        /// Конструктор для создания параметров маршрута на съемку
+        /// </summary>
+        /// <param name="_type">тип работы (съемка или съемка со сбросом)</param>
+        /// <param name="_shooting_type">тип съемки</param>
+        /// <param name="_shooting_channel">канал </param>
+        /// <param name="_start">время начала маршрута</param>
+        /// <param name="_end">время конца маршрута</param>
+        /// <param name="_roll">крен</param>
+        /// <param name="_pitch">тангаж</param>        
+        /// <param name="_wktPolygon">полигон, снимаемый этим маршрутом</param>        
+        /// <param name="_poli_coef">полиноминальные коэффициенты (если крен)</param>
+        public RouteParams(
+            WorkingType _type,
+            ShootingType _shooting_type,
+            ShootingChannel _shooting_channel,
+            DateTime _start,
+            DateTime _end,
+            double _roll,
+            double _pitch,
+            string _wktPolygon,
+            SatelliteSessions.PolinomCoef _poli_coef = null)
+        {
+            if (!(_type == WorkingType.Shooting || _type == WorkingType.ShootingSending))
+                throw new ArgumentException("This ctr can create only shooting route");
+
+            if (_shooting_type == ShootingType.Coridor && _poli_coef == null)
+                throw new ArgumentException("PolinomCoef must be != null for Coridor shoooting ");
+
+            type = _type;
+            start = _start;
+            end = _end;
+            roll = _roll;
+            pitch = _pitch;
+            shooting_channel = _shooting_channel;
+            shooting_type = _shooting_type;
+            poli_coef = _poli_coef;
+            wktPolygon = _wktPolygon;
+            fileSize = new Lazy<int>(() => calculateFileSize());
+        }
+
+
+        public RouteParams(StaticConf conf)
+            : this(conf.type,
+                   conf.shooting_type,
+                   conf.shooting_channel,
+                   conf.dateFrom,
+                   conf.dateTo,
+                   conf.roll,
+                   conf.pitch,
+                   conf.wktPolygon,
+                   conf.poliCoef)
+        {
+            id = conf.id;
+            wktPolygon = conf.wktPolygon;
+            Requests = conf.orders.Select(o => o.request).ToList();
+        }
+
+        public RouteParams(
+            WorkingType t,
+            double dur,
+            RouteParams _binded_route,
+            double roll,
+            double pitch)
+        {
+            if (t == WorkingType.Shooting || t == WorkingType.ShootingSending)
+                throw new ArgumentException("Cannot create shooting route whit this ctr");
+
+            type = t;
+            binded_route = _binded_route;
+            duration = dur;
+            NRoute = -1;
+            NPZ = -1;
+            this.roll = roll;
+            this.pitch = pitch;
+            fileSize = new Lazy<int>(() => calculateFileSize());
+        }
+
+        public RouteParams(
+            WorkingType t,
+            DateTime d1,
+            DateTime d2,
+            RouteParams _binded_route,
+            double roll,
+            double pitch)
+            : this(t, (d2 - d1).TotalSeconds, _binded_route, roll, pitch)
+        {
+            start = d1;
+            end = d2;
+        }
+
+
+        public RouteParams(RouteParams copyed)
+        {
+            id = copyed.id;
+            NRoute = copyed.NRoute;
+            NPZ = copyed.NPZ;
+            type = copyed.type;
+            start = copyed.start;
+            end = copyed.end;
+            binded_route = copyed.binded_route;
+            shooting_channel = copyed.shooting_channel;
+            shooting_type = copyed.shooting_type;
+            albedo = copyed.albedo;
+            zipMK = copyed.zipMK;
+            zipPK = copyed.zipPK;
+            duration = copyed.duration;
+            energo_save_mode = copyed.energo_save_mode;
+            TNPos = copyed.TNPos;
+            Delta_T = copyed.Delta_T;
+            coridorLength = copyed.coridorLength;
+            coridorAzimuth = copyed.coridorAzimuth;
+            roll = copyed.roll;
+            pitch = copyed.pitch;
+            poli_coef = copyed.poli_coef;
+            formatting_options = copyed.formatting_options;
+            wktPolygon = copyed.wktPolygon;
+            fileSize = copyed.fileSize;
+        }
+
         /// <summary>
         /// номер маршрута в мпз
         /// </summary>
@@ -318,58 +459,31 @@ namespace OptimalChain
 
         public RouteParams binded_route { get; set; }
 
+        public List<RequestParams> Requests { get; private set; }
+
         public double roll { get; set; }
         public double pitch { get; set; }
-        public string shootingPolygon { get; set; }
-        private int fileSize;
-        private bool know_fileSize = false;
+        public string wktPolygon { get; set; }
+        private Lazy<int> fileSize;
+        
         /// <summary>
         /// объем файла в Мб
         /// </summary>
         public int File_Size {
-            get 
-            {
-                if (!know_fileSize)
-                {
-                    int CodVznCalibr = 1;
-                    //if (RegimeType == RegimeTypes.ZI_cal)
-                    //    if (REGta_Param_bytes[1] == 0)
-                    //        CodVznCalibr = 1;
-                    //    else
-                    //        CodVznCalibr = REGta_Param_bytes[1];
-                    //else
-                    //    CodVznCalibr = 1;
-                    int Nm = shooting_channel == ShootingChannel.pk ? 0 : 4;
-                    int Np = shooting_channel == ShootingChannel.mk ? 0 : 1;
-                    int zipmk = Math.Max(1, zipMK);
-                    int zippk = Math.Max(1, zipPK);
-                    fileSize = (int)(InformationFluxInBits(roll, pitch,
-                        Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (end - start).TotalSeconds / (1 << 23));
-                    know_fileSize = true;
-                }
-                return fileSize;
-            }
+            get { return fileSize.Value; }
         }
-
-        private byte hroute;
-        private bool know_hroute = false;
+        
         public byte Hroute
         {
-            get 
+            get
             {
-                if (!know_hroute)
-                {
-                    if ((type == WorkingType.Shooting) || (type == WorkingType.ShootingSending))
-                        hroute = 200;
-                    else
-                        hroute = 0;
-                    know_hroute = true;
-                }
-                return hroute;
+                if ((type == WorkingType.Shooting) || (type == WorkingType.ShootingSending))
+                    return 200;
+                else
+                    return 0;                  
             }
         }
-
-
+        
         /// <summary>
         /// внутренний id маршрута для графа (не NRoute)
         /// </summary>
@@ -432,124 +546,7 @@ namespace OptimalChain
             return new TimeSpan(0, 0, 0, (int)(File_Size / speed * 8 + 1)); // время на сброс этого роута
         }
 
-
-        /// <summary>
-        /// Конструктор для создания параметров маршрута на съемку
-        /// </summary>
-        /// <param name="_type">тип работы (съемка или съемка со сбросом)</param>
-        /// <param name="_shooting_type"></param>
-        /// <param name="_shooting_channel"></param>
-        /// <param name="_start"></param>
-        /// <param name="_end"></param>
-        /// <param name="_roll"></param>
-        /// <param name="_pitch"></param>
-        /// <param name="_binded_route"></param>
-        /// <param name="_poli_coef"></param>
-        public RouteParams(
-            WorkingType _type,
-            ShootingType _shooting_type,
-            ShootingChannel _shooting_channel,
-            DateTime _start,
-            DateTime _end,
-            double _roll,
-            double _pitch,
-            string _shootingPolygon,
-            SatelliteSessions.PolinomCoef _poli_coef = null)
-        {
-            if (!(_type == WorkingType.Shooting || _type == WorkingType.ShootingSending))
-                throw new ArgumentException("This ctr can create only shooting route");
-
-            if (_shooting_type == ShootingType.Coridor && _poli_coef == null)
-                throw new ArgumentException("PolinomCoef must be != null for Coridor shoooting ");
-
-            type = _type;
-            start = _start;
-            end = _end;
-            roll = _roll;
-            pitch = _pitch;
-            shooting_channel = _shooting_channel;
-            shooting_type = _shooting_type;
-            poli_coef = _poli_coef;
-            shootingPolygon = _shootingPolygon;
-        }
          
-
-        public RouteParams(StaticConf conf)
-            : this(
-            conf.type,
-            conf.shooting_type,
-            conf.shooting_channel,
-            conf.dateFrom,
-            conf.dateTo,
-            conf.roll,
-            conf.pitch,
-            conf.wktPolygon,
-            conf.poliCoef)
-        {
-            id = conf.id;
-            shootingPolygon = conf.wktPolygon;
-        }
-
-        public RouteParams(
-            WorkingType t,
-            double dur,
-            RouteParams _binded_route,
-            double roll,
-            double pitch)
-        {
-            if (t == WorkingType.Shooting || t == WorkingType.ShootingSending)
-                throw new ArgumentException("Cannot create shooting route whit this ctr");
-
-            type = t;
-            binded_route = _binded_route;
-            duration = dur;
-            NRoute = -1;
-            NPZ = -1;
-            this.roll = roll;
-            this.pitch = pitch;
-        }
-
-        public RouteParams(
-            WorkingType t,
-            DateTime d1,
-            DateTime d2,
-            RouteParams _binded_route,
-            double roll,
-            double pitch)
-            : this (t, (d2-d1).TotalSeconds, _binded_route, roll, pitch)
-        {                
-            start = d1;
-            end = d2;            
-        }
-
-
-        public RouteParams(RouteParams copyed)
-        {
-            id = copyed.id;
-            NRoute = copyed.NRoute;
-            NPZ = copyed.NPZ;
-            type = copyed.type;
-            start = copyed.start;
-            end = copyed.end;
-            binded_route = copyed.binded_route;
-            shooting_channel = copyed.shooting_channel;
-            shooting_type = copyed.shooting_type;
-            albedo = copyed.albedo;
-            zipMK = copyed.zipMK;
-            zipPK = copyed.zipPK;
-            duration = copyed.duration;
-            energo_save_mode = copyed.energo_save_mode;
-            TNPos = copyed.TNPos;
-            Delta_T = copyed.Delta_T;
-            coridorLength = copyed.coridorLength;
-            coridorAzimuth = copyed.coridorAzimuth;
-            roll = copyed.roll;
-            pitch = copyed.pitch;
-            poli_coef = copyed.poli_coef;
-            formatting_options = copyed.formatting_options;
-            shootingPolygon = shootingPolygon;
-        }
-
 
         /// <summary>
         /// Проверка совместимоси двух маршрутов
@@ -580,7 +577,6 @@ namespace OptimalChain
             double dms = (r2.start - r1.end).TotalMilliseconds;
 
             return (ms < dms);
-
         }
 
         public double reConfigureMilisecinds(RouteParams r2)
@@ -637,5 +633,28 @@ namespace OptimalChain
 
             return WD0 * Math.Pow(Math.Cos(pitch), 2) * Math.Cos(roll);
         }
+
+
+
+
+        private int calculateFileSize()
+        {
+            int CodVznCalibr = 1;
+            //if (RegimeType == RegimeTypes.ZI_cal)
+            //    if (REGta_Param_bytes[1] == 0)
+            //        CodVznCalibr = 1;
+            //    else
+            //        CodVznCalibr = REGta_Param_bytes[1];
+            //else
+            //    CodVznCalibr = 1;
+            int Nm = shooting_channel == ShootingChannel.pk ? 0 : 4;
+            int Np = shooting_channel == ShootingChannel.mk ? 0 : 1;
+            int zipmk = Math.Max(1, zipMK);
+            int zippk = Math.Max(1, zipPK);
+            int res = (int)(InformationFluxInBits(roll, pitch,
+                Hroute, CodVznCalibr, Nm, zipmk, Np, zippk) * (end - start).TotalSeconds / (1 << 23));
+            return res;
+        }
+
     }
 }

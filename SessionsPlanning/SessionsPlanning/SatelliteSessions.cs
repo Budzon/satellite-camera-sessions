@@ -60,7 +60,7 @@ namespace SatelliteSessions
                         }
             var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
             FlagsMPZ flags = new FlagsMPZ();
-            mpzs = mpzParams.Select(p => new MPZ(p, managerDB, managerDbCUKS, flags)).ToList();
+            mpzs = mpzParams.Select(p => new MPZ(p, managerDB.sqlConnection.ConnectionString, managerDbCUKS.sqlConnection.ConnectionString, flags)).ToList();
         }
 
         /// <summary>
@@ -678,11 +678,11 @@ namespace SatelliteSessions
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
 
             deleteMpzParams.AddRange(MPZParams.FillMPZ(deleteRoutesParams, maxMpzNum));
-
+             
             mpzArray = new List<MPZ>();
-            mpzArray.AddRange(captureMPZParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
-            mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
-            mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(captureMPZParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
+            mpzArray.AddRange(deleteMpzParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
 
             // составим массив использованных сессий
             sessions = new List<CommunicationSession>();
@@ -722,7 +722,7 @@ namespace SatelliteSessions
             List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, Nmax);
             DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
-            return mpzParams.Select(param => new MPZ(param, managerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
+            return mpzParams.Select(param => new MPZ(param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())).ToList();
         }
 
         public static Trajectory getMaxCorridorTrajectory(Trajectory trajectory, DateTime start)
@@ -971,7 +971,7 @@ namespace SatelliteSessions
         }
 
 
-        ///\<summary>
+        ///<summary>
         ///Разбиение полосы видимости КА под траекторией на полигоны освещенности.
         ///</summary>
         ///<param name="DBManager">Параметры подключения к БД</param>
@@ -1020,12 +1020,12 @@ namespace SatelliteSessions
                  int, ConcurrentDictionary<
                  int, Tuple<List<Polygon>, List<Polygon>>>>();
 
-            int num_steps = laneParts.Take(laneParts.Count - 1).Sum(turn => turn.Item2.Count == 0 ? 0 : turn.Item2.Count - 1);
+            int num_steps = laneParts.Sum(turn => turn.Item2.Count == 0 ? 0 : turn.Item2.Count - 1);
             Tuple<int, int>[] numberList = new Tuple<int, int>[num_steps];
             int[] SunPositionsIndexes = new int[num_steps];
             int curSunPositionIndex = 0;
             int totalNum = 0;
-            for (int turnInd = 0; turnInd < laneParts.Count - 1; ++turnInd)
+            for (int turnInd = 0; turnInd < laneParts.Count; ++turnInd)
             {
                 concurrentDict[turnInd] = new ConcurrentDictionary<int, Tuple<List<Polygon>, List<Polygon>>>();
                 var lanePart = laneParts[turnInd];
@@ -1040,7 +1040,7 @@ namespace SatelliteSessions
                 }
             }
 
-
+            
 
 #if _PARALLEL_
             Parallel.For(0, num_steps, index =>
@@ -1064,7 +1064,7 @@ namespace SatelliteSessions
 #endif
 
 
-            for (int turn = 0; turn < laneParts.Count - 1; ++turn)
+            for (int turn = 0; turn < laneParts.Count; ++turn)
             {
                 var lanePart = laneParts[turn];
                 var lane = lanePart.Item2;
@@ -1160,20 +1160,20 @@ namespace SatelliteSessions
         /// <param name="routeParams">параметры маршрута</param>
         /// <param name="pnb">ПНБ</param>
         /// <param name="conflicts">список найденных конфликтов</param>
-        public static void checkPNBRouteCompatible(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
+        public static void checkPNBRouteCompatible(RouteParams routeParams, List<MPZParams> pnb, out List<Tuple<int, int>> conflicts)
         {
             conflicts = new List<Tuple<int, int>>();
             foreach (var mpz in pnb)
             {
-                if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
+                if (!mpz.isCompatibleWithMPZ(routeParams))
                 {
-                    conflicts.Add(Tuple.Create(mpz.Parameters.id, -1));
+                    conflicts.Add(Tuple.Create(mpz.id, -1));
                     continue;
                 }
-                foreach (var route in mpz.Routes)
+                foreach (var route in mpz.routes)
                 {
-                    if (!route.Parameters.isCompatible(routeParams))
-                        conflicts.Add(Tuple.Create(mpz.Parameters.id, route.Parameters.NRoute));
+                    if (!route.isCompatible(routeParams))
+                        conflicts.Add(Tuple.Create(mpz.id, route.NRoute));
                 }
             }
         }
@@ -1188,22 +1188,22 @@ namespace SatelliteSessions
         /// <param name="sessionStart">время начала сессии (null, если не задано)</param>
         /// <param name="sessionEnd">время конца сессии (null, если не задано)</param>
         public static void addRouteToPNB(RouteParams routeParams,
-            List<MPZ> PNB,
+            List<MPZParams> PNB,
             string connStringCup,
             string connStringCuks,
             out RouteParams modRouteParams,
-            out MPZ newMPZ)
+            out MPZParams newMPZ)
         {
             foreach (var mpz in PNB)
             {
-                if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
+                if (!mpz.isCompatibleWithMPZ(routeParams))
                 {
-                    throw new ArgumentException("Route has conflict with FTA #" + mpz.Parameters.id.ToString());
+                    throw new ArgumentException("Route has conflict with FTA #" + mpz.id.ToString());
                 }
-                foreach (var mpzRoute in mpz.Routes)
+                foreach (var mpzRoute in mpz.routes)
                 {
-                    if (!mpzRoute.Parameters.isCompatible(routeParams))
-                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.NRoute.ToString());
+                    if (!mpzRoute.isCompatible(routeParams))
+                        throw new ArgumentException("Route has conflict with Route #" + mpz.id.ToString() + "." + mpzRoute.NRoute.ToString());
                 }
             }
 
@@ -1216,23 +1216,24 @@ namespace SatelliteSessions
             for (int i = 0; i < PNB.Count; i++)
             {
                 var mpz = PNB[i];
-                var copyMpzParams = new MPZParams(mpz.Parameters);
+                var copyMpzParams = new MPZParams(mpz);
                 if (copyMpzParams.InsertRoute(modRouteParams, DateTime.MinValue, DateTime.MaxValue))
                 {
-                    mpz = new MPZ(copyMpzParams, CUPmanagerDB, CUKSmanagerDB, mpz.Flags);
-                    modRouteParams.NPZ = mpz.Header.NPZ;
+                    newMPZ = copyMpzParams;
+                    modRouteParams.NPZ = mpz.id;
                     return;
                 }
             }
 
-            int maxMPZNum = PNB.Max(mpz => mpz.Header.NPZ);
+            int maxMPZNum = PNB.Max(mpz => mpz.id);
 
             List<MPZParams> tmpList = MPZParams.FillMPZ(new List<RouteParams>() { modRouteParams }, maxMPZNum);
 
             if (tmpList.Count > 0)
             {
-                newMPZ = new MPZ(tmpList.First(), CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ());
-                modRouteParams.NPZ = newMPZ.Header.NPZ;
+                newMPZ = tmpList.First();
+                modRouteParams.NPZ = newMPZ.id;
+                PNB.Add(newMPZ);
             }
             else
             {
@@ -1252,23 +1253,23 @@ namespace SatelliteSessions
         /// <param name="PNB">Вся ПНБ (мпз, маршруты, который уже есть)</param>
         /// <param name="connStringCup">строка подключения к БД цуп</param>
         /// <param name="connStringCuks">строка подключения к БД цукс</param>        
-        public static List<MPZ> addRouteToPNBWithSession(
+        public static List<MPZParams> addRouteToPNBWithSession(
            CommunicationSession Session,
            RouteParams routeParams,
-           List<MPZ> PNB,
+           List<MPZParams> PNB,
            string connStringCup,
            string connStringCuks)
         {
             foreach (var mpz in PNB)
             {
-                if (!mpz.Parameters.isCompatibleWithMPZ(routeParams))
+                if (!mpz.isCompatibleWithMPZ(routeParams))
                 {
-                    throw new ArgumentException("Route has conflict with FTA #" + mpz.Parameters.id.ToString());
+                    throw new ArgumentException("Route has conflict with FTA #" + mpz.id.ToString());
                 }
-                foreach (var mpzRoute in mpz.Routes)
+                foreach (var mpzRoute in mpz.routes)
                 {
-                    if (!mpzRoute.Parameters.isCompatible(routeParams))
-                        throw new ArgumentException("Route has conflict with Route #" + mpz.Parameters.id.ToString() + "." + mpzRoute.Parameters.NRoute.ToString());
+                    if (!mpzRoute.isCompatible(routeParams))
+                        throw new ArgumentException("Route has conflict with Route #" + mpz.id.ToString() + "." + mpzRoute.NRoute.ToString());
                 }
             }
 
@@ -1278,19 +1279,18 @@ namespace SatelliteSessions
             for (int i = 0; i < PNB.Count; i++)
             {
                 var mpz = PNB[i];
-                if (mpz.Parameters.Station.HasValue)
+                if (mpz.Station.HasValue)
                 {
-                    if (mpz.Parameters.Station.Value != Session.Station)
+                    if (mpz.Station.Value != Session.Station)
                         continue;
                 }
 
-                MPZParams mpzparams = new MPZParams(mpz.Parameters);
+                MPZParams mpzparams = new MPZParams(mpz);
                 mpzparams.Station = Session.Station;
 
                 if (mpzparams.InsertRoute(routeParams, Session.Zone7timeFrom, Session.Zone7timeTo))
                 {
-                    mpz = new MPZ(mpzparams, CUPmanagerDB, CUKSmanagerDB, mpz.Flags);
-                    PNB.Add(mpz);
+                    PNB.Add(mpzparams);
                     return PNB;
                 }
             }
@@ -1300,7 +1300,7 @@ namespace SatelliteSessions
             if (newMPZs.Count == 0)
                 throw new ArgumentException("Cannot create a route with the specified parameters.");
 
-            PNB.AddRange(newMPZs.Select(prm => new MPZ(prm, CUPmanagerDB, CUKSmanagerDB, new FlagsMPZ())));
+            PNB.AddRange(newMPZs);
             return PNB;
         }
 
@@ -1314,32 +1314,39 @@ namespace SatelliteSessions
         /// <param name="sessionEnd">время конца сессии связи</param>
         /// <param name="connStringCup">строка подключения к бд ЦУП</param>
         /// <param name="connStringCuks">*временно* строка подключения к бд ЦУКС</param>
-        public static List<MPZ> removeRouteFromPNBWithSession(
-            RouteMPZ routeToDelete,
-            List<MPZ> PNB,
+        public static List<MPZParams> removeRouteFromPNBWithSession(
+            RouteParams routeToDelete,
+            List<MPZParams> PNB,
             DateTime sessionStart,
             DateTime sessionEnd,
             string connStringCup,
             string connStringCuks)
-        {
-            RouteParams routePrms = routeToDelete.Parameters;
+        { 
             TimePeriod sessionPeriod = new TimePeriod(sessionStart, sessionEnd);
-            if (!sessionPeriod.isContains(new TimePeriod(routePrms.start, routePrms.end)))
+            if (!sessionPeriod.isContains(new TimePeriod(routeToDelete.start, routeToDelete.end)))
                 throw new ArgumentException("Route is not in this commutication session period");
 
-            if (PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ) == null)
+            if (PNB.FirstOrDefault(m => m.id == routeToDelete.NPZ) == null)
                 throw new ArgumentException("There is no target MPZ in PNB");
 
-            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == routePrms.NPZ);
+            var mpz = PNB.FirstOrDefault(m => m.id == routeToDelete.NPZ);
             if (mpz == null)
                 throw new ArgumentException("There is no target MPZ in PNB");
-
-            List<RouteParams> routesParams = mpz.Routes.Select(r => r.Parameters).ToList();
+             
             //IEnumerable<RouteParams> newRoutesParams = routesParams.Where(r => r.NRoute != routeToDelete.NRoute);
-            int rcount = routesParams.RemoveAll(r => r.NRoute == routePrms.NRoute);
+            
+            bool removed = false;
+            foreach (var r in mpz.routes.ToList())
+            {
+                if (r.NRoute == routeToDelete.NRoute)
+                {
+                    removed = true;
+                    mpz.routes.Remove(r);
+                }
+            } 
             // теперь в routesParams лежат все маршруты (кроме удаляемого) на основе которых создастся новые мпз
 
-            if (rcount == 0)
+            if (!removed)
                 throw new ArgumentException("There is no target Route in PNB");
 
             //TimePeriod testPeriod = new TimePeriod(routeToDelete.end, Session.DropInterval.dateTo);
@@ -1355,15 +1362,15 @@ namespace SatelliteSessions
             //if (deletedRoutePeriod.isContains(lastRoutePeriod)) // вместо удалённого маршрута можно подставить последний
             //    downRoutes.Last().
 
-            List<MPZParams> newMPZParams = OptimalChain.MPZParams.FillMPZ(routesParams.ToList());
+            List<MPZParams> newMPZParams = OptimalChain.MPZParams.FillMPZ(mpz.routes.ToList());
 
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(connStringCup);
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(connStringCuks);
 
-            IEnumerable<MPZ> newMPZs = newMPZParams.Select(prms => new MPZ(prms, CUPmanagerDB, CUKSmanagerDB, mpz.Flags));
+            //IEnumerable<MPZ> newMPZs = newMPZParams.Select(prms => new MPZ(prms, CUPmanagerDB, CUKSmanagerDB, mpz.Flags));
 
             PNB.Remove(mpz);
-            PNB.AddRange(newMPZs);
+            PNB.AddRange(newMPZParams);
             return PNB;
         }
 
@@ -1374,19 +1381,19 @@ namespace SatelliteSessions
         /// <param name="PNB">ПНБ</param>
         /// <param name="MPZId">номер мпз, из которого удаляем маршрут</param>
         /// <param name="routeId">номер удаляемого маршрута</param>
-        public static void deleteRouteFromPNB(List<MPZ> PNB, int MPZId, int routeId)
+        public static void deleteRouteFromPNB(List<MPZParams> PNB, int MPZId, int routeId)
         {
-            var mpz = PNB.FirstOrDefault(m => m.Header.NPZ == MPZId);
+            var mpz = PNB.FirstOrDefault(m => m.id == MPZId);
 
             if (mpz == null)
                 throw new ArgumentException("Mpz id is incorrect");
 
-            var route = mpz.Routes.FirstOrDefault(r => r.Nroute == routeId);
+            var route = mpz.routes.FirstOrDefault(r => r.NRoute == routeId);
 
             if (route == null)
                 throw new ArgumentException("Route id is incorrect");
 
-            mpz.Routes.Remove(route);
+            mpz.routes.Remove(route);
         }
 
 

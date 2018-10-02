@@ -18,14 +18,20 @@ namespace SatelliteSessions
         public List<RouteMPZ> Routes { get; set; }
         public OptimalChain.MPZParams Parameters { get { return parameters; } }
         public FlagsMPZ Flags { get; private set; }
-        public MPZ(OptimalChain.MPZParams inpParameters, DIOS.Common.SqlManager DBmanager, DIOS.Common.SqlManager DBmanagerCUKS, FlagsMPZ flags)
+
+        public MPZ(OptimalChain.MPZParams inpParameters,
+            string conStringCUP,
+            string conStringCUKS,            
+            FlagsMPZ flags)
         {
+            DIOS.Common.SqlManager DBmanagerCUP = new DIOS.Common.SqlManager(conStringCUP);
+            DIOS.Common.SqlManager DBmanagerCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             Flags = flags;
             List<RouteMPZ> routes = new List<RouteMPZ>();
             parameters = inpParameters;
             foreach (var rout_params in inpParameters.routes)
             {
-                routes.Add(new RouteMPZ(rout_params, DBmanager));
+                routes.Add(new RouteMPZ(rout_params, DBmanagerCUP));
             }
 
             var shootings = parameters.routes.Where(route => 

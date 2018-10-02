@@ -362,7 +362,7 @@ namespace OptimalChain
                 foreach (RouteParams r in m.routes)
                 {
                     Console.WriteLine("-------------------------");
-                    Console.WriteLine( r.ShootingConf.id + " " + r.start + "  " + r.ShootingConf.roll + "  " + r.ShootingConf.pitch);
+                    Console.WriteLine( r.id + " " + r.start + "  " + r.roll + "  " + r.pitch);
                 }
             }
 

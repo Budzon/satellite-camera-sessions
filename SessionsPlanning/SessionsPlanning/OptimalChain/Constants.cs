@@ -12,8 +12,8 @@ namespace OptimalChain
         public const int MPZ_ending_Time = 7000;// 2с -- сохранение, 5с -- отключение СОЭН;
         public const int MPZ_ending_Time_PWRON = 7000;// 2с -- сохранение, 5с -- отключение СОЭН;
 
-        public const int MPZ_starting_Time =10000;// минимальное;
-        public const int MPZ_starting_Time_RESERVE = 120000;// c учетом перехода на резервную конфигурацию;
+        public const int SOEN_turning_on_Time =10000;// минимальное;
+        public const int SOEN_turning_on_Time_RESERVE = 120000;// c учетом перехода на резервную конфигурацию;
 
         public const int MPZ_init_Time = 47000;// минимальное;
         public const int MPZ_init_Time_RESERVE = 70000;// c учетом перехода на резервную конфигурацию;

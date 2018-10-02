@@ -16,52 +16,67 @@ namespace SphericalGeom
     public class Polygon
     {
         private SqlGeography _geography;
-        private const double maxArea = 2.5505e+14; // максимально возможная площадь (половина земной)
-        private bool knownVertices = false;
-        private Vector3D[] vertices;
+        private const double maxArea = 2.5505e+14; // максимально возможная площадь, поддержимаемая этой имплементацией полигона (половина земной)
+        private Lazy<Vector3D[]> vertices;
 
         public double Area { get; private set; }
 
+        /// <summary>
+        /// Основной конструктор
+        /// </summary>
+        /// <param name="geography">готовый sql полигон</param>
         public Polygon(SqlGeography geography)
         {
+            if (geography.STNumGeometries() != 1)
+                throw new ArgumentException("Uncorrect polygons number");
+            
+            if (!geography.STIsValid())
+                throw new ArgumentException("Uncorrect SqlGeography example");
+
             _geography = geography;
-            calcArea();       
+            calcArea();
+            vertices = new Lazy<Vector3D[]>(() => calcVertices());
         }
 
+        /// <summary>
+        /// констркутор полигона из строки
+        /// </summary>
+        /// <param name="wkt">строка в формате WKT</param>
         public Polygon(string wkt)
-            :this(SqlGeography.STGeomFromText(new SqlChars(wkt), 4326))
-        {}
+            : this(SqlGeography.STGeomFromText(new SqlChars(wkt), 4326))
+        { }
 
+        /// <summary>
+        /// Конструктор полигона из точек в пространстве
+        /// </summary>
+        /// <param name="points">координаты точек</param>
+        public Polygon(IEnumerable<Vector3D> points)
+            : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
+        { }
+
+
+        /// <summary>
+        /// Конструктор полигона из геогафических координат точек
+        /// </summary>
+        /// <param name="points">точки в географических координатах</param>
+        public Polygon(IEnumerable<GeoPoint> points)
+            : this(geoPointToGeom(points))
+        { }
+
+        /// <summary>
+        /// Корректность сформированного полигона
+        /// </summary>
+        /// <returns>false - некорректен</returns>
         public bool IsValid()
         {
             return (bool)_geography.STIsValid();
         }
 
-        public Polygon(IEnumerable<GeoPoint> points)
-        { 
-            SqlGeographyBuilder builder = new SqlGeographyBuilder();
-            builder.SetSrid(4326);
-            builder.BeginGeography(OpenGisGeographyType.Polygon);
-            GeoPoint firstgeop = points.First();
-            builder.BeginFigure(firstgeop.Latitude, firstgeop.Longitude);
-            foreach (var geop in points.Skip(1))
-            {
-                builder.AddLine(geop.Latitude, geop.Longitude);
-            }
-            builder.AddLine(firstgeop.Latitude, firstgeop.Longitude);
-            builder.EndFigure();
-            builder.EndGeography();
-            _geography = builder.ConstructedGeography;
-            calcArea();
-        }
-       
-        public Polygon(IEnumerable<Vector3D> points)
-            : this(points.Select(p => GeoPoint.FromCartesian(p)).ToList())
-        {
-            vertices = points.ToArray();
-            knownVertices = true;
-        }
-        
+        /// <summary>
+        ///  
+        /// </summary>
+        /// <param name="testP"></param>
+        /// <returns></returns>
         public bool Contains(GeoPoint testP)
         {
             SqlGeographyBuilder builder = new SqlGeographyBuilder();
@@ -80,10 +95,10 @@ namespace SphericalGeom
         }
 
         public void Add(Polygon other)
-        {           
+        {
             _geography = _geography.STUnion(other._geography);
         }
-        
+
         public string ToWtk()
         {
             return _geography.ToString();
@@ -136,16 +151,16 @@ namespace SphericalGeom
 
         public Polygon increasePointsNumber(int k)
         {
-//            Vector3D[] newVerts = new Vector3D[k * Vertices.Count()];
+            //            Vector3D[] newVerts = new Vector3D[k * Vertices.Count()];
             List<Vector3D> newVerts = new List<Vector3D>();
 
-            for (int i = 0; i < Vertices.Count()-2; i++ )
+            for (int i = 0; i < Vertices.Count() - 2; i++)
             {
 
                 double fullAngle = Astronomy.AstronomyMath.ToRad(Vector3D.AngleBetween(Vertices[i], Vertices[i + 1]));
 
-                Vector3D rotAxis = Vector3D.CrossProduct(Vertices[i], Vertices[i+1]);
-                
+                Vector3D rotAxis = Vector3D.CrossProduct(Vertices[i], Vertices[i + 1]);
+
                 newVerts.Add(Vertices[i]);
                 for (int j = 1; j < k; j++)
                 {
@@ -153,7 +168,7 @@ namespace SphericalGeom
                     var rotMatr = Routines.getRotMatr(rotAxis, angle);
                     Vector3D newVect = Routines.applyRotMatr(Vertices[i], rotMatr);
                     newVerts.Add(newVect);
-                }                
+                }
             }
 
             return new Polygon(newVerts);
@@ -167,7 +182,7 @@ namespace SphericalGeom
             IntPtr pstr = getPolygonSpine(this.ToWtk());
             string wktSkeleton = Marshal.PtrToStringAnsi(pstr);
             List<GeoPoint> points = new List<GeoPoint>();
-            
+
             try
             {
                 SqlGeography geom = SqlGeography.STGeomFromText(new SqlChars(wktSkeleton), 4326);
@@ -189,9 +204,7 @@ namespace SphericalGeom
         {
             get
             {
-                if (!knownVertices)
-                    calcVertices();
-                return vertices;
+                return vertices.Value;
             }
         }
 
@@ -216,18 +229,18 @@ namespace SphericalGeom
             return new Polygon(Vertices.Select(v => transpose ? frame.ToBaseFrame(v) : frame.ToThisFrame(v)));
         }
 
-        private void calcVertices()
-        {            
+        private Vector3D[] calcVertices()
+        {
             int size = (int)_geography.STNumPoints();
-            vertices = new Vector3D[size];
+            Vector3D[] verts = new Vector3D[size];
             for (int i = 1; i <= size; i++)
             {
                 GeoPoint gpoint = new GeoPoint(
                     (double)_geography.STPointN(i).Lat,
                     (double)_geography.STPointN(i).Long);
-                vertices[i-1] = GeoPoint.ToCartesian(gpoint, 1);
+                verts[i - 1] = GeoPoint.ToCartesian(gpoint, 1);
             }
-            knownVertices = true;
+            return verts;
         }
 
         public static List<Polygon> Intersect(Polygon p, Polygon q)
@@ -238,12 +251,12 @@ namespace SphericalGeom
 
             for (int i = 1; i <= intersection.STNumGeometries(); i++)
             {
-                intersects.Add( new Polygon(intersection.STGeometryN(i)) );
+                intersects.Add(new Polygon(intersection.STGeometryN(i)));
             }
             return intersects;
         }
 
-         
+
         public static List<Polygon> Subtract(Polygon p, Polygon q)
         {
             List<Polygon> res = new List<Polygon>();
@@ -256,7 +269,7 @@ namespace SphericalGeom
         }
 
 
-		public static List<Polygon> Subtract(Polygon p, IEnumerable<Polygon> qs)
+        public static List<Polygon> Subtract(Polygon p, IEnumerable<Polygon> qs)
         {
             List<Polygon> diff = new List<Polygon>() { p };
             foreach (var q in qs)
@@ -271,7 +284,7 @@ namespace SphericalGeom
             }
             return diff;
         }
-        
+
 
         public static Tuple<List<Polygon>, List<Polygon>> IntersectAndSubtract(Polygon p, Polygon q)
         {
@@ -281,7 +294,7 @@ namespace SphericalGeom
         public static string getMultipolFromWkts(List<string> wkts)
         {
             string res = "";
-            
+
             if (wkts.Count == 0)
                 return res;
 
@@ -292,11 +305,11 @@ namespace SphericalGeom
                     res += ",";
             }
             res = "GEOMETRYCOLLECTION (" + res + ")";
-            
+
             return res;
         }
 
-       
+
         public static string getMultipolFromPolygons(List<Polygon> polygons)
         {
             string res = "";
@@ -315,10 +328,27 @@ namespace SphericalGeom
         }
 
         private void calcArea()
-        { 
+        {
             Area = (double)_geography.STArea();
             if (Area >= maxArea)
                 throw new ArgumentException("Wrong points order");
+        }
+
+        private static SqlGeography geoPointToGeom(IEnumerable<GeoPoint> points)
+        {
+            SqlGeographyBuilder builder = new SqlGeographyBuilder();
+            builder.SetSrid(4326);
+            builder.BeginGeography(OpenGisGeographyType.Polygon);
+            GeoPoint firstgeop = points.First();
+            builder.BeginFigure(firstgeop.Latitude, firstgeop.Longitude);
+            foreach (var geop in points.Skip(1))
+            {
+                builder.AddLine(geop.Latitude, geop.Longitude);
+            }
+            builder.AddLine(firstgeop.Latitude, firstgeop.Longitude);
+            builder.EndFigure();
+            builder.EndGeography();
+            return builder.ConstructedGeography;
         }
     }
 }

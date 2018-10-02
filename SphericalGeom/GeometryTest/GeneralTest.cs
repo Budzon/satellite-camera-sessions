@@ -473,8 +473,8 @@ namespace GeometryTest
             if (trajectory.Count == 0)
                 throw new Exception("На эти даты нет траектории в БД, тест некорректный");
 
-            try
-            {
+         //   try
+         //   {
                 int id = 0;
                 List<RequestParams> requests = new List<RequestParams>();
                 foreach (var pol in polygons)
@@ -483,43 +483,22 @@ namespace GeometryTest
                     requests.Add(reqparams);
                     id++;
                 }
-                //  var res = Sessions.getCaptureConfArray(requests, dt1, dt2, manager, new List<Tuple<DateTime, DateTime>>());
-
-                Order order = new Order();
-                order.captured = new Polygon("POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
-                order.intersection_coeff = 0.1;
-                order.request = new RequestParams(id, 1, dt1, dt2, AstronomyMath.ToRad(45), 0.4, 1, 1, "POLYGON ((2 -2, 2 2, -2 2, -2 -2, 2 -2))");
-
-                List<Order> orders = new List<Order>() { order };
-
-                CaptureConf ccToDrop = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Downloading, null);
-                StaticConf sc = ccToDrop.DefaultStaticConf();
-                RouteParams routeParamtoDrop = new RouteParams(sc);
-                routeParamtoDrop.NRoute = 10;
-                routeParamtoDrop.NPZ = 10;
-                routeParamtoDrop.start = new DateTime(2019, 1, 4);
-                routeParamtoDrop.end = new DateTime(2019, 1, 5);
-                //routeParamtoDrop.File_Size = 1000;
-                routeParamtoDrop.binded_route = null;
-                // double timedrop = routeParam.getDropTime();
-
-                RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };
-
-                List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
-                routesToDrop.Add(routempzToDrop);
-
 
                 CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Removal, null);
                 StaticConf scToDelete = ccToDelete.DefaultStaticConf();
-                RouteParams routeParamtoDelete = new RouteParams(scToDelete);
-                routeParamtoDelete.NRoute = 0;
-                routeParamtoDelete.start = new DateTime(2019, 1, 4);
-                routeParamtoDelete.end = new DateTime(2019, 1, 5);
- 
-                //routeParamtoDelete.File_Size = 1000;
-                routeParamtoDelete.binded_route = null;
- 
-                RouteMPZ routempzToDelete = new RouteMPZ(routeParamtoDelete, managerCUP) { NPZ = 0, Nroute = 0 };
+                RouteParams bindRoute = new RouteParams(scToDelete);
+                bindRoute.NRoute = 0;
+                bindRoute.start = new DateTime(2019, 1, 4);
+                bindRoute.end = new DateTime(2019, 1, 5);
+            
+                RouteParams routeParamtoDrop = new RouteParams(WorkingType.Downloading, new DateTime(2019, 1, 4), new DateTime(2019, 1, 4, 0, 0, 5), bindRoute, 0, 0);
+                RouteParams routeParamtoDown = new RouteParams(WorkingType.Downloading,  new DateTime(2019, 1, 4),  new DateTime(2019, 1, 4, 0,0,5), bindRoute, 0,0);
+                 
+                RouteMPZ routempzToDrop = new RouteMPZ(routeParamtoDrop, managerCUP) { NPZ = 0, Nroute = 0 };
+                RouteMPZ routempzToDelete = new RouteMPZ(bindRoute, managerCUP) { NPZ = 0, Nroute = 0 };
+             
+                List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+                routesToDrop.Add(routempzToDrop);
 
                 List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
                 routesToDelete.Add(routempzToDelete);
@@ -550,20 +529,20 @@ namespace GeometryTest
                                                      , out mpzArray
                                                      , out sessions
                                                      , enabled);
-            }
+            //}
 
-            catch (Exception ex)
-            {
-                List<string> lines = new List<string>();
-                Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
-                foreach (var pol in polygons)
-                {
-                    Console.WriteLine(pol.ToWtk());
-                    lines.Add(pol.ToWtk());
-                }
-                System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
-                throw ex;
-            }
+         //   catch (Exception ex)
+          //  {
+                //List<string> lines = new List<string>();
+                //Console.WriteLine("Ошибка обнаружена на следующем наборе полигонов:");
+                //foreach (var pol in polygons)
+                //{
+                //    Console.WriteLine(pol.ToWtk());
+                //    lines.Add(pol.ToWtk());
+                //}
+                //System.IO.File.WriteAllLines(@"badPolygons.txt", lines);
+                //throw ex;
+          //  }
 
         }
 
