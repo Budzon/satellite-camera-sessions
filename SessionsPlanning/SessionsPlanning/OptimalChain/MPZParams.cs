@@ -434,6 +434,13 @@ namespace OptimalChain
             fileSize = copyed.fileSize;
         }
 
+        static RouteParams()
+        {
+            dem = new DemHandler();
+        }
+
+        public static DemHandler dem { get; private set; }
+
         /// <summary>
         /// номер маршрута в мпз
         /// </summary>
@@ -478,7 +485,7 @@ namespace OptimalChain
             get
             {
                 if ((type == WorkingType.Shooting) || (type == WorkingType.ShootingSending))
-                    return 200;
+                    return (byte)(200 + dem.GetAverageHeight(new SphericalGeom.Polygon(wktPolygon)) / 250);
                 else
                     return 0;                  
             }

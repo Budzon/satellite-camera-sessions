@@ -527,7 +527,7 @@ namespace SatelliteSessions
                 Common.GeoPoint geoBegin = Common.GeoPoint.FromCartesian(satCoord.MidViewPoint);
 
                 /* ---------- InitCoord -----------*/
-                InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = 0 }; // VERIFY HC
+                InitCoord = new Coord { Bc = AstronomyMath.ToRad(geoBegin.Latitude), Lc = AstronomyMath.ToRad(geoBegin.Longitude), Hc = OptimalChain.RouteParams.dem.GetHeight(geoBegin) };
 
                 /* ---------- Polinomial_coeff -----------*/
                 if (Parameters.shooting_type == SessionsPlanning.ShootingType.Coridor) // коридорная
