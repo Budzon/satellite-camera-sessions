@@ -266,7 +266,7 @@ namespace SessionsPlanning
                 ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
  
                 double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
-                dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
                 fromDt = fromDt.AddSeconds(dt);
             }
         }
@@ -278,7 +278,7 @@ namespace SessionsPlanning
             out List<MPZ> mpzArray,
             int numFrames)
         {
-            fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.MPZ_starting_Time); 
+            fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.SOEN_turning_on_Time); 
             double turnDuration = 99.2;
 
             DateTime toDt = fromDt.AddMinutes(turnDuration);
@@ -351,7 +351,7 @@ namespace SessionsPlanning
                 
                 double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
                 if (sconfs.Count % 12 == 0)
-                    dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                    dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
                 
                 curDtFrom = captureTo.AddSeconds(dt);
             }
@@ -457,7 +457,7 @@ namespace SessionsPlanning
                 
                 double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
                 if (sconfs.Count > 0 && sconfs.Count % 12 == 0)
-                     dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                     dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
                 curDt = curDt.AddSeconds(dt);            
             }
             return sconfs;
@@ -523,7 +523,7 @@ namespace SessionsPlanning
 
                 double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
                 if (sconfs.Count % 12 == 0)
-                    dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                    dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
 
                 curDtFrom = coridorParams.Max(cor => cor.EndTime);
                 curDtFrom = curDtFrom.AddSeconds(dt);
@@ -618,7 +618,7 @@ namespace SessionsPlanning
                 dt += 2* deflectTimeDelta + reconfigureMin;
 
                 if (sconfs.Count % 12 == 0)
-                    dt += OptimalChain.Constants.MPZ_starting_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                    dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
 
                 curDt = curDt.AddSeconds(dt);
                 

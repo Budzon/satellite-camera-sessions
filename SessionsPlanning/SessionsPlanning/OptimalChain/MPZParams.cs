@@ -30,6 +30,7 @@ namespace OptimalChain
         public DateTime start { get; set; }
         public DateTime end { get; set; }
         public int N_routes { get { return routes.Count; } }
+        public bool is_reserve_conf { get { return false; } }
        // public List<RouteParams> routes { get; set; }
         public CommunicationSessionStation? Station { get; set; }
         public ObservableCollection<RouteParams> routes { get; set; }
@@ -56,7 +57,7 @@ namespace OptimalChain
         public MPZParams(int i, RouteParams r) : this(i)
         {                       
             routes.Add(r);            
-            start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
+            start = r.start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);            
         }
       
@@ -68,7 +69,7 @@ namespace OptimalChain
             routes.Add(r);            
 
             if (N_routes < 2)
-                start = r.start.AddMilliseconds(-Constants.MPZ_starting_Time);
+                start = r.start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
 
             end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);
             return true;
@@ -112,7 +113,7 @@ namespace OptimalChain
             }
 
             double delta_time = (r.start - this.end).TotalMilliseconds;
-            double dt_mpz = delta_time - Constants.MPZ_starting_Time - Constants.MPZ_init_Time;
+            double dt_mpz = delta_time - Constants.SOEN_turning_on_Time - Constants.MPZ_init_Time;
 
             return (dt_mpz > 0);
         }
@@ -121,17 +122,17 @@ namespace OptimalChain
         {
             if(r==null)
             {
-                if((m2.start- m1.end).TotalMilliseconds > Constants.MPZ_ending_Time_PWRON + Constants.MPZ_starting_Time + 2 * Constants.MPZ_delta)
+                if((m2.start- m1.end).TotalMilliseconds > Constants.MPZ_ending_Time_PWRON + Constants.SOEN_turning_on_Time + 2 * Constants.MPZ_delta)
                 {
                     MPZParams m = new MPZParams(0);
-                    m.start = m1.end.AddMilliseconds(Constants.MPZ_starting_Time + Constants.MPZ_delta);
+                    m.start = m1.end.AddMilliseconds(Constants.SOEN_turning_on_Time + Constants.MPZ_delta);
                     m.end = m.start;
                     return m;
                 }
             }
             else
             {
-                double Tmpz = (r.Last().end - r[0].start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON + Constants.MPZ_starting_Time + 2 * Constants.MPZ_delta;
+                double Tmpz = (r.Last().end - r[0].start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON + Constants.SOEN_turning_on_Time + 2 * Constants.MPZ_delta;
                 if ((m2.start - m1.end).TotalMilliseconds < Tmpz)
                     return null;
 
