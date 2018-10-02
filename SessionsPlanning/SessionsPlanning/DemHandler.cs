@@ -51,7 +51,7 @@ namespace SessionsPlanning
 
     public struct RasterData
     {
-        public Int16[] Data { get; set; }
+        public int[] Data { get; set; }
         public int xSize { get; set; }
         public int ySize { get; set; }
         public double[] GeoTransform { get; set; }
@@ -95,6 +95,21 @@ namespace SessionsPlanning
         private static Dictionary<string, RasterData> loadedRasters = new Dictionary<string, RasterData>();
         //private static const int maxNumOfLoadedRasters = 100;
 
+        public DemHandler()
+        {
+            if (nonzeroDems == null)
+            {
+                nonzeroDems = new HashSet<string>(System.IO.File.ReadLines("known_dem_cut.list"));
+            }
+
+            Path = System.IO.File.ReadLines("dem_location.conf").First();
+            Prefix = "";
+            Zip = true;
+            Ftp = true;
+            Prefix = "/vsizip/vsicurl/";
+            GdalConfiguration.ConfigureGdal();
+        }
+
         public DemHandler(string path, string pathToNonzeroDemList) : this(path, true, true, pathToNonzeroDemList) { }
 
         public DemHandler(string path, bool zip, bool ftp, string pathToNonzeroDemList)
@@ -124,7 +139,7 @@ namespace SessionsPlanning
         {
             if (!loadedRasters.ContainsKey(tile.Name))
             {
-                var dataSet = Gdal.Open(Prefix + Path + tile.Name + (Zip ? ".zip" : ""), OSGeo.GDAL.Access.GA_ReadOnly);
+                var dataSet = Gdal.Open(Prefix + Path + tile.Name + (Zip ? (".zip" + (Ftp ? "/" : "\\") + tile.Name) : ""), OSGeo.GDAL.Access.GA_ReadOnly);
 
                 if (dataSet.RasterCount != 1)
                     throw new Exception(String.Format("Wrong number of raster bands: {0}", dataSet.RasterCount));
@@ -136,7 +151,7 @@ namespace SessionsPlanning
                 if (rasterBand.DataType != OSGeo.GDAL.DataType.GDT_Int16)
                     throw new Exception(String.Format("Wrong data format: {0}", rasterBand.DataType));
 
-                Int16[] data = new Int16[xs * ys];
+                int[] data = new int[xs * ys];
                 rasterBand.ReadRaster(0, 0, xs, ys, data, xs, ys, 0, 0);
 
                 double[] geoTransform = new double[6];
@@ -149,7 +164,7 @@ namespace SessionsPlanning
             return loadedRasters[tile.Name];
         }
 
-        private Int16 GetHeight(RasterData rasterData, double lat, double lon)
+        private int GetHeight(RasterData rasterData, double lat, double lon)
         {
             int row = (int)Math.Ceiling((lat - rasterData.GeoTransform[3]) / rasterData.GeoTransform[5]);
             int col = (int)Math.Ceiling((lon - rasterData.GeoTransform[0]) / rasterData.GeoTransform[1]);
@@ -158,17 +173,17 @@ namespace SessionsPlanning
             return rasterData.Data[index];
         }
 
-        private Int16 GetHeight(RasterData rasterData, GeoPoint gp)
+        private int GetHeight(RasterData rasterData, GeoPoint gp)
         {
             return GetHeight(rasterData, gp.Latitude, gp.Longitude);
         }
 
-        private OSGeo.GDAL.Dataset Open(string path)
+        public OSGeo.GDAL.Dataset Open(string path)
         {
             return Gdal.Open(path, OSGeo.GDAL.Access.GA_ReadOnly);
         }
 
-        public Int16 GetHeight(GeoPoint gp)
+        public int GetHeight(GeoPoint gp)
         {
             Tile tile = new Tile(gp);
             if (nonzeroDems.Contains(tile.Name))
@@ -177,7 +192,7 @@ namespace SessionsPlanning
                 return 0;
         }
 
-        public Int16 GetAverageHeight(Polygon p, uint samples = 1000)
+        public int GetAverageHeight(Polygon p, uint samples = 1000)
         {
             int height = 0;
             Vector3D v;
@@ -191,7 +206,7 @@ namespace SessionsPlanning
                 GeoPoint gp = GeoPoint.FromCartesian(v);
                 height += GetHeight(gp);
             }
-            return (Int16)(height / samples);
+            return (int)(height / samples);
         }
 
         private Vector3D RandomConvexCombination(IList<Vector3D> verts)
