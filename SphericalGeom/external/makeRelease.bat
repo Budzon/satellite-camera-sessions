@@ -1,0 +1,1 @@
+cd ..\ConsoleExecutor\bin\Release "C:\Program Files\7-Zip\7z.exe" a -tzip Release_%date:~6%-%date:~3,2%-%date:~0,2%.zip -r Astronomy.dll CGALWrapper.dll SessionsPlanning.dll SphericalGeom.dll
