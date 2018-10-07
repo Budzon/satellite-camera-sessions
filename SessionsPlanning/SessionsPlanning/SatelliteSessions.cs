@@ -652,6 +652,9 @@ namespace SatelliteSessions
                 List<RouteParams> downloadRoutes
                     = TimePeriod.getRoutesParamsInIntervals(allRoutesToDownload, freeStationIntervals, workType: WorkingType.Downloading, station: station);//, startId: maxRoutesNumber);
 
+                if (downloadRoutes.Count == 0)
+                    continue;
+
                 freeStationIntervals.erase(downloadRoutes.Select(route => new TimePeriod(route.start, route.end)).ToList());
 
                 maxMpzNum = Math.Max(maxMpzNum, downloadMpzParams.Select(mpzparam => mpzparam.id).DefaultIfEmpty(0).Max());
