@@ -72,7 +72,7 @@ namespace OptimalChain
             : this(ID)
         {            
             routes = new ObservableCollection<RouteParams>(routesList);
-            start = routesList.First().start.AddMilliseconds(-Constants.MPZ_starting_Time);
+            start = routesList.First().start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
             end = routesList.Last().end.AddMilliseconds(Constants.MPZ_ending_Time);
             Station = mpzStation;
         }
