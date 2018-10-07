@@ -370,6 +370,7 @@ namespace OptimalChain
             id = conf.id;
             wktPolygon = conf.wktPolygon;
             Requests = conf.orders.Select(o => o.request).ToList();
+            albedo = conf.AverAlbedo;
         }
 
         public RouteParams(
