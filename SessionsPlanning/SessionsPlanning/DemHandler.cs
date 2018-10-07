@@ -60,26 +60,20 @@ namespace SessionsPlanning
     public class Tile
     {
         public uint Latitude { get; set; }
-        public uint Longitude { get; set; }
-        public bool North { get; set; }
-        public bool East { get; set; }
+        public uint Longitude { get; set; }       
         
         public string Name
         {
             get
             {
-                return String.Format("{0}{1}{2}{3}.hgt", North ? "N" : "S", Latitude.ToString("D2"), East ? "E" : "W", Longitude.ToString("D3"));
+                return String.Format("srtm_{0:00}_{1:00}", Longitude, Latitude);
             }
         }
 
         public Tile(GeoPoint gp)
         {
-            North = !Comparison.IsNegative(gp.Latitude);
-            East = !Comparison.IsNegative(gp.Longitude);
-            double alat = Math.Abs(gp.Latitude);
-            double alon = Math.Abs(gp.Longitude);
-            Latitude = (uint)(North ? Math.Floor(alat) : Math.Ceiling(alat));
-            Longitude = (uint)(East ? Math.Floor(alon) : Math.Ceiling(alon));
+            Latitude = 1 + ((60 - (uint)Math.Floor(gp.Latitude)) / 5) % 24;
+            Longitude = 1 + ((180 + (uint)Math.Floor(gp.Longitude)) / 5) % 72;
         }
     }
 
@@ -139,8 +133,13 @@ namespace SessionsPlanning
         {
             if (!loadedRasters.ContainsKey(tile.Name))
             {
-                var dataSet = Gdal.Open(Prefix + Path + tile.Name + (Zip ? (".zip" + (Ftp ? "/" : "\\") + tile.Name) : ""), OSGeo.GDAL.Access.GA_ReadOnly);
-
+                string pathTail = "";
+                if (Zip)
+                {
+                    pathTail = tile.Name + ".zip" + (Ftp ? "/" : "\\");
+                }
+                var dataSet = Gdal.Open(Prefix + Path + pathTail + tile.Name + ".asc", OSGeo.GDAL.Access.GA_ReadOnly);
+                
                 if (dataSet.RasterCount != 1)
                     throw new Exception(String.Format("Wrong number of raster bands: {0}", dataSet.RasterCount));
 
@@ -148,15 +147,12 @@ namespace SessionsPlanning
                 int xs = rasterBand.XSize;
                 int ys = rasterBand.YSize;
 
-                if (rasterBand.DataType != OSGeo.GDAL.DataType.GDT_Int16)
-                    throw new Exception(String.Format("Wrong data format: {0}", rasterBand.DataType));
-
                 int[] data = new int[xs * ys];
                 rasterBand.ReadRaster(0, 0, xs, ys, data, xs, ys, 0, 0);
 
                 double[] geoTransform = new double[6];
                 dataSet.GetGeoTransform(geoTransform);
-
+                
                 RasterData loaded = new RasterData { Data = data, xSize = xs, ySize = ys, GeoTransform = geoTransform };
                 loadedRasters.Add(tile.Name, loaded);
             }
@@ -185,9 +181,11 @@ namespace SessionsPlanning
 
         public int GetHeight(GeoPoint gp)
         {
+            if (Math.Abs(gp.Latitude) > 60 - 1e-12)
+                return 0;
             Tile tile = new Tile(gp);
             if (nonzeroDems.Contains(tile.Name))
-                return GetHeight(GetRaster(new Tile(gp)), gp);
+                return GetHeight(GetRaster(tile), gp);
             else
                 return 0;
         }
