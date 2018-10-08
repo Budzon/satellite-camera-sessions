@@ -362,6 +362,35 @@ namespace OptimalChain
         public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
         public double Square { get; private set; }
         public double Cloudiness { get; private set; }
+
+        public override string ToString()
+        {
+            string res = "";
+            res += "Id=" + id.ToString() + "\n";
+            res += "Priority=" + priority.ToString() + "\n";
+            res += "From=" + timeFrom.ToString() + "\n";
+            res += "To=" + timeTo.ToString() + "\n";
+            res += "MaxSOENANgle=" + Max_SOEN_anlge.ToString() + "\n";
+            res += "minCoverPec=" + minCoverPerc.ToString() + "\n";
+            res += "MaxSun=" + Max_sun_angle.ToString() + "\n";
+            res += "MinSun=" + Min_sun_angle.ToString() + "\n";
+            res += "wkt=" + wktPolygon + "\n";
+            res += "# polygonToSUbtract=" + polygonToSubtract.Count + "\n";
+            foreach (var p in polygonToSubtract)
+                res += "    polygonToSub=" + p + "\n";
+            res += "RequestCHannel=" + requestChannel.ToString() + "\n";
+            res += "ShootingType=" + shootingType.ToString() + "\n";
+            res += "Compression=" + compression.ToString() + "\n";
+            res += "Albedo=" + albedo.ToString() + "\n";
+            res += "# polygons=" + polygons.Count.ToString() + "\n";
+            foreach (var p in polygons)
+                res += "    polygon=" + p.ToWtk() + "\n";
+            res += "Area=" + Square.ToString() + "\n";
+            res += "Cloud=" + Cloudiness.ToString() + "\n";
+
+            return res;
+        }
+
         /// <summary>
         /// разделим заказы на группы по признаку совместимых CaptureConf-ов
         /// </summary>
