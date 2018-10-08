@@ -550,9 +550,13 @@ namespace SatelliteSessions
             shadowAndInactivityPeriods.AddRange(shadowPeriods);
             shadowAndInactivityPeriods = TimePeriod.compressTimePeriods(shadowAndInactivityPeriods);
 
+            List<TimePeriod> silentAndInactivityPeriods = new List<TimePeriod>();
+            silentAndInactivityPeriods.AddRange(inactivityTimePeriods);
+            silentAndInactivityPeriods.AddRange(silentTimePeriods);
+
             // временные периоды, во время которых можно проводить съемку со сбросом
             List<TimePeriod> freeIntervalsForDownload
-                = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions.SelectMany(list => list.Value).ToList(), silentTimePeriods);
+                = CommunicationSession.getFreeTimePeriodsOfSessions(nkpoiSessions.SelectMany(list => list.Value).ToList(), silentAndInactivityPeriods);
 
             // расчёт всех возможных конфигураций съемки на этот период с учётом ограничений
             List<CaptureConf> confsToCapture
@@ -619,6 +623,8 @@ namespace SatelliteSessions
                 if (!nkpoiSessionsIntervals.ContainsKey(station))
                     continue;
                 List<TimePeriod> freeStationIntervals = nkpoiSessionsIntervals[station];
+                freeStationIntervals.erase(silentAndInactivityPeriods);  // удалим из доступных интервалов связи все те, которые недоступны для сброса (silentRanges + inactivityRanges)
+                TimePeriod.compressTimePeriods(freeStationIntervals);
 
                 // сначала постараемся уместить маршруты на сброс в имеющиеся МПЗ
                 foreach (var capPrms in captureMPZParams)

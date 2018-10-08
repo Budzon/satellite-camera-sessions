@@ -28,13 +28,13 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static List<MPZ> get14PlainFrames1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS)
+        public static List<MPZ> get14PlainFrames1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal);
-            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 14);
+            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 14, startMpzNum);
             checkRoutesCount(mpzArray, 14);
             return mpzArray;
         }
@@ -43,13 +43,13 @@ namespace SessionsPlanning
         /// Кадровая съемка. 45 кадров на 5-ти витках по 9 кадров
         /// </summary>
         /// <param name="fromDt">дата начала первого витка</param>
-        public static List<MPZ> get45PlainFrames4Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get45PlainFrames4Turn(DateTime fromDt, string conStringCUP,string conStringCUKS, int startMpzNum)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal);
-            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 9, 5);
+            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 9, 5, startMpzNum);
             checkRoutesCount(mpzArray, 45);
             return mpzArray;
         }
@@ -57,13 +57,13 @@ namespace SessionsPlanning
         /// <summary>
         /// Стереосъемка. 8 стереотриплетов  на одном витке
         /// </summary>
-        public static List<MPZ> get8StereoTriplets1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS)
+        public static List<MPZ> get8StereoTriplets1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.StereoTriplet);
-            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8);
+            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8, startMpzNum);
             checkRoutesCount(mpzArray, 24);
             return mpzArray;
         }
@@ -71,11 +71,11 @@ namespace SessionsPlanning
         /// <summary>
         /// Стереосъемка. 8 стереопар на одном витке
         /// </summary>
-        public static List<MPZ> get8StereoPairs1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get8StereoPairs1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Stereo);
-            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8);
+            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8, startMpzNum);
             checkRoutesCount(mpzArray, 16);
             return mpzArray;
         }
@@ -83,11 +83,11 @@ namespace SessionsPlanning
         /// <summary>
         /// Стереосъемка. 20 стереотриплетов на 5-ти витках по 4 стереотриплетов
         /// </summary>
-        public static List<MPZ> get20StereoTriplets5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get20StereoTriplets5Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.StereoTriplet);
-            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4);
+            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4, startMpzNum);
             checkRoutesCount(mpzArray, 60);
             return mpzArray;
         }
@@ -95,11 +95,11 @@ namespace SessionsPlanning
         /// <summary>
         ///  Стереосъемка. 20 стереопар на 5-ти витках по 4 стереопар
         /// </summary>
-        public static List<MPZ> get20StereoPairs5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get20StereoPairs5Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Stereo);
-            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4);
+            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4, startMpzNum);
             checkRoutesCount(mpzArray, 40);
             return mpzArray;
         }
@@ -107,11 +107,11 @@ namespace SessionsPlanning
         /// <summary>
         /// Коридорная съемка. 8 коридоров на одном витке
         /// </summary>
-        public static List<MPZ> get8Coridors1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get8Coridors1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Coridor);
-            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8);
+            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8, startMpzNum);
             checkRoutesCount(mpzArray, 8);
             return mpzArray;
         }
@@ -119,11 +119,11 @@ namespace SessionsPlanning
         /// <summary>
         /// Коридорная съемка. 20 коридоров на 5-ти витках по 4 коридора
         /// </summary>
-        public static List<MPZ> get20Coridors5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get20Coridors5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Coridor);
-            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4);
+            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4, startMpzNum);
             checkRoutesCount(mpzArray, 20);
             return mpzArray;
         }
@@ -131,11 +131,11 @@ namespace SessionsPlanning
         /// <summary>
         /// Площадная съемка. 8 площадных съемок на одном витке
         /// </summary>
-        public static List<MPZ> get8AreaShooting1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get8AreaShooting1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Area);
-            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8);
+            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 8, startMpzNum);
             checkRoutesCount(mpzArray, 32);
             return mpzArray;
         }
@@ -143,11 +143,11 @@ namespace SessionsPlanning
         /// <summary>
         /// Площадная съемка. 20 площадных съемок на 5-ти витках по 4 коридора
         /// </summary>
-        public static List<MPZ> get20AreaShooting5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> get20AreaShooting5Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Area);
-            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4);
+            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 4, startMpzNum);
             checkRoutesCount(mpzArray, 80);
             return mpzArray;
         }
@@ -159,11 +159,11 @@ namespace SessionsPlanning
         /// <param name="fromDt">время начала витка</param>
         /// <param name="managerDB"></param>
         /// <param name="mpzArray"></param>
-        public static List<MPZ> getStrip4150km1Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> getStrip4150km1Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal, true);
-            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 4150);
+            test.getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out mpzArray, 4150, startMpzNum);
             checkRoutesCount(mpzArray, 1);
             return mpzArray;
         }
@@ -172,11 +172,11 @@ namespace SessionsPlanning
         /// Кадровая съемка. 45 кадров на 5-ти витках по 9 кадров
         /// </summary>
         /// <param name="fromDt">дата начала первого витка</param>
-        public static List<MPZ> getStrip12050km5Turn(DateTime fromDt, string conStringCUP,string conStringCUKS)
+        public static List<MPZ> getStrip12050km5Turn(DateTime fromDt, string conStringCUP, string conStringCUKS, int startMpzNum)
         {
             List<MPZ> mpzArray;
             ShootingTestTemplate test = ShootingTestFactory.getShootingTest(ShootingType.Normal, true);
-            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 2410);
+            test.getFrames(fromDt, conStringCUP, conStringCUKS, out mpzArray, 5, 2410, startMpzNum);
             checkRoutesCount(mpzArray, 5);
             return mpzArray;
         }
@@ -233,13 +233,17 @@ namespace SessionsPlanning
             string conStringCUP,
             string conStringCUKS,  
             out List<MPZ> mpzArray,
-            int numTurns, int numFramesOnTurn)
+            int numTurns,
+            int numFramesOnTurn,
+            int startMpzNum)
         {
             mpzArray = new List<MPZ>();
             for (int i = 0; i < numTurns; i++)
             {
                 List<MPZ> curMpz;
-                getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out curMpz, numFramesOnTurn);
+                if (mpzArray.Count() != 0)
+                    startMpzNum = mpzArray.Max(mpz => mpz.Parameters.id);
+                getFramesForOneTurn(fromDt, conStringCUP, conStringCUKS, out curMpz, numFramesOnTurn, startMpzNum);
                 mpzArray.AddRange(curMpz);
                 double turnDuration = 99.2;
                 fromDt = fromDt.AddMinutes(turnDuration);
@@ -258,7 +262,8 @@ namespace SessionsPlanning
             string conStringCUP,
             string conStringCUKS,            
             out List<MPZ> mpzArray,
-            int numFrames)
+            int numFrames,
+            int startMpzNum)
         {
             fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.SOEN_turning_on_Time); 
             double turnDuration = 99.2;
@@ -267,8 +272,8 @@ namespace SessionsPlanning
 
             List<TimePeriod> shadowPeriods = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-          //  Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, fromDt, toDt, out partsLitAndNot,
-           //     out shadowPeriods);
+            //  Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, fromDt, toDt, out partsLitAndNot,
+            //     out shadowPeriods);
 
             List<TimePeriod> freeIntervals = TimePeriod.getFreeIntervals(shadowPeriods, fromDt, toDt);
 
@@ -283,7 +288,8 @@ namespace SessionsPlanning
             }       
 
             List<RouteParams> routesParams = sconfs.Select(conf => new RouteParams(conf)).ToList();
-            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, 0);
+            List<MPZParams> mpzParams = MPZParams.FillMPZ(routesParams, startMpzNum);
+            
             mpzArray = mpzParams.Select(param => new MPZ(param, conStringCUP, conStringCUKS, new FlagsMPZ())).ToList();
         }
 

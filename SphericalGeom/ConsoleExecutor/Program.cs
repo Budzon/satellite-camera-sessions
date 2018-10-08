@@ -798,55 +798,56 @@ namespace ConsoleExecutor
 
             //return;
 
+            int startMpzNum = 10;
+
             List<MPZ> allMpz = new List<MPZ>();
-
+            
             {
-
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, cs, cs2);
+                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
 
@@ -1910,37 +1911,33 @@ namespace ConsoleExecutor
         }
 
         static void no_sessions_error_07_10_18()
-        {
-
-            DateTime dt1 = DateTime.Parse("2019-01-04");
-            DateTime dt2 = DateTime.Parse("2019-01-05");
+        { 
+            DateTime dt1 = DateTime.Parse("2019-01-05");
+            DateTime dt2 = DateTime.Parse("2019-01-06");
 
             string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
             string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
             DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
-
-
+            
             List<RequestParams> reqlist = new List<RequestParams>(){ new RequestParams(3, 1,
-            DateTime.Parse("2010-02-04T00:00:00"), 
-            DateTime.Parse("2029-02-04T00:00:00"),
-            _Max_SOEN_anlge: 12,
-            _minCoverPerc: 3,
+            DateTime.Parse("02/01/2019 12:02:00"), 
+            DateTime.Parse("12/01/2019 12:02:00"),
+            _Max_SOEN_anlge: 0.959931088596881,
+            _minCoverPerc: 90,
             _Max_sun_angle: 90,
             _Min_sun_angle: 10,
-            _wktPolygon: "POLYGON((1.6956280883974537 -1.215427591120445, 1.7868147840021045 -1.2486168340816164, 1.8199969116025336 -1.1574496877699687, 1.7288102159978829 -1.1242604448087832, 1.6956280883974537 -1.215427591120445))",
+            _wktPolygon: "POLYGON ((1.6956280883974537 -1.2154275911204451, 1.7868147840021045 -1.2486168340816164, 1.8199969116025336 -1.1574496877699687, 1.7288102159978829 -1.1242604448087832, 1.6956280883974537 -1.2154275911204451))",
             _polygonsToSubtract: new List<string>(),
-            _requestChannel: 0,
+            _requestChannel: ShootingChannel.mk,
             _shootingType: ShootingType.Normal,
             _compression: 2,
-            _albedo: 0
+            _albedo: 25
             )};
 
             List<string> holes = new List<string>();
-
-
-            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
-            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+            
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>(); 
 
             List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
@@ -1948,40 +1945,58 @@ namespace ConsoleExecutor
             List<MPZ> mpzArray;
             List<CommunicationSession> sessions;
 
+             List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime,DateTime>>()
+             {
+            Tuple.Create(DateTime.Parse("05/01/2019 00:41:52"),DateTime.Parse(" 05/01/2019 00:58:29")),
+            Tuple.Create(DateTime.Parse("05/01/2019 02:19:44"),DateTime.Parse("05/01/2019 02:36:20")),
+            Tuple.Create(DateTime.Parse("05/01/2019 03:57:35"),DateTime.Parse("05/01/2019 04:14:12")),
+            Tuple.Create(DateTime.Parse("05/01/2019 05:35:27"),DateTime.Parse("05/01/2019 05:52:04")),
+            Tuple.Create(DateTime.Parse("05/01/2019 18:38:19"),DateTime.Parse("05/01/2019 18:54:57")),
+            Tuple.Create(DateTime.Parse("05/01/2019 20:16:11"),DateTime.Parse("05/01/2019 20:32:48")),
+            Tuple.Create(DateTime.Parse("05/01/2019 21:54:02"),DateTime.Parse("05/01/2019 22:10:40"))
+             };
 
-            Sessions.getMPZArray(reqlist, dt1, dt2
+            var flg = new FlagsMPZ();
+            flg.mainKeyBBZU = true;
+            flg.mainKeyBBZU = true;
+            flg.mainKeyVIP1 = true;
+            flg.mainKeyYKPD1 = true;
+            flg.mainKeyYKPD2 = true;
+            flg.useYKZU1 = true;
+            flg.useYKZU2 = true;
+            flg.sessionKeyOn = false;
+            
+             Sessions.getMPZArray(reqlist, dt1, dt2
             , silenceRanges
             , inactivityRanges
             , routesToDrop
             , routesToDelete
             , cupConnStr
             , cuksConnStr
-            , 356
+            , 165
             , out mpzArray
             , out sessions
             , new List<SessionsPlanning.CommunicationSessionStation> 
-            {   SessionsPlanning.CommunicationSessionStation.FIGS,
-                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
-                SessionsPlanning.CommunicationSessionStation.MIGS }
+            {   SessionsPlanning.CommunicationSessionStation.FIGS
+                //,
+                //SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                //SessionsPlanning.CommunicationSessionStation.MIGS 
+            }, flg
             );
-
-
+            
             Console.WriteLine("res.Count = {0}", mpzArray.Count());
 
             if (mpzArray.Count() == 0)
                 return;
-
         }
 
-
-
-
+         
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
 
-            //test_TestSessionsSequenses();
-            no_sessions_error_07_10_18();
+            test_TestSessionsSequenses();
+            // no_sessions_error_07_10_18();
             //testMPZError_11_09_18();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
