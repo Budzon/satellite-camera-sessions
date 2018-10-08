@@ -284,6 +284,16 @@ namespace SatelliteTrajectory
                         if (shootingTo <= shootingFrom) // полоса конфигурации съемки короче кадра, делаем снимок по центру                        
                              shootingTo = shootingFrom = tFrom.AddSeconds((tTo - tFrom).TotalSeconds / 2);
 
+                        double duration = Math.Abs((shootingTo - shootingFrom).TotalSeconds);
+                        // если съемка меньше minShootingDuration, то делаем CaptureConf продолжительностью minShootingDuration
+                        if ( duration < OptimalChain.Constants.minShootingDuration) 
+                        {                        
+                            DateTime centr = shootingFrom.AddSeconds(duration / 2);
+                            double step = ((double)OptimalChain.Constants.minShootingDuration) / 2;
+                            shootingFrom = centr.AddSeconds(-step);
+                            shootingTo = centr.AddSeconds(step);
+                        }
+
                         double subsquare = int_pol.Area;
                         Order order = new Order(request, int_pol, subsquare / request.Square); 
                         

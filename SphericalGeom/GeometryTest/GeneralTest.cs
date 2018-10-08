@@ -484,6 +484,10 @@ namespace GeometryTest
                     id++;
                 }
 
+                var orders = new List<Order>(){
+                    new Order(requests[0], new Polygon(requests[0].wktPolygon), 1)
+                };
+
                 CaptureConf ccToDelete = new CaptureConf(new DateTime(2019, 1, 4), new DateTime(2019, 1, 5), 0.1, orders, WorkingType.Removal, null);
                 StaticConf scToDelete = ccToDelete.DefaultStaticConf();
                 RouteParams bindRoute = new RouteParams(scToDelete);
