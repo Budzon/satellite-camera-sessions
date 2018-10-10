@@ -102,7 +102,7 @@ namespace GeometryTest
                         }
             var mpzParams = OptimalChain.MPZParams.FillMPZ(param);
             FlagsMPZ flags = new FlagsMPZ();
-            var mpzs = mpzParams.Select(p => new MPZ(p, manager, managerCuks, flags));
+            var mpzs = mpzParams.Select(p => new MPZ(p, cs, cs2, flags));
             string mpz_string = mpzs.Aggregate("", (s, mpz) => s + mpz.ToString() + "\n");
             System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
         }

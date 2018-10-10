@@ -1,5 +1,4 @@
 ﻿#define  _PARALLEL_
-#define _DEBUG_LOG_OUTPUT_
 
 using System;
 using System.Collections.Generic;
@@ -530,27 +529,6 @@ namespace SatelliteSessions
             Dictionary<CommunicationSessionStation, List<CommunicationSession>> nkpoiSessions
                 = CommunicationSession.createCommunicationSessions(timeFrom, timeTo, conStringCUP, enabledStations);
 
-#if _DEBUG_LOG_OUTPUT_
-            string sessionDebugOutput = "Все возможные сессии связи:\n\r";
-            foreach (var station in nkpoiSessions.Keys.ToList())
-            {
-                sessionDebugOutput += string.Format("для {0}: \n\r", station);
-                foreach (var sess in nkpoiSessions[station])
-                {
-                    sessionDebugOutput += sess.DropInterval.ToString() + "\n\r";
-                }
-            }
-
-            List<CommunicationSessionStation> debugStations = new DataFetcher(ManagerDbCUKS).getSortedStations();
-            sessionDebugOutput += "\n\n\r Все антенны из бд (должны быть все 3 как минимум): \n\r";
-            foreach (var st in debugStations )
-            {
-                sessionDebugOutput += st + ", ";
-            }
-            sessionDebugOutput += "\n\r";
-
-            System.IO.File.WriteAllText(@"sessionDebugOutput.txt", sessionDebugOutput);
-#endif
             List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
             checkIfViewLaneIsLitWithTimeSpans(ManagerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
