@@ -17,9 +17,9 @@ namespace SatelliteSessions
     {
 
         public static void erase(this List<TimePeriod> intervals, List<TimePeriod> intervalsToErase)
-        {
+        { 
             foreach (var intToErase in intervalsToErase)            
-                intervals.erase(intToErase);            
+                intervals.erase(intToErase);
         }
 
         /// <summary>
@@ -28,10 +28,12 @@ namespace SatelliteSessions
         /// <param name="intervals"></param>
         /// <param name="intervalToErase"></param>
         public static void erase(this List<TimePeriod> intervals, TimePeriod intervalToErase)
-        {
-            List<TimePeriod> intersected = intervals.Where(interval => TimePeriod.isPeriodsOverlap(interval, intervalToErase)).ToList();
+        { 
+            List<TimePeriod> intersected = intervals.Where(interval => TimePeriod.isPeriodsOverlap(interval, intervalToErase)).ToList();            
             List<TimePeriod> newInts = intersected.SelectMany(interval => interval.erase(intervalToErase)).ToList();
-            intervals = intervals.Except(intersected).Concat(newInts).ToList();
+            var res = intervals.Except(intersected).Concat(newInts).ToList(); // @todo просто intervals = intervals.Except(... не работает, но и так оставлять - не самое лучшее решение
+            intervals.Clear();
+            intervals.AddRange(res);
         }
     }
 
@@ -83,7 +85,7 @@ namespace SatelliteSessions
 
             if (periodToErase.dateTo < this.dateTo)
             {
-                res.Add(new TimePeriod(periodToErase.dateTo, TimePeriod.Max(this.dateFrom, periodToErase.dateTo)));
+                res.Add(new TimePeriod(TimePeriod.Max(this.dateFrom, periodToErase.dateTo), this.dateTo));
             }
             return res;
         }
@@ -98,6 +100,11 @@ namespace SatelliteSessions
             return (dt1 < dt2 ? dt1 : dt2);
         }   
 
+        
+        public string ToString()
+        {
+            return string.Format("{0} - {1}", this.dateFrom, this.dateTo);
+        }
             
         /// <summary>
         /// Объеденим пересекающиеся временные диапазоны 
@@ -208,9 +215,9 @@ namespace SatelliteSessions
             CommunicationSessionStation station = CommunicationSessionStation.FIGS)
         {  
             List<RouteParams> res = new List<RouteParams>();
-            // отсортируем свободные промежутки по продолжительности в порядке возрастания по прищнаку продолжительности
+            // отсортируем свободные промежутки по возрастанию даты начала
             freeCompressedIntervals.Sort(delegate(TimePeriod span1, TimePeriod span2)
-            { return (span1.dateTo - span1.dateFrom).CompareTo(span2.dateTo - span2.dateFrom); });
+            { return  span1.dateFrom.CompareTo(span2.dateFrom); });
 
             foreach (var interval in freeCompressedIntervals.ToArray())
             {                 
@@ -241,14 +248,12 @@ namespace SatelliteSessions
                     if (nextDt > interval.dateTo)
                         break; // если вышли за пределы текущего интервала, переходим к следующему интервалу
 
-                    nextDt.AddMilliseconds(OptimalChain.Constants.min_Delta_time); // @todo точно ли эта дельта?
-
                     RouteParams curParam = new RouteParams(workType, prevDt, nextDt, routePrms, 0, 0);
                     
                     res.Add(curParam);
                     
                     routes.Remove(routePrms);
-                    prevDt = nextDt;
+                    prevDt = nextDt.AddMilliseconds(OptimalChain.Constants.minDeltaT);
                 }
             }
 

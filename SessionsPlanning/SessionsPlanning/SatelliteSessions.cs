@@ -624,7 +624,6 @@ namespace SatelliteSessions
             List<Polygon> pols = confsToCapture.Select(cc => new Polygon(cc.wktPolygon)).ToList();
             Console.WriteLine(Polygon.getMultipolFromPolygons(pols));
             Console.Write(")");
-
 #endif
 
             // поиск оптимального набора маршрутов среди всех возможных конфигураций

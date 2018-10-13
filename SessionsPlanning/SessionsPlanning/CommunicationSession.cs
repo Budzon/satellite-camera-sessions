@@ -39,7 +39,7 @@ namespace SatelliteSessions
         public DateTime Zone7timeTo { get; private set; }
         
         public TimePeriod DropInterval { get { return new TimePeriod(Zone7timeFrom, Zone7timeTo); } }         
-
+        
         public CommunicationSession(
             SessionsPlanning.CommunicationSessionStation station,
             DateTime dtFrom5zone,

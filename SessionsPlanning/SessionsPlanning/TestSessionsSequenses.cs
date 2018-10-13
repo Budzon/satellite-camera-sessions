@@ -265,15 +265,17 @@ namespace SessionsPlanning
             int numFrames,
             int startMpzNum)
         {
-            fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.SOEN_turning_on_Time); 
-            double turnDuration = 99.2;
+            fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.SOEN_turning_on_Time);
+            double turnDuration = OptimalChain.Constants.turnDuration;
 
             DateTime toDt = fromDt.AddMinutes(turnDuration);
 
-            List<TimePeriod> shadowPeriods = new List<TimePeriod>();
+
+            DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(conStringCUP);
+            Trajectory trajectory = new DataFetcher(managerDB).GetTrajectorySat(fromDt, toDt);
+            List<TimePeriod> shadowPeriods;
             List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;
-            //  Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, fromDt, toDt, out partsLitAndNot,
-            //     out shadowPeriods);
+            Sessions.checkIfViewLaneIsLitWithTimeSpans(managerDB, trajectory, fromDt, toDt, out partsLitAndNot, out shadowPeriods);
 
             List<TimePeriod> freeIntervals = TimePeriod.getFreeIntervals(shadowPeriods, fromDt, toDt);
 

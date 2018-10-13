@@ -27,6 +27,7 @@ namespace OptimalChain
         public const int minDeltaT = 19000;
 
         public const int minShootingDuration = 3; // [сек] минимальная продолжительность съемки. Если съемка меньше этого значения, мы увеличиваем её продолжительность до этого вручную.
+        public const double turnDuration = 90.2;  // продолжительность витка в секундах
 
         public const int stabilizationAfterRotationTime = 10000; // мс
         public const double maxPitchTimeDelta = 70; // ПРИБЛИЗИТЕЛЬНОЕ максимально возможное время, которое можно компенсировать тангажом

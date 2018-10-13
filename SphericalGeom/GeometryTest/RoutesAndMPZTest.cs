@@ -75,8 +75,6 @@ namespace GeometryTest
             //RouteParams routesParams = new RouteParams(SessionsPlanning.WorkingType.Shooting, dt1, dt2);
             //routesParams.ShootingConf = cc.DefaultStaticConf();
  
-
-
             DateTime dt1 = new DateTime(2019, 2, 18, 23, 0, 0);
             DateTime dt2 = new DateTime(2019, 2, 19, 0, 0, 0);
 
@@ -127,8 +125,10 @@ namespace GeometryTest
 
            // mpzArray.First().Routes.First().Parameters
             List<Tuple<int, int>> conflicts;
-            Sessions.checkPNBRouteCompatible(routesParams, mpzArray, out conflicts);
-            conflicts.Count();
+            Sessions.checkPNBRouteCompatible(routesParams, mpzArray.Select(mpz => mpz.Parameters).ToList(), out conflicts);
+            Assert.AreEqual(conflicts.Count(), 0);
+                
+
 
         }
 */

@@ -779,7 +779,7 @@ namespace ConsoleExecutor
 
         static public void test_TestSessionsSequenses()
         {
-            DateTime fromDt = DateTime.Parse("20.02.2019 0:0:0");
+            DateTime fromDt = DateTime.Parse("03.01.2019 07:35");
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
             DIOS.Common.SqlManager managerDB = new DIOS.Common.SqlManager(cs);
 
@@ -798,56 +798,57 @@ namespace ConsoleExecutor
 
             //return;
 
-            int startMpzNum = 10;
 
             List<MPZ> allMpz = new List<MPZ>();
-            
+
+            int startMpzNum = 10;
+
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get14PlainFrames1Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get14PlainFrames1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get45PlainFrames4Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get45PlainFrames4Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get8StereoTriplets1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8StereoPairs1Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get8StereoPairs1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get20StereoTriplets5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20StereoPairs5Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get20StereoPairs5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8Coridors1Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get8Coridors1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20Coridors5Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get20Coridors5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get8AreaShooting1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.get20AreaShooting5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip4150km1Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.getStrip4150km1Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
             {
-                List<MPZ> mpzArray = SessionsPlanning.TestSessionsSequenses.getStrip12050km5Turn(fromDt, cs, cs2, startMpzNum);
+                List<MPZ> mpzArray = TestSessionsSequenses.getStrip12050km5Turn(fromDt, cs, cs2, startMpzNum);
                 allMpz.AddRange(mpzArray);
             }
 
