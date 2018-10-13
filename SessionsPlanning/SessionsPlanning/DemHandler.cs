@@ -72,7 +72,7 @@ namespace SessionsPlanning
 
         public Tile(GeoPoint gp)
         {
-            Latitude = 1 + ((60 - (uint)Math.Floor(gp.Latitude)) / 5) % 24;
+            Latitude = 1 + ((60 - (uint)Math.Ceiling(gp.Latitude)) / 5) % 24;
             Longitude = 1 + ((180 + (uint)Math.Floor(gp.Longitude)) / 5) % 72;
         }
     }
