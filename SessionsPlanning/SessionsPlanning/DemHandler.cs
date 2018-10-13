@@ -181,13 +181,38 @@ namespace SessionsPlanning
 
         public int GetHeight(GeoPoint gp)
         {
-            if (Math.Abs(gp.Latitude) > 60 - 1e-12)
-                return 0;
-            Tile tile = new Tile(gp);
-            if (nonzeroDems.Contains(tile.Name))
-                return GetHeight(GetRaster(tile), gp);
-            else
-                return 0;
+            int h = 0;
+            using (var sw = System.IO.File.AppendText("srtm.log"))
+            {
+                sw.WriteLine("Fetching height at lat={0:0.####}, lon={1:0.####}...", gp.Latitude, gp.Longitude);
+                if (Math.Abs(gp.Latitude) > 60 - 1e-12)
+                {
+                    sw.WriteLine("Latitude exceeds 60 degrees, no data there.");
+                    h = 0;
+                }
+                else
+                {
+                    Tile tile = new Tile(gp);
+                    sw.WriteLine("Looking for tile {0}", tile.Name);
+                    if (nonzeroDems.Contains(tile.Name))
+                    {
+                        sw.WriteLine("Tile found in the list.");
+                        h = GetHeight(GetRaster(tile), gp);
+                    }
+                    else
+                    {
+                        sw.WriteLine("Tile not found in the list.");
+                        h = 0;
+                    }
+                }
+                sw.WriteLine("Returning {0}", h);
+                sw.WriteLine("\n\nKnown tiles as read from known_dem_cut.list (total {0})", nonzeroDems.Count);
+                foreach (string s in nonzeroDems)
+                    sw.WriteLine(s);
+                sw.WriteLine("---------------------------------------------------------------");
+                sw.WriteLine();
+            }
+            return h;
         }
 
         public int GetAverageHeight(Polygon p, uint samples = 1000)
