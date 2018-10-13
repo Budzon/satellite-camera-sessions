@@ -19,17 +19,15 @@ namespace OptimalChain
             Vertex A = new Vertex("A");
             Vertex B = new Vertex("B");
 
-           // Console.WriteLine("Vertices number = " + vertices.Count);
             int count = 1;
             int edge_count = 0;
 
             foreach (Vertex v1 in vertices)
             {
-               // Console.WriteLine("Processing vertex = " + count);
                 count++;
                 A.addEdge(v1, v1.value);
 
-                foreach (Vertex v2 in vertices.Where(i => (i.s.dateFrom >= v1.s.dateTo.AddSeconds(Constants.min_Delta_time/1000))))
+                foreach (Vertex v2 in vertices.Where(i => (i.route.start >= v1.route.end.AddSeconds(Constants.minReconfStabilizationT))))
                 {
                     if (((v1.s.shooting_type == ShootingType.StereoTriplet) || (v1.s.shooting_type == ShootingType.Stereo)))
                     {
@@ -39,7 +37,6 @@ namespace OptimalChain
 
                             if (w > 0)
                             {
-                                // Console.WriteLine("OOOOO");
                                 v1.addEdge(v2, w);
                                 edge_count++;
                             }
@@ -53,7 +50,6 @@ namespace OptimalChain
 
                              if (w > 0)
                              {
-                                // Console.WriteLine("OOOOO");
                                  v1.addEdge(v2, w);
                                  edge_count++;
                              }
@@ -67,52 +63,7 @@ namespace OptimalChain
 
             }
 
-            //Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
-            //int nnn = 1;
-            //while (additional_vertices.Count > 0)
-            //{
-            //    Console.WriteLine("Iteration " + nnn);
-            //    nnn++;
-            //    List<Vertex> TempList = new List<Vertex>(additional_vertices);
-            //    additional_vertices.Clear();
-            //    foreach (Vertex v1 in TempList)
-            //    {
-            //        A.addEdge(v1, v1.value);
-
-
-            //        foreach (Vertex v2 in TempList.Where(i => (i.cs.dateFrom.AddSeconds(i.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v1.cs.timeDelta)) && (i.s.id != v1.s.id)))
-            //        {
-            //            double w = this.countEdgeWeight(v1, v2);
-
-            //            if (w > 0)
-            //                v1.addEdge(v2, w);
-            //        }
-            //        foreach (Vertex v2 in vertices.Where(i => (i.s.id != v1.s.id)))
-            //        {
-            //            if (v2.cs.dateFrom.AddSeconds(v2.cs.timeDelta) > v1.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v1.cs.timeDelta))
-            //            {
-            //                double w = this.countEdgeWeight(v1, v2,false);
-
-            //                if (w > 0)
-            //                    v1.addEdge(v2, w);
-            //            }
-
-            //            if (v1.cs.dateFrom.AddSeconds(v1.cs.timeDelta) > v2.cs.dateTo.AddSeconds(Constants.min_Delta_time / 1000 - v2.cs.timeDelta))
-            //            {
-            //                double w = this.countEdgeWeight(v2, v1,false);
-
-            //                if (w > 0)
-            //                    v2.addEdge(v1, w);
-            //            }
-
-            //        }
-
-            //        v1.addEdge(B, 0);
-            //        vertices.Add(v1);
-            //    }
-
-            //    Console.WriteLine("Additional vertices NUM = " + additional_vertices.Count);
-            //}
+           
 
 
             vertices.Insert(0, A);
@@ -183,15 +134,14 @@ namespace OptimalChain
         }
 
 
-        public bool CheckPossibility(StaticConf c1, StaticConf c2 )
+        public bool CheckPossibility(Vertex v1, Vertex v2 )
         {
 
-            if (c1 == null || c2 == null) return false;
+            if (v1.s == null || v2.s == null) return false;
             
-            double ms = c1.reConfigureMilisecinds(c2);
-            double min_pause = Constants.CountMinPause(c1.type,c1.shooting_type,c1.shooting_channel, c2.type, c2.shooting_type,c2.shooting_channel);
-            double needded_pause = ms + min_pause;
-            double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
+            double reconf_s = v1.s.reConfigureSeconds(v2.s);
+            double needded_pause = reconf_s + Constants.minReconfStabilizationT;
+            double dms = (v1.route.start - v2.route.end).TotalSeconds;
 
             return (needded_pause < dms);
 
@@ -201,11 +151,13 @@ namespace OptimalChain
             if (v2.s == null) return 0;
             if (v1.s == null) return v2.value;
 
-            if (CheckPossibility(v1.s, v2.s))
+            if (CheckPossibility(v1, v2))
                     return v2.value;
 
             if(!change_strips)
                return -1;
+
+            ///то, что ниже выполняется при change_strips, но в нашей реализации это мертвая ветка
 
             Vertex v3 = null;
             if(v1.s.shooting_type != ShootingType.StereoTriplet)
@@ -377,6 +329,9 @@ namespace OptimalChain
         public StaticConf s { get; set; }
 
         public CaptureConf cs{ get; set; }
+
+        public RouteParams route { get; set; }
+
         public int color { get; set; }
         public double value { get; set; }
 
@@ -407,10 +362,12 @@ namespace OptimalChain
         {
             s = ss;
             cs = c;
+            route = new RouteParams(s);
             key = s.roll.ToString() + "/" + s.pitch.ToString();
             color = 0;
             value = countVertexPrice();
             isVisited = false;
+            
 
             mark = -1;
             edges = null;

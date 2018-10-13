@@ -253,7 +253,7 @@ namespace SatelliteSessions
                     res.Add(curParam);
                     
                     routes.Remove(routePrms);
-                    prevDt = nextDt.AddMilliseconds(OptimalChain.Constants.minDeltaT);
+                    prevDt = nextDt.AddSeconds(OptimalChain.Constants.minReconfStabilizationT);
                 }
             }
 

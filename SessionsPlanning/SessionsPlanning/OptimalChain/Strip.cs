@@ -88,12 +88,12 @@ namespace OptimalChain
             poliCoef = _poliCoef;
         }
 
-        public double reConfigureMilisecinds(StaticConf s2)
+        public double reConfigureSeconds(StaticConf s2)
         {
-            return reConfigureMilisecinds(this.roll, this.pitch, s2.roll, s2.pitch);           
+            return reConfigureSeconds(this.roll, this.pitch, s2.roll, s2.pitch);           
         }
         
-        public static double reConfigureMilisecinds(double r1, double p1,  double r2,  double p2)
+        public static double reConfigureSeconds(double r1, double p1,  double r2,  double p2)
         { 
             double c_gamma = (1 + Math.Tan(r1) * Math.Tan(r2) + Math.Tan(p1) * Math.Tan(p2)) 
                 / (Math.Sqrt(1 + Math.Tan(r1) * Math.Tan(r1) + Math.Tan(p1) * Math.Tan(p1))
@@ -101,9 +101,9 @@ namespace OptimalChain
             double gamma = Math.Acos(c_gamma);
 
             if (gamma < Constants.min_degree || double.IsNaN(gamma))
-                return Constants.minDeltaT;
+                return Constants.minReconfStabilizationT;
 
-            double ms = ((gamma - Constants.min_degree) / Constants.angle_velocity_max) * 1000 + Constants.minDeltaT;
+            double ms = ((gamma - Constants.min_degree) / Constants.angle_velocity_max  + Constants.minReconfStabilizationT) * 1000;
 
             return ms;
         }

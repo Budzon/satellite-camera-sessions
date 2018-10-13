@@ -9,27 +9,33 @@ namespace OptimalChain
 {
     public static class Constants
     {
-        public const int MPZ_ending_Time = 7000;// 2с -- сохранение, 5с -- отключение СОЭН;
-        public const int MPZ_ending_Time_PWRON = 7000;// 2с -- сохранение, 5с -- отключение СОЭН;
+        ///Все константы для МПЗ и маршрутов теперь считаем в секундах. Милисекунды оказались не нужны. 
+        public const int MPZ_ending_Time = 7;// 2с -- сохранение, 5с -- отключение СОЭН;
+        public const int MPZ_ending_Time_PWRON = 0;// Если мы не выключаем СОЭН, то ничего и делать не надо. Пока. Поэтому на всякий случай сделаем такую константу;
 
-        public const int SOEN_turning_on_Time =10000;// минимальное;
-        public const int SOEN_turning_on_Time_RESERVE = 120000;// c учетом перехода на резервную конфигурацию;
+        public const int SOEN_turning_on_Time = 150;// 2.5 минуы для любой конфиурации;
 
-        public const int MPZ_init_Time = 47000;// минимальное;
-        public const int MPZ_init_Time_RESERVE = 70000;// c учетом перехода на резервную конфигурацию;
+        public const int MPZ_max_lasting_time = 1410;// максимальное время работы СОЭН без выключения (т.е. в одном МПЗ или в нескольних со флагом PWR_ON)
+        public const int max_shooting_time_per_turn = 800;//максимальное время съемки без выключения СОЭН (т.е. в одном МПЗ или в нескольних со флагом PWR_ON)
 
-        public const int MPZ_max_lasting_time = 1400000;
+        public const int MPZ_delta = 485;//8 минут 5 секун, если перед этим МПЗ не было МПЗ с флагом PWR_ON;
 
-        public const int MPZ_delta = 0;//2000;
+        public const int shooting_route_init_time = 12;//время инициализации маршрута с любой съемкой
+        public const int not_shooting_route_init_time = 8;//время инициализации маршрута на сброс/удаление
 
-        public const int min_shooting_time = 2000;
-        public const int min_Delta_time = 8000;
-        public const int minDeltaT = 19000;
+        public const int shooting_route_end_time = 9;//время окончания маршрута с любой съемкой
+        public const int not_shooting_route_end_time = 5;//время окончания маршрута на сброс/удаление
 
+        //это надо изжить
+        public const int min_Delta_time = 8;//минимальная пауза между маршрутами, отведенная на инициализацию нового и завершение предыдущего
+
+        public const int minReconfStabilizationT = 19;//минимальное время затрачиваемое на поворот -- это разгон, торможение, стаблилизация. Время на сам поворот считается отдельно
+
+        //***********************************************************************************
+                
         public const int minShootingDuration = 3; // [сек] минимальная продолжительность съемки. Если съемка меньше этого значения, мы увеличиваем её продолжительность до этого вручную.
         public const double turnDuration = 90.2;  // продолжительность витка в секундах
 
-        public const int stabilizationAfterRotationTime = 10000; // мс
         public const double maxPitchTimeDelta = 70; // ПРИБЛИЗИТЕЛЬНОЕ максимально возможное время, которое можно компенсировать тангажом
         // максимальный промежуток (в секундах) между двумя конфигурациями, при котором они объединяются в одну
         public const int maxCConfInterval = 2;
@@ -54,10 +60,10 @@ namespace OptimalChain
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
         public const int minTrajectoryPassInterval = 120; //[секнуды] максимальный разрыв по времени между двумя точками траектории, при котором мы продолжаем с такой траекторией работать.
 
-
+        //@toDo удалить после завершения рефакторинга
         public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {
-            int d = Constants.min_Delta_time/1000; // в константах время указано в милисекундах, а тут мы все считаем в секундах
+            int d = Constants.min_Delta_time; // в константах время указано в милисекундах, а тут мы все считаем в секундах
             if (t1 == WorkingType.Shooting)
             {
                 if (channel1 != ShootingChannel.pk)
@@ -82,7 +88,7 @@ namespace OptimalChain
                 }
             }
 
-            return d * 1000;
+            return d;
         }
     }
 }

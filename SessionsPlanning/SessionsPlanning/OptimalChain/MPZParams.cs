@@ -58,9 +58,11 @@ namespace OptimalChain
             : this(ID)
         {                       
             routes.Add(r);            
-            start = r.start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
-            end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);            
+            start = r.start.AddSeconds(-Constants.SOEN_turning_on_Time);
+            end = r.end.AddSeconds(Constants.MPZ_ending_Time);            
         }
+
+
 
         /// <summary>
         /// Конструктор МПЗ на основе готовых маршрутов (без пересчёта времён)
@@ -72,8 +74,8 @@ namespace OptimalChain
             : this(ID)
         {            
             routes = new ObservableCollection<RouteParams>(routesList);
-            start = routesList.First().start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
-            end = routesList.Last().end.AddMilliseconds(Constants.MPZ_ending_Time);
+            start = routesList.First().start.AddSeconds(-Constants.SOEN_turning_on_Time);
+            end = routesList.Last().end.AddSeconds(Constants.MPZ_ending_Time);
             Station = mpzStation;
         }
         
@@ -86,9 +88,9 @@ namespace OptimalChain
             routes.Add(r);            
 
             if (N_routes < 2)
-                start = r.start.AddMilliseconds(-Constants.SOEN_turning_on_Time);
+                start = r.start.AddSeconds(-Constants.SOEN_turning_on_Time);
 
-            end = r.end.AddMilliseconds(Constants.MPZ_ending_Time);
+            end = r.end.AddSeconds(Constants.MPZ_ending_Time);
             return true;
         }
 
@@ -102,7 +104,7 @@ namespace OptimalChain
 
 
         /// <summary>
-        /// Проверка соместимости МПЗ и заданного маршрута 
+        /// Проверка соместимости маршрутов МПЗ и заданного маршрута 
         /// </summary>
         /// <param name="r">Маршрут, который требует проверки на совместимось с данным МПЗ</param>
         /// <returns>Код проверки: true--маршрут и МПЗ совместимы, false--маршрут и МПЗ несовместимы</returns>
@@ -125,43 +127,16 @@ namespace OptimalChain
         {
             if (N_routes < 12)
             {
-                double lasting = ((r.end - this.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON);
+                double lasting = ((r.end - this.start).TotalSeconds + Constants.MPZ_ending_Time_PWRON);
                 return lasting < Constants.MPZ_max_lasting_time;
             }
 
-            double delta_time = (r.start - this.end).TotalMilliseconds;
-            double dt_mpz = delta_time - Constants.SOEN_turning_on_Time - Constants.MPZ_init_Time;
+            double delta_time = (r.start - this.end).TotalSeconds;
+            double dt_mpz = delta_time - Constants.SOEN_turning_on_Time;
 
             return (dt_mpz > 0);
         }
 
-        public static MPZParams createMPZbetween(MPZParams m1, MPZParams m2, List<RouteParams> r)
-        {
-            if(r==null)
-            {
-                if((m2.start- m1.end).TotalMilliseconds > Constants.MPZ_ending_Time_PWRON + Constants.SOEN_turning_on_Time + 2 * Constants.MPZ_delta)
-                {
-                    MPZParams m = new MPZParams(0);
-                    m.start = m1.end.AddMilliseconds(Constants.SOEN_turning_on_Time + Constants.MPZ_delta);
-                    m.end = m.start;
-                    return m;
-                }
-            }
-            else
-            {
-                double Tmpz = (r.Last().end - r[0].start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON + Constants.SOEN_turning_on_Time + 2 * Constants.MPZ_delta;
-                if ((m2.start - m1.end).TotalMilliseconds < Tmpz)
-                    return null;
-
-                MPZParams m = new MPZParams(0,r[0]);
-                foreach(RouteParams i in r)
-                {
-                    m.AddRoute(i);
-                }
-                return m;
-            }
-            return null;
-        }
 
         public void renumerateRoutes(object sender, NotifyCollectionChangedEventArgs e)
         {            
@@ -176,76 +151,97 @@ namespace OptimalChain
         {           
             if (this.N_routes > 11) return false;
 
+            //Эта функция предназначена для вставски сбросов и удалений. Съемку нельзя.
+            if (r.type==WorkingType.Shooting||r.type == WorkingType.ShootingSending)
+                throw new ArgumentException("Cannot InsertRoute for route.type = shooting");
+
+
+            //Сначала попробуем засунуть маршрут в самое начало МПЗ, если интервал вставки позволяет
             double dmpz = Double.MaxValue;
             if(m_previous!=null)
             {
-                dmpz = (start - m_previous.end).TotalMilliseconds;
+                dmpz = (this.start - m_previous.end).TotalSeconds;
             }
 
-            RouteParams r0 = routes[0];
-            if ((dmpz - Constants.MPZ_delta - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel) > 0))
+
+            RouteParams r0 = this.routes[0];
+            r.start = insert_start;
+            r.end = (r.start.AddMilliseconds(r.duration)).AddSeconds(Constants.not_shooting_route_end_time + Constants.not_shooting_route_init_time);
+
+            if (r.end <= insert_end)
             {
-                DateTime s_new = start.AddMilliseconds(Constants.MPZ_init_Time - r.duration - Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r0.type, r0.shooting_type, r0.shooting_channel));
-                if (s_new > insert_start && s_new.AddMilliseconds(r.duration) < insert_end)
+                if ((dmpz - Constants.MPZ_delta > 0)&&(r0.isCompatible(r)))
                 {
-                    r.start = s_new;
-                    r.end = r.start.AddMilliseconds(r.duration);
-                    start = r.start.AddMilliseconds(-Constants.MPZ_init_Time);
-                    routes.Insert(0, r);
+                    this.start = r.start.AddSeconds(Constants.SOEN_turning_on_Time);
+                    this.routes.Insert(0, r);
                     return true;
-                }                
+                }
             }
-
-            double lasting = ((r.end - this.start).TotalMilliseconds + Constants.MPZ_ending_Time_PWRON);
-            if(lasting < Constants.MPZ_max_lasting_time) return false;
-            
             
             for(int i=0;i<N_routes;i++)
             {
                 RouteParams r1 = routes[i];
-                if(i == (N_routes -1))
+                //если мы дошли до последнего маршрута
+                if (i == (N_routes -1))
                 {
-                    if (!r.isCompatible(r)) return false;
+                    //пытаемся пристроить маршурт в самый конец МПЗ
+                    r.start = r1.end.AddSeconds(1);
+                    r.end = (r.start.AddMilliseconds(r.duration)).AddSeconds(Constants.not_shooting_route_end_time + Constants.not_shooting_route_init_time);
 
-                    double dt = Constants.CountMinPause(r1.type,r1.shooting_type,r1.shooting_channel, r.type, r.shooting_type, r.shooting_channel);
-
-                    if(m_next!=null)
-                    {
-                        if (m_next.start < end.AddMilliseconds(dt + r.duration + Constants.MPZ_delta))
-                            return false;
-                    }
-
-                    if (end.AddMilliseconds(dt + r.duration) > insert_end)
+                    //проверяем, уложились ли мы в промежуток
+                    if (r.start < insert_start || r.end > insert_end)
                         return false;
 
-                    DateTime s_new = r1.start.AddMilliseconds(dt);
-                    if (s_new > insert_start && s_new.AddMilliseconds(r.duration) < insert_end)
+                    //проверим, не сломается ли от этого связб со следующим МПЗ
+                    if (m_next!=null)
                     {
-                        r.start = s_new;
-                        r.end = r.start.AddMilliseconds(r.duration);
-                        return this.AddRoute(r);
-                    }                   
+                        if (m_next.start < r.end.AddSeconds(Constants.MPZ_ending_Time + Constants.MPZ_delta))
+                        {
+                            if (m_next.start < r.end.AddSeconds(Constants.MPZ_ending_Time.PWR_ON))
+                                return false;
+                            else this.PWR_ON = true;
+
+                        }
+
+                    }
+                    
+
+                    //добавляем маршрут, проставляем МПЗ новое время окончания
+                    this.AddRoute(r);
+                    if (this.PWR_ON)
+                        this.end = r.end;
+                    else
+                        this.end = r.end.AddSeconds(Constants.MPZ_ending_Time);
+                    return true;
                 }
-
-                RouteParams r2 = routes[i + 1];
-                double dt1 = Constants.CountMinPause(r1.type, r1.shooting_type, r1.shooting_channel, r.type, r.shooting_type, r.shooting_channel);
-
-                if (r1.end.AddMilliseconds(r.duration + dt1) > insert_end) return false;
-
-                double dt2 = Constants.CountMinPause(r.type, r.shooting_type, r.shooting_channel, r2.type, r2.shooting_type, r2.shooting_channel);
-                double dt_r1_r2 = (r2.start - r1.end).TotalMilliseconds;
-
-                if(dt_r1_r2> (dt1 + dt2 + r.duration))
+                else
                 {
-                    DateTime s_new = r1.end.AddMilliseconds(dt1);
-                    if (s_new > insert_start && s_new.AddMilliseconds(r.duration) < insert_end)
+                    RouteParams r2 = routes[i+1];
+
+                    double dt_r1_r2 = (r2.start - r1.end).TotalSeconds;
+                    double reconf_r1_r2 = 0;
+                    if (r2.type == WorkingType.Shooting || r2.type == WorkingType.ShootingSending)
+                        reconf_r1_r2 = r1.reConfigureSeconds(r2);
+                    double free_time_r1_r2 = dt_r1_r2 - reconf_r1_r2;
+
+                    if (r.duration / 1000 + Constants.not_shooting_route_end_time + Constants.not_shooting_route_init_time < free_time_r1_r2)
                     {
-                        r.start = r1.end.AddMilliseconds(dt1);
-                        r.end = r.start.AddMilliseconds(r.duration);
-                        routes.Insert(i + 1, r);                        
-                        return true;
-                    }                   
+
+                        //на всякий случай сделаем углы, как у маршрута, после котого хотим вставить этот маршрут
+                        r.pitch = r1.pitch;
+                        r.roll = r1.roll;
+                        r.start = r1.end.AddSeconds(1);
+                        r.end = r.start.AddSeconds(r.duration / 1000 + +Constants.not_shooting_route_end_time + Constants.not_shooting_route_init_time);
+
+                        if (r.start >= insert_start && r.end <= insert_end)
+                        {
+                            this.routes.Insert(i+1,r);
+                            return true;
+                        }
+                    }
+
                 }
+
             }
 
             return false;
@@ -344,8 +340,8 @@ namespace OptimalChain
                 throw new ArgumentException("PolinomCoef must be != null for Coridor shoooting ");
 
             type = _type;
-            start = _start;
-            end = _end;
+            start = _start.AddSeconds(-Constants.shooting_route_init_time);
+            end = _end.AddSeconds(Constants.shooting_route_end_time);
             roll = _roll;
             pitch = _pitch;
             shooting_channel = _shooting_channel;
@@ -402,8 +398,8 @@ namespace OptimalChain
             double pitch)
             : this(t, (d2 - d1).TotalSeconds, _binded_route, roll, pitch)
         {
-            start = d1;
-            end = d2;
+            start = d1.AddSeconds(-Constants.not_shooting_route_init_time);
+            end = d2.AddSeconds(Constants.not_shooting_route_end_time); ;
         }
 
 
@@ -565,31 +561,21 @@ namespace OptimalChain
         {
             RouteParams r1, r2;
 
-            if (r.start > this.start)
-            {
-                r2 = r;
-                r1 = this;
-            }
-            else
-            {
-                r1 = r;
-                r2 = this;
-            }
+            r1 = r.start > this.start ? this : r;
+            r2 = r.start > this.start ? r : this;
 
             if (r1 == null || r2 == null)
                 return true;
 
-            double ms = r1.reConfigureMilisecinds(r2);
-            if (r.type != 0 || this.type != 0) ms = 0;
-            //double min_pause = Constants.CountMinPause(c1.type, c1.shooting_type, c1.shooting_channel, c2.type, c2.shooting_type, c2.shooting_channel);
-            double dms = (r2.start - r1.end).TotalMilliseconds;
+            double ms = (r1.type == WorkingType.Shooting) || (r1.type == WorkingType.ShootingSending) ? r1.reConfigureSeconds(r2):0;
+            double dms = (r2.start - r1.end).TotalSeconds;
 
             return (ms < dms);
         }
 
-        public double reConfigureMilisecinds(RouteParams r2)
+        public double reConfigureSeconds(RouteParams r2)
         {
-            return StaticConf.reConfigureMilisecinds(this.roll, this.pitch, r2.roll, r2.pitch);
+            return StaticConf.reConfigureSeconds(this.roll, this.pitch, r2.roll, r2.pitch);
         }
 
 

@@ -249,10 +249,10 @@ namespace SessionsPlanning
                 fromDt = fromDt.AddMinutes(turnDuration);
 
                 double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
  
-                double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
-                dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                double dt = minPause + OptimalChain.Constants.minReconfStabilizationT;
+                dt += OptimalChain.Constants.SOEN_turning_on_Time;
                 fromDt = fromDt.AddSeconds(dt);
             }
         }
@@ -265,7 +265,7 @@ namespace SessionsPlanning
             int numFrames,
             int startMpzNum)
         {
-            fromDt = fromDt.AddMilliseconds(OptimalChain.Constants.SOEN_turning_on_Time);
+            fromDt = fromDt.AddSeconds(OptimalChain.Constants.SOEN_turning_on_Time);
             double turnDuration = OptimalChain.Constants.turnDuration;
 
             DateTime toDt = fromDt.AddMinutes(turnDuration);
@@ -315,7 +315,7 @@ namespace SessionsPlanning
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
             Trajectory traj = fetcher.GetTrajectorySat(period.dateFrom, period.dateTo);
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
  
             List<StaticConf> sconfs = new List<StaticConf>();
 
@@ -325,7 +325,7 @@ namespace SessionsPlanning
                 var kaPoint = traj.GetPoint(curDtFrom);
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
-                DateTime captureTo = curDtFrom.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
+                DateTime captureTo = curDtFrom.AddSeconds(OptimalChain.Constants.minShootingDuration);
 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
@@ -339,9 +339,9 @@ namespace SessionsPlanning
                 sconfs.Add(conf.CreateStaticConf(0, 1));
                 count++;
                 
-                double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
+                double dt = minPause + OptimalChain.Constants.minReconfStabilizationT ;
                 if (sconfs.Count % 12 == 0)
-                    dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                    dt += OptimalChain.Constants.SOEN_turning_on_Time;
                 
                 curDtFrom = captureTo.AddSeconds(dt);
             }
@@ -363,7 +363,7 @@ namespace SessionsPlanning
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
  
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
  
             List<StaticConf> sconfs = new List<StaticConf>();
 
@@ -411,7 +411,7 @@ namespace SessionsPlanning
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
             var traj = fetcher.GetTrajectorySat(period.dateFrom, period.dateTo);
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
  
             List<StaticConf> sconfs = new List<StaticConf>();
             
@@ -424,7 +424,7 @@ namespace SessionsPlanning
                 var kaPoint = fetcher.GetSingleSatPoint(curDt).Value;
                 SatelliteCoordinates kaPos = new SatelliteCoordinates(kaPoint);
                 Polygon framePol = kaPos.ViewPolygon;
-                DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
+                DateTime captureTo = curDt.AddSeconds(OptimalChain.Constants.minShootingDuration);
 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _requestChannel: ShootingChannel.pk);
@@ -445,9 +445,9 @@ namespace SessionsPlanning
                     sconfs.Add(conf.CreateStaticConf(p.Key, 1));
                 count++;
                 
-                double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
+                double dt = minPause + OptimalChain.Constants.minReconfStabilizationT;
                 if (sconfs.Count > 0 && sconfs.Count % 12 == 0)
-                     dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                     dt += OptimalChain.Constants.SOEN_turning_on_Time;
                 curDt = curDt.AddSeconds(dt);            
             }
             return sconfs;
@@ -467,7 +467,7 @@ namespace SessionsPlanning
           
 
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
  
             List<StaticConf> sconfs = new List<StaticConf>();
 
@@ -511,9 +511,9 @@ namespace SessionsPlanning
                 
                 count++;
 
-                double dt = minPause + OptimalChain.Constants.minDeltaT / 1000;
+                double dt = minPause + OptimalChain.Constants.minReconfStabilizationT;
                 if (sconfs.Count % 12 == 0)
-                    dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                    dt += OptimalChain.Constants.SOEN_turning_on_Time;
 
                 curDtFrom = coridorParams.Max(cor => cor.EndTime);
                 curDtFrom = curDtFrom.AddSeconds(dt);
@@ -537,7 +537,7 @@ namespace SessionsPlanning
             DBTables.DataFetcher fetcher = new DBTables.DataFetcher(managerDB);
             Trajectory traj = fetcher.GetTrajectorySat(period.dateFrom, period.dateTo);
             double minPause = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
  
             List<StaticConf> sconfs = new List<StaticConf>();
 
@@ -558,7 +558,7 @@ namespace SessionsPlanning
                         kaPosRight.TopRightViewPoint,  kaPosLeft.TopLeftViewPoint
                     });
                 
-                DateTime captureTo = curDt.AddMilliseconds(OptimalChain.Constants.min_shooting_time);
+                DateTime captureTo = curDt.AddSeconds(OptimalChain.Constants.minShootingDuration);
 
                 var req = new RequestParams(0, 1, DateTime.MinValue, DateTime.MaxValue, 100, 1, 100, 100,
                     framePol.ToWtk(), _shootingType: ShootingType.Normal, _requestChannel: ShootingChannel.pk);
@@ -586,29 +586,29 @@ namespace SessionsPlanning
                 conf4.calculatePitchArray(traj, kaPoint);
 
                 double shooting_time = (double)OptimalChain.Constants.CountMinPause(WorkingType.Shooting, type,
-                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk) / 1000000;
+                ShootingChannel.pk, WorkingType.Shooting, type, ShootingChannel.pk);
 
                 int deltTime = (int)conf1.timeDelta;
                 sconfs.Add(conf1.CreateStaticConf(deltTime, -1));
 
-                double min_pause = StaticConf.reConfigureMilisecinds(-1.5 * cam_angle, 0, -0.5 * cam_angle, 0) / 1000;
+                double min_pause = StaticConf.reConfigureSeconds(-1.5 * cam_angle, 0, -0.5 * cam_angle, 0);
                 deltTime -= (int)(shooting_time + min_pause);
                 sconfs.Add(conf2.CreateStaticConf(Math.Abs(deltTime), -1 * Math.Sign(deltTime)));
 
-                min_pause = StaticConf.reConfigureMilisecinds(-0.5 * cam_angle, 0, 0.5 * cam_angle, 0) / 1000;
+                min_pause = StaticConf.reConfigureSeconds(-0.5 * cam_angle, 0, 0.5 * cam_angle, 0);
                 deltTime -= (int)(shooting_time + min_pause);
                 sconfs.Add(conf3.CreateStaticConf(Math.Abs(deltTime), -1 * Math.Sign(deltTime)));
 
-                min_pause = StaticConf.reConfigureMilisecinds(0.5 * cam_angle, 0, 1.5 * cam_angle, 0) / 1000;
+                min_pause = StaticConf.reConfigureSeconds(0.5 * cam_angle, 0, 1.5 * cam_angle, 0);
                 deltTime -= (int)(shooting_time + min_pause);
                 sconfs.Add(conf4.CreateStaticConf(Math.Abs(deltTime), -1 * Math.Sign(deltTime)));
 
-                double dt = minPause + StaticConf.reConfigureMilisecinds(1.5 * cam_angle, 0, -1.5 * cam_angle, 0) / 1000;
+                double dt = minPause + StaticConf.reConfigureSeconds(1.5 * cam_angle, 0, -1.5 * cam_angle, 0);
                 double reconfigureMin = 38;  // секунд на поворот от -pitchAngle до pitchAngle
                 dt += 2* deflectTimeDelta + reconfigureMin;
 
                 if (sconfs.Count % 12 == 0)
-                    dt += OptimalChain.Constants.SOEN_turning_on_Time / 1000 + OptimalChain.Constants.MPZ_init_Time / 1000;
+                    dt += OptimalChain.Constants.SOEN_turning_on_Time;
 
                 curDt = curDt.AddSeconds(dt);
                 
