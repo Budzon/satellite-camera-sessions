@@ -1672,29 +1672,16 @@ namespace SatelliteSessions
 
 
         /// <summary>
-        /// Создать маршрут на форматирование ячейки памяти (обоих)
+        /// Создать маршрут на форматирование ячейки памяти 
         /// </summary>
         /// <param name="dtime">время начала форматирования</param>
-        /// <param name="bankId">номер ячейки памяти</param>
+        /// <param name="options">параметры форматирования</param>
         /// <returns>маршрут</returns>
-        public static RouteParams createFormattingRoute(DateTime dtime, int cellId)
+        public static RouteParams createFormattingRoute(DateTime dtime, FormattingOptions options)
         {
-            if (cellId < 1 || cellId > 6)
-                throw new ArgumentException("Wrong cell ID");                
-
             WorkingType wType = WorkingType.Formatting;
             DateTime toDt = dtime.AddSeconds(OptimalChain.Constants.routeDeleteTime);
             RouteParams curParam = new RouteParams(wType, dtime, toDt, null, 0, 0);
-            FormattingOptions options = new FormattingOptions
-            {
-                Bank1Cell1 = cellId == 1,
-                Bank1Cell2 = cellId == 2,
-                Bank1Cell3 = cellId == 3,
-                Bank2Cell1 = cellId == 4,
-                Bank2Cell2 = cellId == 5,
-                Bank2Cell3 = cellId == 6
-            };
-
             curParam.formatting_options = options;
             return curParam;
         }
