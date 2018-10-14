@@ -60,7 +60,7 @@ namespace GeometryTest
             }
             */
         }
-
+/*
         [TestMethod]
         public void TestMPZ()
         {
@@ -106,7 +106,7 @@ namespace GeometryTest
             string mpz_string = mpzs.Aggregate("", (s, mpz) => s + mpz.ToString() + "\n");
             System.IO.File.WriteAllText(@"mpz_text.txt", mpz_string);
         }
-
+*/
         [TestMethod]
         public void Test123()
         {
@@ -446,7 +446,7 @@ namespace GeometryTest
             }
         }
 
-
+/*
         [TestMethod]
         public void Test_getMPZArray()
         {
@@ -551,7 +551,7 @@ namespace GeometryTest
         }
 
 
-
+*/
         [TestMethod]
         public void Test_lalala()
         {
