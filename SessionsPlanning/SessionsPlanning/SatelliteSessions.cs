@@ -1185,6 +1185,8 @@ namespace SatelliteSessions
                 }
             }
         }
+     
+        
         /// <summary>
         /// Добавление мрашрута в ПНБ
         /// </summary>
@@ -1652,7 +1654,7 @@ namespace SatelliteSessions
         }
 
 
-        /// <summary>
+       /// <summary>
         /// Создание маршрута на удаление всей МПЗ
         /// </summary>
         /// <param name="dtime">время начала удаления</param>

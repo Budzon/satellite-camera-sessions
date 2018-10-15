@@ -116,7 +116,7 @@ namespace OptimalChain
                 StaticConf new_conf = s1.CreateStaticConf(dt,direction);
                 if(new_conf!=null)
                 {
-                 bool go = forward_delta ? CheckPossibility(s2, new_conf) : CheckPossibility(new_conf, s2);
+                 bool go = forward_delta ? CheckPossibility(new Vertex(s2, s1), new Vertex(new_conf, s1)) : CheckPossibility(new Vertex(new_conf, s1), new Vertex(s2, s1));
                      if (go)
                      {
                          return new Vertex(new_conf, s1);

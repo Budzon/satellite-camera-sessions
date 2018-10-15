@@ -197,7 +197,7 @@ namespace OptimalChain
                     {
                         if (m_next.start < r.end.AddSeconds(Constants.MPZ_ending_Time + Constants.MPZ_delta))
                         {
-                            if (m_next.start < r.end.AddSeconds(Constants.MPZ_ending_Time.PWR_ON))
+                            if (m_next.start < r.end.AddSeconds(Constants.MPZ_ending_Time_PWRON))
                                 return false;
                             else this.PWR_ON = true;
 
