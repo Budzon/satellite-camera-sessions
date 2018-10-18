@@ -279,21 +279,23 @@ namespace SatelliteSessions
 
                     if (isCloudiness)
                         continue;
+                    
+                    cc.setPolygon(cp.Coridor);
 
-                    // зададим угол солнца
+                    // проверим угол солнца 
                     if (cc.dateFrom == cc.dateTo)
                     {
-                        TrajectoryPoint pointFrom = satTrajectory.GetPoint(cc.dateFrom);
-                        cc.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(cc.dateFrom).ToVector());
+                        if (!cc.checkSunAngle(satTrajectory.GetPoint(cc.dateFrom), sunTrajectory.GetPosition(cc.dateFrom).ToVector()))
+                            continue;
                     }
                     else
                     {
                         DateTime midTime;
                         midTime = cc.dateFrom.AddSeconds((cc.dateTo - cc.dateFrom).TotalSeconds);
-                        cc.setSun(satTrajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
+                        if (!cc.checkSunAngle(satTrajectory.GetPoint(midTime), sunTrajectory.GetPosition(midTime).ToVector()))
+                            continue;
                     }
-
-                    cc.setPolygon(cp.Coridor);
+                                        
                     captureConfs.Add(cc);
                 }
 
@@ -350,7 +352,7 @@ namespace SatelliteSessions
                         if (confs.Count == 0)
                             continue;
 
-                        //отбросим конфигурации, попавшие в облачные участки                        
+                        //отбросим конфигурации, попавшие в облачные участки и не удовлетворяющие требовниям по солнечному углу
                         for (int i = 0; i < confs.Count; i++)
                         {
                             foreach (CloudinessData cloud in meteoList)
@@ -358,6 +360,14 @@ namespace SatelliteSessions
                                 if (!CloudinessData.isCapConfInCloud(confs[i], cloud))
                                     continue;
 
+                                confs.RemoveAt(i);
+                                i--;
+                            }
+
+                            DateTime midTime;
+                            midTime = confs[i].dateFrom.AddSeconds((confs[i].dateTo - confs[i].dateFrom).TotalSeconds);
+                            if (!confs[i].checkSunAngle(trajectory.GetPoint(midTime), sunTrajectory.GetPosition(midTime).ToVector()))
+                            {
                                 confs.RemoveAt(i);
                                 i--;
                             }
@@ -395,22 +405,12 @@ namespace SatelliteSessions
                         pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
 
                     conf.setPolygon(pol);
+
                     if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)
                         conf.calculatePitchArray(trajectory, pointFrom);
-
-                    if (conf.dateFrom == conf.dateTo)
-                    {
-                        conf.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(conf.dateFrom).ToVector());
-                    }
-                    else
-                    {
-                        DateTime midTime;
-                        midTime = conf.dateFrom.AddSeconds((conf.dateTo - conf.dateFrom).TotalSeconds);
-                        conf.setSun(trajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
-                    }
                 }
                 foreach (var conf in laneCaptureConfs)
-                    concurrentlist.Add(conf);
+                    concurrentlist.Add(conf);                
             }
 #if _PARALLEL_
 );

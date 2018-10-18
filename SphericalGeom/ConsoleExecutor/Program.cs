@@ -1912,7 +1912,22 @@ namespace ConsoleExecutor
         }
 
         static void no_sessions_error_07_10_18()
-        { 
+        {
+
+            OptimalChain.FormattingOptions options = new OptimalChain.FormattingOptions
+            {
+                Bank1Cell1 = true,
+                Bank1Cell2 = true,
+                Bank1Cell3 = true,
+                Bank2Cell1 = false,
+                Bank2Cell2 = false,
+                Bank2Cell3 = true
+            };
+
+
+            RouteParams frmtPrms = Sessions.createFormattingRoute(DateTime.Parse("2019-01-05"), options);
+
+
             DateTime dt1 = DateTime.Parse("2019-01-05");
             DateTime dt2 = DateTime.Parse("2019-01-06");
 
@@ -1996,8 +2011,8 @@ namespace ConsoleExecutor
         {
             DateTime start = DateTime.Now;
 
-            test_TestSessionsSequenses();
-            // no_sessions_error_07_10_18();
+           // test_TestSessionsSequenses();
+            test_getCoridorMpzArray();
             //testMPZError_11_09_18();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
 
