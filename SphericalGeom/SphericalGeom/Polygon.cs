@@ -99,6 +99,12 @@ namespace SphericalGeom
             _geography = _geography.STUnion(other._geography);
         }
 
+        //public Vector3D Centre()
+        //{
+        //    var centre = _geography.EnvelopeCenter().STPointN(1);
+        //    return new GeoPoint((double)(centre.Lat), (double)(centre.Long)).ToCartesian(Astronomy.Constants.EarthRadius);
+        //}
+
         public string ToWtk()
         {
             return _geography.ToString();

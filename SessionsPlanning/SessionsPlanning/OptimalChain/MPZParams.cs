@@ -355,7 +355,10 @@ namespace OptimalChain
             fileSize = new Lazy<int>(() => calculateFileSize());
         }
 
-
+        /// <summary>
+        /// Создание RouteParams через StaticConf 
+        /// </summary>
+        /// <param name="conf">параметры съемки (StaticConf)</param>
         public RouteParams(StaticConf conf)
             : this(conf.type,
                    conf.shooting_type,
@@ -372,7 +375,16 @@ namespace OptimalChain
             Requests = conf.orders.Select(o => o.request).ToList();
             albedo = conf.AverAlbedo;
         }
+ 
 
+        /// <summary>
+        /// Создание "сервисного" маршрута (сброс, удаление) по длительности, без дат начала и конца
+        /// </summary>
+        /// <param name="t">тип работы</param>
+        /// <param name="dur">продолжительность работы</param>
+        /// <param name="_binded_route">привязанный маршрут</param>
+        /// <param name="roll">крен</param>
+        /// <param name="pitch">тангаж</param>
         public RouteParams(
             WorkingType t,
             double dur,
@@ -381,10 +393,18 @@ namespace OptimalChain
             double pitch)
         {
             if (t == WorkingType.Shooting || t == WorkingType.ShootingSending)
-                throw new ArgumentException("Cannot create shooting route whit this ctr");
+                throw new ArgumentException("Cannot create shooting route whith this ctr");
+
+            if (t != WorkingType.Formatting && _binded_route == null) 
+                throw new ArgumentException("Cannot create "+t.ToString()+"-type route whithout binded_route");
+
+            if (_binded_route != null)
+            {              
+                binded_route = _binded_route;
+                Requests = _binded_route.Requests;
+            }
 
             type = t;
-            binded_route = _binded_route;
             duration = dur;
             NRoute = -1;
             NPZ = -1;
@@ -393,6 +413,15 @@ namespace OptimalChain
             fileSize = new Lazy<int>(() => calculateFileSize());
         }
 
+        /// <summary>
+        /// Создание "сервисного" маршрута (сброс, удаление) с началом и концом работы
+        /// </summary>
+        /// <param name="t">тип работы</param>
+        /// <param name="d1">дата начала работы</param>
+        /// <param name="d2">дата конца работы</param>
+        /// <param name="_binded_route">привязанный маршрут</param>
+        /// <param name="roll">крен </param>
+        /// <param name="pitch">тангаж</param>
         public RouteParams(
             WorkingType t,
             DateTime d1,
@@ -406,7 +435,10 @@ namespace OptimalChain
             end = d2;
         }
 
-
+        /// <summary>
+        /// конструктор копирования
+        /// </summary>
+        /// <param name="copyed">копируемый маршрут</param>
         public RouteParams(RouteParams copyed)
         {
             id = copyed.id;
@@ -433,6 +465,7 @@ namespace OptimalChain
             formatting_options = copyed.formatting_options;
             wktPolygon = copyed.wktPolygon;
             fileSize = copyed.fileSize;
+            Requests = new List<RequestParams>(copyed.Requests);
         }
 
         static RouteParams()

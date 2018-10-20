@@ -81,93 +81,136 @@ namespace SatelliteSessions
             out double coverage,
             out List<CaptureConf> possibleConfs)
         {
-            DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
-            DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
-            DataFetcher fetcher = new DataFetcher(managerDbCUP);
-            Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
-
-            List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
-            List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
-            checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
-            possibleConfs = getCaptureConfArray(
-                new List<RequestParams>() { request },
-                timeFrom,
-                timeTo,
-                trajectory,
-                managerDbCUP,
-                managerDbCUKS,
-                shadowPeriods,
-                new List<TimePeriod>()
-                );
-            //possibleConfs.Sort(delegate(CaptureConf conf1, CaptureConf conf2)
-            //{
-            //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
-            //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
-            //});
-
-            double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, request.Max_SOEN_anlge);
-            double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
-
-            List<Trajectory> possibleTrajParts = getLitTrajectoryParts(trajectory, timeFrom, timeTo, shadowPeriods);
-            List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
-            foreach (var traj in possibleTrajParts)
+            using (var log = System.IO.File.CreateText("feasibility.log")) 
             {
-                SatLane viewLane = new SatLane(traj, 0, viewAngle);
-                List<CaptureConf> curConfs = viewLane.getCaptureConfs(request);
-                fictiveBigConfs.AddRange(curConfs);
-            }
+                log.WriteLine("isRequestFeasible started");
+                log.WriteLine("Request:");
+                string reqstr = string.Format(@"RequestParams req0 = new RequestParams({10}, 1,
+                DateTime.Parse('{0}'), 
+                DateTime.Parse('{1}'),
+                _Max_SOEN_anlge: {2},
+                _minCoverPerc: {3},
+                _Max_sun_angle: {4},
+                _Min_sun_angle: {5},
+                _wktPolygon: '{6}',
+                _polygonsToSubtract: new List<string>(),
+                _requestChannel: ShootingChannel.{7},
+                _shootingType: ShootingType.{8},
+                _compression: {9},
+                _albedo: 0
+                );", request.timeFrom, request.timeTo, request.Max_SOEN_anlge,
+                    request.minCoverPerc, request.Max_sun_angle, request.Min_sun_angle,
+                    request.wktPolygon, request.requestChannel, request.shootingType, request.compression, request.id);
 
-            double summ = 0;
+                log.WriteLine("{0} \n", reqstr);
+                log.WriteLine("Period: {0} - {1}", timeFrom, timeTo);
 
-            List<SphericalGeom.Polygon> region = new List<Polygon>(request.polygons);
-            foreach (var conf in fictiveBigConfs)
-            {
-                foreach (var order in conf.orders)
+                DIOS.Common.SqlManager managerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
+                DIOS.Common.SqlManager managerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
+                DataFetcher fetcher = new DataFetcher(managerDbCUP);
+                Trajectory trajectory = fetcher.GetTrajectorySat(timeFrom, timeTo);
+
+                log.WriteLine("trajectory.Count(): {0}", trajectory.Points.Count());
+
+                List<TimePeriod> shadowPeriods;// = new List<TimePeriod>();
+                List<Tuple<int, List<wktPolygonLit>>> partsLitAndNot;// = new List<Tuple<int,List<wktPolygonLit>>>();  
+                checkIfViewLaneIsLitWithTimeSpans(managerDbCUP, trajectory, timeFrom, timeTo, out partsLitAndNot, out shadowPeriods);
+
+                log.WriteLine("shadowPeriods.Count(): {0}", shadowPeriods.Count());
+                log.WriteLine("partsLitAndNot.Count(): {0}", partsLitAndNot.Count());
+
+                possibleConfs = getCaptureConfArray(
+                    new List<RequestParams>() { request },
+                    timeFrom,
+                    timeTo,
+                    trajectory,
+                    managerDbCUP,
+                    managerDbCUKS,
+                    shadowPeriods,
+                    new List<TimePeriod>()
+                    );
+
+                log.WriteLine("possibleConfs.Count(): {0}", possibleConfs.Count());
+                //possibleConfs.Sort(delegate(CaptureConf conf1, CaptureConf conf2)
+                //{
+                //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
+                //    double sum_cover1 = conf1.orders.Sum(conf => conf.intersection_coeff);
+                //});
+
+                double maxRoll = Math.Min(OptimalChain.Constants.max_roll_angle, request.Max_SOEN_anlge);
+                double viewAngle = maxRoll * 2 + OptimalChain.Constants.camera_angle;
+
+                log.WriteLine("maxRoll = {0}", maxRoll);
+                log.WriteLine("viewAngle = {0}", viewAngle);
+
+                List<Trajectory> possibleTrajParts = getLitTrajectoryParts(trajectory, timeFrom, timeTo, shadowPeriods);
+                log.WriteLine("possibleTrajParts.Count() = {0}", possibleTrajParts.Count());
+                List<CaptureConf> fictiveBigConfs = new List<CaptureConf>();
+                foreach (var traj in possibleTrajParts)
                 {
-                    var notCoveredBefore = new List<SphericalGeom.Polygon>();
-                    var toBeCoveredAfter = new List<SphericalGeom.Polygon>();
-                    for (int i = 0; i < region.Count; ++i)
-                    {
-                        try
-                        {
-                            var intAndSub = SphericalGeom.Polygon.IntersectAndSubtract(region[i], order.captured);
-                            notCoveredBefore.AddRange(intAndSub.Item1);
-                            toBeCoveredAfter.AddRange(intAndSub.Item2);
-                        }
-                        catch (Exception ex)
-                        {
-                            // @todo  по человечески надо бы...
-                            // Часть непокрытого региона -- слишком тонкая/некорректная. Пропускаем....
-                            region.RemoveAt(i);
-                            i--;
-                        }
-                    }
-                    double areaNotCoveredBefore = 0;
-                    for (int j = 0; j < notCoveredBefore.Count; ++j)
-                    {
-                        try
-                        {
-                            areaNotCoveredBefore += notCoveredBefore[j].Area;
-                        }
-                        catch (Exception ex)
-                        {
-                            /// Исключение должно тут случаться только из-за того,
-                            /// что очередное покрытие ещё ранее не покрытой части заказа
-                            /// столь тонкое, что почти отрезок.
-                            /// Define площадь "отрезка" 0.
-                        }
-                    }
-                    summ += order.intersection_coeff * areaNotCoveredBefore / order.captured.Area;
-                    notCoveredBefore.Clear();
-                    region.Clear();
-                    region = toBeCoveredAfter;
+                    SatLane viewLane = new SatLane(traj, 0, viewAngle);
+                    List<CaptureConf> curConfs = viewLane.getCaptureConfs(request);
+                    fictiveBigConfs.AddRange(curConfs);
                 }
-            }
+                log.WriteLine("fictiveBigConfs.Count() = {0}", fictiveBigConfs.Count());
 
-            if (summ > 1)
-                coverage = 1;
-            else
-                coverage = summ;
+                double summ = 0;
+                log.WriteLine("\n\n summ collecting started... \n");
+                List<SphericalGeom.Polygon> region = new List<Polygon>(request.polygons);
+                foreach (var conf in fictiveBigConfs)
+                {
+                    log.WriteLine("conf.dateFrom = {0}", conf.dateFrom);
+                    foreach (var order in conf.orders)
+                    {
+                        log.WriteLine("order.captured.ToString() = {0}", order.captured.ToString());
+                        var notCoveredBefore = new List<SphericalGeom.Polygon>();
+                        var toBeCoveredAfter = new List<SphericalGeom.Polygon>();
+                        for (int i = 0; i < region.Count; ++i)
+                        {
+                            try
+                            {
+                                var intAndSub = SphericalGeom.Polygon.IntersectAndSubtract(region[i], order.captured);
+                                notCoveredBefore.AddRange(intAndSub.Item1);
+                                toBeCoveredAfter.AddRange(intAndSub.Item2);
+                            }
+                            catch (Exception ex)
+                            {                                
+                                // Часть непокрытого региона -- слишком тонкая/некорректная. Пропускаем....
+                                log.WriteLine("catch (Exception ex) -  Часть непокрытого региона -- слишком тонкая/некорректная. Пропускаем....");
+                                region.RemoveAt(i);
+                                i--;
+                            }
+                        }
+                        double areaNotCoveredBefore = 0;
+                        for (int j = 0; j < notCoveredBefore.Count; ++j)
+                        {
+                            try
+                            {
+                                areaNotCoveredBefore += notCoveredBefore[j].Area;
+                            }
+                            catch (Exception ex)
+                            {
+                                log.WriteLine("catch (Exception ex) - очередное покрытие ещё ранее не покрытой части заказа");
+                                /// Исключение должно тут случаться только из-за того,
+                                /// что очередное покрытие ещё ранее не покрытой части заказа
+                                /// столь тонкое, что почти отрезок.
+                                /// Define площадь "отрезка" 0.
+                            }
+                        }
+                        summ += order.intersection_coeff * areaNotCoveredBefore / order.captured.Area;
+                        log.WriteLine("sum += {0}", order.intersection_coeff * areaNotCoveredBefore / order.captured.Area);
+                        notCoveredBefore.Clear();
+                        region.Clear();
+                        region = toBeCoveredAfter;
+                    }
+                    log.WriteLine("\n");
+                }
+
+                if (summ > 1)
+                    coverage = 1;
+                else
+                    coverage = summ;
+            }
         }
 
         private static void getCaptureConfArrayForTrajectoryForCoridor(
@@ -279,21 +322,23 @@ namespace SatelliteSessions
 
                     if (isCloudiness)
                         continue;
+                    
+                    cc.setPolygon(cp.Coridor);
 
-                    // зададим угол солнца
+                    // проверим угол солнца 
                     if (cc.dateFrom == cc.dateTo)
                     {
-                        TrajectoryPoint pointFrom = satTrajectory.GetPoint(cc.dateFrom);
-                        cc.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(cc.dateFrom).ToVector());
+                        if (!cc.checkSunAngle(satTrajectory.GetPoint(cc.dateFrom), sunTrajectory.GetPosition(cc.dateFrom).ToVector()))
+                            continue;
                     }
                     else
                     {
                         DateTime midTime;
                         midTime = cc.dateFrom.AddSeconds((cc.dateTo - cc.dateFrom).TotalSeconds);
-                        cc.setSun(satTrajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
+                        if (!cc.checkSunAngle(satTrajectory.GetPoint(midTime), sunTrajectory.GetPosition(midTime).ToVector()))
+                            continue;
                     }
-
-                    cc.setPolygon(cp.Coridor);
+                                        
                     captureConfs.Add(cc);
                 }
 
@@ -350,7 +395,7 @@ namespace SatelliteSessions
                         if (confs.Count == 0)
                             continue;
 
-                        //отбросим конфигурации, попавшие в облачные участки                        
+                        //отбросим конфигурации, попавшие в облачные участки и не удовлетворяющие требовниям по солнечному углу
                         for (int i = 0; i < confs.Count; i++)
                         {
                             foreach (CloudinessData cloud in meteoList)
@@ -358,6 +403,14 @@ namespace SatelliteSessions
                                 if (!CloudinessData.isCapConfInCloud(confs[i], cloud))
                                     continue;
 
+                                confs.RemoveAt(i);
+                                i--;
+                            }
+
+                            DateTime midTime;
+                            midTime = confs[i].dateFrom.AddSeconds((confs[i].dateTo - confs[i].dateFrom).TotalSeconds);
+                            if (!confs[i].checkSunAngle(trajectory.GetPoint(midTime), sunTrajectory.GetPosition(midTime).ToVector()))
+                            {
                                 confs.RemoveAt(i);
                                 i--;
                             }
@@ -395,22 +448,12 @@ namespace SatelliteSessions
                         pol = viewLane.getSegment(conf.dateFrom, conf.dateTo);
 
                     conf.setPolygon(pol);
+
                     if (conf.pitchArray.Count == 0) // если уже не рассчитали (в случае стереосъемки)
                         conf.calculatePitchArray(trajectory, pointFrom);
-
-                    if (conf.dateFrom == conf.dateTo)
-                    {
-                        conf.setSun(pointFrom.Position.ToVector(), sunTrajectory.GetPosition(conf.dateFrom).ToVector());
-                    }
-                    else
-                    {
-                        DateTime midTime;
-                        midTime = conf.dateFrom.AddSeconds((conf.dateTo - conf.dateFrom).TotalSeconds);
-                        conf.setSun(trajectory.GetPosition(midTime).ToVector(), sunTrajectory.GetPosition(midTime).ToVector());
-                    }
                 }
                 foreach (var conf in laneCaptureConfs)
-                    concurrentlist.Add(conf);
+                    concurrentlist.Add(conf);                
             }
 #if _PARALLEL_
 );
@@ -518,53 +561,6 @@ namespace SatelliteSessions
             , FlagsMPZ flags = null
             )
         {
-            List<string> log = new List<string>();
-            log.Add(requests.Count.ToString());
-            foreach (var r in requests)
-                log.Add(r.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(timeFrom.ToString() + "\n" + timeTo.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(silentRanges.Count.ToString());
-            foreach (var r in silentRanges)
-                log.Add(r.Item1.ToString() + " " + r.Item2.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(inactivityRanges.Count.ToString());
-            foreach (var r in inactivityRanges)
-                log.Add(r.Item1.ToString() + " " + r.Item2.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(routesToDownload.Count.ToString());
-            foreach (var r in routesToDownload)
-                log.Add(r.ToString());
-
-            log.Add(routesToDelete.Count.ToString());
-            foreach (var r in routesToDelete)
-                log.Add(r.ToString());
-
-            log.Add(conStringCUP);
-            log.Add(conStringCUKS);
-            log.Add(Nmax.ToString());
-            log.Add("\n");
-
-            log.Add(enabledStations.Count.ToString());
-            foreach (var r in enabledStations)
-                log.Add(r.ToString());
-
-            log.Add(flags.mainKeyBBZU.ToString() + "\n");
-            log.Add(flags.mainKeyBVIP.ToString() + "\n");
-            log.Add(flags.mainKeyVIP1.ToString() + "\n");
-            log.Add(flags.mainKeyYKPD1.ToString() + "\n");
-            log.Add(flags.mainKeyYKPD2.ToString() + "\n");
-            log.Add(flags.sessionKeyOn.ToString() + "\n");
-            log.Add(flags.useYKZU1.ToString() + "\n");
-            log.Add(flags.useYKZU2.ToString() + "\n");
-
-            System.IO.File.WriteAllLines("mpz_array.log", log);
-
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
 
@@ -626,11 +622,12 @@ namespace SatelliteSessions
             Console.Write(")");
 #endif
 
+
             // поиск оптимального набора маршрутов среди всех возможных конфигураций
             List<MPZParams> captureMPZParams = new Graph(confsToCapture).findOptimalChain(Nmax);
 
             // все параметры МПЗ на съемку, пришедшие из графа
-            //List<MPZ> captureMpz = new Graph(confsToCapture).findOptimalChain(Nmax).Select(mpz_param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
+            //List<MPZ> captureMpz = new Graph(confsToCapture).findOptimalChain(Nmax).Select(param => new MPZ(mpz_param, ManagerDbCUP, ManagerDbCUKS, flags ?? new FlagsMPZ())).ToList();
 
             // составим массив маршрутов на сброс (скачивание)
             List<RouteParams> allRoutesToDownload = new List<RouteParams>();
@@ -761,6 +758,28 @@ namespace SatelliteSessions
                     break;
                 }
             }
+
+            var shootingRoutesParams = mpzArray.SelectMany(mpz => mpz.Routes.Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).Select(r => r.Parameters).ToList();
+            var downloadingRoutesParams = mpzArray.SelectMany(mpz => mpz.Routes.Where(r => r.Parameters.type == WorkingType.Downloading)).Select(r => r.Parameters).ToList();
+
+            var shootingTimes = shootingRoutesParams.Select(r => Tuple.Create(r.id, new TimePeriod(r.start, r.end))).ToList();
+            var downTimes = downloadingRoutesParams.Select(r => Tuple.Create(r.binded_route.id, new TimePeriod(r.start, r.end))).ToList();
+
+            using (var log = System.IO.File.CreateText("autoplanning.log"))
+            {                
+                log.WriteLine("Shooting:");
+                foreach (var tp in shootingTimes)
+                {
+                    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
+                }
+
+                log.WriteLine("Downloading:");
+                foreach (var tp in downTimes)
+                {
+                    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
+                }
+            }
+
         }
 
         /// <summary>
