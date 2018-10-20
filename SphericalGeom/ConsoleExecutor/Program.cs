@@ -59,7 +59,7 @@ namespace ConsoleExecutor
             List<RouteMPZ> routesToDownload = new List<RouteMPZ>();
             List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
             string cup = System.IO.File.ReadLines("DBstring.conf").First();
-            string cuks = System.IO.File.ReadLines("DBstringCUKS.conf").First();//"Server=192.168.25.16;Database=SMS;USer=SMSUser;password=qwer1234QWER";
+            string cuks = System.IO.File.ReadLines("DBstringCUKS.conf").First();
             int Nmax = 1;
             List<MPZ> mpzarray;
             List<CommunicationSession> sessions;
