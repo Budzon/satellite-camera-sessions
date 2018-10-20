@@ -518,53 +518,6 @@ namespace SatelliteSessions
             , FlagsMPZ flags = null
             )
         {
-            List<string> log = new List<string>();
-            log.Add(requests.Count.ToString());
-            foreach (var r in requests)
-                log.Add(r.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(timeFrom.ToString() + "\n" + timeTo.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(silentRanges.Count.ToString());
-            foreach (var r in silentRanges)
-                log.Add(r.Item1.ToString() + " " + r.Item2.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(inactivityRanges.Count.ToString());
-            foreach (var r in inactivityRanges)
-                log.Add(r.Item1.ToString() + " " + r.Item2.ToString() + "\n");
-            log.Add("\n");
-
-            log.Add(routesToDownload.Count.ToString());
-            foreach (var r in routesToDownload)
-                log.Add(r.ToString());
-
-            log.Add(routesToDelete.Count.ToString());
-            foreach (var r in routesToDelete)
-                log.Add(r.ToString());
-
-            log.Add(conStringCUP);
-            log.Add(conStringCUKS);
-            log.Add(Nmax.ToString());
-            log.Add("\n");
-
-            log.Add(enabledStations.Count.ToString());
-            foreach (var r in enabledStations)
-                log.Add(r.ToString());
-
-            log.Add(flags.mainKeyBBZU.ToString() + "\n");
-            log.Add(flags.mainKeyBVIP.ToString() + "\n");
-            log.Add(flags.mainKeyVIP1.ToString() + "\n");
-            log.Add(flags.mainKeyYKPD1.ToString() + "\n");
-            log.Add(flags.mainKeyYKPD2.ToString() + "\n");
-            log.Add(flags.sessionKeyOn.ToString() + "\n");
-            log.Add(flags.useYKZU1.ToString() + "\n");
-            log.Add(flags.useYKZU2.ToString() + "\n");
-
-            System.IO.File.WriteAllLines("mpz_array.log", log);
-
             DIOS.Common.SqlManager ManagerDbCUP = new DIOS.Common.SqlManager(conStringCUP);
             DIOS.Common.SqlManager ManagerDbCUKS = new DIOS.Common.SqlManager(conStringCUKS);
 

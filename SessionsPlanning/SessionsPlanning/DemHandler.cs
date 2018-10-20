@@ -182,36 +182,36 @@ namespace SessionsPlanning
         public int GetHeight(GeoPoint gp)
         {
             int h = 0;
-            using (var sw = System.IO.File.AppendText("srtm.log"))
-            {
-                sw.WriteLine("Fetching height at lat={0:0.####}, lon={1:0.####}...", gp.Latitude, gp.Longitude);
+            //using (var sw = System.IO.File.AppendText("srtm.log"))
+            //{
+                //sw.WriteLine("Fetching height at lat={0:0.####}, lon={1:0.####}...", gp.Latitude, gp.Longitude);
                 if (Math.Abs(gp.Latitude) > 60 - 1e-12)
                 {
-                    sw.WriteLine("Latitude exceeds 60 degrees, no data there.");
+                    //sw.WriteLine("Latitude exceeds 60 degrees, no data there.");
                     h = 0;
                 }
                 else
                 {
                     Tile tile = new Tile(gp);
-                    sw.WriteLine("Looking for tile {0}", tile.Name);
+                    //sw.WriteLine("Looking for tile {0}", tile.Name);
                     if (nonzeroDems.Contains(tile.Name))
                     {
-                        sw.WriteLine("Tile found in the list.");
+                        //sw.WriteLine("Tile found in the list.");
                         h = GetHeight(GetRaster(tile), gp);
                     }
                     else
                     {
-                        sw.WriteLine("Tile not found in the list.");
+                        //sw.WriteLine("Tile not found in the list.");
                         h = 0;
                     }
                 }
-                sw.WriteLine("Returning {0}", h);
-                sw.WriteLine("\n\nKnown tiles as read from known_dem_cut.list (total {0})", nonzeroDems.Count);
-                foreach (string s in nonzeroDems)
-                    sw.WriteLine(s);
-                sw.WriteLine("---------------------------------------------------------------");
-                sw.WriteLine();
-            }
+                //sw.WriteLine("Returning {0}", h);
+                //sw.WriteLine("\n\nKnown tiles as read from known_dem_cut.list (total {0})", nonzeroDems.Count);
+                //foreach (string s in nonzeroDems)
+                //    sw.WriteLine(s);
+                //sw.WriteLine("---------------------------------------------------------------");
+                //sw.WriteLine();
+            //}
             return h;
         }
 
