@@ -34,6 +34,64 @@ namespace ConsoleExecutor
 {
     class Program
     {
+        public static void test_mixed_corridor()
+        {
+            RequestParams req0 = new RequestParams(398, 1,
+        DateTime.Parse("2010-02-04T00:00:00"),
+        DateTime.Parse("2029-02-04T00:00:00"),
+        _Max_SOEN_anlge: 12,
+        _minCoverPerc: 60,
+        _Max_sun_angle: 90,
+        _Min_sun_angle: 10,
+        _wktPolygon: "POLYGON((36.09283447265625 22.54363514480761, 36.04064941406249 22.566463643611826, 36.01593017578124 22.500504346337237, 36.08734130859375 22.46243658665314, 36.1724853515625 22.431974847069924, 36.2548828125 22.40150642025658, 36.331787109375 22.378650715952503, 36.40869140625 22.36087146117316, 36.43890380859375 22.4065849554798, 36.42242431640625 22.43451358088211, 36.37847900390625 22.447206553211814, 36.33453369140625 22.46497476287371, 36.29058837890625 22.47766494650162, 36.23565673828125 22.49289163186552, 36.16973876953125 22.51319127272339, 36.09283447265625 22.54363514480761))",
+        _polygonsToSubtract: new List<string>(),
+        _requestChannel: ShootingChannel.pk,
+        _shootingType: ShootingType.Coridor,
+        _compression: 2,
+        _albedo: 0
+        );
+            DateTime from = new DateTime(2019, 01, 4, 0, 0, 0);
+            DateTime to = new DateTime(2019, 01, 5, 23, 59, 59);
+
+            List<RequestParams> requests = new List<RequestParams> { req0 };
+            List<Tuple<DateTime, DateTime>> silence = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactive = new List<Tuple<DateTime, DateTime>>();
+            List<RouteMPZ> routesToDownload = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+            string cup = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuks = System.IO.File.ReadLines("DBstringCUKS.conf").First();//"Server=192.168.25.16;Database=SMS;USer=SMSUser;password=qwer1234QWER";
+            int Nmax = 1;
+            List<MPZ> mpzarray;
+            List<CommunicationSession> sessions;
+            List<SessionsPlanning.CommunicationSessionStation> antennas = new List<CommunicationSessionStation> { SessionsPlanning.CommunicationSessionStation.FIGS };
+            SatelliteSessions.Sessions.getMPZArray(requests, from, to, silence, inactive, routesToDownload, routesToDelete, cup, cuks, Nmax, out mpzarray, out sessions, antennas);
+            foreach (var mpz in mpzarray)
+            {
+                Console.WriteLine(mpz.Header.NPZ);
+                foreach (var r in mpz.Routes)
+                {
+                    Console.WriteLine(r.Ts);
+                }
+            }
+        }
+
+        public static void test_sequence_invalid()
+        {
+            string con = "Server=192.168.25.16;Database=SMS;USer=SMSUser;password=qwer1234QWER";
+            DateTime from = new DateTime(2019, 1, 3, 10, 35, 0);
+            List<MPZ> res = SessionsPlanning.TestSessionsSequenses.get8AreaShooting1Turn(from, con, con, 1);
+            foreach (var mpz in res)
+                foreach (var route in mpz.Routes)
+                    Console.WriteLine(new Polygon(route.Parameters.wktPolygon));
+        }
+
+        public static void test_dem()
+        {
+            DemHandler dem = new DemHandler("E:\\Repos\\satellite-camera-sessions\\SRTM\\v4\\", true, false, "E:\\Repos\\satellite-camera-sessions\\SRTM\\v4\\known_dem_cut.list");
+            //DemHandler dem = new DemHandler();
+            Console.WriteLine(dem.GetHeight(new GeoPoint(31, 32.5)));
+        }
+
         static public void test_getSunBlindingPeriods()
         {
             string cs = System.IO.File.ReadLines("DBstring.conf").First();
@@ -1990,13 +2048,15 @@ namespace ConsoleExecutor
             if (mpzArray.Count() == 0)
                 return;
         }
-
          
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
 
-            test_TestSessionsSequenses();
+            test_mixed_corridor();
+            //test_dem();
+            //test_sequence_invalid();
+            //test_TestSessionsSequenses();
             // no_sessions_error_07_10_18();
             //testMPZError_11_09_18();
             //Polygon np = new Polygon("POLYGON((-70.41771254836982 -33.17939931676813,-70.38981241588542 -33.07527460479839,-71.32099179025496 -32.82576584342755,-71.34889192273937 -32.929890555397286,-70.41771254836982 -33.17939931676813))");
