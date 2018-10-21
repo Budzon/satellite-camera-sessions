@@ -133,6 +133,7 @@ namespace OptimalChain
                 if ((s.shootingType != ShootingType.StereoTriplet) && (s.shootingType != ShootingType.Stereo))
                 {
                     vertices.Add(new Vertex(s.DefaultStaticConf(), s));
+                  //  Console.WriteLine("Add new verties pack");
                     for (int i = 0; i < s.timeDelta; i++)
                     {
                         vertices.Add(new Vertex(s.CreateStaticConf(i, 1), s));
@@ -185,13 +186,25 @@ namespace OptimalChain
 
         public bool CheckPossibility(StaticConf c1, StaticConf c2 )
         {
-
+            
             if (c1 == null || c2 == null) return false;
             
             double ms = c1.reConfigureMilisecinds(c2);
             double min_pause = Constants.CountMinPause(c1.type,c1.shooting_type,c1.shooting_channel, c2.type, c2.shooting_type,c2.shooting_channel);
             double needded_pause = ms + min_pause;
             double dms = (c2.dateFrom - c1.dateTo).TotalMilliseconds;
+
+            if(c2.dateFrom<c1.dateTo)
+            {
+                Console.WriteLine("ms = " + ms);
+                Console.WriteLine("min_pause = " + min_pause);
+                Console.WriteLine("needded_pause = " + needded_pause);
+                Console.WriteLine("dms = " + dms);
+
+            }
+
+            if(needded_pause < dms)
+                 Console.WriteLine("Possible edge from {0}-{1} to {2}-{3}", c1.dateFrom, c1.dateTo, c2.dateFrom, c2.dateTo);
 
             return (needded_pause < dms);
 
@@ -286,6 +299,10 @@ namespace OptimalChain
                     foreach(Edge e in v.in_edges)
                     {
                         double mark_new = e.weight + e.v1.mark;
+                        if((e.v1.s!=null)&&(e.v2.s!=null))
+                        {
+                            Console.WriteLine("using edge {0}-{1}  --  {2}-{3}", e.v1.s.dateFrom, e.v1.s.dateTo, e.v2.s.dateFrom, e.v2.s.dateTo);
+                        }
                         List<int> ids = new List<int>();
                         foreach (MPZParams m in e.v1.path)
                         {
@@ -301,6 +318,9 @@ namespace OptimalChain
                             {
                                 v.mark = mark_new;
                                 v.path = e.v1.path.ToList();
+
+                                Console.WriteLine("Final mark " +v.mark);
+                                Console.WriteLine("Final path "+ v.path.Last().N_routes);
                             }
                             else
                             {
@@ -311,12 +331,14 @@ namespace OptimalChain
                                             MPZParams lastMPZ = e.v1.path.Last();
                                             if (lastMPZ != null)
                                             {
-                                                RouteParams newRoute = new RouteParams(v.s);
+                                                
+                                              RouteParams newRoute = new RouteParams(v.s);
                                                 if ((lastMPZ.N_routes < 12)&&(lastMPZ.isCompatible(newRoute)))
                                                 {
                                                             v.mark = mark_new;
-                                                            v.path = e.v1.path.ToList();
+                                                            v.path = MPZParams.CopyMPZList(e.v1.path.ToList());
                                                             v.path.Last().AddRoute(new RouteParams(v.s));
+
                                                             ids.Add(v.s.id);
 
                                                 }
@@ -330,7 +352,8 @@ namespace OptimalChain
                                                             v.path = e.v1.path.ToList();
                                                             int N = lastMPZ.id+1;
                                                             v.path.Add(new MPZParams(N, new RouteParams(v.s)));
-                                                            ids.Add(v.s.id);
+
+                                                        ids.Add(v.s.id);
                                                         }
                                                     }
                                                     

@@ -2266,10 +2266,10 @@ namespace ConsoleExecutor
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
-            
-            test_mixed_corridor();
-//            test_getCoridorMpzArray();
- 
+            test_getCoridorMpzArray_20_10_18();
+            // test_mixed_corridor();
+            //            test_getCoridorMpzArray();
+
             DateTime end = DateTime.Now;
             Console.WriteLine();
             Console.WriteLine("Время выполнения : {0} ", (end - start).ToString());

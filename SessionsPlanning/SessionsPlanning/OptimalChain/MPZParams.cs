@@ -35,6 +35,19 @@ namespace OptimalChain
         public CommunicationSessionStation? Station { get; set; }
         public ObservableCollection<RouteParams> routes { get; set; }
 
+        public static List<MPZParams> CopyMPZList(List<MPZParams> origin)
+        {
+            List<MPZParams> copy = new List<MPZParams>();
+            if(origin!=null)
+            {
+                foreach(MPZParams o in origin)
+                {
+                    copy.Add(new MPZParams(o));
+                }
+            }
+            return copy;
+        }
+
         public MPZParams(MPZParams copyed)
         {
             id = copyed.id;
