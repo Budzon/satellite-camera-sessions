@@ -730,7 +730,9 @@ namespace SatelliteSessions
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
 
             deleteMpzParams.AddRange(MPZParams.FillMPZ(deleteRoutesParams, maxMpzNum));
-             
+            
+            
+
             mpzArray = new List<MPZ>();
             mpzArray.AddRange(captureMPZParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
             mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
@@ -766,19 +768,49 @@ namespace SatelliteSessions
             var downTimes = downloadingRoutesParams.Select(r => Tuple.Create(r.binded_route.id, new TimePeriod(r.start, r.end))).ToList();
 
             using (var log = System.IO.File.CreateText("autoplanning.log"))
-            {                
+            {
+                //log.WriteLine("Shooting:");
+                //foreach (var tp in shootingTimes)
+                //{
+                //    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
+                //}
+
+                //log.WriteLine("Downloading:");
+                //foreach (var tp in downTimes)
+                //{
+                //    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
+                //}
+
+
                 log.WriteLine("Shooting:");
-                foreach (var tp in shootingTimes)
+                foreach (var m in captureMPZParams)
                 {
-                    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
+                    foreach(var r in m.routes)
+                        log.WriteLine("{0} - {1}", r.start, r.end);
                 }
 
-                log.WriteLine("Downloading:");
-                foreach (var tp in downTimes)
+                log.WriteLine("Dowbloading:");
+                foreach (var m in downloadMpzParams)
                 {
-                    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
+                    foreach (var r in m.routes)
+                        log.WriteLine("{0} - {1}", r.start, r.end);
+                }
+
+
+                log.WriteLine("FINAL RESULT");
+                foreach (MPZ m in mpzArray)
+                {
+                    log.WriteLine("MPZ N = " + m.Header.NPZ);
+                    foreach (RouteMPZ r in m.Routes)
+                    {
+                        log.WriteLine("Route N = " + r.Nroute + " timestart = " + r.startTime);
+
+
+                    }
                 }
             }
+
+            
 
         }
 
