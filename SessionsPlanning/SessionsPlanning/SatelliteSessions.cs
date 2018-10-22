@@ -730,9 +730,7 @@ namespace SatelliteSessions
             List<MPZParams> deleteMpzParams = new List<MPZParams>();
 
             deleteMpzParams.AddRange(MPZParams.FillMPZ(deleteRoutesParams, maxMpzNum));
-            
-            
-
+                      
             mpzArray = new List<MPZ>();
             mpzArray.AddRange(captureMPZParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
             mpzArray.AddRange(downloadMpzParams.Select(mpz_param => new MPZ(mpz_param, conStringCUP, conStringCUKS, flags ?? new FlagsMPZ())));
@@ -761,55 +759,40 @@ namespace SatelliteSessions
                 }
             }
 
-            var shootingRoutesParams = mpzArray.SelectMany(mpz => mpz.Routes.Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).Select(r => r.Parameters).ToList();
-            var downloadingRoutesParams = mpzArray.SelectMany(mpz => mpz.Routes.Where(r => r.Parameters.type == WorkingType.Downloading)).Select(r => r.Parameters).ToList();
-
-            var shootingTimes = shootingRoutesParams.Select(r => Tuple.Create(r.id, new TimePeriod(r.start, r.end))).ToList();
-            var downTimes = downloadingRoutesParams.Select(r => Tuple.Create(r.binded_route.id, new TimePeriod(r.start, r.end))).ToList();
-
+            /*
             using (var log = System.IO.File.CreateText("autoplanning.log"))
             {
-                //log.WriteLine("Shooting:");
-                //foreach (var tp in shootingTimes)
-                //{
-                //    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
-                //}
+                var shootingRoutesParams = mpzArray.SelectMany(mpz => mpz.Routes.Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).Select(r => r.Parameters).ToList();
+                var downloadingRoutesParams = mpzArray.SelectMany(mpz => mpz.Routes.Where(r => r.Parameters.type == WorkingType.Downloading)).Select(r => r.Parameters).ToList();
 
-                //log.WriteLine("Downloading:");
-                //foreach (var tp in downTimes)
-                //{
-                //    log.WriteLine("{0} - {1}", tp.Item1, tp.Item2.ToString());
-                //}
-
-
+                var shootingTimes = shootingRoutesParams.Select(r => Tuple.Create(r.id, new TimePeriod(r.start, r.end))).ToList();
+                var downTimes = downloadingRoutesParams.Select(r => Tuple.Create(r.binded_route.id, new TimePeriod(r.start, r.end))).ToList();
+                   
                 log.WriteLine("Shooting:");
                 foreach (var m in captureMPZParams)
                 {
                     foreach(var r in m.routes)
-                        log.WriteLine("{0} - {1}", r.start, r.end);
+                        log.WriteLine("{0}:: {1} - {2}", r.NRoute, r.start, r.end);
                 }
 
                 log.WriteLine("Dowbloading:");
                 foreach (var m in downloadMpzParams)
                 {
                     foreach (var r in m.routes)
-                        log.WriteLine("{0} - {1}", r.start, r.end);
+                        log.WriteLine("{0}: {1} - {2}", r.binded_route.NRoute, r.start, r.end);
                 }
-
-
+                
                 log.WriteLine("FINAL RESULT");
                 foreach (MPZ m in mpzArray)
                 {
                     log.WriteLine("MPZ N = " + m.Header.NPZ);
                     foreach (RouteMPZ r in m.Routes)
                     {
-                        log.WriteLine("Route N = " + r.Nroute + " timestart = " + r.startTime);
-
-
+                        log.WriteLine("Route N = " + r.Nroute + " timestart = " + r.startTime );
                     }
                 }
             }
-
+            */
             
 
         }

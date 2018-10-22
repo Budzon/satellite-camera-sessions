@@ -146,7 +146,7 @@ namespace SatelliteSessions
                     Routes[i].Parameters.duration = Routes[i].Troute;
                 }
                 Routes[i].NPZ = Header.NPZ;
-                Routes[i].Nroute = i;
+                Routes[i].Nroute = Routes[i].Parameters.NRoute;
                 Routes[i].Ts = (int)(Routes[i].startTime - Header.ton).TotalMilliseconds;
                 if (i + 1 < routes.Count - 1)
                 {
