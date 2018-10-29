@@ -54,6 +54,23 @@ namespace OptimalChain
         public const int compressionDropCapture = 10; // значение коэффициета сжатия, при котором необходимо попробовать съемку со сбросом
         public const int minTrajectoryPassInterval = 120; //[секнуды] максимальный разрыв по времени между двумя точками траектории, при котором мы продолжаем с такой траекторией работать.
 
+        /// <summary>
+        /// Вернуть полный путь до файла known_dem_cut.list  
+        /// </summary>
+        /// <returns> полный путь до файла known_dem_cut.list  </returns>
+        static public string demHandlerKnownDemCut()
+        {
+            return AppDomain.CurrentDomain.BaseDirectory + "/bin/" + "known_dem_cut.list";
+        }
+
+        /// <summary>
+        /// Вернуть полный путь до файла dem_location.conf
+        /// </summary>
+        /// <returns> полный путь до файла dem_location.conf</returns>
+        static public string demHandlerDemLocation()
+        {
+            return AppDomain.CurrentDomain.BaseDirectory + "/bin/" + "dem_location.conf";
+        }
 
         public static int CountMinPause(WorkingType t1, ShootingType st1, ShootingChannel channel1, WorkingType t2, ShootingType st2, ShootingChannel channel2)
         {

@@ -93,10 +93,10 @@ namespace SessionsPlanning
         {
             if (nonzeroDems == null)
             {
-                nonzeroDems = new HashSet<string>(System.IO.File.ReadLines("known_dem_cut.list"));
+                nonzeroDems = new HashSet<string>(System.IO.File.ReadLines(OptimalChain.Constants.demHandlerKnownDemCut()));
             }
 
-            Path = System.IO.File.ReadLines("dem_location.conf").First();
+            Path = System.IO.File.ReadLines(OptimalChain.Constants.demHandlerDemLocation()).First();
             Prefix = "";
             Zip = true;
             Ftp = true;
