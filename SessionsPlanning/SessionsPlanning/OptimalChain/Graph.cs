@@ -128,18 +128,6 @@ namespace OptimalChain
             double needded_pause = reconf_s + Constants.minReconfStabilizationT;
             double dms = (v1.route.start - v2.route.end).TotalSeconds;
 
-            if(c2.dateFrom<c1.dateTo)
-            {
-                Console.WriteLine("ms = " + ms);
-                Console.WriteLine("min_pause = " + min_pause);
-                Console.WriteLine("needded_pause = " + needded_pause);
-                Console.WriteLine("dms = " + dms);
-
-            }
-
-            if(needded_pause < dms)
-                 Console.WriteLine("Possible edge from {0}-{1} to {2}-{3}", c1.dateFrom, c1.dateTo, c2.dateFrom, c2.dateTo);
-
             return (needded_pause < dms);
 
         }
@@ -210,16 +198,13 @@ namespace OptimalChain
                     foreach(Edge e in v.in_edges)
                     {
                         double mark_new = e.weight + e.v1.mark;
-                        if((e.v1.s!=null)&&(e.v2.s!=null))
-                        {
-                            Console.WriteLine("using edge {0}-{1}  --  {2}-{3}", e.v1.s.dateFrom, e.v1.s.dateTo, e.v2.s.dateFrom, e.v2.s.dateTo);
-                        }
-                        List<int> ids = new List<int>();
+                       
 
                         //Если новая метка больше, то надо оптимальный путь до текущей вершины обновить
                         if(mark_new>v.mark)
                         {
                             //Запоминаем, какие конфигурации уже участвуют в этом пути. Чтобы второй раз не снять то же самое
+                            List<int> ids = new List<int>();
                             foreach (MPZParams m in e.v1.path)
                             {
                                 foreach (RouteParams r in m.routes)
@@ -232,10 +217,7 @@ namespace OptimalChain
                             if (v.s == null) 
                             {
                                 v.mark = mark_new;
-                                v.path = e.v1.path.ToList();
-
-                                Console.WriteLine("Final mark " +v.mark);
-                                Console.WriteLine("Final path "+ v.path.Last().N_routes);
+                                v.path = MPZParams.CopyMPZList(e.v1.path.ToList());
                             }
 
                             //Если вершина содержит съемку
@@ -257,7 +239,7 @@ namespace OptimalChain
                                                 {
                                                             v.mark = mark_new;
                                                             v.path = MPZParams.CopyMPZList(e.v1.path.ToList());
-                                                            v.path.Last().AddRoute(new RouteParams(v.s));
+                                                            v.path.Last().AddRoute(v.route);
 
                                                             ids.Add(v.s.id);
 
@@ -273,7 +255,7 @@ namespace OptimalChain
 
                                                             v.path = MPZParams.CopyMPZList(e.v1.path.ToList());
                                                             int N = lastMPZ.id+1;
-                                                            v.path.Add(new MPZParams(N, new RouteParams(v.s)));
+                                                            v.path.Add(new MPZParams(N, v.route));
 
                                                         ids.Add(v.s.id);
                                                         }
@@ -287,7 +269,7 @@ namespace OptimalChain
                                         else
                                         {
                                             v.mark = mark_new;
-                                            v.path.Add(new MPZParams(maxMpzNum+1, new RouteParams(v.s)));
+                                            v.path.Add(new MPZParams(maxMpzNum+1, v.route));
                                             ids.Add(v.s.id);
                                         }
                                 }

@@ -59,19 +59,7 @@ namespace OptimalChain
             Station = copyed.Station;
         }
 
-        public static List<MPZParams> CopyMPZList(List<MPZParams> origin)
-        {
-            List<MPZParams> copy = new List<MPZParams>();
-            if (origin != null)
-            {
-                foreach (MPZParams o in origin)
-                {
-                    copy.Add(new MPZParams(o));
-                }
-            }
-            return copy;
-        }
-
+       
         public MPZParams(int ID)
         {
             id = ID;
