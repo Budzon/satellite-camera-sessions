@@ -18,7 +18,7 @@ namespace OptimalChain
         public const int MPZ_max_lasting_time = 1410;// максимальное время работы СОЭН без выключения (т.е. в одном МПЗ или в нескольних со флагом PWR_ON)
         public const int max_shooting_time_per_turn = 800;//максимальное время съемки без выключения СОЭН (т.е. в одном МПЗ или в нескольних со флагом PWR_ON)
 
-        public const int MPZ_delta = 485;//8 минут 5 секун, если перед этим МПЗ не было МПЗ с флагом PWR_ON;
+        public const int MPZ_delta = 510;//8 минут 30 секун, если перед этим МПЗ не было МПЗ с флагом PWR_ON;
 
         public const int shooting_route_init_time = 12;//время инициализации маршрута с любой съемкой
         public const int not_shooting_route_init_time = 8;//время инициализации маршрута на сброс/удаление
@@ -26,10 +26,12 @@ namespace OptimalChain
         public const int shooting_route_end_time = 9;//время окончания маршрута с любой съемкой
         public const int not_shooting_route_end_time = 5;//время окончания маршрута на сброс/удаление
 
-        //это надо изжить
+        public const int minReconfStabilizationT = 19;//минимальное время затрачиваемое на поворот -- это разгон, торможение, стаблилизация. Время на сам поворот считается отдельно
+
+        //это min_Delta_time надо изжить
         public const int min_Delta_time = 8;//минимальная пауза между маршрутами, отведенная на инициализацию нового и завершение предыдущего
 
-        public const int minReconfStabilizationT = 19;//минимальное время затрачиваемое на поворот -- это разгон, торможение, стаблилизация. Время на сам поворот считается отдельно
+        
 
         //***********************************************************************************
                 
