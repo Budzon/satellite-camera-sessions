@@ -12,46 +12,87 @@ namespace OptimalChain
     public class Graph
     {
         public List<Vertex> vertices { get; set; }
-        public List<Vertex> additional_vertices { get; set; }
-        
+
+        /// <summary>
+        /// Контруктор, создающий граф для планирования по набору возможных конфигураций
+        /// </summary>
+        /// <param name="strips">Набор возможных конфигураций съемки</param>
+        public Graph(List<CaptureConf> strips)
+        {
+            vertices = new List<Vertex>();
+
+            foreach (CaptureConf s in strips)
+            {
+                //Для всех не-стерео конфигураций создается много вершин: для всех возможных времен съемки ( 0<|t|<timeDelta)
+                if ((s.shootingType != ShootingType.StereoTriplet) && (s.shootingType != ShootingType.Stereo))
+                {
+                    vertices.Add(new Vertex(s.DefaultStaticConf(), s));
+                    for (int i = 0; i <= s.timeDelta; i++)
+                    {
+                        vertices.Add(new Vertex(s.CreateStaticConf(i, 1), s));
+                        vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
+                    }
+                }
+
+                //Для стерео вершины гененрируются с одинаковыми Id, потому что их надо снять все вместе.
+                //Для стерео еще и смещение по времени задается по ключу в  pitchArray
+                if ((s.shootingType == ShootingType.StereoTriplet) || (s.shootingType == ShootingType.Stereo))
+                {
+                    foreach (KeyValuePair<double, Tuple<double, double>> p in s.pitchArray)
+                    {
+                        //когда добираемся до последнего стереокадра (там p.Key>0), то в контруктор отправляется true 
+                        vertices.Add(new Vertex(s.CreateStaticConf(p.Key, 1), s, p.Key>0? true:false));
+                    }
+                }
+
+
+            }
+            
+            //Надо между вершинами проложить ребра графа, где это возможно
+            CreateEdges();
+
+        }
+
+        /// <summary>
+        /// Для всех пар вершин, для которых возоможно, создается ребро и ему присваивается вес, в зависимости от ценности съемки
+        /// </summary>
         public void CreateEdges()
         {
+            //стартовая и финальная вершина графа, между которыми будет проложен оптимальный путь
             Vertex A = new Vertex("A");
             Vertex B = new Vertex("B");
 
-            int count = 1;
-            int edge_count = 0;
-
+            //для каждой вершины графа....
             foreach (Vertex v1 in vertices)
             {
-                count++;
                 A.addEdge(v1, v1.value);
 
+                //ищущтся все возможные вершины, с которыми ее теоретически можно соединить
                 foreach (Vertex v2 in vertices.Where(i => (i.route.start >= v1.route.end.AddSeconds(Constants.minReconfStabilizationT))))
                 {
-                    if (((v1.s.shooting_type == ShootingType.StereoTriplet) || (v1.s.shooting_type == ShootingType.Stereo)))
+                    //если вершина -- сетерео, причем не последний кадр -- то надо искать ей пару с таким же id
+                    if (((v1.s.shooting_type == ShootingType.StereoTriplet) || (v1.s.shooting_type == ShootingType.Stereo))&&(!v1.lastStereoFrame))
                     {
                         if((v2.s.id == v1.s.id))
                         {
-                            double w = this.countEdgeWeight(v1, v2, false);
+                            double w = this.countEdgeWeight(v1, v2);
 
                             if (w > 0)
                             {
                                 v1.addEdge(v2, w);
-                                edge_count++;
                             }
                         }
                     }
+                    //для всех остальных вершин обязательно нужно искать пару с другим id
                     else
                     {
                         if((v2.s.id != v1.s.id))
                         {
-                            double w = this.countEdgeWeight(v1, v2,false);
+                            double w = this.countEdgeWeight(v1, v2);
 
                              if (w > 0)
                              {
                                  v1.addEdge(v2, w);
-                                 edge_count++;
                              }
                         }
                     }
@@ -69,71 +110,14 @@ namespace OptimalChain
             vertices.Insert(0, A);
             vertices.Add(B);
 
-            Console.WriteLine("Internal edges = " + edge_count);
-        }
-        public Graph (List<CaptureConf> strips)
-        {
-            vertices = new List<Vertex>();
-            additional_vertices = new List<Vertex>();
-            
-            foreach(CaptureConf s in strips)
-            {
-                Console.WriteLine("From {0} To {1} ", s.dateFrom.AddMilliseconds(-s.timeDelta), s.dateTo.AddMilliseconds(s.timeDelta));
-
-            //    Console.WriteLine("Conf " + s.rollAngle + " TimeStart " + s.dateFrom + " pitch[1] " + s.pitchArray[1]);
-                if ((s.shootingType != ShootingType.StereoTriplet) && (s.shootingType != ShootingType.Stereo))
-                {
-                    vertices.Add(new Vertex(s.DefaultStaticConf(), s));
-                    for (int i = 0; i < s.timeDelta; i++)
-                    {
-                        vertices.Add(new Vertex(s.CreateStaticConf(i, 1), s));
-                        vertices.Add(new Vertex(s.CreateStaticConf(i, -1), s));
-                    }
-                }
-                if ((s.shootingType == ShootingType.StereoTriplet) || (s.shootingType == ShootingType.Stereo))
-                {
-                  foreach (KeyValuePair<double, Tuple<double,double>> p in s.pitchArray)
-                  {
-                      vertices.Add(new Vertex(s.CreateStaticConf(p.Key, 1), s));
-                  }
-                }
-              
-                                    
-            }
-            Console.WriteLine("Number of Vertices = " + vertices.Count);
-            CreateEdges();
-
         }
 
-
-        public Vertex GenerateNewConf(CaptureConf s1, StaticConf s2, bool forward_delta)
-        {
-            int direction = -1;
-            if (forward_delta)
-                direction = 1;
-            for (int dt = 0; dt < s1.timeDelta; dt++)
-            {
-                StaticConf new_conf = s1.CreateStaticConf(dt,direction);
-                if(new_conf!=null)
-                {
-                 bool go = forward_delta ? CheckPossibility(new Vertex(s2, s1), new Vertex(new_conf, s1)) : CheckPossibility(new Vertex(new_conf, s1), new Vertex(s2, s1));
-                     if (go)
-                     {
-                         return new Vertex(new_conf, s1);
-                     }
-                    
-                }
-                else
-                {
-                    return null;
-                }
-               
-                   
-            }
-                return null;
-        }
-
-
+        /// <summary>
+        /// Проверка совместимости двух вершин-съемок
+        /// </summary>
+        /// <param name="v1">вершина, откуда совершается переход</param>
+        /// <param name="v2">вершина, куда совершается переход</param>
+        /// <returns></returns>
         public bool CheckPossibility(Vertex v1, Vertex v2 )
         {
 
@@ -146,59 +130,31 @@ namespace OptimalChain
             return (needded_pause < dms);
 
         }
-        public double countEdgeWeight(Vertex v1, Vertex v2, bool change_strips = true)
+
+        /// <summary>
+        /// Подсчет ценности перехода между вершинами
+        /// </summary>
+        /// <param name="v1">вершина, откуда совершается переход</param>
+        /// <param name="v2">вершина, куда совершается переход</param>
+        /// <returns></returns>
+        public double countEdgeWeight(Vertex v1, Vertex v2)
         {
             if (v2.s == null) return 0;
             if (v1.s == null) return v2.value;
 
+            //переход не имеет ценности, если нельзя перестроится между двумя вершинами-съемками вовремя
             if (CheckPossibility(v1, v2))
                     return v2.value;
 
-            if(!change_strips)
-               return -1;
-
-            ///то, что ниже выполняется при change_strips, но в нашей реализации это мертвая ветка
-
-            Vertex v3 = null;
-            if(v1.s.shooting_type != ShootingType.StereoTriplet)
-                    v3= GenerateNewConf(v1.cs, v2.s, false);
-
-            Vertex v4 = null;
-            if (v2.s.shooting_type != ShootingType.StereoTriplet) 
-                v4=GenerateNewConf(v2.cs, v1.s, true);
-            
-            if (v3 != null)
-               additional_vertices.Add(v3);
-            
-            if (v4 != null)
-                additional_vertices.Add(v4);
             return -1;
-            
-
-            //НИЖЕ ИДЕТ СЛУЧАЙ, КОГДА МОЖНО ПЕРЕКЛЮЧАТЬСЯ ПОСЕРЕДИНЕ ПОЛОСЫ
-
-            //double dt = 0;
-
-            //if (dms>0)
-            //    dt = ms - dms;
-            //else
-            //    dt = ms + Math.Abs(dms);
-
-            
-            //Vertex v = v1.value > v2.value ? v2 : v1;
-            //double l = (v.s.dateTo - v.s.dateFrom).TotalMilliseconds;
-
-            //if (dt >= l)
-            //    return -1;
-
-            //if ((l - dt) < Constants.min_shooting_time)
-            //    return -1;
-
-            //weight = v2.value - v.value * ( dt/l);
-
-            //return weight;
+                       
         }
 
+        /// <summary>
+        /// Топологическая сортировка вершин графа
+        /// </summary>
+        /// <param name="a">Стартовая вершина</param>
+        /// <returns></returns>
         public List<Vertex> deepGo(Vertex a)
         {
             List<Vertex> res = new List<Vertex>();
@@ -227,59 +183,74 @@ namespace OptimalChain
 
         public List<MPZParams> findOptimalChain(int maxMpzNum = 0)
         {
+            //Топологически сортируем вершины, берем обратный порядок
             List<Vertex> sorted = this.deepGo(vertices[0]);
-          
             sorted.Reverse();
             sorted[0].mark = 0;
-            foreach(Vertex v in sorted)
+
+            foreach (Vertex v in sorted)
             {
+                //Рассматриваем все входящие ребра
                 if(v.in_edges!=null)
                 {
+                    //Для каждой вершины, из которой исходит такое ребро считаем новую метку
                     foreach(Edge e in v.in_edges)
                     {
                         double mark_new = e.weight + e.v1.mark;
                         List<int> ids = new List<int>();
-                        foreach (MPZParams m in e.v1.path)
-                        {
-                            foreach (RouteParams r in m.routes)
-                            {
-                                ids.Add(r.id);
-                            }
-                        }
 
+                        //Если новая метка больше, то надо оптимальный путь до текущей вершины обновить
                         if(mark_new>v.mark)
                         {
+                            //Запоминаем, какие конфигурации уже участвуют в этом пути. Чтобы второй раз не снять то же самое
+                            foreach (MPZParams m in e.v1.path)
+                            {
+                                foreach (RouteParams r in m.routes)
+                                {
+                                    ids.Add(r.id);
+                                }
+                            }
+
+                            //Если текущая вершина не имеет конфигурации съемки, т.е. последняя или первая( второе -- вряд ли)
                             if (v.s == null) 
                             {
                                 v.mark = mark_new;
                                 v.path = e.v1.path.ToList();
                             }
+
+                            //Если вершина содержит съемку
                             else
                             {
+                                //Надо проверить, не снимали ли мы уже такую конфигурацию, если только это не стереотриплет. Если стереотриплет -- то пофиг
                                 if ((!ids.Contains(v.s.id)) || (v.s.shooting_type == ShootingType.StereoTriplet || v.s.shooting_type == ShootingType.Stereo))
                                 {
+                                    //Если путь не пустой
                                     if ((e.v1.path.Count > 0))
                                         {
+                                            //Берем последнее МПЗ из этого пути
                                             MPZParams lastMPZ = e.v1.path.Last();
                                             if (lastMPZ != null)
                                             {
-                                                RouteParams newRoute = new RouteParams(v.s);
+                                                RouteParams newRoute = v.route;
+                                                //если можно, добавляем маршрут в последнее МПЗ, перезаписываем метку вершины
                                                 if ((lastMPZ.N_routes < 12)&&(lastMPZ.isCompatible(newRoute)))
                                                 {
                                                             v.mark = mark_new;
-                                                            v.path = e.v1.path.ToList();
+                                                            v.path = MPZParams.CopyMPZList(e.v1.path.ToList());
                                                             v.path.Last().AddRoute(new RouteParams(v.s));
                                                             ids.Add(v.s.id);
 
                                                 }
                                                 else
                                                 {
+                                                    //Если в последнее нелья, но в принципе маршрут совместим с последним добавленным маршрутом, то создаем новое МПЗ.
                                                     if (lastMPZ.GetLastRoute()!=null)
                                                     {
                                                      if (lastMPZ.GetLastRoute().isCompatible(newRoute))
                                                         {
                                                             v.mark = mark_new;
-                                                            v.path = e.v1.path.ToList();
+
+                                                            v.path = MPZParams.CopyMPZList(e.v1.path.ToList());
                                                             int N = lastMPZ.id+1;
                                                             v.path.Add(new MPZParams(N, new RouteParams(v.s)));
                                                             ids.Add(v.s.id);
@@ -290,7 +261,7 @@ namespace OptimalChain
                                         
                                             }
                                         }
-
+                                        //Если путь еще пустой, просто добавляем новое МПЗ
                                         else
                                         {
                                             v.mark = mark_new;
@@ -338,6 +309,8 @@ namespace OptimalChain
         public string key { get; set; }
         public bool isVisited { get; set; }
 
+        public bool lastStereoFrame { get; set; }
+
         public List<Edge> edges { get; set; }
 
         public List<Edge> in_edges { get; set; }
@@ -346,7 +319,7 @@ namespace OptimalChain
 
         public List<MPZParams> path { get; set; }
 
-        public Vertex(string k)
+        public Vertex(string k, bool lasStereo = false)
         {
             s = null;
             key = k;
@@ -354,11 +327,13 @@ namespace OptimalChain
             value = 0;
             isVisited = false;
 
+            lastStereoFrame = lasStereo;
+
             mark = -1;
             edges = null;
             path = new List<MPZParams>();
         }
-        public Vertex(StaticConf ss,CaptureConf c)
+        public Vertex(StaticConf ss,CaptureConf c, bool lasStereo = false)
         {
             s = ss;
             cs = c;
@@ -367,7 +342,8 @@ namespace OptimalChain
             color = 0;
             value = countVertexPrice();
             isVisited = false;
-            
+
+            lastStereoFrame = lasStereo;
 
             mark = -1;
             edges = null;

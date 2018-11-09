@@ -1991,7 +1991,94 @@ namespace ConsoleExecutor
                 return;
         }
 
-         
+
+        static void testStereoPlanning()
+        {
+
+            DateTime dt1 = DateTime.Parse("03/01/2019 08:00:00");// new DateTime(2019, 2, 18, 2, 0, 0);
+            DateTime dt2 = DateTime.Parse("05/01/2019 08:00:00");// new DateTime(2019, 2, 18, 3, 0, 0);
+
+            string cupConnStr = System.IO.File.ReadLines("DBstring.conf").First();
+            string cuksConnStr = System.IO.File.ReadLines("DBstringCUKS.conf").First();
+            DIOS.Common.SqlManager CUKSmanagerDB = new DIOS.Common.SqlManager(cuksConnStr);
+            DIOS.Common.SqlManager CUPmanagerDB = new DIOS.Common.SqlManager(cupConnStr);
+
+            List<string> wktList = new List<string>(){
+            //"POLYGON((-5.689647031052209 18.43067548851792, -5.593535096548219 18.39569360520072, -5.5603529689477895 18.48686075151234, -5.656464903451779 18.521842634829554, -5.689647031052209 18.43067548851792))"
+            "POLYGON((-6.542358398437501 18.763313394613405,-6.49017333984375 18.609807415471877,-6.443481445312501 18.430107701569682,-6.33087158203125 18.30759580375384,-6.210021972656251 18.17194967991061,-6.015014648437501 18.11974996694643,-5.877685546875 18.091033487001283,-5.630493164062501 18.093644270502622,-5.3778076171875 18.16673041022193,-5.089416503906251 18.184997171309007,-4.930114746093751 18.294557510034196,-4.932861328125001 18.518678980869097,-4.9713134765625 18.79971808756919,-5.070190429687501 18.986817585497505,-5.259704589843751 19.127004504290554,-5.44097900390625 19.344836532905077,-5.74310302734375 19.38111371577189,-6.462707519531251 19.269665296502325,-6.542358398437501 18.763313394613405))"
+             };
+
+            List<string> holes = new List<string>();
+
+            List<RequestParams> reqlist = wktList.Select(polwtk =>
+             new RequestParams(382, 2,
+        DateTime.Parse("2010-02-04T00:00:00"),
+        DateTime.Parse("2029-02-04T00:00:00"),
+        _Max_SOEN_anlge: 12,
+        _minCoverPerc: 382,
+        _Max_sun_angle: 90,
+        _Min_sun_angle: 10,
+        _wktPolygon: "POLYGON((31.863684662988703 30.32982793899862,32.289317760343465 30.291424090861607,32.337545024511314 30.57890470711407,31.933884583406552 30.640943112822917,31.863684662988703 30.32982793899862))",
+        _polygonsToSubtract: new List<string>(),
+        _requestChannel: 0,
+        _shootingType: ShootingType.StereoTriplet,
+        _compression: 10,
+        _albedo: 0
+        )
+             ).ToList();
+
+
+            List<Tuple<DateTime, DateTime>> silenceRanges = new List<Tuple<DateTime, DateTime>>();
+            List<Tuple<DateTime, DateTime>> inactivityRanges = new List<Tuple<DateTime, DateTime>>();
+
+            List<RouteMPZ> routesToDrop = new List<RouteMPZ>();
+            List<RouteMPZ> routesToDelete = new List<RouteMPZ>();
+
+            List<MPZ> mpzArray;
+            List<CommunicationSession> sessions;
+
+
+            Sessions.getMPZArray(reqlist, dt1, dt2
+            , silenceRanges
+            , inactivityRanges
+            , routesToDrop
+            , routesToDelete
+            , cupConnStr
+            , cuksConnStr
+            , 356
+            , out mpzArray
+            , out sessions
+            , new List<SessionsPlanning.CommunicationSessionStation>
+            {   SessionsPlanning.CommunicationSessionStation.FIGS,
+                SessionsPlanning.CommunicationSessionStation.FIGS_Backup,
+                SessionsPlanning.CommunicationSessionStation.MIGS }
+            );
+
+            Console.WriteLine("res.Count = {0}", mpzArray.Count());
+
+            if (mpzArray.Count() == 0)
+                return;
+
+            Console.WriteLine("MPZ[0].Routes.Count = {0}", mpzArray[0].Routes.Count());
+
+            var shootingRoutes = mpzArray.SelectMany(mpz => mpz.Routes
+                    .Where(r => r.Parameters.type == WorkingType.Shooting || r.Parameters.type == WorkingType.ShootingSending)).ToList();
+
+            var shootingPolygons = shootingRoutes.Select(r => new Polygon(r.Parameters.wktPolygon)).ToList();
+
+            Console.Write("GEOMETRYCOLLECTION(");
+            Console.Write(Polygon.getMultipolFromPolygons(reqlist.Select(r => new Polygon(r.wktPolygon)).ToList()));
+            Console.Write(",");
+            // Console.WriteLine(WktTestingTools.getWKTStrip(dt1, dt2));
+            Console.Write(Polygon.getMultipolFromPolygons(shootingPolygons));
+
+
+            Console.Write(")");
+
+
+
+        }
+
         static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
@@ -2011,6 +2098,8 @@ namespace ConsoleExecutor
             //test_Polygons();
             //testStereo();
             //test_coridor_03_09_18();
+
+            testStereoPlanning();
 
             DateTime end = DateTime.Now;
             Console.WriteLine();

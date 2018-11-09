@@ -46,6 +46,19 @@ namespace OptimalChain
             Station = copyed.Station;
         }
 
+        public static List<MPZParams> CopyMPZList(List<MPZParams> origin)
+        {
+            List<MPZParams> copy = new List<MPZParams>();
+            if (origin != null)
+            {
+                foreach (MPZParams o in origin)
+                {
+                    copy.Add(new MPZParams(o));
+                }
+            }
+            return copy;
+        }
+
         public MPZParams(int ID)
         {
             id = ID;
@@ -178,6 +191,7 @@ namespace OptimalChain
                 }
             }
             
+            //теперь пытаемся вставить новый маршрут между двумя уже существующими
             for(int i=0;i<N_routes;i++)
             {
                 RouteParams r1 = routes[i];
@@ -192,7 +206,7 @@ namespace OptimalChain
                     if (r.start < insert_start || r.end > insert_end)
                         return false;
 
-                    //проверим, не сломается ли от этого связб со следующим МПЗ
+                    //проверим, не сломается ли от этого связь со следующим МПЗ
                     if (m_next!=null)
                     {
                         if (m_next.start < r.end.AddSeconds(Constants.MPZ_ending_Time + Constants.MPZ_delta))
@@ -214,6 +228,8 @@ namespace OptimalChain
                         this.end = r.end.AddSeconds(Constants.MPZ_ending_Time);
                     return true;
                 }
+
+                //если еще не дошли до последнего маршрута
                 else
                 {
                     RouteParams r2 = routes[i+1];
@@ -270,7 +286,7 @@ namespace OptimalChain
                     {
                         FTAs.Add(currentMPZ);
                         currentMPZ = null;
-                        if((FTAs.Count==0)||(FTAs.Last().isCompatible(r)))
+                        if(FTAs.Last().isCompatible(r))
                         {
                             currentMPZ = new MPZParams(N, r);   
                         }
