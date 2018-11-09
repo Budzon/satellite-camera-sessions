@@ -61,7 +61,7 @@ namespace GeometryTest
         }
 
 
-
+/*
         [TestMethod]
         public void Test_checkPNBRouteCompatible() ///(RouteParams routeParams, List<MPZ> pnb, out List<Tuple<int, int>> conflicts)
         {
@@ -131,6 +131,6 @@ namespace GeometryTest
 
 
         }
-
+*/
     }
 }

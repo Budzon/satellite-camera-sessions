@@ -125,8 +125,7 @@ namespace OptimalChain
         public double timeDelta { get; private set;}// возможный модуль отклонения по времени от съемки в надир. 
         public Dictionary<double, Tuple<double, double>> pitchArray {  get; private set; } //  Массив, ставящий в соответствие упреждение по времени значению угла тангажа и крену      
         public int MinCompression {  get; private set; }
-        public double AverAlbedo {  get; private set;}
-        public double SunAngle { get; private set; } // угол солнца снимаемой сцены
+        public double AverAlbedo {  get; private set;}        
         public SatelliteSessions.PolinomCoef poliCoef { get; private set; }
 
         public void setPolygon(SphericalGeom.Polygon pol)
@@ -134,18 +133,27 @@ namespace OptimalChain
             square = pol.Area;
             wktPolygon = pol.ToWtk();
         }
-
+              
         /// <summary>
-        /// рассчитаем угол солнца для центра кадра
+        /// если текущий угол солнца меньше минимального или больше максимального, то съемка невозможна
         /// </summary>
-        /// <param name="sunPos">координаты солнца относительно центра земли</param>
-        /// <param name="centrePos"> координаты центра кадра </param>
-        public void setSun(Vector3D sunPos, Vector3D centrePos)
-        {
+        /// <param name="sunPos">положение солнца относительно земли</param>
+        /// <returns>true - требования удовлетворены</returns>
+        public bool checkSunAngle(TrajectoryPoint point, Vector3D sunPos)
+        {            
+            var coord = new SatelliteTrajectory.SatelliteCoordinates(point, rollAngle, 0);
+            Vector3D centrePos = coord.MidViewPoint;
             Vector3D toSun = sunPos - centrePos; // вектор на солнце от центра кадра
-            SunAngle = Math.PI/2 - Vector3D.AngleBetween(toSun, centrePos);
+            double SunAngle = 90 - Vector3D.AngleBetween(toSun, centrePos);
+
+            foreach (var req in orders.Select(o => o.request))
+            {
+                if (SunAngle < req.Min_sun_angle || req.Max_sun_angle < SunAngle) 
+                    return false;
+            }
+            return true;
         }
-        
+         
         public void setPitchDependency(Dictionary<double, Tuple<double, double>> _pitchArray, double _timeDelta)
         {
             pitchArray = _pitchArray;
@@ -362,6 +370,35 @@ namespace OptimalChain
         public List<Polygon> polygons { get; private set; } // полигоны, которые необходимо покрыть в рамках этого заказа   
         public double Square { get; private set; }
         public double Cloudiness { get; private set; }
+
+        public override string ToString()
+        {
+            string res = "";
+            res += "Id=" + id.ToString() + "\n";
+            res += "Priority=" + priority.ToString() + "\n";
+            res += "From=" + timeFrom.ToString() + "\n";
+            res += "To=" + timeTo.ToString() + "\n";
+            res += "MaxSOENANgle=" + Max_SOEN_anlge.ToString() + "\n";
+            res += "minCoverPec=" + minCoverPerc.ToString() + "\n";
+            res += "MaxSun=" + Max_sun_angle.ToString() + "\n";
+            res += "MinSun=" + Min_sun_angle.ToString() + "\n";
+            res += "wkt=" + wktPolygon + "\n";
+            res += "# polygonToSUbtract=" + polygonToSubtract.Count + "\n";
+            foreach (var p in polygonToSubtract)
+                res += "    polygonToSub=" + p + "\n";
+            res += "RequestCHannel=" + requestChannel.ToString() + "\n";
+            res += "ShootingType=" + shootingType.ToString() + "\n";
+            res += "Compression=" + compression.ToString() + "\n";
+            res += "Albedo=" + albedo.ToString() + "\n";
+            res += "# polygons=" + polygons.Count.ToString() + "\n";
+            foreach (var p in polygons)
+                res += "    polygon=" + p.ToWtk() + "\n";
+            res += "Area=" + Square.ToString() + "\n";
+            res += "Cloud=" + Cloudiness.ToString() + "\n";
+
+            return res;
+        }
+
         /// <summary>
         /// разделим заказы на группы по признаку совместимых CaptureConf-ов
         /// </summary>
